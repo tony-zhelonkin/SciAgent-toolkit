@@ -1,0 +1,52 @@
+FROM tooluniverse-test:latest
+
+# Upgrade Node.js to v22+ (required for Codex CLI)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js version
+RUN node --version && npm --version
+
+# Install Codex CLI
+RUN npm install -g @openai/codex
+
+# Create Codex configuration directory
+RUN mkdir -p /root/.codex
+
+# Configure ToolUniverse for Codex CLI
+RUN cat > /root/.codex/config.toml <<'EOF'
+# Codex CLI MCP Server Configuration
+# Generated for ToolUniverse testing environment
+
+[mcp_servers.tooluniverse]
+command = "uv"
+args = [
+  "--directory",
+  "/opt/sciagent/tooluniverse-env",
+  "run",
+  "tooluniverse-smcp-stdio",
+  "--exclude-tool-types",
+  "PackageTool"
+]
+startup_timeout_sec = 60
+
+[mcp_servers.sequential-thinking]
+command = "npx"
+args = [
+  "-y",
+  "@modelcontextprotocol/server-sequential-thinking"
+]
+startup_timeout_sec = 30
+EOF
+
+# Verify Codex installation
+RUN codex --version || (echo "ERROR: Codex CLI installation failed" && exit 1)
+
+# Verify TOML config syntax (install toml parser for validation)
+RUN pip3 install tomli && \
+    python3 -c "import tomli; tomli.load(open('/root/.codex/config.toml', 'rb'))" || \
+    (echo "ERROR: Codex config is not valid TOML" && exit 1)
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
