@@ -1,0 +1,43 @@
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+# Install prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    git \
+    build-essential \
+    python3.10 \
+    python3.10-dev \
+    python3-pip \
+    ca-certificates \
+    locales \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.cargo/bin:$PATH"
+
+# Install Node.js 18+ (for sequential-thinking server)
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create installation directory
+WORKDIR /opt/sciagent
+
+# Copy SciAgent-toolkit scripts
+COPY scripts/ /opt/sciagent/scripts/
+
+# Test ToolUniverse installation
+RUN bash /opt/sciagent/scripts/mcp_servers/setup_tooluniverse.sh
+
+# Verify installation
+RUN uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-smcp-stdio --help || \
+    (echo "ERROR: ToolUniverse MCP server installation failed" && exit 1)
+
+WORKDIR /workspace
+CMD ["/bin/bash"]

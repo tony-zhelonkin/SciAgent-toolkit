@@ -1,0 +1,46 @@
+FROM tooluniverse-test:latest
+
+# Install Claude Code
+RUN curl -fsSL https://claude.ai/install.sh | bash -s latest
+
+# Add ~/.local/bin to PATH
+ENV PATH="/root/.local/bin:$PATH"
+
+# Create MCP configuration directory
+RUN mkdir -p /root/.config/claude
+
+# Configure ToolUniverse for Claude Code (without API keys for basic testing)
+RUN cat > /root/.config/claude/mcp-config.json <<'EOF'
+{
+  "mcpServers": {
+    "tooluniverse": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/opt/sciagent/tooluniverse-env",
+        "run",
+        "tooluniverse-smcp-stdio",
+        "--exclude-tool-types",
+        "PackageTool"
+      ]
+    },
+    "sequential-thinking": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-sequential-thinking"
+      ]
+    }
+  }
+}
+EOF
+
+# Verify Claude installation
+RUN claude --version || (echo "ERROR: Claude Code installation failed" && exit 1)
+
+# Verify MCP config is valid JSON
+RUN python3 -m json.tool /root/.config/claude/mcp-config.json > /dev/null || \
+    (echo "ERROR: MCP config is not valid JSON" && exit 1)
+
+WORKDIR /workspace
+CMD ["/bin/bash"]
