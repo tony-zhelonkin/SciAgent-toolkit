@@ -1,0 +1,45 @@
+MIT License
+
+Copyright (c) 2025 SciAgent Toolkit Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+---
+
+THIRD PARTY SERVICES AND TOOLS DISCLAIMER
+
+This software is a configuration and installation framework that integrates
+with third-party AI services, APIs, and tools. The authors and copyright
+holders of this software do not own, operate, or claim any rights to:
+
+- Claude Code, Claude AI, or any Anthropic services
+- OpenAI Codex, ChatGPT, GPT models, or any OpenAI services
+- Any MCP (Model Context Protocol) servers referenced herein
+- Any external APIs including but not limited to: PubMed, ChEMBL, UniProt,
+  DrugBank, FDA databases, ClinicalTrials.gov, Europe PMC, Semantic Scholar
+- Any other third-party tools, libraries, or services integrated by this toolkit
+
+Users of this software are responsible for:
+- Obtaining appropriate licenses, subscriptions, or API keys for all services
+- Complying with the terms of service of all third-party providers
+- Any costs associated with using external services
+- Ensuring proper authorization to access external APIs and data sources
+
+The integration of third-party services does not imply endorsement, ownership,
+or any special relationship with those service providers.

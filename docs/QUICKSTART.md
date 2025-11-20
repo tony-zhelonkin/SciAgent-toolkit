@@ -1,17 +1,17 @@
-# Quick Start Guide - MCP Infrastructure
+# Quick Start Guide - SciAgent Toolkit
 
 ## TL;DR - Get Started in 5 Minutes
 
 ### Step 1: Run the Installer (2 minutes)
 
 ```bash
-cd /data1/users/antonz/projects/GVDRP1_prj
+cd SciAgent-toolkit
 
 # Full installation (recommended)
-./setup_mcp_infrastructure.sh
+./scripts/setup_mcp_infrastructure.sh
 
 # OR selective installation
-./setup_mcp_infrastructure.sh --skip-codex  # Claude only
+./scripts/setup_mcp_infrastructure.sh --skip-codex  # Claude only
 ```
 
 ### Step 2: Configure PubMed (1 minute, Claude Code only)
@@ -53,11 +53,10 @@ Done! You now have a complete AI scientist agent.
 
 | Command | Installs | Use Case |
 |---------|----------|----------|
-| `./setup_mcp_infrastructure.sh` | Everything | Full setup |
-| `./setup_mcp_infrastructure.sh --skip-codex` | Claude + MCP | Claude only |
-| `./setup_mcp_infrastructure.sh --skip-claude` | Codex + MCP | Codex only |
-| `./setup_mcp_infrastructure.sh --mcp-only` | MCP servers only | Add to existing |
-| `./mcp_servers/setup_tooluniverse.sh` | ToolUniverse only | Scientific tools |
+| `./scripts/setup_mcp_infrastructure.sh` | Everything | Full setup |
+| `./scripts/setup_mcp_infrastructure.sh --skip-codex` | Claude + MCP | Claude only |
+| `./scripts/setup_mcp_infrastructure.sh --skip-claude` | Codex + MCP | Codex only |
+| `./scripts/setup_mcp_infrastructure.sh --mcp-only` | MCP servers only | Add to existing |
 
 ---
 
@@ -65,8 +64,8 @@ Done! You now have a complete AI scientist agent.
 
 ### Installation
 ```bash
-./setup_mcp_infrastructure.sh              # Full install
-./setup_mcp_infrastructure.sh --help       # Show options
+./scripts/setup_mcp_infrastructure.sh              # Full install
+./scripts/setup_mcp_infrastructure.sh --help       # Show options
 ```
 
 ### Verification
@@ -75,11 +74,6 @@ claude --version                           # Check Claude
 codex --version                            # Check Codex
 claude doctor                              # Run diagnostics
 python3 -m json.tool .mcp.json            # Validate config
-```
-
-### Testing
-```bash
-./test_tooluniverse.sh                     # Test ToolUniverse
 ```
 
 ### Usage
@@ -127,52 +121,22 @@ codex                                      # Start Codex CLI
 
 ---
 
-## File Structure at a Glance
-
-```
-GVDRP1_prj/
-├── QUICK_START.md                ← You are here
-├── MCP_SETUP_README.md           ← Full user guide
-├── ARCHITECTURE.md               ← System architecture
-├── INSTALLATION_SUMMARY.md       ← What was installed
-│
-├── setup_mcp_infrastructure.sh   ← MAIN INSTALLER
-├── install_claude.sh
-├── install_codex.sh
-│
-├── mcp_servers/
-│   ├── setup_serena.sh
-│   ├── setup_sequential_thinking.sh
-│   ├── setup_tooluniverse.sh
-│   └── setup_pubmed.sh
-│
-├── config/
-│   ├── README.md                 ← Configuration guide
-│   └── merge_mcp_configs.sh
-│
-├── .mcp.json                     ← Auto-generated
-├── tooluniverse-env/             ← Auto-generated
-└── test_tooluniverse.sh          ← Auto-generated
-```
-
----
-
 ## What Gets Installed
 
 ### Required (Always)
-- ✅ Claude Code CLI
-- ✅ Serena MCP (code intelligence)
-- ✅ Sequential Thinking MCP (reasoning)
-- ✅ uv/uvx (for Serena)
-- ✅ Node.js/npm (for Sequential)
+- Claude Code CLI
+- Serena MCP (code intelligence)
+- Sequential Thinking MCP (reasoning)
+- uv/uvx (for Serena)
+- Node.js/npm (for Sequential)
 
 ### Scientific Research (Recommended)
-- ✅ ToolUniverse MCP (600+ tools)
-- ✅ PubMed Plugin (36M+ articles)
+- ToolUniverse MCP (600+ tools)
+- PubMed Plugin (36M+ articles)
 
 ### Optional
-- ⚪ Codex CLI (alternative interface)
-- ⚪ Azure OpenAI (for summarization)
+- Codex CLI (alternative interface)
+- Azure OpenAI (for summarization)
 
 ---
 
@@ -209,10 +173,10 @@ claude
 
 ## Next Steps After Quick Start
 
-1. **Read the docs**: `MCP_SETUP_README.md`
-2. **Explore configuration**: `config/README.md`
-3. **Understand architecture**: `ARCHITECTURE.md`
-4. **Try example workflows**: See MCP_SETUP_README.md
+1. **Read the docs**: [INSTALLATION.md](INSTALLATION.md)
+2. **Explore configuration**: [CONFIGURATION.md](CONFIGURATION.md)
+3. **Understand architecture**: [ARCHITECTURE.md](ARCHITECTURE.md)
+4. **Try example workflows**: See [examples/](../examples/)
 5. **Customize**: Filter tools, add instances
 
 ---
@@ -273,16 +237,8 @@ export AZURE_OPENAI_API_KEY="your-key"
 export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
 
 # Re-run ToolUniverse setup
-./mcp_servers/setup_tooluniverse.sh
+./scripts/mcp_servers/setup_tooluniverse.sh
 ```
-
-### Multiple Tool Sets
-Create specialized instances:
-- `tooluniverse-lit`: Literature research only
-- `tooluniverse-drug`: Drug discovery only
-- `tooluniverse-genomics`: Genomics only
-
-See `config/README.md` for examples.
 
 ---
 
@@ -290,11 +246,11 @@ See `config/README.md` for examples.
 
 | Question | Resource |
 |----------|----------|
-| How do I install? | This file (QUICK_START.md) |
-| What can I do? | MCP_SETUP_README.md |
-| How do I configure? | config/README.md |
-| How does it work? | ARCHITECTURE.md |
-| What was installed? | INSTALLATION_SUMMARY.md |
+| How do I install? | This file (QUICKSTART.md) |
+| What can I do? | [INSTALLATION.md](INSTALLATION.md) |
+| How do I configure? | [CONFIGURATION.md](CONFIGURATION.md) |
+| How does it work? | [ARCHITECTURE.md](ARCHITECTURE.md) |
+| Common problems? | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) |
 
 ---
 
@@ -308,6 +264,4 @@ See `config/README.md` for examples.
 
 ---
 
-**Happy researching! 🔬🧬💊**
-
-For detailed documentation, see: `MCP_SETUP_README.md`
+For detailed documentation, see: [INSTALLATION.md](INSTALLATION.md)
