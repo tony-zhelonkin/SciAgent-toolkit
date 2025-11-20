@@ -100,9 +100,9 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Get script directory
+# Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$SCRIPT_DIR"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 # Detect OS
 OS_TYPE="$(uname -s)"
@@ -242,13 +242,8 @@ separator "Finalizing Configuration"
 
 # Merge all MCP configurations
 log_info "Merging MCP configurations..."
-if [ -f "${SCRIPT_DIR}/config/merge_mcp_configs.sh" ]; then
-    bash "${SCRIPT_DIR}/config/merge_mcp_configs.sh" || {
-        log_warn "MCP config merge had issues, but continuing..."
-    }
-else
-    log_warn "config/merge_mcp_configs.sh not found - using individual configs"
-fi
+# Note: Config merger not currently implemented
+log_info "Using individual MCP server configurations"
 
 # ============================================================================
 # 7. Verification
