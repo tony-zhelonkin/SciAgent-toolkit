@@ -1,6 +1,6 @@
 # Contributing to SciAgent Toolkit
 
-Thank you for your interest in contributing! This toolkit thrives on community contributions.
+Thank you for your interest in contributing! Contributions are welcome! .
 
 ## How to Contribute
 
@@ -146,7 +146,7 @@ claude doctor
 
 ## Contributing Examples
 
-Example workflows in `examples/` are highly valuable! When adding examples:
+Example workflows are an AI-generated draft right now, but take a look at  `examples/`, they might bey valuable! I plan on adding my own examples of how I work with agents.  When adding examples:
 
 1. Create a markdown file in `examples/`
 2. Include:
@@ -254,7 +254,7 @@ echo "✓ Prerequisites met"
 
 ## Review Process
 
-1. **Automated checks**: All PRs run automated validation
+1. **Automated checks**: I plan on including themn
 2. **Code review**: Maintainers review changes
 3. **Testing**: Changes are tested on multiple platforms
 4. **Documentation**: Ensure docs are updated
@@ -271,6 +271,5 @@ echo "✓ Prerequisites met"
 Contributors are recognized in:
 - GitHub contributors list
 - Release notes
-- Project documentation (for significant contributions)
 
-Thank you for contributing to SciAgent Toolkit!
+Thank you!
