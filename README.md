@@ -45,6 +45,18 @@ claude
 
 For detailed installation instructions, see [Installation Guide](docs/INSTALLATION.md).
 
+## Docker/Container Deployment
+
+**For local development:** Use the installation scripts above.
+
+**For production containerized deployments:** Use [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker), which:
+- Includes SciAgent-toolkit as a Git submodule
+- Handles build-time MCP server installation
+- Generates runtime MCP configurations
+- Provides full scientific computing environment (R 4.5, Python 3.10, bioinformatics packages)
+
+The Docker test images in `docker/test/` are for CI/CD validation only.
+
 ## What Gets Installed
 
 - **Claude Code** or **Codex CLI** (AI interfaces)

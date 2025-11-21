@@ -51,6 +51,8 @@ Three-tier system:
 - `docker/test/Dockerfile.codex-test` - Extends base with Codex CLI
 - `docker/test/test-all.sh` - Sequential build and validation of all images
 
+**Note:** These Docker images are for **CI/CD testing only**. For production container deployments, use [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker), which integrates this toolkit as a submodule and provides a complete scientific computing environment.
+
 ---
 
 ## Common Development Commands
@@ -203,79 +205,16 @@ To regenerate for a new environment:
   ```
 - **No API Key Required**: Uses public NCBI E-utilities
 
-### Tool Filtering for Context Management
+### Tool Filtering and Advanced Configuration
 
-ToolUniverse provides 600+ tools which can overflow Claude's context window. Use filtering:
+ToolUniverse provides 600+ tools which can overflow Claude's context window. You can filter tools using:
+- `--include-tools` - Specify specific tools to load
+- `--exclude-tool-types` - Exclude tool categories (e.g., `PackageTool`)
+- Multiple instances - Create specialized configurations for different workflows
 
-#### Include Specific Tools
-```json
-{
-  "mcpServers": {
-    "tooluniverse": {
-      "args": [
-        "--directory", "/absolute/path/to/tooluniverse-env",
-        "run", "tooluniverse-mcp",
-        "--include-tools", "EuropePMC_search_articles,ChEMBL_search_similar_molecules"
-      ]
-    }
-  }
-}
-```
+**Optional:** Enable Azure OpenAI auto-summarization for long outputs by setting `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` environment variables.
 
-#### Exclude Tool Categories
-```json
-{
-  "args": [
-    "--directory", "/absolute/path/to/tooluniverse-env",
-    "run", "tooluniverse-mcp",
-    "--exclude-tool-types", "PackageTool"
-  ]
-}
-```
-
-#### Multiple Specialized Instances
-```json
-{
-  "mcpServers": {
-    "tooluniverse-literature": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/tooluniverse-env", "run", "tooluniverse-mcp", "--include-tools", "EuropePMC_search_articles,PubMed_search"]
-    },
-    "tooluniverse-drugs": {
-      "command": "uv",
-      "args": ["--directory", "/path/to/tooluniverse-env", "run", "tooluniverse-mcp", "--include-tools", "ChEMBL_search_similar_molecules,FDA_get_drug_info"]
-    }
-  }
-}
-```
-
-### Optional: Azure OpenAI Summarization
-
-ToolUniverse can auto-summarize long outputs using Azure OpenAI:
-
-```bash
-# Add to ~/.bashrc or ~/.zshrc
-export AZURE_OPENAI_API_KEY="your-api-key"
-export AZURE_OPENAI_ENDPOINT="https://your-resource.openai.azure.com"
-
-# Re-run ToolUniverse setup to enable summarization
-./scripts/mcp_servers/setup_tooluniverse.sh
-```
-
-Configuration example:
-```json
-{
-  "mcpServers": {
-    "tooluniverse": {
-      "env": {
-        "AZURE_OPENAI_API_KEY": "${AZURE_OPENAI_API_KEY}",
-        "AZURE_OPENAI_ENDPOINT": "${AZURE_OPENAI_ENDPOINT}"
-      },
-      "args": ["--directory", "/path/to/tooluniverse-env", "run", "tooluniverse-mcp", "--hook-type", "SummarizationHook"]
-    }
-  }
-}
-```
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for detailed configuration examples.
 
 ---
 
@@ -353,95 +292,7 @@ UniProt → Protein Interaction DBs → PubMed → Sequential Analysis
 
 ## Troubleshooting
 
-### MCP Servers Not Loading
-
-**Symptom**: `/mcp` in Claude Code shows "No MCP servers configured"
-
-**Diagnosis**:
-```bash
-# Check if .mcp.json exists
-ls -la .mcp.json
-
-# Validate JSON syntax
-python3 -m json.tool .mcp.json
-
-# Check Claude Code diagnostics
-claude doctor
-```
-
-**Solutions**:
-1. Regenerate configuration: `./scripts/configure_mcp_servers.sh`
-2. Manually add servers: `claude mcp add server-name --scope local -- command args`
-3. Restart Claude Code
-
-### ToolUniverse Command Not Found
-
-**Symptom**: `tooluniverse-mcp: command not found` or similar
-
-**Diagnosis**:
-```bash
-# Check which command is installed
-uv --directory ./tooluniverse-env run tooluniverse-mcp --version
-uv --directory ./tooluniverse-env run tooluniverse-smcp-stdio --version
-```
-
-**Solution**: Update `.mcp.json` with correct command name detected above
-
-### Serena Installation Takes Too Long
-
-**Symptom**: First Serena run takes 5-15 minutes
-
-**Explanation**: Serena is a Rust project compiled on first run (one-time build)
-
-**Solutions**:
-1. **Wait it out**: First build is one-time, subsequent runs are instant
-2. **Skip Serena**: Use `--skip-serena` flag (not currently exposed but can modify scripts)
-3. **Pre-cache**: Run `uvx --from git+https://github.com/oraios/serena serena --help` before configuration
-
-### No .mcp.json After Installation
-
-**Symptom**: MCP servers installed but not configured
-
-**Solution**:
-```bash
-# Run configuration script manually
-./scripts/configure_mcp_servers.sh --project-dir "$(pwd)"
-
-# Verify it worked
-cat .mcp.json
-```
-
-### PubMed Not Available
-
-**Symptom**: PubMed doesn't appear in `/mcp` list
-
-**Explanation**: PubMed is a **Claude Code plugin**, not a standalone MCP server
-
-**Solution**:
-```bash
-claude
-/plugin marketplace add anthropics/life-sciences
-/plugin install pubmed@life-sciences
-# Press Ctrl+D to exit, then restart Claude Code
-```
-
-### Git SSH Errors During Serena Install
-
-**Symptom**: `Permission denied (publickey)` or `ssh_askpass: exec failed`
-
-**Explanation**: Fixed in v1.1.0+ by using HTTPS instead of SSH
-
-**Solution**:
-```bash
-# Update to latest version
-git pull origin main
-
-# Force Git to use HTTPS globally (if needed)
-git config --global url."https://github.com/".insteadOf git@github.com:
-
-# Re-run Serena setup
-./scripts/mcp_servers/setup_serena.sh
-```
+For common installation issues and solutions, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
@@ -515,126 +366,19 @@ SciAgent-toolkit/
 
 ## Adding New MCP Servers
 
-### Step 1: Create Setup Script
+To add new MCP servers to the toolkit:
+1. Create setup script in `scripts/mcp_servers/setup_newserver.sh`
+2. Add to main orchestrator `scripts/setup_mcp_infrastructure.sh`
+3. Update configuration generator `scripts/configure_mcp_servers.sh`
+4. Update documentation
 
-Create `scripts/mcp_servers/setup_newserver.sh`:
-
-```bash
-#!/usr/bin/env bash
-set -euo pipefail
-
-echo "Installing NewServer MCP..."
-
-# Check prerequisites
-if ! command -v required_command &>/dev/null; then
-    echo "Installing required_command..."
-    # Installation logic
-fi
-
-# Install MCP server
-echo "Setting up NewServer..."
-# Installation commands here
-
-# Test installation
-if command -v newserver &>/dev/null; then
-    echo "NewServer MCP installed successfully"
-else
-    echo "NewServer MCP installation failed"
-    exit 1
-fi
-```
-
-### Step 2: Add to Main Orchestrator
-
-Edit `scripts/setup_mcp_infrastructure.sh`:
-
-```bash
-# Add flag for new server
-INSTALL_NEWSERVER=true
-
-# Add to installation section
-if [ "$INSTALL_NEWSERVER" = true ]; then
-    separator "Installing NewServer MCP"
-    bash "${SCRIPT_DIR}/mcp_servers/setup_newserver.sh" || {
-        log_error "NewServer MCP setup failed"
-        exit 1
-    }
-fi
-```
-
-### Step 3: Update Configuration Generator
-
-Edit `scripts/configure_mcp_servers.sh`:
-
-```bash
-# Add detection logic
-if command -v newserver &>/dev/null; then
-    NEWSERVER_AVAILABLE=true
-fi
-
-# Add to JSON generation
-if [ "$NEWSERVER_AVAILABLE" = true ]; then
-    cat >> .mcp.json <<EOF
-    "newserver": {
-      "command": "newserver",
-      "args": ["start"]
-    }
-EOF
-fi
-```
-
-### Step 4: Document
-
-- Add to `docs/INSTALLATION.md`
-- Update `README.md` features list
-- Add usage examples to `docs/QUICKSTART.md`
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on adding new components.
 
 ---
 
-## Contributing Changes
+## Contributing
 
-### Before Making Changes
-
-1. Read `CONTRIBUTING.md` for guidelines
-2. Test changes on clean environment (use Docker)
-3. Validate all shell scripts with `shellcheck`
-4. Update documentation for new features
-
-### Testing Changes
-
-```bash
-# Test individual components
-./scripts/mcp_servers/setup_serena.sh
-
-# Test full installation
-./scripts/setup_mcp_infrastructure.sh
-
-# Test configuration generation
-./scripts/configure_mcp_servers.sh
-
-# Validate JSON
-python3 -m json.tool .mcp.json
-
-# Run comprehensive tests
-./scripts/test_installation.sh
-
-# Test in Docker
-cd docker/test
-./test-all.sh
-```
-
-### Commit Message Format
-
-```bash
-# Good examples
-git commit -m "Add support for custom ToolUniverse filters"
-git commit -m "Fix PATH configuration in install_claude.sh"
-git commit -m "Update INSTALLATION.md with macOS M1 instructions"
-
-# Use imperative mood
-# Keep first line under 72 characters
-# Add detailed description if needed
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, testing procedures, and commit message format.
 
 ---
 
