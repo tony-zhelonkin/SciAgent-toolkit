@@ -50,8 +50,8 @@ if ! command -v uv &>/dev/null; then
     if curl -LsSf https://astral.sh/uv/install.sh | sh; then
         log_ok "uv installed successfully"
 
-        # Add to PATH for current session
-        export PATH="$HOME/.cargo/bin:$PATH"
+        # Add to PATH for current session (UV installs to ~/.local/bin)
+        export PATH="$HOME/.local/bin:$PATH"
 
         # Verify installation
         if ! command -v uv &>/dev/null; then
@@ -85,7 +85,17 @@ log_info "Installing ToolUniverse..."
 # Create working directory if it doesn't exist
 mkdir -p "${TOOLUNIVERSE_ENV}"
 
+# Create virtual environment first
+log_info "Creating virtual environment..."
+if uv venv "${TOOLUNIVERSE_ENV}" &>/dev/null; then
+    log_ok "Virtual environment created"
+else
+    log_error "Failed to create virtual environment"
+    exit 1
+fi
+
 # Install ToolUniverse using uv
+log_info "Installing ToolUniverse package (this may take a few minutes)..."
 if uv --directory "${TOOLUNIVERSE_ENV}" pip install tooluniverse &>/dev/null; then
     log_ok "ToolUniverse installed successfully"
 else
@@ -102,18 +112,37 @@ else
 fi
 
 # ============================================================================
-# 3. Test MCP server
+# 3. Detect correct MCP command name
+# ============================================================================
+log_info "Detecting ToolUniverse MCP command..."
+
+# Try different command names to find which one works
+TOOLUNIVERSE_CMD=""
+if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp --help &>/dev/null; then
+    TOOLUNIVERSE_CMD="tooluniverse-mcp"
+    log_ok "Using command: tooluniverse-mcp"
+elif uv --directory "${TOOLUNIVERSE_ENV}" run python -m tooluniverse.smcp_server --help &>/dev/null; then
+    TOOLUNIVERSE_CMD="python -m tooluniverse.smcp_server"
+    log_ok "Using command: python -m tooluniverse.smcp_server"
+else
+    log_error "Could not detect ToolUniverse MCP command"
+    log_error "Tried: tooluniverse-mcp, python -m tooluniverse.smcp_server"
+    exit 1
+fi
+
+# ============================================================================
+# 4. Test MCP server
 # ============================================================================
 log_info "Testing ToolUniverse MCP server..."
 
-if timeout 10 uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio --help &>/dev/null; then
+if timeout 10 uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --help &>/dev/null; then
     log_ok "ToolUniverse MCP server can start"
 else
     log_warn "Could not verify MCP server startup (may need first-time initialization)"
 fi
 
 # ============================================================================
-# 4. Configure for Claude Code
+# 5. Configure for Claude Code
 # ============================================================================
 if command -v claude &>/dev/null; then
     log_info "Configuring ToolUniverse for Claude Code..."
@@ -141,7 +170,7 @@ if command -v claude &>/dev/null; then
     log_info ""
     log_info "To add ToolUniverse to Claude Code, run:"
     log_info "  claude mcp add tooluniverse ${CLAUDE_MCP_ARGS} -- \\"
-    log_info "    uv --directory ${TOOLUNIVERSE_ENV} run tooluniverse-smcp-stdio ${TOOLUNIVERSE_CMD_ARGS}"
+    log_info "    uv --directory ${TOOLUNIVERSE_ENV} run ${TOOLUNIVERSE_CMD} ${TOOLUNIVERSE_CMD_ARGS}"
     log_info ""
     log_info "To verify: claude mcp list"
     log_info ""
@@ -150,7 +179,7 @@ else
 fi
 
 # ============================================================================
-# 5. Configure for Codex CLI
+# 6. Configure for Codex CLI
 # ============================================================================
 if command -v codex &>/dev/null; then
     log_info "Configuring ToolUniverse for Codex CLI..."
@@ -180,7 +209,7 @@ args = [
   "--directory",
   "${TOOLUNIVERSE_ENV}",
   "run",
-  "tooluniverse-smcp-stdio"
+  "${TOOLUNIVERSE_CMD}"
 ]
 startup_timeout_sec = 60
 
@@ -191,7 +220,7 @@ startup_timeout_sec = 60
 #   "--directory",
 #   "${TOOLUNIVERSE_ENV}",
 #   "run",
-#   "tooluniverse-smcp-stdio",
+#   "${TOOLUNIVERSE_CMD}",
 #   "--include-tools",
 #   "EuropePMC_search_articles,ChEMBL_search_similar_molecules,search_clinical_trials"
 # ]
@@ -211,7 +240,7 @@ args = [
   "--directory",
   "${TOOLUNIVERSE_ENV}",
   "run",
-  "tooluniverse-smcp-stdio"
+  "${TOOLUNIVERSE_CMD}"
 ]
 startup_timeout_sec = 60
 EOF
@@ -222,19 +251,19 @@ else
 fi
 
 # ============================================================================
-# 6. Create helper scripts
+# 7. Create helper scripts
 # ============================================================================
 log_info "Creating helper scripts..."
 
 # Create a quick test script
-cat > "${PROJECT_DIR}/test_tooluniverse.sh" << 'EOF'
+cat > "${PROJECT_DIR}/test_tooluniverse.sh" << EOF
 #!/usr/bin/env bash
 # Quick test of ToolUniverse MCP server
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLUNIVERSE_ENV="${SCRIPT_DIR}/tooluniverse-env"
+SCRIPT_DIR="\$(cd "\$(dirname "\${BASH_SOURCE[0]}")" && pwd)"
+TOOLUNIVERSE_ENV="\${SCRIPT_DIR}/tooluniverse-env"
 
 echo "Testing ToolUniverse MCP server..."
-uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio --help
+uv --directory "\${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --help
 EOF
 
 chmod +x "${PROJECT_DIR}/test_tooluniverse.sh"
@@ -247,7 +276,7 @@ log_ok "ToolUniverse MCP Server setup complete"
 log_info ""
 log_info "Installation details:"
 log_info "  Location: ${TOOLUNIVERSE_ENV}"
-log_info "  Command: uv --directory ${TOOLUNIVERSE_ENV} run tooluniverse-smcp-stdio"
+log_info "  Command: uv --directory ${TOOLUNIVERSE_ENV} run ${TOOLUNIVERSE_CMD}"
 log_info ""
 log_info "Features available:"
 log_info "  - 600+ scientific tools across multiple domains"

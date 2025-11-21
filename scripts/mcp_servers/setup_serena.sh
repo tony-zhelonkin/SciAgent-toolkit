@@ -29,6 +29,40 @@ log_info "Setting up Serena MCP Server..."
 # ============================================================================
 log_info "Checking prerequisites..."
 
+# Check for git
+if ! command -v git &>/dev/null; then
+    log_error "git not found. Installing git..."
+
+    OS_TYPE="$(uname -s)"
+    case "$OS_TYPE" in
+        Linux*)
+            if sudo apt-get update && sudo apt-get install -y git &>/dev/null; then
+                log_ok "git installed successfully"
+            else
+                log_error "Failed to install git"
+                exit 1
+            fi
+            ;;
+        Darwin*)
+            if command -v brew &>/dev/null && brew install git &>/dev/null; then
+                log_ok "git installed via Homebrew"
+            else
+                log_error "git not available. Please install git manually"
+                log_info "On macOS, install Xcode Command Line Tools: xcode-select --install"
+                exit 1
+            fi
+            ;;
+        *)
+            log_error "git is required but not installed"
+            log_info "Please install git manually for your platform"
+            exit 1
+            ;;
+    esac
+else
+    GIT_VERSION=$(git --version 2>/dev/null || echo "unknown")
+    log_ok "git already installed (${GIT_VERSION})"
+fi
+
 # Check for uv/uvx
 if ! command -v uvx &>/dev/null; then
     log_error "uvx not found. Installing uv package manager..."
@@ -82,11 +116,32 @@ fi
 # ============================================================================
 log_info "Testing Serena MCP server..."
 
-if timeout 10 uvx --from git+https://github.com/oraios/serena serena --help &>/dev/null; then
+# Configure Git to use HTTPS instead of SSH for GitHub
+# This ensures users without SSH keys can still install Serena
+export GIT_TERMINAL_PROMPT=0
+export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o StrictHostKeyChecking=no"
+
+# Temporarily configure Git to prefer HTTPS over SSH
+git config --global --add url."https://github.com/".insteadOf git@github.com: 2>/dev/null || true
+git config --global --add url."https://".insteadOf ssh:// 2>/dev/null || true
+
+log_info "First-time download may take 30-60 seconds..."
+
+if timeout 30 uvx --from git+https://github.com/oraios/serena serena --help &>/dev/null; then
     log_ok "Serena MCP server can start"
 else
     log_warn "Could not verify Serena startup (may need first-time download)"
+    log_info "This is normal on first run - Git may need to clone the repository"
+    log_info "Serena will download automatically when first used in Claude Code"
 fi
+
+# Clean up temporary environment variables
+unset GIT_TERMINAL_PROMPT
+unset GIT_SSH_COMMAND
+
+# Revert Git config changes (only for this session)
+git config --global --unset-all url."https://github.com/".insteadOf 2>/dev/null || true
+git config --global --unset-all url."https://".insteadOf 2>/dev/null || true
 
 # ============================================================================
 # Summary

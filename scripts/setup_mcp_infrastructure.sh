@@ -240,10 +240,24 @@ fi
 # ============================================================================
 separator "Finalizing Configuration"
 
-# Merge all MCP configurations
-log_info "Merging MCP configurations..."
-# Note: Config merger not currently implemented
-log_info "Using individual MCP server configurations"
+# Configure MCP servers
+log_info "Configuring MCP servers..."
+
+if [ -f "${SCRIPT_DIR}/configure_mcp_servers.sh" ]; then
+    log_info "Running MCP configuration script..."
+    if bash "${SCRIPT_DIR}/configure_mcp_servers.sh" --project-dir "${PROJECT_DIR}"; then
+        log_ok "MCP servers configured successfully"
+    else
+        log_warn "MCP configuration failed or was skipped"
+        log_info "You can configure manually later by running:"
+        log_info "  ${SCRIPT_DIR}/configure_mcp_servers.sh"
+        # Don't exit - configuration failure is not critical
+    fi
+else
+    log_error "Configuration script not found: ${SCRIPT_DIR}/configure_mcp_servers.sh"
+    log_info "MCP servers installed but not configured"
+    log_info "You will need to configure them manually using: claude mcp add"
+fi
 
 # ============================================================================
 # 7. Verification

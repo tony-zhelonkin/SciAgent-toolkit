@@ -29,11 +29,23 @@ claude
 claude
 /mcp
 
-# You should see:
-# - serena
-# - sequential-thinking
-# - tooluniverse
-# - pubmed (after plugin install)
+# Expected Output:
+# MCP Servers (3 loaded):
+#   sequential-thinking: Structured reasoning and decision-making
+#   tooluniverse: 600+ scientific research tools
+#   serena: Semantic code search and editing
+# (4 servers after PubMed plugin install)
+```
+
+**If servers don't appear:**
+```bash
+# Check configuration file was created
+cat .mcp.json
+
+# Run configuration script manually if needed
+./scripts/configure_mcp_servers.sh
+
+# Restart Claude
 ```
 
 ### Step 4: Try It Out (1 minute)
@@ -150,15 +162,44 @@ source ~/.bashrc
 
 ### Problem: MCP servers not loading
 ```bash
+# Check if config file exists
+ls -la .mcp.json
+
+# Validate configuration
 claude doctor
 python3 -m json.tool .mcp.json
+
+# Manually configure if needed
+./scripts/configure_mcp_servers.sh
 ```
 
-### Problem: ToolUniverse not working
+### Problem: No .mcp.json file created
 ```bash
+# Configuration script wasn't run or failed
+./scripts/configure_mcp_servers.sh
+
+# Verify it worked
+cat .mcp.json
+```
+
+### Problem: ToolUniverse installation failed
+```bash
+# Likely virtual environment issue - fixed in v1.1.0+
+git pull origin main
+./scripts/mcp_servers/setup_tooluniverse.sh
+
+# Test installation
 ./test_tooluniverse.sh
-uv --version
-python3 --version  # Should be 3.10+
+```
+
+### Problem: Serena installation failed (SSH error)
+```bash
+# Git SSH issue - fixed in v1.1.0+
+git pull origin main
+./scripts/mcp_servers/setup_serena.sh
+
+# Test installation
+uvx --from git+https://github.com/oraios/serena serena --help
 ```
 
 ### Problem: PubMed not available
