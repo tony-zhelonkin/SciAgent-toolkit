@@ -1,9 +1,23 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(source .venv/bin/activate)",
+      "Bash(python:*)",
+      "Bash(tooluniverse-mcp:*)",
+      "Bash(timeout 10 uvx:*)",
+      "Bash(timeout 10 npx:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(mv:*)",
+      "Bash(./scripts/configure_mcp_servers.sh:*)",
+      "Bash(uv --directory ./scripts/tooluniverse-env run tooluniverse-mcp:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "sequential-thinking"
+  ]
 }

@@ -8,6 +8,7 @@
 test_tooluniverse.sh
 tooluniverse-env/
 scripts/.mcp_setup/
+.claude/settings.local.json
 
 # Python
 __pycache__/
