@@ -206,6 +206,81 @@ Then re-run the ToolUniverse setup to enable summarization:
 ./scripts/mcp_servers/setup_tooluniverse.sh
 ```
 
+## Automated MCP Configuration
+
+The installation script automatically creates a `.mcp.json` configuration file for Claude Code with all installed MCP servers.
+
+### What Gets Configured Automatically
+
+The following servers are automatically detected and configured:
+
+1. **Sequential Thinking** - If Node.js/npx is available
+2. **ToolUniverse** - If `tooluniverse-env/` directory exists
+3. **Serena** - If uvx is available
+
+### Configuration File Location
+
+```bash
+# Project-specific configuration (Claude Code)
+SciAgent-toolkit/.mcp.json
+
+# User-level configuration (Codex CLI)
+~/.codex/config.toml
+```
+
+**Important**: The `.mcp.json` file is **environment-specific** and contains absolute paths. It is automatically generated and should not be committed to version control (already in `.gitignore`).
+
+### Dev Container and Multi-Environment Setup
+
+When using Dev containers or multiple environments, regenerate the configuration after installation:
+
+```bash
+# After setting up in a new environment (Dev container, different machine, etc.)
+./scripts/configure_mcp_servers.sh --force
+```
+
+This ensures paths are correct for your current environment. The ToolUniverse installation can be in either:
+- `scripts/tooluniverse-env/` (default location)
+- `tooluniverse-env/` (project root)
+
+The configuration script automatically detects the correct location.
+
+### Manual Configuration (If Needed)
+
+If automatic configuration fails, you can manually configure MCP servers:
+
+```bash
+# Run the configuration script separately
+./scripts/configure_mcp_servers.sh
+
+# Or manually add servers via Claude Code
+claude mcp add sequential-thinking --scope local -- \
+  npx -y @modelcontextprotocol/server-sequential-thinking
+
+claude mcp add tooluniverse --scope local -- \
+  uv --directory "$(pwd)/tooluniverse-env" run tooluniverse-mcp
+
+claude mcp add serena --scope local -- \
+  uvx --from git+https://github.com/oraios/serena serena start-mcp-server
+```
+
+### Verifying Configuration
+
+```bash
+# Check configuration file exists
+ls -la .mcp.json
+
+# Validate JSON syntax
+python3 -m json.tool .mcp.json
+
+# List configured servers
+jq '.mcpServers | keys' .mcp.json
+
+# Start Claude and verify
+claude
+/mcp  # Should show all configured servers
+```
+
 ## Verification
 
 ### Check Claude Code Installation
@@ -395,11 +470,89 @@ rm test_tooluniverse.sh
 - [PubMed E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
 - [Serena GitHub](https://github.com/oraios/serena)
 
-## Troubleshooting
+## Common Installation Issues
 
-For common issues and solutions, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+### Issue: ToolUniverse Installation Fails
 
-For questions, see [FAQ.md](FAQ.md).
+**Error:** `No virtual environment found; run 'uv venv' to create an environment`
+
+**Cause:** Older versions of the script (before v1.1.0) had a bug where the virtual environment wasn't created before installation.
+
+**Solution:** Update to the latest version:
+```bash
+git pull origin main
+./scripts/mcp_servers/setup_tooluniverse.sh
+```
+
+### Issue: Serena Installation Fails with SSH Error
+
+**Error:** `Permission denied (publickey)` or `ssh_askpass: exec failed`
+
+**Cause:** Git attempting to use SSH instead of HTTPS for GitHub access.
+
+**Solution:** The latest version (v1.1.0+) automatically uses HTTPS. Update your installation:
+```bash
+git pull origin main
+./scripts/mcp_servers/setup_serena.sh
+```
+
+**Manual workaround (if needed):**
+```bash
+# Force Git to use HTTPS
+git config --global url."https://github.com/".insteadOf git@github.com:
+
+# Test Serena installation
+uvx --from git+https://github.com/oraios/serena serena --help
+```
+
+### Issue: No .mcp.json Created
+
+**Error:** MCP servers installed but not configured, `/mcp` shows "No MCP servers configured"
+
+**Cause:** Configuration not automated in versions before v1.1.0.
+
+**Solution:** Run the configuration script:
+```bash
+./scripts/configure_mcp_servers.sh
+```
+
+### Issue: ToolUniverse Command Not Found
+
+**Error:** `tooluniverse-mcp: command not found` or similar
+
+**Cause:** The command name varies between ToolUniverse versions.
+
+**Solution:** The latest script auto-detects the correct command. Check which is installed:
+```bash
+uv --directory ./tooluniverse-env run tooluniverse-mcp --version
+# OR
+uv --directory ./tooluniverse-env run tooluniverse-smcp-stdio --version
+```
+
+Update `.mcp.json` with the correct command name if needed.
+
+### Issue: Claude Code Shows "MCP Server Failed to Start"
+
+**Solution:** Test each server independently:
+```bash
+# Test Sequential Thinking
+npx -y @modelcontextprotocol/server-sequential-thinking --help
+
+# Test ToolUniverse
+./test_tooluniverse.sh
+
+# Test Serena
+uvx --from git+https://github.com/oraios/serena serena --help
+
+# Check Claude logs
+claude doctor
+```
+
+## Additional Troubleshooting
+
+For more common issues and solutions, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+For frequently asked questions, see [FAQ.md](FAQ.md).
 
 ---
 

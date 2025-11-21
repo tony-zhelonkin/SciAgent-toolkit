@@ -91,6 +91,6 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 
 This project integrates and builds upon:
 - [Serena MCP Server](https://github.com/oraios/serena)
-- [ToolUniverse](https://github.com/greedyai/tool-universe)
-- [Sequential Thinking MCP Server](https://github.com/modelcontextprotocol/server-sequential-thinking)
-- [Model Context Protocol](https://modelcontextprotocol.io/)
+- [ToolUniverse](https://github.com/mims-harvard/ToolUniverse)
+- [Sequential Thinking MCP Server](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)
+- [Model Context Protocol](https://modelcontextprotocol.io)
