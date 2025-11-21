@@ -2,6 +2,45 @@
 
 Common issues and solutions for the SciAgent Toolkit.
 
+## Quick Diagnostics
+
+Run these commands for automated diagnostics:
+
+```bash
+# Check installation status
+claude doctor
+
+# Verify MCP configuration
+python3 -m json.tool .mcp.json
+
+# Test individual servers
+npx -y @modelcontextprotocol/server-sequential-thinking --help
+./test_tooluniverse.sh
+uvx --from git+https://github.com/oraios/serena serena --help
+```
+
+---
+
+## Critical Bug Fixes (v1.1.0+)
+
+**If you installed before v1.1.0, please update:**
+
+```bash
+cd SciAgent-toolkit
+git pull origin main
+
+# Re-run installation to get fixes
+./scripts/setup_mcp_infrastructure.sh --mcp-only
+```
+
+**What was fixed:**
+- ✅ ToolUniverse virtual environment creation
+- ✅ Serena SSH/HTTPS authentication
+- ✅ Automated MCP configuration
+- ✅ Command name auto-detection
+
+---
+
 ## Installation Issues
 
 ### Issue: Claude Code or Codex not found after installation
@@ -88,6 +127,131 @@ brew install node
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
 sudo apt-get install -y nodejs
+```
+
+### Issue: ToolUniverse Virtual Environment Error
+
+**Symptoms**:
+```bash
+error: No virtual environment found
+error: run `uv venv` to create an environment
+[ERROR] Failed to install ToolUniverse
+```
+
+**Cause**: Bug in v1.0.x - missing `uv venv` command before installation
+
+**Solution (v1.1.0+)**:
+```bash
+# Update to latest version
+git pull origin main
+./scripts/mcp_servers/setup_tooluniverse.sh
+```
+
+**Manual Fix**:
+```bash
+cd SciAgent-toolkit
+uv venv tooluniverse-env
+uv --directory tooluniverse-env pip install tooluniverse
+
+# Verify installation
+uv --directory tooluniverse-env run python -c "import tooluniverse; print(tooluniverse.__version__)"
+```
+
+### Issue: Serena SSH Authentication Failure
+
+**Symptoms**:
+```bash
+Permission denied (publickey)
+ssh_askpass: exec(/path/to/ssh-askpass): No such file or directory
+git@github.com: Permission denied (publickey)
+failed to fetch commit
+```
+
+**Cause**: Git defaulting to SSH instead of HTTPS for GitHub
+
+**Solution (v1.1.0+ - Automatic)**:
+```bash
+git pull origin main
+./scripts/mcp_servers/setup_serena.sh
+```
+
+**Manual Fix**:
+```bash
+# Force Git to use HTTPS
+git config --global url."https://github.com/".insteadOf git@github.com:
+
+# Test Serena installation
+uvx --from git+https://github.com/oraios/serena serena --help
+```
+
+**Alternative - Set up SSH keys** (if you prefer SSH):
+```bash
+# Generate SSH key
+ssh-keygen -t ed25519 -C "your_email@example.com"
+
+# Add to GitHub
+cat ~/.ssh/id_ed25519.pub
+# Copy and add to https://github.com/settings/keys
+```
+
+### Issue: MCP Configuration Not Created
+
+**Symptoms**:
+- No `.mcp.json` file in project directory
+- `/mcp` shows "No MCP servers configured"
+- Manual configuration required
+
+**Cause**: Missing in v1.0.x - config merger not implemented
+
+**Solution (v1.1.0+)**:
+```bash
+# Run configuration script
+./scripts/configure_mcp_servers.sh
+
+# Verify it worked
+ls -la .mcp.json
+python3 -m json.tool .mcp.json
+
+# Start Claude and check
+claude
+/mcp  # Should show all servers
+```
+
+**Manual Configuration**:
+```bash
+# Add servers one by one
+claude mcp add sequential-thinking --scope local -- \
+  npx -y @modelcontextprotocol/server-sequential-thinking
+
+claude mcp add tooluniverse --scope local -- \
+  uv --directory "$(pwd)/tooluniverse-env" run tooluniverse-mcp
+
+claude mcp add serena --scope local -- \
+  uvx --from git+https://github.com/oraios/serena serena start-mcp-server
+```
+
+### Issue: ToolUniverse Command Not Found
+
+**Symptoms**:
+```bash
+tooluniverse-mcp: command not found
+# OR
+tooluniverse-smcp-stdio: command not found
+```
+
+**Cause**: Command name varies between ToolUniverse versions
+
+**Solution (v1.1.0+ - Auto-detected)**:
+The latest script automatically detects the correct command name.
+
+**Manual Check**:
+```bash
+# Try both possible commands
+uv --directory ./tooluniverse-env run tooluniverse-mcp --version
+# OR
+uv --directory ./tooluniverse-env run tooluniverse-smcp-stdio --version
+
+# Update .mcp.json with the working command
 ```
 
 ## MCP Server Issues

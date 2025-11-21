@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install uv package manager
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.cargo/bin:$PATH"
+ENV PATH="/root/.local/bin:$PATH"
 
-# Install Node.js 18+ (for sequential-thinking server)
-RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+# Install Node.js 20+ (for sequential-thinking server)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     rm -rf /var/lib/apt/lists/*
 
@@ -32,12 +32,19 @@ WORKDIR /opt/sciagent
 # Copy SciAgent-toolkit scripts
 COPY scripts/ /opt/sciagent/scripts/
 
-# Test ToolUniverse installation
-RUN bash /opt/sciagent/scripts/mcp_servers/setup_tooluniverse.sh
+# Test ToolUniverse installation with verbose output
+RUN bash -x /opt/sciagent/scripts/mcp_servers/setup_tooluniverse.sh
 
-# Verify installation
-RUN uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-smcp-stdio --help || \
-    (echo "ERROR: ToolUniverse MCP server installation failed" && exit 1)
+# Verify installation - check Python import
+RUN uv --directory /opt/sciagent/tooluniverse-env run python -c "import tooluniverse; print(f'ToolUniverse version: {tooluniverse.__version__}')"
+
+# Verify MCP server works - try both possible command names
+RUN uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-mcp --help || \
+    uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-smcp-stdio --help || \
+    (echo "ERROR: Neither ToolUniverse MCP command works" && exit 1)
+
+# Create test success marker
+RUN echo "ToolUniverse Docker test passed" > /tmp/test-success.txt
 
 WORKDIR /workspace
 CMD ["/bin/bash"]

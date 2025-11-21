@@ -19,13 +19,29 @@ A modular infrastructure for building AI-powered scientific research agents usin
 git clone https://github.com/[your-username]/SciAgent-toolkit
 cd SciAgent-toolkit
 
-# Run the installer
+# Run the automated installer
 ./scripts/setup_mcp_infrastructure.sh
 
 # Verify installation
 claude
-/mcp  # Should show all installed MCP servers
+/mcp  # Should show: sequential-thinking, tooluniverse, serena
+
+# Optional: Add PubMed plugin (manual step required)
+/plugin marketplace add anthropics/life-sciences
+/plugin install pubmed@life-sciences
+# Then restart Claude
 ```
+
+**What gets installed automatically:**
+- Claude Code CLI (if not already installed)
+- Sequential Thinking MCP server (structured reasoning)
+- ToolUniverse MCP server (600+ scientific tools)
+- Complete MCP configuration in `.mcp.json`
+- All dependencies (uv, Node.js if needed)
+
+**Optional components:**
+- **Serena MCP server** (code intelligence) - Requires 5-15 min build time, skipped by default. Install manually if needed.
+- **PubMed** - Requires manual plugin installation via Claude Code marketplace (see above).
 
 For detailed installation instructions, see [Installation Guide](docs/INSTALLATION.md).
 
@@ -67,10 +83,38 @@ See [agents/README.md](agents/README.md) for details.
 
 ## Requirements
 
+**Minimum:**
 - Python 3.10+
-- Node.js 18+ (for Sequential Thinking server)
-- macOS or Linux (WSL supported on Windows)
+- Node.js 18+
+- 2GB free disk space
 - Internet connection
+- macOS or Linux (WSL supported on Windows)
+
+**Recommended:**
+- Python 3.11+
+- Node.js 20+
+- 5GB free disk space (for ToolUniverse with all dependencies)
+- Stable internet connection
+
+## Known Limitations
+
+- **Serena**: Optional component, requires 5-15 min build from source (skipped by default to save time)
+- **PubMed**: Requires manual plugin installation via Claude Code marketplace
+- **ToolUniverse**: Large installation (~300MB with dependencies)
+- **SSH Keys**: Not required - all installations use HTTPS
+
+### Installing Optional Serena
+
+If you want code intelligence features, install Serena manually:
+
+```bash
+# This will take 5-15 minutes on first run (one-time build)
+uvx --from git+https://github.com/oraios/serena serena start-mcp-server --help
+
+# Then add to Claude Code
+claude mcp add serena --scope local -- \
+  uvx --from git+https://github.com/oraios/serena serena start-mcp-server
+```
 
 ## License
 

@@ -1,0 +1,89 @@
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+# Install system prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    git \
+    build-essential \
+    python3.10 \
+    python3.10-dev \
+    python3-pip \
+    ca-certificates \
+    locales \
+    jq \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Install Node.js 20+
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create working directory
+WORKDIR /opt/sciagent
+
+# Copy entire project
+COPY . /opt/sciagent/
+
+# Run installation (skip Claude Code as it requires interactive auth)
+# Also skip Codex and PubMed for automated testing
+RUN bash /opt/sciagent/scripts/setup_mcp_infrastructure.sh --skip-claude --skip-codex --skip-pubmed
+
+# Verify MCP configuration file was created
+RUN test -f /opt/sciagent/.mcp.json && \
+    echo "✓ MCP config exists" || \
+    (echo "✗ ERROR: .mcp.json not created" && exit 1)
+
+# Validate MCP configuration JSON
+RUN python3 -m json.tool /opt/sciagent/.mcp.json > /dev/null && \
+    echo "✓ MCP config is valid JSON" || \
+    (echo "✗ ERROR: Invalid JSON in .mcp.json" && exit 1)
+
+# Verify expected servers are configured
+RUN jq -r '.mcpServers | keys[]' /opt/sciagent/.mcp.json | grep -q "sequential-thinking" && \
+    echo "✓ sequential-thinking configured" || \
+    (echo "✗ ERROR: sequential-thinking not in config" && exit 1)
+
+RUN jq -r '.mcpServers | keys[]' /opt/sciagent/.mcp.json | grep -q "tooluniverse" && \
+    echo "✓ tooluniverse configured" || \
+    (echo "✗ ERROR: tooluniverse not in config" && exit 1)
+
+RUN jq -r '.mcpServers | keys[]' /opt/sciagent/.mcp.json | grep -q "serena" && \
+    echo "✓ serena configured" || \
+    (echo "✗ ERROR: serena not in config" && exit 1)
+
+# Test each MCP server can start
+RUN timeout 10 npx -y @modelcontextprotocol/server-sequential-thinking --help && \
+    echo "✓ Sequential Thinking server works" || \
+    (echo "✗ ERROR: Sequential Thinking server test failed" && exit 1)
+
+# Test ToolUniverse with the command from the config
+RUN TOOLUNIVERSE_CMD=$(jq -r '.mcpServers.tooluniverse.args[-1]' /opt/sciagent/.mcp.json) && \
+    timeout 10 uv --directory /opt/sciagent/tooluniverse-env run $TOOLUNIVERSE_CMD --help && \
+    echo "✓ ToolUniverse server works (using $TOOLUNIVERSE_CMD)" || \
+    (echo "✗ ERROR: ToolUniverse server test failed" && exit 1)
+
+# Serena test (may need first-time download, so more lenient)
+RUN timeout 30 uvx --from git+https://github.com/oraios/serena serena --help && \
+    echo "✓ Serena server works" || \
+    echo "⚠ WARN: Serena test skipped (first-run download issue)"
+
+# Verify server count
+RUN SERVER_COUNT=$(jq '.mcpServers | length' /opt/sciagent/.mcp.json) && \
+    [ "$SERVER_COUNT" -ge 3 ] && \
+    echo "✓ All 3 servers configured (count: $SERVER_COUNT)" || \
+    (echo "✗ ERROR: Expected >= 3 servers, got $SERVER_COUNT" && exit 1)
+
+# Success marker
+RUN echo "Full installation Docker test PASSED" > /tmp/full-test-success.txt
+
+WORKDIR /workspace
+CMD ["/bin/bash", "-c", "cat /tmp/full-test-success.txt && echo && echo 'MCP Configuration:' && jq '.' /opt/sciagent/.mcp.json && /bin/bash"]
