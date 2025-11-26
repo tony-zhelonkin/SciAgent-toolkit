@@ -11,9 +11,11 @@
 # Options:
 #   --claude-only          Install only Claude Code
 #   --codex-only           Install only Codex CLI
-#   --mcp-only             Install only MCP servers (assumes Claude/Codex already installed)
+#   --gemini-only          Install only Gemini CLI
+#   --mcp-only             Install only MCP servers (assumes Claude/Codex/Gemini already installed)
 #   --skip-claude          Skip Claude Code installation
 #   --skip-codex           Skip Codex CLI installation
+#   --skip-gemini          Skip Gemini CLI installation
 #   --skip-pubmed          Skip PubMed MCP server
 #   --skip-tooluniverse    Skip ToolUniverse MCP server
 #   --help                 Show this help message
@@ -30,26 +32,22 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-MAGENTA='\033[0;35m'
-NC='\033[0m' # No Color
+# Get script directory and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
-# Helper functions
-log_info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
-log_step()  { echo -e "${CYAN}[STEP]${NC} $*"; }
-separator() { echo -e "${MAGENTA}======================================${NC}"; echo -e "${MAGENTA}==== $* ${NC}"; echo -e "${MAGENTA}======================================${NC}"; }
+# Source common utilities
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+    source "${SCRIPT_DIR}/common.sh"
+else
+    echo "Error: common.sh not found in ${SCRIPT_DIR}"
+    exit 1
+fi
 
 # Default flags
 INSTALL_CLAUDE=true
 INSTALL_CODEX=true
+INSTALL_GEMINI=true
 INSTALL_MCP=true
 INSTALL_PUBMED=true
 INSTALL_TOOLUNIVERSE=true
@@ -59,17 +57,26 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --claude-only)
             INSTALL_CODEX=false
+            INSTALL_GEMINI=false
             INSTALL_MCP=false
             shift
             ;;
         --codex-only)
             INSTALL_CLAUDE=false
+            INSTALL_GEMINI=false
+            INSTALL_MCP=false
+            shift
+            ;;
+        --gemini-only)
+            INSTALL_CLAUDE=false
+            INSTALL_CODEX=false
             INSTALL_MCP=false
             shift
             ;;
         --mcp-only)
             INSTALL_CLAUDE=false
             INSTALL_CODEX=false
+            INSTALL_GEMINI=false
             shift
             ;;
         --skip-claude)
@@ -78,6 +85,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-codex)
             INSTALL_CODEX=false
+            shift
+            ;;
+        --skip-gemini)
+            INSTALL_GEMINI=false
             shift
             ;;
         --skip-pubmed)
@@ -100,17 +111,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Get script directory and project root
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
 # Detect OS
-OS_TYPE="$(uname -s)"
-case "$OS_TYPE" in
-    Linux*)     PLATFORM=Linux;;
-    Darwin*)    PLATFORM=macOS;;
-    *)          PLATFORM=Unknown;;
-esac
+PLATFORM=$(detect_os)
 
 log_info "Platform: $PLATFORM"
 log_info "Project directory: $PROJECT_DIR"
@@ -123,6 +125,7 @@ separator "MCP Infrastructure Setup"
 log_info "Installation plan:"
 echo "  Claude Code:      $([ "$INSTALL_CLAUDE" = true ] && echo "YES" || echo "SKIP")"
 echo "  Codex CLI:        $([ "$INSTALL_CODEX" = true ] && echo "YES" || echo "SKIP")"
+echo "  Gemini CLI:       $([ "$INSTALL_GEMINI" = true ] && echo "YES" || echo "SKIP")"
 echo "  MCP Servers:"
 echo "    - serena:       $([ "$INSTALL_MCP" = true ] && echo "YES" || echo "SKIP")"
 echo "    - sequential:   $([ "$INSTALL_MCP" = true ] && echo "YES" || echo "SKIP")"
@@ -167,7 +170,25 @@ else
 fi
 
 # ============================================================================
-# 3. Install MCP Servers
+# 3. Install Gemini CLI
+# ============================================================================
+if [ "$INSTALL_GEMINI" = true ]; then
+    separator "Installing Gemini CLI"
+    if [ -f "${SCRIPT_DIR}/install_gemini.sh" ]; then
+        bash "${SCRIPT_DIR}/install_gemini.sh" || {
+            log_error "Gemini CLI installation failed"
+            exit 1
+        }
+    else
+        log_error "install_gemini.sh not found in ${SCRIPT_DIR}"
+        exit 1
+    fi
+else
+    log_warn "Skipping Gemini CLI installation"
+fi
+
+# ============================================================================
+# 4. Install MCP Servers
 # ============================================================================
 if [ "$INSTALL_MCP" = true ]; then
     separator "Installing MCP Servers"
@@ -200,7 +221,7 @@ else
 fi
 
 # ============================================================================
-# 4. Install PubMed MCP
+# 5. Install PubMed MCP
 # ============================================================================
 if [ "$INSTALL_PUBMED" = true ]; then
     separator "Installing PubMed MCP Server"
@@ -218,7 +239,7 @@ else
 fi
 
 # ============================================================================
-# 5. Install ToolUniverse MCP
+# 6. Install ToolUniverse MCP
 # ============================================================================
 if [ "$INSTALL_TOOLUNIVERSE" = true ]; then
     separator "Installing ToolUniverse MCP Server"
@@ -236,7 +257,7 @@ else
 fi
 
 # ============================================================================
-# 6. Final Configuration
+# 7. Final Configuration
 # ============================================================================
 separator "Finalizing Configuration"
 
@@ -260,7 +281,7 @@ else
 fi
 
 # ============================================================================
-# 7. Verification
+# 8. Verification
 # ============================================================================
 separator "Verification"
 
@@ -286,6 +307,19 @@ if [ "$INSTALL_CODEX" = true ]; then
     if command -v codex &>/dev/null && codex --version &>/dev/null; then
         CODEX_VER=$(codex --version 2>/dev/null | head -1 || echo "unknown")
         log_ok "${CODEX_VER}"
+        CHECKS_PASSED=$((CHECKS_PASSED + 1))
+    else
+        log_error "NOT INSTALLED"
+        CHECKS_FAILED=$((CHECKS_FAILED + 1))
+    fi
+fi
+
+# Check Gemini CLI
+if [ "$INSTALL_GEMINI" = true ]; then
+    printf "Gemini CLI: "
+    if command -v gemini &>/dev/null && gemini --version &>/dev/null; then
+        GEMINI_VER=$(gemini --version 2>/dev/null | head -1 || echo "unknown")
+        log_ok "${GEMINI_VER}"
         CHECKS_PASSED=$((CHECKS_PASSED + 1))
     else
         log_error "NOT INSTALLED"
@@ -333,6 +367,14 @@ if [ $CHECKS_FAILED -eq 0 ]; then
         echo ""
     fi
 
+    if [ "$INSTALL_GEMINI" = true ]; then
+        echo "  For Gemini CLI:"
+        echo "    1. Run 'gemini' to start Gemini CLI"
+        echo "    2. Sign in with your Google account"
+        echo "    3. Check 'gemini mcp --help' for MCP configuration"
+        echo ""
+    fi
+
     echo "  Available MCP Servers:"
     [ "$INSTALL_MCP" = true ] && echo "    - serena: Semantic code search and editing"
     [ "$INSTALL_MCP" = true ] && echo "    - sequential-thinking: Structured reasoning"
@@ -343,6 +385,7 @@ if [ $CHECKS_FAILED -eq 0 ]; then
     log_info "Configuration files:"
     echo "    - Claude Code: ${PROJECT_DIR}/.mcp.json"
     [ "$INSTALL_CODEX" = true ] && echo "    - Codex CLI: ~/.codex/config.toml"
+    [ "$INSTALL_GEMINI" = true ] && echo "    - Gemini CLI: (Check documentation)"
     echo ""
 else
     log_error "Some checks failed (${CHECKS_PASSED} passed, ${CHECKS_FAILED} failed)"

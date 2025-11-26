@@ -7,17 +7,16 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+# Get script directory
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-log_info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
+# Source common utilities
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+    source "${SCRIPT_DIR}/common.sh"
+else
+    echo "Error: common.sh not found in ${SCRIPT_DIR}"
+    exit 1
+fi
 
 # Check if running as root (should not be)
 if [ "$(id -u)" -eq 0 ]; then
