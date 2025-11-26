@@ -15,21 +15,19 @@
 
 set -euo pipefail
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-log_info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
-
 # Get script directory and project directory
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source common utilities
+if [ -f "${SCRIPT_DIR}/../common.sh" ]; then
+    source "${SCRIPT_DIR}/../common.sh"
+else
+    echo "Error: common.sh not found in ${SCRIPT_DIR}/.."
+    exit 1
+fi
+
+
 
 # ToolUniverse installation directory
 TOOLUNIVERSE_ENV="${PROJECT_DIR}/tooluniverse-env"
@@ -291,7 +289,11 @@ log_info "    Run the command shown above to add ToolUniverse"
 log_info "    Then: claude mcp list"
 log_info ""
 log_info "  For Codex CLI:"
-log_info "    Config file: ${CODEX_CONFIG}"
+if [ -n "${CODEX_CONFIG:-}" ]; then
+    log_info "    Config file: ${CODEX_CONFIG}"
+else
+    log_info "    Config file: ~/.codex/config.toml (not created)"
+fi
 log_info "    Run: codex"
 log_info "    In chat: /mcp"
 log_info ""
