@@ -55,7 +55,7 @@ log_info "Testing ToolUniverse MCP server --help..."
 TOTAL_TESTS=$((TOTAL_TESTS + 1))
 
 if docker run --rm tooluniverse-test:latest \
-     bash -c "uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-smcp-stdio --help" > /dev/null 2>&1; then
+     bash -c "uv --directory /opt/sciagent/scripts/tooluniverse-env run tooluniverse-smcp-stdio --help" > /dev/null 2>&1; then
     log_ok "ToolUniverse MCP server responds to --help"
     PASSED_TESTS=$((PASSED_TESTS + 1))
 else
@@ -137,6 +137,31 @@ else
     FAILED_TESTS=$((FAILED_TESTS + 1))
 fi
 
+# Test 4: Gemini CLI integration
+echo ""
+log_step "Test 4: Building Gemini CLI MCP test image..."
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+if docker build -f docker/test/Dockerfile.gemini-test \
+     -t gemini-mcp-test:latest . 2>&1 | tee /tmp/gemini-test-build.log; then
+    log_ok "Gemini test image built successfully"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    log_error "Gemini test image build failed. See /tmp/gemini-test-build.log"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
+log_info "Testing Gemini CLI installation..."
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+if docker run --rm gemini-mcp-test:latest gemini --version > /dev/null 2>&1; then
+    log_ok "Gemini CLI is installed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    log_error "Gemini CLI test failed"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+fi
+
 # Summary
 echo ""
 echo "==================================================================="
@@ -156,9 +181,9 @@ if [ $FAILED_TESTS -eq 0 ]; then
     log_ok "All tests passed!"
     echo ""
     echo "Next steps:"
-    echo "  1. Review test images:     docker images | grep -E 'tooluniverse|claude|codex'"
+    echo "  1. Review test images:     docker images | grep -E 'tooluniverse|claude|codex|gemini'"
     echo "  2. Interactive testing:    docker run --rm -it claude-mcp-test:latest bash"
-    echo "  3. Clean up test images:   docker rmi tooluniverse-test claude-mcp-test codex-mcp-test"
+    echo "  3. Clean up test images:   docker rmi tooluniverse-test claude-mcp-test codex-mcp-test gemini-mcp-test"
     echo "  4. Proceed to Phase 2:     Integration into scbio-docker"
     echo ""
     exit 0

@@ -23,7 +23,7 @@ RUN cat > /root/.codex/config.toml <<'EOF'
 command = "uv"
 args = [
   "--directory",
-  "/opt/sciagent/tooluniverse-env",
+  "/opt/sciagent/scripts/tooluniverse-env",
   "run",
   "tooluniverse-smcp-stdio",
   "--exclude-tool-types",
