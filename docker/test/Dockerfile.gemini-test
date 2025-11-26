@@ -1,0 +1,18 @@
+FROM tooluniverse-test:latest
+
+# Upgrade Node.js to v22+ (required for Gemini CLI)
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Verify Node.js version
+RUN node --version && npm --version
+
+# Install Gemini CLI
+RUN npm install -g @google/gemini-cli
+
+# Verify Gemini installation
+RUN gemini --version || (echo "ERROR: Gemini CLI installation failed" && exit 1)
+
+WORKDIR /workspace
+CMD ["/bin/bash"]

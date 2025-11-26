@@ -36,11 +36,11 @@ COPY scripts/ /opt/sciagent/scripts/
 RUN bash -x /opt/sciagent/scripts/mcp_servers/setup_tooluniverse.sh
 
 # Verify installation - check Python import
-RUN uv --directory /opt/sciagent/tooluniverse-env run python -c "import tooluniverse; print(f'ToolUniverse version: {tooluniverse.__version__}')"
+RUN uv --directory /opt/sciagent/scripts/tooluniverse-env run python -c "import tooluniverse; print('ToolUniverse imported successfully')"
 
 # Verify MCP server works - try both possible command names
-RUN uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-mcp --help || \
-    uv --directory /opt/sciagent/tooluniverse-env run tooluniverse-smcp-stdio --help || \
+RUN uv --directory /opt/sciagent/scripts/tooluniverse-env run tooluniverse-mcp --help || \
+    uv --directory /opt/sciagent/scripts/tooluniverse-env run tooluniverse-smcp-stdio --help || \
     (echo "ERROR: Neither ToolUniverse MCP command works" && exit 1)
 
 # Create test success marker
