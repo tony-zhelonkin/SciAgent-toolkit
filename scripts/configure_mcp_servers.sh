@@ -79,6 +79,20 @@ if [ -f "${MCP_CONFIG}" ] && [ "${FORCE_OVERWRITE}" = true ]; then
     rm -f "${MCP_CONFIG}"
 fi
 
+# Load environment variables from .env files if present
+if [ -f "${PROJECT_DIR}/.env" ]; then
+    log_info "Loading environment variables from ${PROJECT_DIR}/.env"
+    set -a
+    source "${PROJECT_DIR}/.env"
+    set +a
+fi
+if [ -f "${PROJECT_DIR}/.devcontainer/.env" ]; then
+    log_info "Loading environment variables from ${PROJECT_DIR}/.devcontainer/.env"
+    set -a
+    source "${PROJECT_DIR}/.devcontainer/.env"
+    set +a
+fi
+
 # Detect installed MCP servers
 log_info "Detecting installed MCP servers..."
 
@@ -90,6 +104,16 @@ if command -v npx &>/dev/null; then
     SERVERS_TO_CONFIGURE+=("sequential-thinking")
 else
     log_warn "Sequential Thinking not available (npx not found)"
+fi
+
+# Check for Context7
+if command -v npx &>/dev/null; then
+    if [ -n "${CONTEXT7_API_KEY:-}" ]; then
+        log_ok "Context7 available (npx found, API key set)"
+        SERVERS_TO_CONFIGURE+=("context7")
+    else
+        log_warn "Context7 skipped (CONTEXT7_API_KEY not set)"
+    fi
 fi
 
 # Check for ToolUniverse
@@ -151,8 +175,14 @@ fi
 
 # Check for PAL
 if command -v uvx &>/dev/null; then
-    log_info "uvx found, enabling PAL configuration..."
-    SERVERS_TO_CONFIGURE+=("pal")
+    # Check if any required API key is set
+    if [ -n "${GEMINI_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ] || [ -n "${XAI_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
+        log_info "uvx found and API keys detected, enabling PAL configuration..."
+        SERVERS_TO_CONFIGURE+=("pal")
+    else
+        log_warn "PAL skipped (No API keys found: GEMINI_API_KEY, OPENAI_API_KEY, etc.)"
+        log_info "Please set at least one API key in .env or environment to enable PAL."
+    fi
 fi
 
 # Summary
@@ -173,6 +203,17 @@ fi
 
 # Change to project directory for claude mcp commands
 cd "${PROJECT_DIR}"
+
+# Helper to build env args
+build_env_args() {
+    local args=""
+    for var in "$@"; do
+        if [ -n "${!var:-}" ]; then
+            args="$args --env $var=${!var}"
+        fi
+    done
+    echo "$args"
+}
 
 # Check if claude CLI is available
 if command -v claude &>/dev/null; then
@@ -210,11 +251,23 @@ if command -v claude &>/dev/null; then
                 ;;
             pal)
                 log_info "Adding pal server..."
-                if claude mcp add --transport stdio --scope project pal -- \
-                    uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; then
+                PAL_ENV_ARGS=$(build_env_args GEMINI_API_KEY OPENAI_API_KEY XAI_API_KEY OPENROUTER_API_KEY DIAL_API_KEY)
+                # Note: variables must be expanded before passing to claude mcp add because it runs as a subprocess
+                # Using eval to handle the dynamic args construction safely
+                CMD="claude mcp add --transport stdio --scope project pal $PAL_ENV_ARGS -- uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server"
+                if eval "$CMD"; then
                     log_ok "Added pal"
                 else
                     log_warn "Failed to add pal via CLI"
+                fi
+                ;;
+            context7)
+                log_info "Adding context7 server..."
+                if claude mcp add --transport stdio --scope project context7 --env CONTEXT7_API_KEY="${CONTEXT7_API_KEY}" -- \
+                    npx -y @upstash/context7-mcp; then
+                    log_ok "Added context7"
+                else
+                    log_warn "Failed to add context7 via CLI"
                 fi
                 ;;
         esac
@@ -233,6 +286,7 @@ import json
 import os
 
 servers = {}
+env_vars = os.environ
 
 # Sequential Thinking
 if "sequential-thinking" in """${SERVERS_TO_CONFIGURE[*]}""".split():
@@ -262,10 +316,27 @@ if "serena" in """${SERVERS_TO_CONFIGURE[*]}""".split():
 
 # PAL
 if "pal" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    pal_env = {}
+    for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "DIAL_API_KEY"]:
+        if key in env_vars:
+            pal_env[key] = env_vars[key]
+            
     servers["pal"] = {
         "type": "stdio",
         "command": "uvx",
-        "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"]
+        "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
+        "env": pal_env
+    }
+
+# Context7
+if "context7" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    servers["context7"] = {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@upstash/context7-mcp"],
+        "env": {
+            "CONTEXT7_API_KEY": env_vars.get("CONTEXT7_API_KEY", "")
+        }
     }
 
 config = {"mcpServers": servers}
