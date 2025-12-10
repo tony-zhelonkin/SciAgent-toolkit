@@ -72,12 +72,17 @@ if [ $INSTALL_EXIT_CODE -eq 0 ]; then
         CLAUDE_VERSION=$(claude --version 2>/dev/null | head -1 || echo "installed")
         log_ok "Claude Code version: ${CLAUDE_VERSION}"
 
-        # Run diagnostics
+        # Run diagnostics with timeout (can hang if trying to reach API)
         log_info "Running diagnostics..."
-        if claude doctor &>/dev/null; then
+        if timeout 30 claude doctor &>/dev/null; then
             log_ok "Claude Code diagnostics passed"
         else
-            log_warn "Claude Code diagnostics had warnings (this is often normal)"
+            DIAG_EXIT=$?
+            if [ $DIAG_EXIT -eq 124 ]; then
+                log_warn "Claude Code diagnostics timed out (network issue, safe to ignore)"
+            else
+                log_warn "Claude Code diagnostics had warnings (this is often normal)"
+            fi
         fi
     else
         log_error "Claude Code installation failed - command not found"
