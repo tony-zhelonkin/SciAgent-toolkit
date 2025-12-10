@@ -44,8 +44,18 @@ fi
 
 # Install using native installer
 log_info "Downloading and installing Claude Code (latest version)..."
+log_info "This may take 1-2 minutes (downloading ~50MB binary)..."
 
-if curl -fsSL https://claude.ai/install.sh | bash -s latest; then
+# Use timeout to prevent hanging indefinitely
+# 300 seconds (5 minutes) should be enough for most connections
+INSTALL_TIMEOUT=300
+
+set +e  # Temporarily allow command failure
+timeout $INSTALL_TIMEOUT bash -c 'curl -fsSL https://claude.ai/install.sh | bash -s latest'
+INSTALL_EXIT_CODE=$?
+set -e  # Re-enable exit on error
+
+if [ $INSTALL_EXIT_CODE -eq 0 ]; then
     log_ok "Claude Code installed successfully"
 
     # Add ~/.local/bin to PATH permanently for bash
@@ -74,7 +84,14 @@ if curl -fsSL https://claude.ai/install.sh | bash -s latest; then
         exit 1
     fi
 else
-    log_error "Failed to install Claude Code"
+    if [ $INSTALL_EXIT_CODE -eq 124 ]; then
+        log_error "Claude Code installation timed out after ${INSTALL_TIMEOUT} seconds"
+        log_info "This might be a network issue. Try again or install manually:"
+        log_info "  curl -fsSL https://claude.ai/install.sh | bash -s latest"
+    else
+        log_error "Failed to install Claude Code (exit code: $INSTALL_EXIT_CODE)"
+    fi
+    log_info "You can also try installing via npm: npm install -g @anthropic-ai/claude-code"
     exit 1
 fi
 
