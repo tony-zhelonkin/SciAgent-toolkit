@@ -12,8 +12,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Three-tier system:
 1. **User Interfaces**: Claude Code CLI, Codex CLI (optional)
-2. **MCP Server Layer**: Sequential Thinking, ToolUniverse (600+ scientific tools), Serena (code intelligence), PubMed (optional plugin)
-3. **External Data Sources**: ChEMBL, UniProt, DrugBank, FDA, PubMed, ClinicalTrials.gov, Europe PMC, etc.
+3. **MCP Server Layer**: PAL (Collaboration/Planning), Sequential Thinking, ToolUniverse (600+ scientific tools), Serena (code intelligence), PubMed (optional plugin)
+4. **External Data Sources**: ChEMBL, UniProt, DrugBank, FDA, PubMed, ClinicalTrials.gov, Europe PMC, etc.
 
 ---
 
@@ -23,6 +23,7 @@ Three-tier system:
 - `scripts/setup_mcp_infrastructure.sh` - **Main orchestrator**, runs all installation steps in correct order
 - `scripts/install_claude.sh` - Installs Claude Code to `~/.local/bin/claude`
 - `scripts/install_codex.sh` - Installs Codex CLI (optional alternative interface)
+- `scripts/mcp_servers/setup_pal.sh` - Installs PAL MCP (Collaboration & Planning)
 - `scripts/mcp_servers/setup_serena.sh` - Installs Serena MCP (code intelligence, uvx-based)
 - `scripts/mcp_servers/setup_sequential_thinking.sh` - Installs Sequential Thinking MCP (npx-based)
 - `scripts/mcp_servers/setup_tooluniverse.sh` - Installs ToolUniverse MCP (600+ scientific tools, Python-based)
@@ -171,6 +172,12 @@ To regenerate for a new environment:
 ```
 
 ### MCP Server Details
+
+#### PAL MCP
+- **Purpose**: Collaboration, planning, and code analysis
+- **Command**: `uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server`
+- **Requirements**: uvx
+- **Features**: Chat, Deep Thinking, Planning, Code Review, Debugging
 
 #### Sequential Thinking MCP
 - **Purpose**: Structured reasoning for complex decisions
