@@ -30,7 +30,9 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Default settings
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Default to current working directory, not script location
+# This allows the script to be run from a submodule while creating config in user's project
+PROJECT_DIR="${PWD}"
 FORCE_OVERWRITE=false
 DRY_RUN=false
 
@@ -86,13 +88,30 @@ else
     log_warn "Sequential Thinking not available (npx not found)"
 fi
 
-# Check for ToolUniverse (check both possible locations)
-if [ -d "${PROJECT_DIR}/scripts/tooluniverse-env" ]; then
-    TOOLUNIVERSE_ENV="${PROJECT_DIR}/scripts/tooluniverse-env"
-elif [ -d "${PROJECT_DIR}/tooluniverse-env" ]; then
-    TOOLUNIVERSE_ENV="${PROJECT_DIR}/tooluniverse-env"
-else
-    TOOLUNIVERSE_ENV=""
+# Check for ToolUniverse (check multiple possible locations)
+# When running as submodule, the env may be in various places
+TOOLUNIVERSE_ENV=""
+for search_path in \
+    "${PROJECT_DIR}/scripts/tooluniverse-env" \
+    "${PROJECT_DIR}/tooluniverse-env" \
+    "${SCRIPT_DIR}/tooluniverse-env" \
+    "${SCRIPT_DIR}/../tooluniverse-env" \
+    ; do
+    if [ -d "$search_path" ]; then
+        # Convert to absolute path
+        TOOLUNIVERSE_ENV="$(cd "$search_path" && pwd)"
+        break
+    fi
+done
+# Also search common submodule paths
+if [ -z "${TOOLUNIVERSE_ENV}" ]; then
+    for subdir in "${PROJECT_DIR}/"*"/SciAgent-toolkit/scripts/tooluniverse-env" \
+                  "${PROJECT_DIR}/"*"/"*"/SciAgent-toolkit/scripts/tooluniverse-env"; do
+        if [ -d "$subdir" ] 2>/dev/null; then
+            TOOLUNIVERSE_ENV="$(cd "$subdir" && pwd)"
+            break
+        fi
+    done
 fi
 if [ -n "${TOOLUNIVERSE_ENV}" ] && [ -d "${TOOLUNIVERSE_ENV}" ]; then
     # Detect correct command name (use -h instead of --version)
@@ -166,87 +185,60 @@ if [ "${DRY_RUN}" = true ]; then
     MCP_CONFIG="/tmp/mcp-config-preview.json"
 fi
 
-# Start JSON configuration
-cat > "${MCP_CONFIG}" << 'EOF_START'
-{
-  "mcpServers": {
-EOF_START
-
-# Track if we need a comma before the next entry
-FIRST_ENTRY=true
+# Build JSON using a more robust approach
+# Collect server configs into an array, then join with commas
+declare -a SERVER_CONFIGS=()
 
 # Add Sequential Thinking if available
 if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " sequential-thinking " ]]; then
-    if [ "$FIRST_ENTRY" = false ]; then
-        echo "," >> "${MCP_CONFIG}"
-    fi
-    FIRST_ENTRY=false
-
-    cat >> "${MCP_CONFIG}" << 'EOF_SEQ'
-    "sequential-thinking": {
+    SERVER_CONFIGS+=('    "sequential-thinking": {
       "command": "npx",
       "args": [
         "-y",
         "@modelcontextprotocol/server-sequential-thinking"
       ]
-    }
-EOF_SEQ
+    }')
 fi
 
 # Add ToolUniverse if available
 if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " tooluniverse " ]]; then
-    if [ "$FIRST_ENTRY" = false ]; then
-        echo "," >> "${MCP_CONFIG}"
-    fi
-    FIRST_ENTRY=false
-
     # Check for Azure OpenAI credentials
     if [ -n "${AZURE_OPENAI_API_KEY:-}" ] && [ -n "${AZURE_OPENAI_ENDPOINT:-}" ]; then
-        cat >> "${MCP_CONFIG}" << EOF_TOOL
-    "tooluniverse": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "${TOOLUNIVERSE_ENV}",
-        "run",
-        "${TOOLUNIVERSE_CMD}",
-        "--exclude-tool-types",
-        "PackageTool",
-        "--hook-type",
-        "SummarizationHook"
+        SERVER_CONFIGS+=("    \"tooluniverse\": {
+      \"command\": \"uv\",
+      \"args\": [
+        \"--directory\",
+        \"${TOOLUNIVERSE_ENV}\",
+        \"run\",
+        \"${TOOLUNIVERSE_CMD}\",
+        \"--exclude-tool-types\",
+        \"PackageTool\",
+        \"--hook-type\",
+        \"SummarizationHook\"
       ],
-      "env": {
-        "AZURE_OPENAI_API_KEY": "${AZURE_OPENAI_API_KEY}",
-        "AZURE_OPENAI_ENDPOINT": "${AZURE_OPENAI_ENDPOINT}"
+      \"env\": {
+        \"AZURE_OPENAI_API_KEY\": \"${AZURE_OPENAI_API_KEY}\",
+        \"AZURE_OPENAI_ENDPOINT\": \"${AZURE_OPENAI_ENDPOINT}\"
       }
-    }
-EOF_TOOL
+    }")
     else
-        cat >> "${MCP_CONFIG}" << EOF_TOOL
-    "tooluniverse": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "${TOOLUNIVERSE_ENV}",
-        "run",
-        "${TOOLUNIVERSE_CMD}",
-        "--exclude-tool-types",
-        "PackageTool"
+        SERVER_CONFIGS+=("    \"tooluniverse\": {
+      \"command\": \"uv\",
+      \"args\": [
+        \"--directory\",
+        \"${TOOLUNIVERSE_ENV}\",
+        \"run\",
+        \"${TOOLUNIVERSE_CMD}\",
+        \"--exclude-tool-types\",
+        \"PackageTool\"
       ]
-    }
-EOF_TOOL
+    }")
     fi
 fi
 
 # Add Serena if available
 if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " serena " ]]; then
-    if [ "$FIRST_ENTRY" = false ]; then
-        echo "," >> "${MCP_CONFIG}"
-    fi
-    FIRST_ENTRY=false
-
-    cat >> "${MCP_CONFIG}" << 'EOF_SERENA'
-    "serena": {
+    SERVER_CONFIGS+=('    "serena": {
       "command": "uvx",
       "args": [
         "--from",
@@ -254,37 +246,44 @@ if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " serena " ]]; then
         "serena",
         "start-mcp-server"
       ]
-    }
-EOF_SERENA
+    }')
 fi
 
 # Add PAL if available
 if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " pal " ]]; then
-    if [ "$FIRST_ENTRY" = false ]; then
-        echo "," >> "${MCP_CONFIG}"
-    fi
-    FIRST_ENTRY=false
-
     # Note: Using sh wrapper as per PAL documentation for robust path handling
-    cat >> "${MCP_CONFIG}" << 'EOF_PAL'
-    "pal": {
+    SERVER_CONFIGS+=('    "pal": {
       "command": "sh",
       "args": [
-        "-c", 
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"
+        "-c",
+        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo '"'"'uvx not found'"'"' >&2; exit 1"
       ],
       "env": {
         "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin"
       }
-    }
-EOF_PAL
+    }')
 fi
 
-# Close JSON structure
-cat >> "${MCP_CONFIG}" << 'EOF_END'
-  }
-}
-EOF_END
+# Write JSON file with proper comma handling
+{
+    echo '{'
+    echo '  "mcpServers": {'
+
+    # Join array elements with ",\n"
+    first_config=true
+    for config in "${SERVER_CONFIGS[@]}"; do
+        if [ "$first_config" = true ]; then
+            first_config=false
+        else
+            echo ','
+        fi
+        echo -n "$config"
+    done
+    echo ''
+
+    echo '  }'
+    echo '}'
+} > "${MCP_CONFIG}"
 
 # Validate JSON
 if command -v python3 &>/dev/null; then
@@ -307,6 +306,59 @@ if [ "${DRY_RUN}" = true ]; then
     log_info "No changes made (dry run mode)"
 else
     log_ok "MCP configuration created: ${MCP_CONFIG}"
+
+    # Create .claude/settings.json to auto-enable MCP servers
+    # Without this, Claude Code discovers servers but doesn't enable them
+    CLAUDE_SETTINGS_DIR="${PROJECT_DIR}/.claude"
+    CLAUDE_SETTINGS_FILE="${CLAUDE_SETTINGS_DIR}/settings.json"
+
+    mkdir -p "${CLAUDE_SETTINGS_DIR}"
+
+    # Build list of server names for enabledMcpjsonServers
+    ENABLED_SERVERS_JSON="["
+    first_server=true
+    for server in "${SERVERS_TO_CONFIGURE[@]}"; do
+        if [ "$first_server" = true ]; then
+            first_server=false
+        else
+            ENABLED_SERVERS_JSON+=", "
+        fi
+        ENABLED_SERVERS_JSON+="\"${server}\""
+    done
+    ENABLED_SERVERS_JSON+="]"
+
+    # Create or update settings.json
+    if [ -f "${CLAUDE_SETTINGS_FILE}" ]; then
+        # Check if it already has MCP settings
+        if grep -q "enabledMcpjsonServers\|enableAllProjectMcpServers" "${CLAUDE_SETTINGS_FILE}" 2>/dev/null; then
+            log_info "Claude settings already configured for MCP servers"
+        else
+            log_info "Updating existing Claude settings with MCP enablement..."
+            # Use python to merge JSON if available
+            if command -v python3 &>/dev/null; then
+                python3 << EOF
+import json
+with open("${CLAUDE_SETTINGS_FILE}", "r") as f:
+    settings = json.load(f)
+settings["enabledMcpjsonServers"] = ${ENABLED_SERVERS_JSON}
+with open("${CLAUDE_SETTINGS_FILE}", "w") as f:
+    json.dump(settings, f, indent=2)
+EOF
+                log_ok "Updated Claude settings with MCP enablement"
+            else
+                log_warn "Cannot update settings.json - python3 not available"
+            fi
+        fi
+    else
+        # Create new settings file
+        cat > "${CLAUDE_SETTINGS_FILE}" << EOF
+{
+  "enabledMcpjsonServers": ${ENABLED_SERVERS_JSON}
+}
+EOF
+        log_ok "Created Claude settings: ${CLAUDE_SETTINGS_FILE}"
+    fi
+
     log_info ""
     log_info "To verify the configuration:"
     log_info "  1. Start Claude Code: claude"

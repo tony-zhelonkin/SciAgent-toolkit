@@ -34,7 +34,9 @@ set -euo pipefail
 
 # Get script directory and project root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+# Use PWD as project root - the directory where user invoked the script
+# This ensures .mcp.json is created in the user's project, not the SciAgent-toolkit
+PROJECT_DIR="${PWD}"
 
 # Source common utilities
 if [ -f "${SCRIPT_DIR}/common.sh" ]; then
