@@ -138,7 +138,7 @@ fi
 # Check for Serena
 if command -v uvx &>/dev/null; then
     log_info "Checking Serena availability..."
-    if timeout 30 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
+    if timeout 60 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
         log_ok "Serena available"
         SERVERS_TO_CONFIGURE+=("serena")
     else
@@ -149,7 +149,7 @@ fi
 # Check for PAL
 if command -v uvx &>/dev/null; then
     log_info "Checking PAL availability..."
-    if timeout 30 uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server --help &>/dev/null 2>&1; then
+    if timeout 60 uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server --help &>/dev/null 2>&1; then
         log_ok "PAL available"
         SERVERS_TO_CONFIGURE+=("pal")
     else
@@ -310,7 +310,18 @@ try:
         settings = json.load(f)
 except:
     settings = {}
-settings["enabledMcpjsonServers"] = [${ENABLED_LIST}]
+
+enabled_servers = [${ENABLED_LIST}]
+settings["enabledMcpjsonServers"] = enabled_servers
+
+# Remove these servers from disabled list if present
+if "disabledMcpjsonServers" in settings:
+    disabled = set(settings["disabledMcpjsonServers"])
+    for server in enabled_servers:
+        if server in disabled:
+            disabled.remove(server)
+    settings["disabledMcpjsonServers"] = list(disabled)
+
 with open("$file", "w") as f:
     json.dump(settings, f, indent=2)
 PYEOF

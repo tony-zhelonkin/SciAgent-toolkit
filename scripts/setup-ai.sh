@@ -154,7 +154,10 @@ echo ""
 cd "${PROJECT_DIR}"
 
 # Step 1: Run the main setup script
-log_info "Step 1/2: Installing AI tools..."
+log_info "Step 1/1: Installing and configuring AI tools..."
+
+# Ensure PATH includes potential install locations for re-runs
+export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
 
 # The setup script needs to know where to create tooluniverse-env
 # We run it from the project directory so paths are relative to project
@@ -165,19 +168,6 @@ if [ -f "${SCIAGENT_SCRIPTS}/setup_mcp_infrastructure.sh" ]; then
     }
 else
     log_error "setup_mcp_infrastructure.sh not found"
-    exit 1
-fi
-
-# Step 2: Configure MCP servers with project-specific paths
-log_info "Step 2/2: Generating project configuration..."
-
-if [ -f "${SCIAGENT_SCRIPTS}/configure_mcp_servers.sh" ]; then
-    bash "${SCIAGENT_SCRIPTS}/configure_mcp_servers.sh" --project-dir "${PROJECT_DIR}" --force || {
-        log_error "Configuration failed. Check the output above for errors."
-        exit 1
-    }
-else
-    log_error "configure_mcp_servers.sh not found"
     exit 1
 fi
 
