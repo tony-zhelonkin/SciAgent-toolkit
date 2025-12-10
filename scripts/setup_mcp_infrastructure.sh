@@ -303,7 +303,7 @@ log_info "Configuring MCP servers..."
 
 if [ -f "${SCRIPT_DIR}/configure_mcp_servers.sh" ]; then
     log_info "Running MCP configuration script..."
-    if bash "${SCRIPT_DIR}/configure_mcp_servers.sh" --project-dir "${PROJECT_DIR}"; then
+    if bash "${SCRIPT_DIR}/configure_mcp_servers.sh" --project-dir "${PROJECT_DIR}" --force; then
         log_ok "MCP servers configured successfully"
     else
         log_warn "MCP configuration failed or was skipped"
