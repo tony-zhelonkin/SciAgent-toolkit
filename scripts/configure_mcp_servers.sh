@@ -95,18 +95,25 @@ fi
 # Check for ToolUniverse
 TOOLUNIVERSE_ENV=""
 TOOLUNIVERSE_CMD=""
-for search_path in \
-    "${SCRIPT_DIR}/tooluniverse-env" \
-    "${SCRIPT_DIR}/../tooluniverse-env" \
-    "${PROJECT_DIR}/tooluniverse-env" \
-    "${PROJECT_DIR}/scripts/tooluniverse-env" \
-    ; do
+
+# Define potential search paths for tooluniverse-env
+POTENTIAL_PATHS=(
+    "${PROJECT_DIR}/tooluniverse-env"
+    "${SCRIPT_DIR}/tooluniverse-env"
+    "${SCRIPT_DIR}/../tooluniverse-env"
+    "${PROJECT_DIR}/scripts/tooluniverse-env"
+    "/workspaces/12868-EH/01_scripts/SciAgent-toolkit/scripts/tooluniverse-env"
+)
+
+# Search for the environment
+for search_path in "${POTENTIAL_PATHS[@]}"; do
     if [ -d "$search_path" ]; then
         TOOLUNIVERSE_ENV="$(cd "$search_path" && pwd)"
         break
     fi
 done
-# Search submodule paths
+
+# If not found, search submodule paths
 if [ -z "${TOOLUNIVERSE_ENV}" ]; then
     for subdir in "${PROJECT_DIR}/"*"/SciAgent-toolkit/scripts/tooluniverse-env" \
                   "${PROJECT_DIR}/"*"/"*"/SciAgent-toolkit/scripts/tooluniverse-env"; do
@@ -116,6 +123,7 @@ if [ -z "${TOOLUNIVERSE_ENV}" ]; then
         fi
     done
 fi
+
 if [ -n "${TOOLUNIVERSE_ENV}" ]; then
     # Detect command name
     if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp -h &>/dev/null 2>&1; then
@@ -132,29 +140,19 @@ if [ -n "${TOOLUNIVERSE_ENV}" ]; then
         log_warn "ToolUniverse installed but command not working"
     fi
 else
-    log_warn "ToolUniverse not available"
+    log_warn "ToolUniverse not available (env directory not found)"
 fi
 
 # Check for Serena
 if command -v uvx &>/dev/null; then
-    log_info "Checking Serena availability..."
-    if timeout 60 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
-        log_ok "Serena available"
-        SERVERS_TO_CONFIGURE+=("serena")
-    else
-        log_warn "Serena not pre-cached (skipping)"
-    fi
+    log_info "uvx found, enabling Serena configuration..."
+    SERVERS_TO_CONFIGURE+=("serena")
 fi
 
 # Check for PAL
 if command -v uvx &>/dev/null; then
-    log_info "Checking PAL availability..."
-    if timeout 60 uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server --help &>/dev/null 2>&1; then
-        log_ok "PAL available"
-        SERVERS_TO_CONFIGURE+=("pal")
-    else
-        log_warn "PAL not pre-cached (skipping)"
-    fi
+    log_info "uvx found, enabling PAL configuration..."
+    SERVERS_TO_CONFIGURE+=("pal")
 fi
 
 # Summary
