@@ -60,6 +60,7 @@ The Docker test images in `docker/test/` are for CI/CD validation only.
 ## What Gets Installed
 
 - **Claude Code** or **Codex CLI** (AI interfaces)
+- **PAL MCP Server** - Collaboration, planning, and code analysis
 - **Serena MCP Server** - Code intelligence and semantic search
 - **Sequential Thinking MCP Server** - Structured problem solving
 - **ToolUniverse MCP Server** - 600+ scientific research tools

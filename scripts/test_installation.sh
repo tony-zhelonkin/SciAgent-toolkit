@@ -119,9 +119,22 @@ else
     test_fail "uvx not found (uv not installed)"
 fi
 
-# Test 5: Claude Code
+# Test 5: PAL
 echo ""
-echo "Test 5: Claude Code"
+echo "Test 5: PAL"
+if command -v uvx &>/dev/null; then
+    if timeout 30 uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server --help > /dev/null 2>&1; then
+        test_pass "PAL server works"
+    else
+        test_warn "PAL server test failed (may need first-time download)"
+    fi
+else
+    test_warn "uvx not found, skipping PAL test"
+fi
+
+# Test 6: Claude Code
+echo ""
+echo "Test 6: Claude Code"
 if command -v claude &>/dev/null; then
     test_pass "Claude Code is installed"
 

@@ -44,6 +44,11 @@ else
     exit 1
 fi
 
+# Ensure NVM environment is loaded if available
+if type ensure_nvm >/dev/null 2>&1; then
+    ensure_nvm
+fi
+
 # Default flags
 INSTALL_CLAUDE=true
 INSTALL_CODEX=true
@@ -51,6 +56,7 @@ INSTALL_GEMINI=true
 INSTALL_MCP=true
 INSTALL_PUBMED=true
 INSTALL_TOOLUNIVERSE=true
+INSTALL_PAL=true
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -99,6 +105,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_TOOLUNIVERSE=false
             shift
             ;;
+        --skip-pal)
+            INSTALL_PAL=false
+            shift
+            ;;
         --help)
             grep '^#' "$0" | grep -v '#!/usr/bin/env' | sed 's/^# //' | sed 's/^#//'
             exit 0
@@ -131,6 +141,7 @@ echo "    - serena:       $([ "$INSTALL_MCP" = true ] && echo "YES" || echo "SKI
 echo "    - sequential:   $([ "$INSTALL_MCP" = true ] && echo "YES" || echo "SKIP")"
 echo "    - PubMed:       $([ "$INSTALL_PUBMED" = true ] && echo "YES" || echo "SKIP")"
 echo "    - ToolUniverse: $([ "$INSTALL_TOOLUNIVERSE" = true ] && echo "YES" || echo "SKIP")"
+echo "    - PAL:          $([ "$INSTALL_PAL" = true ] && echo "YES" || echo "SKIP")"
 echo ""
 
 # ============================================================================
@@ -257,7 +268,25 @@ else
 fi
 
 # ============================================================================
-# 7. Final Configuration
+# 7. Install PAL MCP
+# ============================================================================
+if [ "$INSTALL_PAL" = true ]; then
+    separator "Installing PAL MCP Server"
+    if [ -f "${SCRIPT_DIR}/mcp_servers/setup_pal.sh" ]; then
+        bash "${SCRIPT_DIR}/mcp_servers/setup_pal.sh" || {
+            log_error "PAL MCP setup failed"
+            exit 1
+        }
+    else
+        log_error "mcp_servers/setup_pal.sh not found"
+        exit 1
+    fi
+else
+    log_warn "Skipping PAL MCP server"
+fi
+
+# ============================================================================
+# 8. Final Configuration
 # ============================================================================
 separator "Finalizing Configuration"
 
@@ -281,7 +310,7 @@ else
 fi
 
 # ============================================================================
-# 8. Verification
+# 9. Verification
 # ============================================================================
 separator "Verification"
 
@@ -380,6 +409,7 @@ if [ $CHECKS_FAILED -eq 0 ]; then
     [ "$INSTALL_MCP" = true ] && echo "    - sequential-thinking: Structured reasoning"
     [ "$INSTALL_PUBMED" = true ] && echo "    - pubmed: Biomedical literature access"
     [ "$INSTALL_TOOLUNIVERSE" = true ] && echo "    - tooluniverse: 600+ scientific tools"
+    [ "$INSTALL_PAL" = true ] && echo "    - pal: Collaboration, planning, and code analysis"
     echo ""
 
     log_info "Configuration files:"
