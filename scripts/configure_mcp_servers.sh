@@ -106,13 +106,12 @@ else
     log_warn "Sequential Thinking not available (npx not found)"
 fi
 
-# Check for Context7
+# Check for Context7 (API key is OPTIONAL per official docs - works without it)
 if command -v npx &>/dev/null; then
-    if [ -n "${CONTEXT7_API_KEY:-}" ]; then
-        log_ok "Context7 available (npx found, API key set)"
-        SERVERS_TO_CONFIGURE+=("context7")
-    else
-        log_warn "Context7 skipped (CONTEXT7_API_KEY not set)"
+    log_ok "Context7 available (npx found)"
+    SERVERS_TO_CONFIGURE+=("context7")
+    if [ -z "${CONTEXT7_API_KEY:-}" ]; then
+        log_info "Tip: Set CONTEXT7_API_KEY for higher rate limits (https://context7.com/dashboard)"
     fi
 fi
 
@@ -149,13 +148,16 @@ if [ -z "${TOOLUNIVERSE_ENV}" ]; then
 fi
 
 if [ -n "${TOOLUNIVERSE_ENV}" ]; then
-    # Detect command name
-    if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp -h &>/dev/null 2>&1; then
-        TOOLUNIVERSE_CMD="tooluniverse-mcp"
-    elif uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio -h &>/dev/null 2>&1; then
+    # Detect command name - prefer stdio versions for Claude Code compatibility
+    # tooluniverse-mcp uses HTTP by default (1.0.14+), tooluniverse-smcp-stdio uses stdio
+    if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio -h &>/dev/null 2>&1; then
         TOOLUNIVERSE_CMD="tooluniverse-smcp-stdio"
-    elif uv --directory "${TOOLUNIVERSE_ENV}" run python -m tooluniverse.smcp_server -h &>/dev/null 2>&1; then
-        TOOLUNIVERSE_CMD="python -m tooluniverse.smcp_server"
+    elif uv --directory "${TOOLUNIVERSE_ENV}" run python -m tooluniverse.smcp_server --transport stdio -h &>/dev/null 2>&1; then
+        TOOLUNIVERSE_CMD="python -m tooluniverse.smcp_server --transport stdio"
+    elif uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp -h &>/dev/null 2>&1; then
+        # Fallback to HTTP version (may not work with Claude Code)
+        TOOLUNIVERSE_CMD="tooluniverse-mcp"
+        log_warn "Only HTTP transport available - may not work with Claude Code"
     fi
     if [ -n "${TOOLUNIVERSE_CMD}" ]; then
         log_ok "ToolUniverse available at ${TOOLUNIVERSE_ENV}"
@@ -173,15 +175,21 @@ if command -v uvx &>/dev/null; then
     SERVERS_TO_CONFIGURE+=("serena")
 fi
 
-# Check for PAL
+# Check for PAL (always configure, warn if no keys)
 if command -v uvx &>/dev/null; then
-    # Check if any required API key is set
-    if [ -n "${GEMINI_API_KEY:-}" ] || [ -n "${OPENAI_API_KEY:-}" ] || [ -n "${XAI_API_KEY:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
-        log_info "uvx found and API keys detected, enabling PAL configuration..."
-        SERVERS_TO_CONFIGURE+=("pal")
-    else
-        log_warn "PAL skipped (No API keys found: GEMINI_API_KEY, OPENAI_API_KEY, etc.)"
-        log_info "Please set at least one API key in .env or environment to enable PAL."
+    log_info "uvx found, enabling PAL configuration..."
+    SERVERS_TO_CONFIGURE+=("pal")
+
+    # Check if any API key is set and warn if not
+    if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ] && \
+       [ -z "${XAI_API_KEY:-}" ] && [ -z "${OPENROUTER_API_KEY:-}" ]; then
+        log_warn "PAL configured but NO API keys found!"
+        log_info "PAL requires at least one AI provider key to function."
+        log_info "Set one of these in .devcontainer/.env:"
+        log_info "  - GEMINI_API_KEY  (https://aistudio.google.com/apikey)"
+        log_info "  - OPENAI_API_KEY  (https://platform.openai.com/api-keys)"
+        log_info "  - XAI_API_KEY     (https://console.x.ai/)"
+        log_info "Then run: ./scripts/configure_mcp_servers.sh --force"
     fi
 fi
 
@@ -233,8 +241,10 @@ if command -v claude &>/dev/null; then
                 ;;
             tooluniverse)
                 log_info "Adding tooluniverse server..."
+                # Note: --exclude-tool-types removed in ToolUniverse 1.0.14+
+                # Use --compact-mode for minimal tool set if needed
                 if claude mcp add --transport stdio --scope project tooluniverse -- \
-                    uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --exclude-tool-types PackageTool; then
+                    uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD}; then
                     log_ok "Added tooluniverse"
                 else
                     log_warn "Failed to add tooluniverse via CLI, will add to JSON"
@@ -263,11 +273,23 @@ if command -v claude &>/dev/null; then
                 ;;
             context7)
                 log_info "Adding context7 server..."
-                if claude mcp add --transport stdio --scope project context7 --env CONTEXT7_API_KEY="${CONTEXT7_API_KEY}" -- \
-                    npx -y @upstash/context7-mcp; then
-                    log_ok "Added context7"
+                if [ -n "${CONTEXT7_API_KEY:-}" ]; then
+                    # With API key (higher rate limits)
+                    if claude mcp add --transport stdio --scope project context7 \
+                        --env CONTEXT7_API_KEY="${CONTEXT7_API_KEY}" -- \
+                        npx -y @upstash/context7-mcp; then
+                        log_ok "Added context7 (with API key)"
+                    else
+                        log_warn "Failed to add context7 via CLI"
+                    fi
                 else
-                    log_warn "Failed to add context7 via CLI"
+                    # Without API key (basic rate limits - still works)
+                    if claude mcp add --transport stdio --scope project context7 -- \
+                        npx -y @upstash/context7-mcp; then
+                        log_ok "Added context7 (no API key - basic rate limits)"
+                    else
+                        log_warn "Failed to add context7 via CLI"
+                    fi
                 fi
                 ;;
         esac
@@ -296,14 +318,14 @@ if "sequential-thinking" in """${SERVERS_TO_CONFIGURE[*]}""".split():
         "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
     }
 
-# ToolUniverse
+# ToolUniverse (--exclude-tool-types removed in 1.0.14+)
 if "tooluniverse" in """${SERVERS_TO_CONFIGURE[*]}""".split():
     env_path = """${TOOLUNIVERSE_ENV}"""
     cmd = """${TOOLUNIVERSE_CMD}"""
     servers["tooluniverse"] = {
         "type": "stdio",
         "command": "uv",
-        "args": ["--directory", env_path, "run"] + cmd.split() + ["--exclude-tool-types", "PackageTool"]
+        "args": ["--directory", env_path, "run"] + cmd.split()
     }
 
 # Serena
@@ -318,26 +340,32 @@ if "serena" in """${SERVERS_TO_CONFIGURE[*]}""".split():
 if "pal" in """${SERVERS_TO_CONFIGURE[*]}""".split():
     pal_env = {}
     for key in ["GEMINI_API_KEY", "OPENAI_API_KEY", "XAI_API_KEY", "OPENROUTER_API_KEY", "DIAL_API_KEY"]:
-        if key in env_vars:
+        # Only include non-empty values
+        if key in env_vars and env_vars[key]:
             pal_env[key] = env_vars[key]
-            
-    servers["pal"] = {
+
+    pal_config = {
         "type": "stdio",
         "command": "uvx",
-        "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
-        "env": pal_env
+        "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"]
     }
+    # Only add env section if we have actual keys
+    if pal_env:
+        pal_config["env"] = pal_env
+    servers["pal"] = pal_config
 
-# Context7
+# Context7 (API key is optional)
 if "context7" in """${SERVERS_TO_CONFIGURE[*]}""".split():
-    servers["context7"] = {
+    context7_config = {
         "type": "stdio",
         "command": "npx",
-        "args": ["-y", "@upstash/context7-mcp"],
-        "env": {
-            "CONTEXT7_API_KEY": env_vars.get("CONTEXT7_API_KEY", "")
-        }
+        "args": ["-y", "@upstash/context7-mcp"]
     }
+    # Only add env if API key is actually set
+    api_key = env_vars.get("CONTEXT7_API_KEY", "")
+    if api_key:
+        context7_config["env"] = {"CONTEXT7_API_KEY": api_key}
+    servers["context7"] = context7_config
 
 config = {"mcpServers": servers}
 
