@@ -3,7 +3,7 @@
 # MCP Server Configuration Script
 #
 # Automatically configures all installed MCP servers for Claude Code.
-# Creates .mcp.json file with proper server definitions.
+# Uses `claude mcp add` CLI for robust configuration.
 #
 # Usage:
 #   ./configure_mcp_servers.sh [OPTIONS]
@@ -30,8 +30,6 @@ log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
 
 # Default settings
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# Default to current working directory, not script location
-# This allows the script to be run from a submodule while creating config in user's project
 PROJECT_DIR="${PWD}"
 FORCE_OVERWRITE=false
 DRY_RUN=false
@@ -75,6 +73,12 @@ if [ -f "${MCP_CONFIG}" ] && [ "${FORCE_OVERWRITE}" = false ]; then
     exit 0
 fi
 
+# Remove existing config if force mode
+if [ -f "${MCP_CONFIG}" ] && [ "${FORCE_OVERWRITE}" = true ]; then
+    log_info "Removing existing configuration (--force mode)"
+    rm -f "${MCP_CONFIG}"
+fi
+
 # Detect installed MCP servers
 log_info "Detecting installed MCP servers..."
 
@@ -88,22 +92,21 @@ else
     log_warn "Sequential Thinking not available (npx not found)"
 fi
 
-# Check for ToolUniverse (check multiple possible locations)
-# When running as submodule, the env may be in various places
+# Check for ToolUniverse
 TOOLUNIVERSE_ENV=""
+TOOLUNIVERSE_CMD=""
 for search_path in \
-    "${PROJECT_DIR}/scripts/tooluniverse-env" \
-    "${PROJECT_DIR}/tooluniverse-env" \
     "${SCRIPT_DIR}/tooluniverse-env" \
     "${SCRIPT_DIR}/../tooluniverse-env" \
+    "${PROJECT_DIR}/tooluniverse-env" \
+    "${PROJECT_DIR}/scripts/tooluniverse-env" \
     ; do
     if [ -d "$search_path" ]; then
-        # Convert to absolute path
         TOOLUNIVERSE_ENV="$(cd "$search_path" && pwd)"
         break
     fi
 done
-# Also search common submodule paths
+# Search submodule paths
 if [ -z "${TOOLUNIVERSE_ENV}" ]; then
     for subdir in "${PROJECT_DIR}/"*"/SciAgent-toolkit/scripts/tooluniverse-env" \
                   "${PROJECT_DIR}/"*"/"*"/SciAgent-toolkit/scripts/tooluniverse-env"; do
@@ -113,40 +116,34 @@ if [ -z "${TOOLUNIVERSE_ENV}" ]; then
         fi
     done
 fi
-if [ -n "${TOOLUNIVERSE_ENV}" ] && [ -d "${TOOLUNIVERSE_ENV}" ]; then
-    # Detect correct command name (use -h instead of --version)
-    if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp -h &>/dev/null; then
+if [ -n "${TOOLUNIVERSE_ENV}" ]; then
+    # Detect command name
+    if uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-mcp -h &>/dev/null 2>&1; then
         TOOLUNIVERSE_CMD="tooluniverse-mcp"
-    elif uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio -h &>/dev/null; then
+    elif uv --directory "${TOOLUNIVERSE_ENV}" run tooluniverse-smcp-stdio -h &>/dev/null 2>&1; then
         TOOLUNIVERSE_CMD="tooluniverse-smcp-stdio"
-    else
-        TOOLUNIVERSE_CMD=""
+    elif uv --directory "${TOOLUNIVERSE_ENV}" run python -m tooluniverse.smcp_server -h &>/dev/null 2>&1; then
+        TOOLUNIVERSE_CMD="python -m tooluniverse.smcp_server"
     fi
-
     if [ -n "${TOOLUNIVERSE_CMD}" ]; then
-        log_ok "ToolUniverse available at ${TOOLUNIVERSE_ENV} (${TOOLUNIVERSE_CMD})"
+        log_ok "ToolUniverse available at ${TOOLUNIVERSE_ENV}"
         SERVERS_TO_CONFIGURE+=("tooluniverse")
     else
         log_warn "ToolUniverse installed but command not working"
     fi
 else
-    log_warn "ToolUniverse not available (not found in scripts/ or project root)"
+    log_warn "ToolUniverse not available"
 fi
 
-# Check for Serena (optional - may take long to build on first run)
+# Check for Serena
 if command -v uvx &>/dev/null; then
-    log_info "Checking Serena availability (this may take a moment)..."
-    # Quick test with short timeout - if it times out, skip Serena
+    log_info "Checking Serena availability..."
     if timeout 30 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
-        log_ok "Serena available (pre-cached)"
+        log_ok "Serena available"
         SERVERS_TO_CONFIGURE+=("serena")
     else
-        log_warn "Serena not pre-cached (would take 5-15 min to build)"
-        log_info "Skipping Serena - install manually later if needed"
-        log_info "  To install: uvx --from git+https://github.com/oraios/serena serena start-mcp-server --help"
+        log_warn "Serena not pre-cached (skipping)"
     fi
-else
-    log_warn "Serena not available (uvx not found)"
 fi
 
 # Check for PAL
@@ -156,8 +153,7 @@ if command -v uvx &>/dev/null; then
         log_ok "PAL available"
         SERVERS_TO_CONFIGURE+=("pal")
     else
-        log_warn "PAL not pre-cached or available"
-        log_info "Skipping PAL"
+        log_warn "PAL not pre-cached (skipping)"
     fi
 fi
 
@@ -169,205 +165,173 @@ done
 
 if [ ${#SERVERS_TO_CONFIGURE[@]} -eq 0 ]; then
     log_error "No MCP servers found to configure"
-    log_info "Please run the installation script first:"
-    log_info "  ./scripts/setup_mcp_infrastructure.sh"
     exit 1
-elif [ ${#SERVERS_TO_CONFIGURE[@]} -lt 2 ]; then
-    log_warn "Only ${#SERVERS_TO_CONFIGURE[@]} server(s) will be configured"
-    log_info "This is functional but you may want to install more servers"
 fi
-
-# Generate .mcp.json configuration
-log_info "Generating MCP configuration..."
 
 if [ "${DRY_RUN}" = true ]; then
-    log_warn "Dry run mode - not writing configuration file"
-    MCP_CONFIG="/tmp/mcp-config-preview.json"
+    log_warn "Dry run mode - showing what would be configured"
+    exit 0
 fi
 
-# Build JSON using a more robust approach
-# Collect server configs into an array, then join with commas
-declare -a SERVER_CONFIGS=()
+# Change to project directory for claude mcp commands
+cd "${PROJECT_DIR}"
 
-# Add Sequential Thinking if available
-if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " sequential-thinking " ]]; then
-    SERVER_CONFIGS+=('    "sequential-thinking": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-sequential-thinking"
-      ]
-    }')
-fi
+# Check if claude CLI is available
+if command -v claude &>/dev/null; then
+    log_info "Using claude CLI to configure MCP servers..."
 
-# Add ToolUniverse if available
-if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " tooluniverse " ]]; then
-    # Check for Azure OpenAI credentials
-    if [ -n "${AZURE_OPENAI_API_KEY:-}" ] && [ -n "${AZURE_OPENAI_ENDPOINT:-}" ]; then
-        SERVER_CONFIGS+=("    \"tooluniverse\": {
-      \"command\": \"uv\",
-      \"args\": [
-        \"--directory\",
-        \"${TOOLUNIVERSE_ENV}\",
-        \"run\",
-        \"${TOOLUNIVERSE_CMD}\",
-        \"--exclude-tool-types\",
-        \"PackageTool\",
-        \"--hook-type\",
-        \"SummarizationHook\"
-      ],
-      \"env\": {
-        \"AZURE_OPENAI_API_KEY\": \"${AZURE_OPENAI_API_KEY}\",
-        \"AZURE_OPENAI_ENDPOINT\": \"${AZURE_OPENAI_ENDPOINT}\"
-      }
-    }")
-    else
-        SERVER_CONFIGS+=("    \"tooluniverse\": {
-      \"command\": \"uv\",
-      \"args\": [
-        \"--directory\",
-        \"${TOOLUNIVERSE_ENV}\",
-        \"run\",
-        \"${TOOLUNIVERSE_CMD}\",
-        \"--exclude-tool-types\",
-        \"PackageTool\"
-      ]
-    }")
-    fi
-fi
-
-# Add Serena if available
-if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " serena " ]]; then
-    SERVER_CONFIGS+=('    "serena": {
-      "command": "uvx",
-      "args": [
-        "--from",
-        "git+https://github.com/oraios/serena",
-        "serena",
-        "start-mcp-server"
-      ]
-    }')
-fi
-
-# Add PAL if available
-if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " pal " ]]; then
-    # Note: Using sh wrapper as per PAL documentation for robust path handling
-    SERVER_CONFIGS+=('    "pal": {
-      "command": "sh",
-      "args": [
-        "-c",
-        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo '"'"'uvx not found'"'"' >&2; exit 1"
-      ],
-      "env": {
-        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin"
-      }
-    }')
-fi
-
-# Write JSON file with proper comma handling
-{
-    echo '{'
-    echo '  "mcpServers": {'
-
-    # Join array elements with ",\n"
-    first_config=true
-    for config in "${SERVER_CONFIGS[@]}"; do
-        if [ "$first_config" = true ]; then
-            first_config=false
-        else
-            echo ','
-        fi
-        echo -n "$config"
+    # Configure each server using claude mcp add
+    for server in "${SERVERS_TO_CONFIGURE[@]}"; do
+        case "$server" in
+            sequential-thinking)
+                log_info "Adding sequential-thinking server..."
+                if claude mcp add --transport stdio --scope project sequential-thinking -- \
+                    npx -y @modelcontextprotocol/server-sequential-thinking 2>/dev/null; then
+                    log_ok "Added sequential-thinking"
+                else
+                    log_warn "Failed to add sequential-thinking via CLI, will add to JSON"
+                fi
+                ;;
+            tooluniverse)
+                log_info "Adding tooluniverse server..."
+                if claude mcp add --transport stdio --scope project tooluniverse -- \
+                    uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --exclude-tool-types PackageTool 2>/dev/null; then
+                    log_ok "Added tooluniverse"
+                else
+                    log_warn "Failed to add tooluniverse via CLI, will add to JSON"
+                fi
+                ;;
+            serena)
+                log_info "Adding serena server..."
+                if claude mcp add --transport stdio --scope project serena -- \
+                    uvx --from git+https://github.com/oraios/serena serena start-mcp-server 2>/dev/null; then
+                    log_ok "Added serena"
+                else
+                    log_warn "Failed to add serena via CLI"
+                fi
+                ;;
+            pal)
+                log_info "Adding pal server..."
+                if claude mcp add --transport stdio --scope project pal -- \
+                    uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server 2>/dev/null; then
+                    log_ok "Added pal"
+                else
+                    log_warn "Failed to add pal via CLI"
+                fi
+                ;;
+        esac
     done
-    echo ''
 
-    echo '  }'
-    echo '}'
-} > "${MCP_CONFIG}"
+    log_ok "MCP servers configured via claude CLI"
+    log_info "Verify with: claude mcp list"
+else
+    log_warn "claude CLI not found, generating .mcp.json manually"
 
-# Validate JSON
-if command -v python3 &>/dev/null; then
-    if python3 -m json.tool "${MCP_CONFIG}" > /dev/null 2>&1; then
-        log_ok "Configuration file is valid JSON"
+    # Generate JSON manually as fallback
+    # Using python for reliable JSON generation
+    if command -v python3 &>/dev/null; then
+        python3 << PYEOF
+import json
+import os
+
+servers = {}
+
+# Sequential Thinking
+if "sequential-thinking" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    servers["sequential-thinking"] = {
+        "type": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    }
+
+# ToolUniverse
+if "tooluniverse" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    env_path = """${TOOLUNIVERSE_ENV}"""
+    cmd = """${TOOLUNIVERSE_CMD}"""
+    servers["tooluniverse"] = {
+        "type": "stdio",
+        "command": "uv",
+        "args": ["--directory", env_path, "run"] + cmd.split() + ["--exclude-tool-types", "PackageTool"]
+    }
+
+# Serena
+if "serena" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    servers["serena"] = {
+        "type": "stdio",
+        "command": "uvx",
+        "args": ["--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server"]
+    }
+
+# PAL
+if "pal" in """${SERVERS_TO_CONFIGURE[*]}""".split():
+    servers["pal"] = {
+        "type": "stdio",
+        "command": "uvx",
+        "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"]
+    }
+
+config = {"mcpServers": servers}
+
+with open("${MCP_CONFIG}", "w") as f:
+    json.dump(config, f, indent=2)
+
+print(f"Created {len(servers)} server(s) in .mcp.json")
+PYEOF
+        log_ok "Generated .mcp.json"
     else
-        log_error "Generated configuration has invalid JSON syntax"
-        log_info "File location: ${MCP_CONFIG}"
-        cat "${MCP_CONFIG}"
+        log_error "Neither claude CLI nor python3 available"
         exit 1
     fi
-else
-    log_warn "Python3 not available - skipping JSON validation"
 fi
 
-if [ "${DRY_RUN}" = true ]; then
-    log_info "Dry run preview:"
-    cat "${MCP_CONFIG}"
-    rm -f "${MCP_CONFIG}"
-    log_info "No changes made (dry run mode)"
-else
-    log_ok "MCP configuration created: ${MCP_CONFIG}"
+# Create .claude/settings.json to auto-enable servers
+CLAUDE_SETTINGS_DIR="${PROJECT_DIR}/.claude"
+CLAUDE_SETTINGS_FILE="${CLAUDE_SETTINGS_DIR}/settings.json"
 
-    # Create .claude/settings.json to auto-enable MCP servers
-    # Without this, Claude Code discovers servers but doesn't enable them
-    CLAUDE_SETTINGS_DIR="${PROJECT_DIR}/.claude"
-    CLAUDE_SETTINGS_FILE="${CLAUDE_SETTINGS_DIR}/settings.json"
+mkdir -p "${CLAUDE_SETTINGS_DIR}"
 
-    mkdir -p "${CLAUDE_SETTINGS_DIR}"
+# Build enabled servers list
+ENABLED_LIST=$(printf '"%s",' "${SERVERS_TO_CONFIGURE[@]}" | sed 's/,$//')
 
-    # Build list of server names for enabledMcpjsonServers
-    ENABLED_SERVERS_JSON="["
-    first_server=true
-    for server in "${SERVERS_TO_CONFIGURE[@]}"; do
-        if [ "$first_server" = true ]; then
-            first_server=false
-        else
-            ENABLED_SERVERS_JSON+=", "
-        fi
-        ENABLED_SERVERS_JSON+="\"${server}\""
-    done
-    ENABLED_SERVERS_JSON+="]"
-
-    # Create or update settings.json
-    if [ -f "${CLAUDE_SETTINGS_FILE}" ]; then
-        # Check if it already has MCP settings
-        if grep -q "enabledMcpjsonServers\|enableAllProjectMcpServers" "${CLAUDE_SETTINGS_FILE}" 2>/dev/null; then
-            log_info "Claude settings already configured for MCP servers"
-        else
-            log_info "Updating existing Claude settings with MCP enablement..."
-            # Use python to merge JSON if available
-            if command -v python3 &>/dev/null; then
-                python3 << EOF
+if [ -f "${CLAUDE_SETTINGS_FILE}" ]; then
+    if grep -q "enabledMcpjsonServers" "${CLAUDE_SETTINGS_FILE}" 2>/dev/null; then
+        log_info "Claude settings already has MCP enablement"
+    else
+        log_info "Updating Claude settings..."
+        python3 << PYEOF 2>/dev/null || true
 import json
-with open("${CLAUDE_SETTINGS_FILE}", "r") as f:
-    settings = json.load(f)
-settings["enabledMcpjsonServers"] = ${ENABLED_SERVERS_JSON}
+try:
+    with open("${CLAUDE_SETTINGS_FILE}", "r") as f:
+        settings = json.load(f)
+except:
+    settings = {}
+settings["enabledMcpjsonServers"] = [${ENABLED_LIST}]
 with open("${CLAUDE_SETTINGS_FILE}", "w") as f:
     json.dump(settings, f, indent=2)
-EOF
-                log_ok "Updated Claude settings with MCP enablement"
-            else
-                log_warn "Cannot update settings.json - python3 not available"
-            fi
-        fi
-    else
-        # Create new settings file
-        cat > "${CLAUDE_SETTINGS_FILE}" << EOF
+PYEOF
+        log_ok "Updated Claude settings"
+    fi
+else
+    cat > "${CLAUDE_SETTINGS_FILE}" << EOF
 {
-  "enabledMcpjsonServers": ${ENABLED_SERVERS_JSON}
+  "enabledMcpjsonServers": [${ENABLED_LIST}]
 }
 EOF
-        log_ok "Created Claude settings: ${CLAUDE_SETTINGS_FILE}"
-    fi
-
-    log_info ""
-    log_info "To verify the configuration:"
-    log_info "  1. Start Claude Code: claude"
-    log_info "  2. Check MCP servers: /mcp"
-    log_info ""
-    log_info "Available MCP servers:"
-    for server in "${SERVERS_TO_CONFIGURE[@]}"; do
-        echo "  - ${server}"
-    done
+    log_ok "Created Claude settings: ${CLAUDE_SETTINGS_FILE}"
 fi
+
+# Verify configuration
+log_info ""
+log_info "Configuration complete!"
+log_info ""
+log_info "To verify:"
+log_info "  1. Run: claude mcp list"
+log_info "  2. Start Claude Code: claude"
+log_info "  3. Inside Claude: /mcp"
+log_info ""
+log_info "Configured servers:"
+for server in "${SERVERS_TO_CONFIGURE[@]}"; do
+    echo "  - ${server}"
+done
 
 log_ok "MCP configuration complete"
