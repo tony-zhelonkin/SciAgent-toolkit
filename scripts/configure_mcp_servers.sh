@@ -186,7 +186,7 @@ if command -v claude &>/dev/null; then
             sequential-thinking)
                 log_info "Adding sequential-thinking server..."
                 if claude mcp add --transport stdio --scope project sequential-thinking -- \
-                    npx -y @modelcontextprotocol/server-sequential-thinking 2>/dev/null; then
+                    npx -y @modelcontextprotocol/server-sequential-thinking; then
                     log_ok "Added sequential-thinking"
                 else
                     log_warn "Failed to add sequential-thinking via CLI, will add to JSON"
@@ -195,7 +195,7 @@ if command -v claude &>/dev/null; then
             tooluniverse)
                 log_info "Adding tooluniverse server..."
                 if claude mcp add --transport stdio --scope project tooluniverse -- \
-                    uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --exclude-tool-types PackageTool 2>/dev/null; then
+                    uv --directory "${TOOLUNIVERSE_ENV}" run ${TOOLUNIVERSE_CMD} --exclude-tool-types PackageTool; then
                     log_ok "Added tooluniverse"
                 else
                     log_warn "Failed to add tooluniverse via CLI, will add to JSON"
@@ -204,7 +204,7 @@ if command -v claude &>/dev/null; then
             serena)
                 log_info "Adding serena server..."
                 if claude mcp add --transport stdio --scope project serena -- \
-                    uvx --from git+https://github.com/oraios/serena serena start-mcp-server 2>/dev/null; then
+                    uvx --from git+https://github.com/oraios/serena serena start-mcp-server; then
                     log_ok "Added serena"
                 else
                     log_warn "Failed to add serena via CLI"
@@ -213,7 +213,7 @@ if command -v claude &>/dev/null; then
             pal)
                 log_info "Adding pal server..."
                 if claude mcp add --transport stdio --scope project pal -- \
-                    uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server 2>/dev/null; then
+                    uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; then
                     log_ok "Added pal"
                 else
                     log_warn "Failed to add pal via CLI"
@@ -284,41 +284,49 @@ PYEOF
     fi
 fi
 
-# Create .claude/settings.json to auto-enable servers
+# Create .claude/settings.json AND settings.local.json to auto-enable servers
 CLAUDE_SETTINGS_DIR="${PROJECT_DIR}/.claude"
 CLAUDE_SETTINGS_FILE="${CLAUDE_SETTINGS_DIR}/settings.json"
+CLAUDE_LOCAL_SETTINGS_FILE="${CLAUDE_SETTINGS_DIR}/settings.local.json"
 
 mkdir -p "${CLAUDE_SETTINGS_DIR}"
 
 # Build enabled servers list
 ENABLED_LIST=$(printf '"%s",' "${SERVERS_TO_CONFIGURE[@]}" | sed 's/,$//')
 
-if [ -f "${CLAUDE_SETTINGS_FILE}" ]; then
-    if grep -q "enabledMcpjsonServers" "${CLAUDE_SETTINGS_FILE}" 2>/dev/null; then
-        log_info "Claude settings already has MCP enablement"
-    else
-        log_info "Updating Claude settings..."
+update_settings_file() {
+    local file="$1"
+    if [ -f "$file" ]; then
+        if grep -q "enabledMcpjsonServers" "$file" 2>/dev/null; then
+            log_info "Updating existing settings file: $file"
+        else
+            log_info "Adding enabledMcpjsonServers to: $file"
+        fi
+        
         python3 << PYEOF 2>/dev/null || true
 import json
 try:
-    with open("${CLAUDE_SETTINGS_FILE}", "r") as f:
+    with open("$file", "r") as f:
         settings = json.load(f)
 except:
     settings = {}
 settings["enabledMcpjsonServers"] = [${ENABLED_LIST}]
-with open("${CLAUDE_SETTINGS_FILE}", "w") as f:
+with open("$file", "w") as f:
     json.dump(settings, f, indent=2)
 PYEOF
-        log_ok "Updated Claude settings"
-    fi
-else
-    cat > "${CLAUDE_SETTINGS_FILE}" << EOF
+        log_ok "Updated $file"
+    else
+        cat > "$file" << EOF
 {
   "enabledMcpjsonServers": [${ENABLED_LIST}]
 }
 EOF
-    log_ok "Created Claude settings: ${CLAUDE_SETTINGS_FILE}"
-fi
+        log_ok "Created settings: $file"
+    fi
+}
+
+update_settings_file "${CLAUDE_SETTINGS_FILE}"
+update_settings_file "${CLAUDE_LOCAL_SETTINGS_FILE}"
 
 # Verify configuration
 log_info ""
