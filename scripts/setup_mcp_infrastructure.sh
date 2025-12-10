@@ -154,6 +154,8 @@ if [ "$INSTALL_CLAUDE" = true ]; then
             log_error "Claude Code installation failed"
             exit 1
         }
+        # Propagate PATH to current shell (subshell exports don't affect parent)
+        export PATH="$HOME/.local/bin:$PATH"
     else
         log_error "install_claude.sh not found in ${SCRIPT_DIR}"
         exit 1
@@ -172,6 +174,8 @@ if [ "$INSTALL_CODEX" = true ]; then
             log_error "Codex CLI installation failed"
             exit 1
         }
+        # Propagate PATH for npm global packages (subshell exports don't affect parent)
+        export PATH="$HOME/.npm-global/bin:$PATH"
     else
         log_error "install_codex.sh not found in ${SCRIPT_DIR}"
         exit 1
@@ -190,6 +194,8 @@ if [ "$INSTALL_GEMINI" = true ]; then
             log_error "Gemini CLI installation failed"
             exit 1
         }
+        # Propagate PATH for npm global packages (in case Codex was skipped)
+        export PATH="$HOME/.npm-global/bin:$PATH"
     else
         log_error "install_gemini.sh not found in ${SCRIPT_DIR}"
         exit 1
