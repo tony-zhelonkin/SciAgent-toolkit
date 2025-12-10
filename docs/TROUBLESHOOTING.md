@@ -384,6 +384,165 @@ npx -y @modelcontextprotocol/server-sequential-thinking --help
 ./scripts/mcp_servers/setup_sequential_thinking.sh
 ```
 
+### Issue: ToolUniverse shows "connecting..." indefinitely
+
+**Symptoms**:
+- ToolUniverse appears in `/mcp` but shows `◯ connecting...`
+- Never transitions to `✔ connected`
+- Other MCP servers work fine
+
+**Cause**: MCP uses JSON-RPC over stdio. If the Python process crashes or buffers output before completing the handshake, Claude sees "connecting..." forever.
+
+**Diagnostic Steps**:
+
+**Step 1: Run the debug script**
+```bash
+./scripts/debug_tooluniverse.sh --verbose
+```
+
+**Step 2: Test Python import**
+```bash
+uv --directory ./tooluniverse-env run python -c "
+import sys
+print('Python:', sys.version)
+import tooluniverse
+print('Import OK')
+"
+```
+
+**Step 3: Test MCP startup with unbuffered output**
+```bash
+PYTHONUNBUFFERED=1 uv --directory ./tooluniverse-env run python -c "
+import sys
+print('Starting...', file=sys.stderr, flush=True)
+try:
+    from tooluniverse.smcp_server import main
+    print('Module loaded', file=sys.stderr, flush=True)
+    main()
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+"
+```
+
+**Step 4: Check Claude Code logs**
+```bash
+ls -la ~/.cache/claude-cli-nodejs/
+# Look for recent log files with error output
+```
+
+**Step 5: Test JSON-RPC handshake manually**
+```bash
+echo '{"jsonrpc":"2.0","method":"initialize","id":1}' | \
+  uv --directory ./tooluniverse-env run tooluniverse-mcp
+```
+
+**Solutions**:
+
+1. **Reinstall ToolUniverse**:
+```bash
+rm -rf ./tooluniverse-env
+./scripts/mcp_servers/setup_tooluniverse.sh
+./scripts/configure_mcp_servers.sh --force
+```
+
+2. **Check for missing dependencies**:
+```bash
+uv --directory ./tooluniverse-env run python -c "
+import mcp; print('mcp OK')
+import httpx; print('httpx OK')
+"
+```
+
+3. **Remove and re-add server**:
+```bash
+claude mcp remove tooluniverse
+claude mcp add tooluniverse --scope project -- \
+  uv --directory $(pwd)/tooluniverse-env run tooluniverse-mcp \
+  --exclude-tool-types PackageTool
+```
+
+### Issue: npm/nvm Prefix Conflict Warning
+
+**Symptoms**:
+```
+nvm is not compatible with the npm config "prefix" option:
+  currently set to "/home/user/.npm-global"
+```
+
+**Cause**: Your `~/.npmrc` has a `prefix` setting that conflicts with nvm's version management.
+
+**Impact**: This is typically a cosmetic warning. MCP servers using `npx` still work correctly.
+
+**Solution 1: Clear prefix for current Node version**
+```bash
+nvm use --delete-prefix $(node --version)
+```
+
+**Solution 2: Remove prefix from npmrc**
+```bash
+# Edit ~/.npmrc and comment out or remove the prefix line:
+# prefix=/home/user/.npm-global  # <- Comment out this line
+```
+
+**Solution 3: Accept the warning**
+If npm/npx commands still work, you can ignore this warning. The MCP servers will function normally.
+
+**Verification**:
+```bash
+# Test that npx still works
+npx -y @modelcontextprotocol/server-sequential-thinking --help
+```
+
+### Issue: PAL configured but not working
+
+**Symptoms**:
+- PAL shows `✔ connected` but tools fail
+- "No API key" errors at runtime
+
+**Cause**: PAL requires at least one AI provider API key to function.
+
+**Solution**:
+
+**Step 1: Set API keys in .devcontainer/.env**
+```bash
+# Add at least one:
+GEMINI_API_KEY=your-key-here    # https://aistudio.google.com/apikey
+OPENAI_API_KEY=your-key-here    # https://platform.openai.com/api-keys
+# XAI_API_KEY=your-key-here     # https://console.x.ai/
+```
+
+**Step 2: Regenerate configuration**
+```bash
+./scripts/configure_mcp_servers.sh --force
+```
+
+**Step 3: Restart Claude Code**
+```bash
+# Exit and restart
+claude
+```
+
+**Note**: PAL is always configured (even without keys) so you can see it in `/mcp`. The warning during setup tells you which keys to set.
+
+### Issue: Context7 not working without API key
+
+**Note**: As of 2025, Context7 works **without an API key** for basic usage. The API key is only required for:
+- Higher rate limits
+- Private repository access
+
+**If Context7 fails without a key**:
+```bash
+# Verify npx is available
+npx --version
+
+# Test Context7 directly
+npx -y @upstash/context7-mcp --help
+
+# For higher rate limits, get a free key:
+# https://context7.com/dashboard
+```
+
 ## PubMed Plugin Issues
 
 ### Issue: PubMed not available in Claude Code

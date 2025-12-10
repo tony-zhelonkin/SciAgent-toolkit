@@ -149,15 +149,17 @@ if command -v claude &>/dev/null; then
     CLAUDE_MCP_ARGS="--scope local"
 
     # Check for Azure OpenAI credentials (optional)
+    # Note: --exclude-tool-types removed in ToolUniverse 1.0.14+
+    # Use --compact-mode for minimal tool set if needed
     if [ -n "${AZURE_OPENAI_API_KEY:-}" ] && [ -n "${AZURE_OPENAI_ENDPOINT:-}" ]; then
         log_info "Azure OpenAI credentials detected - enabling SummarizationHook"
         CLAUDE_MCP_ARGS="${CLAUDE_MCP_ARGS} --env AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}"
         CLAUDE_MCP_ARGS="${CLAUDE_MCP_ARGS} --env AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}"
-        TOOLUNIVERSE_CMD_ARGS="--exclude-tool-types PackageTool --hook-type SummarizationHook"
+        TOOLUNIVERSE_CMD_ARGS="--hook-type SummarizationHook"
     else
         log_warn "Azure OpenAI credentials not set - SummarizationHook disabled"
         log_info "Set AZURE_OPENAI_API_KEY and AZURE_OPENAI_ENDPOINT to enable"
-        TOOLUNIVERSE_CMD_ARGS="--exclude-tool-types PackageTool"
+        TOOLUNIVERSE_CMD_ARGS=""
     fi
 
     # Add MCP server using claude mcp add command
