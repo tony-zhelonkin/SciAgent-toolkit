@@ -41,6 +41,7 @@ if command -v gemini &>/dev/null; then
 fi
 
 # Try npm (required)
+ensure_nvm
 if command -v npm &>/dev/null; then
     log_info "Installing Gemini CLI via npm..."
     if npm install -g @google/gemini-cli; then
