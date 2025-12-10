@@ -40,6 +40,7 @@ if command -v codex &>/dev/null; then
 fi
 
 # Try npm first (recommended)
+ensure_nvm
 if command -v npm &>/dev/null; then
     log_info "Installing Codex CLI via npm..."
     if npm install -g @openai/codex &>/dev/null; then

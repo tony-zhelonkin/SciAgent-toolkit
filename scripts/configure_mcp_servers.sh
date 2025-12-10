@@ -118,7 +118,7 @@ fi
 if command -v uvx &>/dev/null; then
     log_info "Checking Serena availability (this may take a moment)..."
     # Quick test with short timeout - if it times out, skip Serena
-    if timeout 5 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
+    if timeout 30 uvx --from git+https://github.com/oraios/serena serena --version &>/dev/null 2>&1; then
         log_ok "Serena available (pre-cached)"
         SERVERS_TO_CONFIGURE+=("serena")
     else
@@ -128,6 +128,18 @@ if command -v uvx &>/dev/null; then
     fi
 else
     log_warn "Serena not available (uvx not found)"
+fi
+
+# Check for PAL
+if command -v uvx &>/dev/null; then
+    log_info "Checking PAL availability..."
+    if timeout 30 uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server --help &>/dev/null 2>&1; then
+        log_ok "PAL available"
+        SERVERS_TO_CONFIGURE+=("pal")
+    else
+        log_warn "PAL not pre-cached or available"
+        log_info "Skipping PAL"
+    fi
 fi
 
 # Summary
@@ -244,6 +256,28 @@ if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " serena " ]]; then
       ]
     }
 EOF_SERENA
+fi
+
+# Add PAL if available
+if [[ " ${SERVERS_TO_CONFIGURE[*]} " =~ " pal " ]]; then
+    if [ "$FIRST_ENTRY" = false ]; then
+        echo "," >> "${MCP_CONFIG}"
+    fi
+    FIRST_ENTRY=false
+
+    # Note: Using sh wrapper as per PAL documentation for robust path handling
+    cat >> "${MCP_CONFIG}" << 'EOF_PAL'
+    "pal": {
+      "command": "sh",
+      "args": [
+        "-c", 
+        "for p in $(which uvx 2>/dev/null) $HOME/.local/bin/uvx /opt/homebrew/bin/uvx /usr/local/bin/uvx uvx; do [ -x \"$p\" ] && exec \"$p\" --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server; done; echo 'uvx not found' >&2; exit 1"
+      ],
+      "env": {
+        "PATH": "/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin:~/.local/bin"
+      }
+    }
+EOF_PAL
 fi
 
 # Close JSON structure
