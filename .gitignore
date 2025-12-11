@@ -3,6 +3,11 @@
 .AppleDouble
 .LSOverride
 
+# Secrets (CRITICAL)
+.env
+.env.*
+!.env.template
+
 # Auto-generated files
 .mcp.json
 test_tooluniverse.sh

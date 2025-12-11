@@ -1,6 +1,6 @@
 # SciAgent Toolkit
 
-A modular infrastructure for building AI-powered scientific research agents using the Model Context Protocol (MCP). This toolkit enables integration of powerful AI assistants (Claude Code, Codex CLI) with specialized scientific tools for drug discovery, genomics, literature research, and more.
+A modular infrastructure for building AI-powered scientific research agents using the Model Context Protocol (MCP). This toolkit enables integration of powerful AI assistants (Claude Code, Gemini CLI, Codex CLI) with specialized scientific tools for drug discovery, genomics, literature research, and more.
 
 ## Features
 
@@ -8,7 +8,8 @@ A modular infrastructure for building AI-powered scientific research agents usin
 - **36M+ Biomedical Articles** via PubMed integration
 - **Code Intelligence** with Serena MCP server
 - **Structured Reasoning** via Sequential Thinking MCP server
-- **Dual Interface Support** for Claude Code and Codex CLI
+- **Multi-Agent Support** for Claude Code, Gemini CLI, and Codex CLI
+- **Smart Context Management** via profile switching (Coding vs Research modes)
 - **Modular Installation** with selective component installation
 - **Production-Ready** with comprehensive error handling and validation
 
@@ -22,28 +23,33 @@ cd SciAgent-toolkit
 # Run the automated installer
 ./scripts/setup_mcp_infrastructure.sh
 
+# Switch to a profile (e.g., for coding)
+./scripts/switch-mcp-profile.sh coding
+
 # Verify installation
 claude
-/mcp  # Should show: sequential-thinking, tooluniverse, serena
-
-# Optional: Add PubMed plugin (manual step required)
-/plugin marketplace add anthropics/life-sciences
-/plugin install pubmed@life-sciences
-# Then restart Claude
+/mcp  # Should show: sequential-thinking, pal, context7
 ```
 
 **What gets installed automatically:**
-- Claude Code CLI (if not already installed)
-- Sequential Thinking MCP server (structured reasoning)
-- ToolUniverse MCP server (600+ scientific tools)
-- Complete MCP configuration in `.mcp.json`
-- All dependencies (uv, Node.js if needed)
-
-**Optional components:**
-- **Serena MCP server** (code intelligence) - Requires 5-15 min build time, skipped by default. Install manually if needed.
-- **PubMed** - Requires manual plugin installation via Claude Code marketplace (see above).
+- **AI CLIs:** Claude Code, Gemini CLI, Codex CLI (if selected)
+- **Core MCPs:** Sequential Thinking, PAL, Context7
+- **Research MCPs:** ToolUniverse (600+ tools), Serena (Code Search)
+- **Smart Config:** Unified profile switcher for all CLIs
 
 For detailed installation instructions, see [Installation Guide](docs/INSTALLATION.md).
+
+## Context & Profile Management
+
+SciAgent-toolkit includes a powerful **Profile Switcher** to manage context window usage across Claude, Gemini, and Codex.
+
+Instead of loading all tools at once (which would consume 500k+ tokens), you select a profile optimized for your current task:
+
+- `coding`: Lightweight, fast. (PAL + Context7)
+- `research-lite`: Targeted scientific tools. (ToolUniverse core)
+- `hybrid-research`: **Claude** for coding, **Gemini** for research.
+
+👉 **Read the full guide:** [MCP Context Management](docs/MCP-CONTEXT-MANAGEMENT.md)
 
 ## Docker/Container Deployment
 
