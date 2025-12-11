@@ -21,6 +21,10 @@
 
 set -euo pipefail
 
+# Determine script directory FIRST (before any variable references)
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOOLKIT_DIR="$(dirname "${SCRIPT_DIR}")"
+
 # Source common utilities
 if [ -f "${SCRIPT_DIR}/common.sh" ]; then
     source "${SCRIPT_DIR}/common.sh"
@@ -42,7 +46,61 @@ else
     }
 fi
 
-# ... (args parsing) ...
+# Default values
+PROJECT_DIR="${PWD}"
+PROFILE="coding"  # Default profile
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --project-dir)
+            PROJECT_DIR="$2"
+            shift 2
+            ;;
+        --help|-h)
+            echo "Usage: $0 [PROFILE] [--project-dir DIR]"
+            echo ""
+            echo "Profiles:"
+            echo "  minimal       (~3k tokens)   - Sequential Thinking + Context7 only"
+            echo "  coding        (~25k tokens)  - + PAL for multi-model collaboration"
+            echo "  codebase      (~75k tokens)  - + PAL + Serena for large codebase exploration"
+            echo "  hybrid        (~35k tokens)  - + PAL + Context7 + Research tools (Gemini only)"
+            echo "  research-lite (~30k tokens)  - + Targeted ToolUniverse (6 tools)"
+            echo "  research-full (~50k tokens)  - + Broader ToolUniverse (14 tools) + SummarizationHook"
+            echo "  full          (~100k tokens) - + PAL + ToolUniverse (14 tools) + Serena"
+            exit 0
+            ;;
+        -*)
+            log_error "Unknown option: $1"
+            exit 1
+            ;;
+        *)
+            PROFILE="$1"
+            # Alias hybrid to hybrid-research
+            if [[ "$PROFILE" == "hybrid" ]]; then PROFILE="hybrid-research"; fi
+            shift
+            ;;
+    esac
+done
+
+# Validate profile and find profile file
+PROFILES_DIR="${TOOLKIT_DIR}/templates/mcp-profiles"
+PROFILE_FILE="${PROFILES_DIR}/${PROFILE}.mcp.json"
+
+if [ ! -f "${PROFILE_FILE}" ]; then
+    log_error "Profile not found: ${PROFILE}"
+    log_info "Available profiles:"
+    ls -1 "${PROFILES_DIR}"/*.mcp.json 2>/dev/null | xargs -I{} basename {} .mcp.json | sed 's/^/  - /'
+    exit 1
+fi
+
+# Auto-detect ToolUniverse environment location
+TOOLUNIVERSE_ENV=""
+if [ -d "${PROJECT_DIR}/tooluniverse-env" ]; then
+    TOOLUNIVERSE_ENV="${PROJECT_DIR}/tooluniverse-env"
+elif [ -d "${SCRIPT_DIR}/tooluniverse-env" ]; then
+    TOOLUNIVERSE_ENV="${SCRIPT_DIR}/tooluniverse-env"
+fi
 
 # Load environment variables for injection
 load_env "${PROJECT_DIR}"
@@ -119,6 +177,7 @@ except Exception as e:
     sys.exit(1)
 "
         log_ok "Updated .gemini/settings.json"
+        log_info "Note: .gemini/settings.json contains API keys but is git-ignored (safe)."
     else
         log_warn "python3 not found - skipping Gemini configuration"
     fi
@@ -131,13 +190,18 @@ fi
 # --------------------------
 CODEX_CONFIG_FILE="${HOME}/.codex/config.toml"
 if [ -f "${CODEX_CONFIG_FILE}" ] && command -v python3 &>/dev/null; then
-    log_info "Updating Codex configuration..."
-    
-    # Determine if ToolUniverse should be enabled for Codex
-    # For now, we align Codex with the *Claude* profile settings (from .mcp.json)
-    # If the profile has ToolUniverse, we enable it in Codex
-    
-    python3 -c "
+    # Check if toml module is available
+    if ! python3 -c "import toml" &>/dev/null; then
+        log_warn "Python 'toml' module not installed - skipping Codex configuration"
+        log_info "To enable: pip3 install toml (may require sudo in some environments)"
+    else
+        log_info "Updating Codex configuration..."
+
+        # Determine if ToolUniverse should be enabled for Codex
+        # For now, we align Codex with the *Claude* profile settings (from .mcp.json)
+        # If the profile has ToolUniverse, we enable it in Codex
+
+        python3 -c "
 import sys, os, toml, json
 
 codex_config_path = '${CODEX_CONFIG_FILE}'
@@ -182,7 +246,8 @@ except Exception as e:
     # simplified error handling
     sys.stderr.write(f'Warning: Could not update Codex config: {e}\\n')
 "
-    log_ok "Updated ~/.codex/config.toml"
+        log_ok "Updated ~/.codex/config.toml"
+    fi
 fi
 
 # Update .claude/settings.local.json with enabled servers
@@ -214,6 +279,7 @@ case $PROFILE in
     minimal)       echo "  ~3k tokens (1.5% of 200k)" ;;
     coding)        echo "  ~25k tokens (12.5% of 200k)" ;;
     codebase)      echo "  ~75k tokens (37.5% of 200k)" ;;
+    hybrid-research) echo "  ~35k tokens (17.5% of 200k)" ;;
     research-lite) echo "  ~30k tokens (15% of 200k)" ;;
     research-full) echo "  ~50k tokens (25% of 200k)" ;;
     full)          echo "  ~100k tokens (50% of 200k)" ;;
