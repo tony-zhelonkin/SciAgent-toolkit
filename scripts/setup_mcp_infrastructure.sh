@@ -46,10 +46,9 @@ else
     exit 1
 fi
 
-# Ensure NVM environment is loaded if available
-if type ensure_nvm >/dev/null 2>&1; then
-    ensure_nvm
-fi
+# Ensure critical dependencies
+if type ensure_nvm >/dev/null 2>&1; then ensure_nvm; fi
+ensure_pip_package "toml" || log_warn "Failed to install 'toml'. Codex config updates may fail."
 
 # Default flags
 INSTALL_CLAUDE=true

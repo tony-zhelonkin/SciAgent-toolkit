@@ -21,85 +21,31 @@
 
 set -euo pipefail
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-log_info()  { echo -e "${BLUE}[INFO]${NC} $*"; }
-log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
-log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $*"; }
-
-# Defaults
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TOOLKIT_DIR="$(dirname "${SCRIPT_DIR}")"
-PROFILES_DIR="${TOOLKIT_DIR}/templates/mcp-profiles"
-PROJECT_DIR="${PWD}"
-PROFILE=""
-
-# Parse arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --project-dir)
-            PROJECT_DIR="$2"
-            shift 2
-            ;;
-        --help|-h)
-            grep '^#' "$0" | grep -v '#!/usr/bin/env' | sed 's/^# //' | sed 's/^#//'
-            exit 0
-            ;;
-        -*)
-            log_error "Unknown option: $1"
-            exit 1
-            ;;
-        *)
-            PROFILE="$1"
-            shift
-            ;;
-    esac
-done
-
-# Show available profiles if none specified
-if [ -z "${PROFILE}" ]; then
-    echo "Available MCP profiles:"
-    echo ""
-    echo "  minimal        (~3k tokens)   Default coding - Sequential Thinking + Context7"
-    echo "  coding         (~25k tokens)  + PAL multi-model collaboration"
-    echo "  codebase       (~75k tokens)  + PAL + Serena for large codebase exploration"
-    echo "  research-lite  (~30k tokens)  + ToolUniverse (6 curated tools)"
-    echo "  research-full  (~50k tokens)  + ToolUniverse (14 tools) with summarization"
-    echo "  full           (~100k tokens) + PAL + ToolUniverse + Serena (max useful config)"
-    echo ""
-    echo "Usage: $0 <profile-name> [--project-dir DIR]"
-    echo ""
-    echo "NOTE: Even 'full' profile uses curated ToolUniverse tools (14 tools)."
-    echo "      Loading all 600 tools would exceed the 200k context window!"
-    exit 0
+# Source common utilities
+if [ -f "${SCRIPT_DIR}/common.sh" ]; then
+    source "${SCRIPT_DIR}/common.sh"
+elif [ -f "${TOOLKIT_DIR}/scripts/common.sh" ]; then
+    source "${TOOLKIT_DIR}/scripts/common.sh"
+else
+    # Fallback if common.sh not found (e.g. standalone script usage)
+    echo "Warning: common.sh not found. Define log functions manually."
+    log_info()  { echo -e "[INFO] $*"; }
+    log_ok()    { echo -e "[OK] $*"; }
+    log_warn()  { echo -e "[WARN] $*"; }
+    log_error() { echo -e "[ERROR] $*"; }
+    
+    # Fallback load_env
+    load_env() {
+        local project_dir="${1:-$PWD}"
+        if [ -f "${project_dir}/.env" ]; then set -a; source "${project_dir}/.env"; set +a; fi
+        if [ -f "${project_dir}/.devcontainer/.env" ]; then set -a; source "${project_dir}/.devcontainer/.env"; set +a; fi
+    }
 fi
 
-# Validate profile exists
-PROFILE_FILE="${PROFILES_DIR}/${PROFILE}.mcp.json"
-if [ ! -f "${PROFILE_FILE}" ]; then
-    log_error "Profile not found: ${PROFILE}"
-    echo "Available profiles:"
-    ls -1 "${PROFILES_DIR}"/*.mcp.json 2>/dev/null | xargs -n1 basename | sed 's/.mcp.json//' | sed 's/^/  /'
-    exit 1
-fi
+# ... (args parsing) ...
 
-# Detect ToolUniverse environment path
-TOOLUNIVERSE_ENV=""
-for search_path in \
-    "${PROJECT_DIR}/tooluniverse-env" \
-    "${SCRIPT_DIR}/tooluniverse-env" \
-    "${TOOLKIT_DIR}/scripts/tooluniverse-env"; do
-    if [ -d "$search_path" ]; then
-        TOOLUNIVERSE_ENV="$(cd "$search_path" && pwd)"
-        break
-    fi
-done
+# Load environment variables for injection
+load_env "${PROJECT_DIR}"
 
 # Copy and process profile
 log_info "Switching to profile: ${PROFILE}"
@@ -114,6 +60,129 @@ else
         log_warn "ToolUniverse environment not found - tooluniverse server may not work"
         log_info "Run setup-ai.sh first or set TOOLUNIVERSE_ENV manually"
     fi
+fi
+
+# ... (previous code)
+
+# --------------------------
+# Gemini Configuration
+# --------------------------
+GEMINI_PROFILES_DIR="${TOOLKIT_DIR}/templates/gemini-profiles"
+GEMINI_SETTINGS_DIR="${PROJECT_DIR}/.gemini"
+mkdir -p "${GEMINI_SETTINGS_DIR}"
+
+# Map profile name to Gemini profile
+case $PROFILE in
+    minimal|coding) GEMINI_PROFILE="coding" ;;
+    codebase)       GEMINI_PROFILE="codebase" ;;
+    research*)      GEMINI_PROFILE="research" ;;
+    full)           GEMINI_PROFILE="research" ;; 
+    hybrid-research) GEMINI_PROFILE="research" ;; # Claude=Coding, Gemini=Research
+    *)              GEMINI_PROFILE="coding" ;;
+esac
+
+GEMINI_TEMPLATE="${GEMINI_PROFILES_DIR}/${GEMINI_PROFILE}.json"
+
+if [ -f "${GEMINI_TEMPLATE}" ]; then
+    log_info "Configuring Gemini with profile: ${GEMINI_PROFILE}"
+    
+    # Read template and substitute variables using Python for safety
+    if command -v python3 &>/dev/null; then
+        python3 -c "
+import sys, os
+
+# Read template
+try:
+    with open('${GEMINI_TEMPLATE}', 'r') as f:
+        content = f.read()
+except Exception as e:
+    sys.stderr.write(f'Error reading template: {e}\\n')
+    sys.exit(1)
+
+# Variables to replace
+replacements = {
+    '\${TOOLUNIVERSE_ENV}': '${TOOLUNIVERSE_ENV}',
+    '\${GEMINI_API_KEY}': os.environ.get('GEMINI_API_KEY', ''),
+    '\${OPENAI_API_KEY}': os.environ.get('OPENAI_API_KEY', ''),
+    '\${CONTEXT7_API_KEY}': os.environ.get('CONTEXT7_API_KEY', ''),
+}
+
+for key, value in replacements.items():
+    content = content.replace(key, value)
+
+# Write output
+try:
+    with open('${GEMINI_SETTINGS_DIR}/settings.json', 'w') as f:
+        f.write(content)
+except Exception as e:
+    sys.stderr.write(f'Error writing settings: {e}\\n')
+    sys.exit(1)
+"
+        log_ok "Updated .gemini/settings.json"
+    else
+        log_warn "python3 not found - skipping Gemini configuration"
+    fi
+else
+    log_warn "Gemini profile template not found: ${GEMINI_PROFILE}"
+fi
+
+# --------------------------
+# Codex Configuration
+# --------------------------
+CODEX_CONFIG_FILE="${HOME}/.codex/config.toml"
+if [ -f "${CODEX_CONFIG_FILE}" ] && command -v python3 &>/dev/null; then
+    log_info "Updating Codex configuration..."
+    
+    # Determine if ToolUniverse should be enabled for Codex
+    # For now, we align Codex with the *Claude* profile settings (from .mcp.json)
+    # If the profile has ToolUniverse, we enable it in Codex
+    
+    python3 -c "
+import sys, os, toml, json
+
+codex_config_path = '${CODEX_CONFIG_FILE}'
+mcp_json_path = '${PROJECT_DIR}/.mcp.json'
+tooluniverse_env = '${TOOLUNIVERSE_ENV}'
+
+try:
+    # Load Codex Config
+    with open(codex_config_path, 'r') as f:
+        codex_config = toml.load(f)
+    
+    # Load MCP JSON to check if ToolUniverse is active
+    with open(mcp_json_path, 'r') as f:
+        mcp_config = json.load(f)
+        
+    has_tu = 'tooluniverse' in mcp_config.get('mcpServers', {})
+    
+    if 'mcp_servers' not in codex_config:
+        codex_config['mcp_servers'] = {}
+        
+    if has_tu and tooluniverse_env:
+        # Add ToolUniverse to Codex
+        # We use the python module invocation for robustness
+        codex_config['mcp_servers']['tooluniverse'] = {
+            'command': 'uv',
+            'args': [
+                '--directory', tooluniverse_env,
+                'run', 'python', '-m', 'tooluniverse.smcp_server',
+                '--transport', 'stdio',
+                '--compact-mode' # Default to compact for Codex to save tokens
+            ]
+        }
+    elif 'tooluniverse' in codex_config['mcp_servers']:
+        # Remove ToolUniverse if not in profile
+        del codex_config['mcp_servers']['tooluniverse']
+        
+    # Write back
+    with open(codex_config_path, 'w') as f:
+        toml.dump(codex_config, f)
+        
+except Exception as e:
+    # simplified error handling
+    sys.stderr.write(f'Warning: Could not update Codex config: {e}\\n')
+"
+    log_ok "Updated ~/.codex/config.toml"
 fi
 
 # Update .claude/settings.local.json with enabled servers

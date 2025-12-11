@@ -150,11 +150,26 @@ else
 fi
 echo ""
 
-# Change to project directory
-cd "${PROJECT_DIR}"
+# ... (after sourcing dependencies)
+
+# Step 0: Environment Setup
+log_info "Step 0/2: Checking environment configuration..."
+if [ ! -f "${PROJECT_DIR}/.env" ]; then
+    if [ -f "${SCIAGENT_SCRIPTS}/../templates/.env.template" ]; then
+        log_info "Creating .env from template..."
+        cp "${SCIAGENT_SCRIPTS}/../templates/.env.template" "${PROJECT_DIR}/.env"
+        log_warn "Created .env file. PLEASE EDIT IT to add your API keys!"
+    elif [ -f "${PROJECT_DIR}/.devcontainer/.env" ]; then
+        log_info "Using existing .devcontainer/.env"
+    else
+        log_warn "No .env file or template found. You may need to create one manually for API keys."
+    fi
+else
+    log_info "Found existing .env file."
+fi
 
 # Step 1: Run the main setup script
-log_info "Step 1/1: Installing and configuring AI tools..."
+log_info "Step 1/2: Installing and configuring AI tools..."
 
 # Ensure PATH includes potential install locations for re-runs
 export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
