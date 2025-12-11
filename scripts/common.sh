@@ -54,6 +54,46 @@ ensure_node() {
     log_info "Node.js version: $version"
 }
 
+# Configure npm to use user-writable prefix for global packages
+configure_npm_prefix() {
+    # If npm is not available, do nothing
+    if ! command -v npm &>/dev/null; then
+        return 0
+    fi
+
+    # Check if we have write access to current prefix
+    local current_prefix
+    current_prefix=$(npm config get prefix)
+
+    if [ -w "$current_prefix" ] && [ -w "$current_prefix/lib/node_modules" ]; then
+        # Prefix is writable, no need to change
+        return 0
+    fi
+
+    # If prefix is not writable (e.g. /usr or /opt/nvm owned by root), switch to ~/.npm-global
+    local npm_global_dir="$HOME/.npm-global"
+
+    # Create directory if it doesn't exist
+    if [[ ! -d "$npm_global_dir" ]]; then
+        mkdir -p "$npm_global_dir"
+    fi
+
+    # Set prefix
+    npm config set prefix "$npm_global_dir"
+    log_info "Configured npm global prefix to $npm_global_dir (original was read-only)"
+
+    # Add to PATH for current session
+    if [[ ":$PATH:" != *":$npm_global_dir/bin:"* ]]; then
+        export PATH="$npm_global_dir/bin:$PATH"
+    fi
+
+    # Add to PATH permanently in .bashrc if not already there
+    if [ -f "$HOME/.bashrc" ] && ! grep -q 'export PATH="$HOME/.npm-global/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
+        echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
+        log_info "Added ~/.npm-global/bin to PATH in .bashrc"
+    fi
+}
+
 # Ensure NVM is installed and loaded
 ensure_nvm() {
     export NVM_DIR="$HOME/.nvm"
@@ -108,13 +148,28 @@ ensure_pip_package() {
     if ! python3 -c "import ${package}" &>/dev/null; then
         log_info "Installing python package: ${package}..."
         if command -v pip3 &>/dev/null; then
-            # Try installing to user site to avoid permission issues
-            pip3 install --user "${package}" || {
-                # Fallback: try global install if user install fails (e.g. inside docker as root)
-                pip3 install "${package}" || return 1
-            }
+            # Check if inside a virtualenv
+            if [ -n "${VIRTUAL_ENV:-}" ] || python3 -c "import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)" 2>/dev/null; then
+                # Inside virtualenv: try direct install, fallback to --user on failure (e.g. read-only venv)
+                if ! pip3 install "${package}"; then
+                    log_warn "Standard install failed (read-only venv?). Retrying with --user..."
+                    pip3 install --user "${package}" || return 1
+                fi
+            else
+                # Outside virtualenv: try --user first
+                pip3 install --user "${package}" || {
+                    pip3 install "${package}" || return 1
+                }
+            fi
         elif command -v pip &>/dev/null; then
-             pip install --user "${package}" || pip install "${package}" || return 1
+             if [ -n "${VIRTUAL_ENV:-}" ] || python3 -c "import sys; sys.exit(0 if sys.prefix != sys.base_prefix else 1)" 2>/dev/null; then
+                if ! pip install "${package}"; then
+                    log_warn "Standard install failed (read-only venv?). Retrying with --user..."
+                    pip install --user "${package}" || return 1
+                fi
+            else
+                pip install --user "${package}" || pip install "${package}" || return 1
+            fi
         else
             log_error "pip not found. Cannot install ${package}."
             return 1
