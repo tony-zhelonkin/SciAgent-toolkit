@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"]
+    },
+    "tooluniverse": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "--directory", "${TOOLUNIVERSE_ENV}",
+        "run", "tooluniverse-smcp-stdio",
+        "--include-tools", "EuropePMC_search_articles,openalex_literature_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,UniProt_search_proteins,search_clinical_trials"
+      ]
+    }
+  }
+}
