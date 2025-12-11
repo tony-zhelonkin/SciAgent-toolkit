@@ -100,37 +100,53 @@ ensure_nvm() {
     configure_npm_prefix
 }
 
-# Configure npm to use a user-writable prefix for global packages
-# Prevents EACCES errors when system node is in read-only locations like /opt/nvm/
-configure_npm_prefix() {
-    local npm_prefix="$HOME/.npm-global"
+# ... (previous code)
 
-    # Check if current npm global directory is writable
-    local current_prefix
-    current_prefix=$(npm config get prefix 2>/dev/null || echo "")
-
-    if [ -n "$current_prefix" ] && [ -w "$current_prefix/lib" ] 2>/dev/null; then
-        # Current prefix is writable, no change needed
-        return 0
+# Ensure Python package is installed
+ensure_pip_package() {
+    local package="$1"
+    if ! python3 -c "import ${package}" &>/dev/null; then
+        log_info "Installing python package: ${package}..."
+        if command -v pip3 &>/dev/null; then
+            # Try installing to user site to avoid permission issues
+            pip3 install --user "${package}" || {
+                # Fallback: try global install if user install fails (e.g. inside docker as root)
+                pip3 install "${package}" || return 1
+            }
+        elif command -v pip &>/dev/null; then
+             pip install --user "${package}" || pip install "${package}" || return 1
+        else
+            log_error "pip not found. Cannot install ${package}."
+            return 1
+        fi
     fi
-
-    # Create user-writable npm global directory
-    if [ ! -d "$npm_prefix" ]; then
-        log_info "Creating user-writable npm prefix at $npm_prefix"
-        mkdir -p "$npm_prefix/bin" "$npm_prefix/lib"
-    fi
-
-    # Configure npm to use user prefix
-    npm config set prefix "$npm_prefix" 2>/dev/null || true
-
-    # Add to PATH for this session
-    export PATH="$npm_prefix/bin:$PATH"
-
-    # Persist PATH in .bashrc if not already present
-    if ! grep -q 'npm-global/bin' "$HOME/.bashrc" 2>/dev/null; then
-        echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
-        log_info "Added ~/.npm-global/bin to PATH in .bashrc"
-    fi
-
-    log_ok "npm configured to use user-writable prefix: $npm_prefix"
+    return 0
 }
+
+# Securely load environment variables
+load_env() {
+    local project_dir="${1:-$PWD}"
+    
+    # Priority 1: .env in project root
+    if [ -f "${project_dir}/.env" ]; then
+        log_info "Loading secrets from ${project_dir}/.env"
+        set -a
+        source "${project_dir}/.env"
+        set +a
+    fi
+    
+    # Priority 2: .devcontainer/.env (often used in devcontainers)
+    if [ -f "${project_dir}/.devcontainer/.env" ]; then
+        log_info "Loading secrets from ${project_dir}/.devcontainer/.env"
+        set -a
+        source "${project_dir}/.devcontainer/.env"
+        set +a
+    fi
+    
+    # Warn if critical keys are missing
+    if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ]; then
+        log_warn "No API keys (GEMINI_API_KEY or OPENAI_API_KEY) found in environment."
+        log_info "You may need to create a .env file with your API keys."
+    fi
+}
+

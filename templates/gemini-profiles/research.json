@@ -1,0 +1,32 @@
+{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "context7": {
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
+      "env": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      }
+    },
+    "pal": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
+    },
+    "tooluniverse": {
+      "command": "uv",
+      "args": [
+        "--directory", "${TOOLUNIVERSE_ENV}",
+        "run", "python", "-m", "tooluniverse.smcp_server",
+        "--transport", "stdio",
+        "--include-tools", "EuropePMC_search_articles,openalex_literature_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,UniProt_search_proteins,search_clinical_trials,pubmed_search,semantic_scholar_search,Google_Search"
+      ]
+    }
+  }
+}
