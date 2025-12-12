@@ -32,7 +32,10 @@ fi
 
 log_info "Installing Google Gemini CLI..."
 
-# Check if already installed
+# First, ensure any previously installed npm-global binaries are in PATH
+ensure_npm_global_path
+
+# Check if already installed (after ensuring PATH includes npm-global)
 if command -v gemini &>/dev/null; then
     GEMINI_VERSION=$(gemini --version 2>/dev/null | head -1 || echo "unknown")
     log_ok "Gemini CLI already installed (version: ${GEMINI_VERSION})"
@@ -42,10 +45,16 @@ fi
 
 # Try npm (required)
 ensure_nvm
+
+# Ensure npm prefix is writable (handles read-only container environments)
+ensure_npm_writable_prefix
+
 if command -v npm &>/dev/null; then
     log_info "Installing Gemini CLI via npm..."
     if npm install -g @google/gemini-cli; then
         log_ok "Gemini CLI installed via npm"
+        # Ensure the new binary is in PATH
+        ensure_npm_global_path
     else
         log_error "Failed to install Gemini CLI via npm"
         exit 1
