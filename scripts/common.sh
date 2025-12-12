@@ -137,7 +137,7 @@ ensure_nvm() {
 
     # Configure npm to use user-writable prefix for global packages
     # This fixes EACCES errors when node is in a read-only location (e.g., /opt/nvm/)
-    configure_npm_prefix
+    # configure_npm_prefix
 }
 
 # ... (previous code)

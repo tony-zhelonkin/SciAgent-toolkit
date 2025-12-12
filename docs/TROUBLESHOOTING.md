@@ -462,6 +462,22 @@ claude mcp add tooluniverse --scope project -- \
   --exclude-tool-types PackageTool
 ```
 
+### Issue: Claude Code "Invalid Settings" Warning
+
+**Symptoms**:
+- `claude doctor` shows "Invalid Settings" for `.claude/settings.local.json`.
+- Error messages like: `The :* pattern must be at the end. Move :* to the end for prefix matching.`
+
+**Cause**:
+- Incorrect permission glob patterns (e.g., `Bash(for f in :*.bam)`) were generated in `settings.local.json`. Claude Code requires the wildcard `:*` to be at the end of the string.
+
+**Solution**:
+- Update to the latest version of SciAgent-toolkit.
+- Re-run the profile switcher or configuration script:
+  ```bash
+  ./scripts/switch-mcp-profile.sh coding --project-dir .
+  ```
+
 ### Issue: npm/nvm Prefix Conflict Warning
 
 **Symptoms**:
@@ -472,27 +488,18 @@ nvm is not compatible with the npm config "prefix" option:
 
 **Cause**: Your `~/.npmrc` has a `prefix` setting that conflicts with nvm's version management.
 
-**Impact**: This is typically a cosmetic warning. MCP servers using `npx` still work correctly.
+**Status**: **FIXED** in recent updates. The setup scripts no longer force a global prefix when `nvm` is detected.
 
-**Solution 1: Clear prefix for current Node version**
+**Solution 1: Update Toolkit**
 ```bash
-nvm use --delete-prefix $(node --version)
+git pull origin main
+# The updated scripts will automatically handle environment setup correctly.
 ```
 
-**Solution 2: Remove prefix from npmrc**
-```bash
-# Edit ~/.npmrc and comment out or remove the prefix line:
-# prefix=/home/user/.npm-global  # <- Comment out this line
-```
-
-**Solution 3: Accept the warning**
-If npm/npx commands still work, you can ignore this warning. The MCP servers will function normally.
-
-**Verification**:
-```bash
-# Test that npx still works
-npx -y @modelcontextprotocol/server-sequential-thinking --help
-```
+**Solution 2: Manual Fix (for older versions)**
+1.  Remove `prefix=...` from `~/.npmrc`.
+2.  Remove `export PATH="$HOME/.npm-global/bin:$PATH"` from `~/.bashrc`.
+3.  Restart your shell.
 
 ### Issue: PAL configured but not working
 
