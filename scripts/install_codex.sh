@@ -31,7 +31,10 @@ fi
 
 log_info "Installing GPT Codex CLI..."
 
-# Check if already installed
+# First, ensure any previously installed npm-global binaries are in PATH
+ensure_npm_global_path
+
+# Check if already installed (after ensuring PATH includes npm-global)
 if command -v codex &>/dev/null; then
     CODEX_VERSION=$(codex --version 2>/dev/null | head -1 || echo "unknown")
     log_ok "Codex CLI already installed (version: ${CODEX_VERSION})"
@@ -41,10 +44,16 @@ fi
 
 # Try npm first (recommended)
 ensure_nvm
+
+# Ensure npm prefix is writable (handles read-only container environments)
+ensure_npm_writable_prefix
+
 if command -v npm &>/dev/null; then
     log_info "Installing Codex CLI via npm..."
     if npm install -g @openai/codex &>/dev/null; then
         log_ok "Codex CLI installed via npm"
+        # Ensure the new binary is in PATH
+        ensure_npm_global_path
     else
         log_error "Failed to install Codex CLI via npm"
         exit 1

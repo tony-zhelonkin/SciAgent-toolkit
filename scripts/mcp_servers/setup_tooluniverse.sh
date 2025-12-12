@@ -94,7 +94,8 @@ fi
 
 # Install ToolUniverse using uv
 log_info "Installing ToolUniverse package (this may take a few minutes)..."
-if uv --directory "${TOOLUNIVERSE_ENV}" pip install tooluniverse &>/dev/null; then
+# Explicitly use the python binary in the venv to avoid permission issues with uv trying to use system python or cache
+if uv pip install --python "${TOOLUNIVERSE_ENV}/bin/python" tooluniverse &>/dev/null; then
     log_ok "ToolUniverse installed successfully"
 else
     log_error "Failed to install ToolUniverse"
@@ -204,13 +205,8 @@ if command -v codex &>/dev/null; then
 # Add this to ${CODEX_CONFIG}
 
 [mcp_servers.tooluniverse]
-command = "uv"
-args = [
-  "--directory",
-  "${TOOLUNIVERSE_ENV}",
-  "run",
-  "${TOOLUNIVERSE_CMD}"
-]
+command = "${TOOLUNIVERSE_ENV}/bin/${TOOLUNIVERSE_CMD}"
+args = []
 startup_timeout_sec = 60
 
 # Optional: Research-focused ToolUniverse instance with specific tools

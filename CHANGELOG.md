@@ -8,6 +8,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **MCP Configuration**: Fixed incorrect arguments in `full.mcp.json` and `research-full.mcp.json` templates that caused `switch_mcp full` to fail.
+  - Removed incorrect `uv` arguments (`--directory`, `run`) that were passed to the direct binary executable.
+  - This ensures `tooluniverse` works correctly in `full` and `research-full` profiles, consistent with `research-lite`.
+- **Dev Container npm EACCES**: Fixed npm global install failures in dev containers where nvm is installed to a read-only location (e.g., `/opt/nvm/` owned by root).
+  - Added `ensure_npm_writable_prefix()` function to detect read-only npm prefix and auto-configure user-local prefix (`~/.npm-global`)
+  - Added `ensure_npm_global_path()` function to ensure previously installed npm binaries are in PATH
+  - Updated `install_gemini.sh` and `install_codex.sh` to call these functions before npm install
+  - PATH updates are now persisted to `~/.bashrc` automatically
 - **Prefix Conflict**: Fixed an issue where `nvm` usage was conflicting with a hardcoded `npm` prefix setting in `common.sh`, causing warnings and potential environment issues.
   - Removed `configure_npm_prefix` call from `ensure_nvm` in `scripts/common.sh`.
   - Removed `prefix` setting from `~/.npmrc`.

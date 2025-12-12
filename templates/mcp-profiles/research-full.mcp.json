@@ -12,10 +12,8 @@
     },
     "tooluniverse": {
       "type": "stdio",
-      "command": "uv",
+      "command": "${TOOLUNIVERSE_ENV}/bin/tooluniverse-smcp-stdio",
       "args": [
-        "--directory", "${TOOLUNIVERSE_ENV}",
-        "run", "tooluniverse-smcp-stdio",
         "--hook-type", "SummarizationHook"
       ]
     }

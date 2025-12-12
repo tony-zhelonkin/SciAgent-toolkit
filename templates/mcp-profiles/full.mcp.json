@@ -17,10 +17,8 @@
     },
     "tooluniverse": {
       "type": "stdio",
-      "command": "uv",
+      "command": "${TOOLUNIVERSE_ENV}/bin/tooluniverse-smcp-stdio",
       "args": [
-        "--directory", "${TOOLUNIVERSE_ENV}",
-        "run", "tooluniverse-smcp-stdio",
         "--include-tools", "EuropePMC_search_articles,openalex_literature_search,pubmed_search,semantic_scholar_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,ChEMBL_search_targets,DrugBank_search,UniProt_search_proteins,UniProt_get_protein,search_clinical_trials,get_clinical_trial_details,FDA_adverse_events,FDA_drug_labels"
       ]
     },

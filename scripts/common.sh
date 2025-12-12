@@ -55,32 +55,25 @@ ensure_node() {
 }
 
 # Configure npm to use user-writable prefix for global packages
+# This is called automatically by ensure_npm_writable_prefix() only when needed
 configure_npm_prefix() {
     # If npm is not available, do nothing
     if ! command -v npm &>/dev/null; then
         return 0
     fi
 
-    # Check if we have write access to current prefix
-    local current_prefix
-    current_prefix=$(npm config get prefix)
-
-    if [ -w "$current_prefix" ] && [ -w "$current_prefix/lib/node_modules" ]; then
-        # Prefix is writable, no need to change
-        return 0
-    fi
-
-    # If prefix is not writable (e.g. /usr or /opt/nvm owned by root), switch to ~/.npm-global
     local npm_global_dir="$HOME/.npm-global"
 
     # Create directory if it doesn't exist
     if [[ ! -d "$npm_global_dir" ]]; then
         mkdir -p "$npm_global_dir"
+        mkdir -p "$npm_global_dir/bin"
+        mkdir -p "$npm_global_dir/lib"
     fi
 
     # Set prefix
     npm config set prefix "$npm_global_dir"
-    log_info "Configured npm global prefix to $npm_global_dir (original was read-only)"
+    log_info "Configured npm global prefix to $npm_global_dir"
 
     # Add to PATH for current session
     if [[ ":$PATH:" != *":$npm_global_dir/bin:"* ]]; then
@@ -91,6 +84,59 @@ configure_npm_prefix() {
     if [ -f "$HOME/.bashrc" ] && ! grep -q 'export PATH="$HOME/.npm-global/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
         echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
         log_info "Added ~/.npm-global/bin to PATH in .bashrc"
+    fi
+}
+
+# Check if npm global prefix is writable; if not, configure user-local prefix
+# This handles read-only nvm installations in containers without conflicting
+# with writable nvm setups
+ensure_npm_writable_prefix() {
+    # If npm is not available, do nothing
+    if ! command -v npm &>/dev/null; then
+        return 0
+    fi
+
+    # Get current prefix
+    local current_prefix
+    current_prefix=$(npm config get prefix 2>/dev/null)
+
+    # Check if the node_modules directory under prefix is writable
+    local node_modules_dir="$current_prefix/lib/node_modules"
+
+    # If node_modules doesn't exist, check if we can create it
+    if [[ ! -d "$node_modules_dir" ]]; then
+        # Try to check if parent is writable
+        if [[ ! -w "$current_prefix/lib" ]] && [[ ! -w "$current_prefix" ]]; then
+            log_info "npm prefix $current_prefix is read-only, switching to user-local prefix"
+            configure_npm_prefix
+            return 0
+        fi
+    elif [[ ! -w "$node_modules_dir" ]]; then
+        log_info "npm node_modules ($node_modules_dir) is read-only, switching to user-local prefix"
+        configure_npm_prefix
+        return 0
+    fi
+
+    # Prefix is writable, no changes needed
+    return 0
+}
+
+# Ensure ~/.npm-global/bin is in PATH if it exists and contains binaries
+# Call this to pick up previously installed npm global packages
+ensure_npm_global_path() {
+    local npm_global_bin="$HOME/.npm-global/bin"
+
+    # If directory exists and has content, ensure it's in PATH
+    if [[ -d "$npm_global_bin" ]] && [[ -n "$(ls -A "$npm_global_bin" 2>/dev/null)" ]]; then
+        if [[ ":$PATH:" != *":$npm_global_bin:"* ]]; then
+            export PATH="$npm_global_bin:$PATH"
+        fi
+
+        # Also ensure it's in .bashrc for persistence
+        if [ -f "$HOME/.bashrc" ] && ! grep -q 'export PATH="$HOME/.npm-global/bin:$PATH"' "$HOME/.bashrc" 2>/dev/null; then
+            echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
+            log_info "Added ~/.npm-global/bin to PATH in .bashrc"
+        fi
     fi
 }
 

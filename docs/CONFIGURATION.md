@@ -8,7 +8,30 @@ ToolUniverse provides 600+ tools, which can overwhelm the context window. You ca
 
 ### For Claude Code
 
-Edit `.mcp.json` in your project directory:
+Edit `.mcp.json` in your project directory.
+
+#### Option 1: Direct Binary Execution (Recommended)
+
+Point directly to the executable in the virtual environment. This method is simpler and avoids argument confusion.
+
+```json
+{
+  "mcpServers": {
+    "tooluniverse-research": {
+      "type": "stdio",
+      "command": "/path/to/SciAgent-toolkit/tooluniverse-env/bin/tooluniverse-smcp-stdio",
+      "args": [
+        "--include-tools",
+        "EuropePMC_search_articles,ChEMBL_search_similar_molecules,search_clinical_trials"
+      ]
+    }
+  }
+}
+```
+
+#### Option 2: Using `uv`
+
+Run the server via `uv`. Ensure you use the correct `uv` arguments (`--directory`, `run`).
 
 ```json
 {
