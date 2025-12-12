@@ -255,20 +255,55 @@ CLAUDE_DIR="${PROJECT_DIR}/.claude"
 mkdir -p "${CLAUDE_DIR}"
 
 # Extract server names from .mcp.json
-if command -v jq &>/dev/null; then
-    SERVERS=$(jq -r '.mcpServers | keys | @json' "${PROJECT_DIR}/.mcp.json")
-    echo "{\"enabledMcpjsonServers\": ${SERVERS}}" > "${CLAUDE_DIR}/settings.local.json"
-elif command -v python3 &>/dev/null; then
+if command -v python3 &>/dev/null; then
     python3 << PYEOF
 import json
-with open("${PROJECT_DIR}/.mcp.json") as f:
-    config = json.load(f)
-servers = list(config.get("mcpServers", {}).keys())
-with open("${CLAUDE_DIR}/settings.local.json", "w") as f:
-    json.dump({"enabledMcpjsonServers": servers}, f, indent=2)
+import os
+
+claude_dir = os.path.join(os.environ.get('PROJECT_DIR', ''), '.claude')
+mcp_json_path = os.path.join(os.environ.get('PROJECT_DIR', ''), '.mcp.json')
+settings_local_path = os.path.join(claude_dir, 'settings.local.json')
+
+os.makedirs(claude_dir, exist_ok=True)
+
+try:
+    with open(mcp_json_path) as f:
+        config = json.load(f)
+    servers = list(config.get("mcpServers", {}).keys())
+except FileNotFoundError:
+    servers = []
+except Exception as e:
+    sys.stderr.write(f'Warning: Could not read .mcp.json: {e}\n')
+    servers = []
+
+# Define default permissions, including the corrected bash globbing
+default_permissions = {
+    "allow": [
+        "Fs(read:*)",
+        "Fs(write:*)",
+        "Shell(git:*)",
+        "Shell(npx:*)",
+        "Shell(npm:*)",
+        "Shell(uvx:*)",
+        "Bash(for f in :*)",
+        "Web(fetch:*)",
+        "Web(google_web_search:*)"
+    ],
+    "deny": []
+}
+
+settings_content = {
+    "enabledMcpjsonServers": servers,
+    "permissions": default_permissions
+}
+
+with open(settings_local_path, "w") as f:
+    json.dump(settings_content, f, indent=2)
+
+print(f"Updated {settings_local_path}")
 PYEOF
 else
-    log_warn "Neither jq nor python3 found - settings.local.json not updated"
+    log_warn "python3 not found - settings.local.json not updated"
 fi
 
 # Show result
