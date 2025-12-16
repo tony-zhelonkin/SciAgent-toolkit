@@ -4,16 +4,21 @@ A modular infrastructure for building AI-powered scientific research agents usin
 
 ## Features
 
-- **600+ Scientific Tools** via ToolUniverse MCP server (ChEMBL, UniProt, DrugBank, FDA databases)
-- **36M+ Biomedical Articles** via PubMed integration
-- **Code Intelligence** with Serena MCP server
-- **Structured Reasoning** via Sequential Thinking MCP server
-- **Multi-Agent Support** for Claude Code, Gemini CLI, and Codex CLI
+- **Multi-Agent Support** for [Claude Code](https://github.com/anthropics/claude-code), [Gemini CLI](https://github.com/google-gemini/gemini-cli), and [Codex CLI](https://github.com/openai/codex)
+- **Structured Reasoning** via [Sequential Thinking MCP server](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking) for Claude code
+- **Multi-Agent Consensus and Brain-storming** via [PAL MCP](https://github.com/BeehiveInnovations/pal-mcp-server)
 - **Role-Based Configuration** via declarative YAML role definitions
 - **Smart Context Management** via profile switching (Coding vs Research modes)
 - **Template System** for consistent AI context files across projects
 - **Modular Installation** with selective component installation
+- **Scientific Tools** via [ToolUniverse MCP](https://github.com/mims-harvard/ToolUniverse) server (ChEMBL, UniProt, DrugBank, FDA databases)
+- **Biomedical Articles** via PubMed integration through Claude code [life-sciences marketplace](https://github.com/anthropics/life-sciences)
+- **Code Intelligence** with [Serena MCP](https://github.com/oraios/serena) server (I\`m thinking of deprecating it)
 - **Production-Ready** with comprehensive Docker testing (11 tests)
+
+
+
+
 
 ## Quick Start
 
@@ -54,7 +59,7 @@ SciAgent-toolkit uses a `.env` file for secure API key management. A `.env.templ
 
 **What gets installed automatically:**
 - **AI CLIs:** Claude Code, Gemini CLI, Codex CLI (if selected)
-- **Core MCPs:** Sequential Thinking, PAL, Context7
+- **Core MCPs:** Sequential Thinking, PAL, [Context7](https://context7.com/dashboard)
 - **Research MCPs:** ToolUniverse (600+ tools), Serena (Code Search)
 - **Smart Config:** Unified profile switcher for all CLIs
 
@@ -62,7 +67,7 @@ For detailed installation instructions, see [Installation Guide](docs/INSTALLATI
 
 ## Context & Profile Management
 
-SciAgent-toolkit includes a powerful **Profile Switcher** to manage context window usage across Claude, Gemini, and Codex.
+SciAgent-toolkit includes a **Profile Switcher** to manage context window usage across Claude, Gemini, and Codex.
 
 Instead of loading all tools at once (which would consume 500k+ tokens), you select a profile optimized for your current task:
 
@@ -77,7 +82,7 @@ Instead of loading all tools at once (which would consume 500k+ tokens), you sel
 **For local development:** Use the installation scripts above.
 
 **For production containerized deployments:** Use [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker), which:
-- Includes SciAgent-toolkit as a Git submodule
+- Set up to be the base container for AI tooling
 - Handles build-time MCP server installation
 - Generates runtime MCP configurations
 - Provides full scientific computing environment (R 4.5, Python 3.10, bioinformatics packages)
@@ -88,7 +93,7 @@ The Docker test images in `docker/test/` are for CI/CD validation only.
 
 ### AI CLIs
 - **Claude Code** - Primary coding interface
-- **Gemini CLI** - High-context research agent (optional)
+- **Gemini CLI** - High-context coding and research research agent (optional)
 - **Codex CLI** - Alternative terminal interface (optional)
 
 ### MCP Servers
@@ -126,16 +131,32 @@ Search PubMed/PMC, access full-text articles, extract findings, and map research
 
 ## Role System & Custom Agents
 
-This toolkit uses a **role-based system** to configure agents and skills per project:
+I plan to implement a **role-based system** to configure agents and skills per project or switch roles at runtime during project analysis:
 
 ```bash
 # Activate a role (symlinks agents/skills to .claude/)
 ./scripts/activate-role.sh base --project-dir /path/to/project
 ```
 
-### Pre-configured Agents
-- **Bioinformatics Research Librarian** - Find tools, docs, and resources
-- **RNA-seq Methods Writer** - Auto-generate publication methods sections
+### Pre-configured Agents (Base Role)
+
+**Research & Documentation**
+- **Bioinformatics Research Librarian** - Find tools, docs, and resources via web research
+- **Bio-Research Visualizer** - Deep biological mechanism research + visualization recommendations
+
+**Data Exploration & Analysis**
+- **RNA-seq Insight Explorer** - Explore RNAseq results with scientific skepticism
+
+**Publication & Documentation**
+- **RNA-seq Methods Writer** - Auto-generate publication methods sections from code
+- **Figure Caption Generator** - Publication-quality captions for figures and tables (fire-and-forget)
+- **Repo Doc Curator** - Audit and consolidate repository documentation
+
+**Code Review & Quality**
+- **Refactor Stage Reviewer** - Peer review of refactored analysis stages
+
+**Session Management**
+- **Handoff** - Timestamped session handoff documentation
 
 ### Creating Custom Roles
 Create `roles/my-role.yaml`:
@@ -158,7 +179,7 @@ See [agents/README.md](agents/README.md) for details.
 - Node.js 18+
 - 2GB free disk space
 - Internet connection
-- macOS or Linux (WSL supported on Windows)
+- macOS or Linux (WSL probably supported on Windows, but not tested)
 
 **Recommended:**
 - Python 3.11+
@@ -168,23 +189,9 @@ See [agents/README.md](agents/README.md) for details.
 
 ## Known Limitations
 
-- **Serena**: Optional component, requires 5-15 min build from source (skipped by default to save time)
+- **Serena**: Optional component, skipped by default
 - **PubMed**: Requires manual plugin installation via Claude Code marketplace
 - **ToolUniverse**: Large installation (~300MB with dependencies)
-- **SSH Keys**: Not required - all installations use HTTPS
-
-### Installing Optional Serena
-
-If you want code intelligence features, install Serena manually:
-
-```bash
-# This will take 5-15 minutes on first run (one-time build)
-uvx --from git+https://github.com/oraios/serena serena start-mcp-server --help
-
-# Then add to Claude Code
-claude mcp add serena --scope local -- \
-  uvx --from git+https://github.com/oraios/serena serena start-mcp-server
-```
 
 ## License
 
@@ -199,7 +206,7 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) file for
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Acknowledgments
 
