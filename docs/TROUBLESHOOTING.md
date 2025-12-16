@@ -88,6 +88,31 @@
 
 ---
 
+### Issue: Gemini: ToolUniverse tools not appearing
+
+**Symptoms:**
+- After switching to a research profile, `find_tools` returns an empty list `[]` or only default tools.
+- `.gemini/settings.json` appears to have the tools listed in the `args` array.
+
+**Cause:**
+- The `--include-tools` argument in the JSON configuration was passed as a single comma-separated string (e.g., `"Tool1,Tool2"`).
+- The Python `argparse` library (used by ToolUniverse) expects separate arguments for `nargs='+'` or `nargs='*'` when receiving a list from `subprocess`.
+
+**Fix:**
+- Ensure that in `.gemini/settings.json` (and the `templates/gemini-profiles/research.json`), each tool name is a separate string in the `args` array.
+
+**Incorrect:**
+```json
+"args": ["--include-tools", "Tool1,Tool2"]
+```
+
+**Correct:**
+```json
+"args": ["--include-tools", "Tool1", "Tool2"]
+```
+
+---
+
 ## Codex CLI Issues
 
 ### Issue: Installation fails with `npm error code EACCES`
