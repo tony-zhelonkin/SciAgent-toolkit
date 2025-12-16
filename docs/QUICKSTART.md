@@ -152,63 +152,9 @@ codex                                      # Start Codex CLI
 
 ---
 
-## Troubleshooting Cheat Sheet
+## Troubleshooting
 
-### Problem: Command not found after install
-```bash
-source ~/.bashrc
-# OR restart terminal
-```
-
-### Problem: MCP servers not loading
-```bash
-# Check if config file exists
-ls -la .mcp.json
-
-# Validate configuration
-claude doctor
-python3 -m json.tool .mcp.json
-
-# Manually configure if needed
-./scripts/configure_mcp_servers.sh
-```
-
-### Problem: No .mcp.json file created
-```bash
-# Configuration script wasn't run or failed
-./scripts/configure_mcp_servers.sh
-
-# Verify it worked
-cat .mcp.json
-```
-
-### Problem: ToolUniverse installation failed
-```bash
-# Likely virtual environment issue - fixed in v1.1.0+
-git pull origin main
-./scripts/mcp_servers/setup_tooluniverse.sh
-
-# Test installation
-./test_tooluniverse.sh
-```
-
-### Problem: Serena installation failed (SSH error)
-```bash
-# Git SSH issue - fixed in v1.1.0+
-git pull origin main
-./scripts/mcp_servers/setup_serena.sh
-
-# Test installation
-uvx --from git+https://github.com/oraios/serena serena --help
-```
-
-### Problem: PubMed not available
-```bash
-# PubMed requires manual plugin install
-claude
-/plugin marketplace add anthropics/life-sciences
-/plugin install pubmed@life-sciences
-```
+Having issues? See **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** for solutions to common problems.
 
 ---
 

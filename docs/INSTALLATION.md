@@ -202,5 +202,9 @@ rm -rf .gemini
 
 ## Troubleshooting
 
-For common issues, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+For common issues and solutions, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
+
+For detailed architectural analysis of known issues, see **[ISSUES.md](ISSUES.md)**.
+
+For profile selection guidance, see **[MCP-CONTEXT-MANAGEMENT.md](MCP-CONTEXT-MANAGEMENT.md)**.
 

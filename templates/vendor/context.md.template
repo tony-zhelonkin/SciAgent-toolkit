@@ -1,0 +1,60 @@
+# Project Context: {{PROJECT_ID}}
+
+**Created:** {{DATE}}
+
+---
+
+## Scientific Question
+
+[What biological question are you investigating?]
+
+---
+
+## Datasets
+
+[What data do you have? Sample sizes, conditions, etc.]
+
+| Group | Description | N |
+|-------|-------------|---|
+| Control | | |
+| Treatment | | |
+
+---
+
+## Hypotheses
+
+[What do you expect to find?]
+
+1.
+2.
+3.
+
+---
+
+## Analysis Goals
+
+[What outputs do you need? DE lists, pathway analysis, figures?]
+
+- [ ] Differential expression analysis
+- [ ] Pathway enrichment (GSEA)
+- [ ] Publication-ready figures
+- [ ]
+
+---
+
+## Broad Direction
+
+[High-level strategy and approach]
+
+---
+
+## Key References
+
+1.
+2.
+
+---
+
+## Notes
+
+[Any caveats, special considerations, or interpretation notes]

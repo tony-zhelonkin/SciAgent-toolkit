@@ -167,33 +167,13 @@ For low-spec systems, use aggressive tool filtering.
 
 ## Troubleshooting Questions
 
-### MCP servers show as "disconnected"?
+For detailed troubleshooting, see **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**.
 
-See [TROUBLESHOOTING.md - MCP servers not loading](TROUBLESHOOTING.md#issue-mcp-servers-not-loading).
-
-Common fixes:
-1. Check configuration syntax: `python3 -m json.tool .mcp.json`
-2. Use absolute paths in configurations
-3. Restart Claude/Codex
-4. Run diagnostics: `claude doctor`
-
-### Tools execute but return errors?
-
-This usually means:
-1. API rate limiting (wait and retry)
-2. Network connectivity issues
-3. Invalid query parameters
-4. Service downtime (check external API status)
-
-### Installation fails with permission errors?
-
+Quick diagnostic:
 ```bash
-# Make scripts executable
-chmod +x scripts/*.sh
-chmod +x scripts/mcp_servers/*.sh
-
-# Or run with bash explicitly
-bash scripts/setup_mcp_infrastructure.sh
+claude mcp list              # Check server status
+claude doctor                # Run diagnostics
+python3 -m json.tool .mcp.json  # Validate config
 ```
 
 ## Configuration Questions

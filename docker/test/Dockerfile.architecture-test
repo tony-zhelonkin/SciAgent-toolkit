@@ -1,0 +1,105 @@
+FROM ubuntu:22.04
+
+ARG DEBIAN_FRONTEND=noninteractive
+ENV TZ=America/Chicago LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+
+# Install prerequisites
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    wget \
+    git \
+    build-essential \
+    python3.10 \
+    python3.10-dev \
+    python3-pip \
+    ca-certificates \
+    locales \
+    jq \
+    && locale-gen en_US.UTF-8 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv package manager
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
+
+# Install Node.js 20+ (for npx commands)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/*
+
+# Create installation directory
+WORKDIR /opt/sciagent
+
+# Copy entire SciAgent-toolkit
+COPY . /opt/sciagent/
+
+# Make scripts executable
+RUN chmod +x /opt/sciagent/scripts/*.sh 2>/dev/null || true
+RUN chmod +x /opt/sciagent/scripts/mcp_servers/*.sh 2>/dev/null || true
+
+# Create test project directory
+RUN mkdir -p /workspace/test-project/02_analysis/config
+
+# Test 1: Verify role system files exist
+RUN echo "=== Test 1: Role System Files ===" && \
+    test -f /opt/sciagent/roles/base.yaml && echo "  [OK] roles/base.yaml exists" && \
+    test -f /opt/sciagent/scripts/activate-role.sh && echo "  [OK] activate-role.sh exists" && \
+    test -d /opt/sciagent/agents && echo "  [OK] agents/ directory exists" && \
+    test -d /opt/sciagent/skills && echo "  [OK] skills/ directory exists"
+
+# Test 2: Verify template files exist
+RUN echo "=== Test 2: Template Files ===" && \
+    test -f /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template exists" && \
+    test -f /opt/sciagent/templates/vendor/GEMINI.md.template && echo "  [OK] GEMINI.md.template exists" && \
+    test -f /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template exists" && \
+    test -f /opt/sciagent/templates/vendor/context.md.template && echo "  [OK] context.md.template exists" && \
+    test -f /opt/sciagent/templates/vendor/analysis_config.yaml.template && echo "  [OK] analysis_config.yaml.template exists"
+
+# Test 3: Verify templates reference 01_modules (not 01_scripts)
+RUN echo "=== Test 3: Template Path References ===" && \
+    grep -q "01_modules" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template references 01_modules" && \
+    grep -q "01_modules" /opt/sciagent/templates/vendor/GEMINI.md.template && echo "  [OK] GEMINI.md.template references 01_modules" && \
+    grep -q "01_modules" /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template references 01_modules" && \
+    ! grep -q "01_scripts" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template does NOT reference 01_scripts"
+
+# Test 4: Test activate-role.sh with base role
+RUN echo "=== Test 4: Role Activation ===" && \
+    cd /workspace/test-project && \
+    bash /opt/sciagent/scripts/activate-role.sh base --project-dir /workspace/test-project && \
+    test -d /workspace/test-project/.claude/agents && echo "  [OK] .claude/agents/ created" && \
+    test -d /workspace/test-project/.claude/skills && echo "  [OK] .claude/skills/ created" && \
+    test -L /workspace/test-project/.claude/agents/bioinf-librarian.md && echo "  [OK] bioinf-librarian.md symlinked" && \
+    test -L /workspace/test-project/.claude/agents/rnaseq-methods-writer.md && echo "  [OK] rnaseq-methods-writer.md symlinked"
+
+# Test 5: Verify switch-mcp-profile.sh has API key substitution code
+RUN echo "=== Test 5: Profile Switcher API Key Support ===" && \
+    grep -q "GEMINI_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] GEMINI_API_KEY substitution present" && \
+    grep -q "OPENAI_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] OPENAI_API_KEY substitution present" && \
+    grep -q "CONTEXT7_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] CONTEXT7_API_KEY substitution present" && \
+    grep -q "validate_profile" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] validate_profile function present"
+
+# Test 6: Test profile switching (minimal profile - no external deps)
+RUN echo "=== Test 6: Profile Switching ===" && \
+    cd /workspace/test-project && \
+    export GEMINI_API_KEY="test-gemini-key-12345" && \
+    bash /opt/sciagent/scripts/switch-mcp-profile.sh minimal --project-dir /workspace/test-project && \
+    test -f /workspace/test-project/.mcp.json && echo "  [OK] .mcp.json created" && \
+    python3 -m json.tool /workspace/test-project/.mcp.json > /dev/null && echo "  [OK] .mcp.json is valid JSON"
+
+# Test 7: Verify research-full.mcp.json has --include-tools
+RUN echo "=== Test 7: Research Profile Tool Limits ===" && \
+    grep -q "include-tools" /opt/sciagent/templates/mcp-profiles/research-full.mcp.json && echo "  [OK] research-full.mcp.json has --include-tools"
+
+# Test 8: Verify setup-ai.sh has template installation code
+RUN echo "=== Test 8: setup-ai.sh Template Support ===" && \
+    grep -q "substitute_template" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] substitute_template function present" && \
+    grep -q "activate-role.sh" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] activate-role.sh call present" && \
+    grep -q "CLAUDE.md" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] CLAUDE.md template handling present" && \
+    grep -q "context.md" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] context.md template handling present"
+
+# Create test success marker
+RUN echo "=== All Architecture Tests Passed ===" && \
+    echo "Architecture Docker test passed" > /tmp/test-success.txt
+
+WORKDIR /workspace
+CMD ["/bin/bash"]

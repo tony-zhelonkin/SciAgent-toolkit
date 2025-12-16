@@ -16,7 +16,8 @@
       "args": [
         "-m", "tooluniverse.smcp_server",
         "--transport", "stdio",
-        "--hook-type", "SummarizationHook"
+        "--hook-type", "SummarizationHook",
+        "--include-tools", "EuropePMC_search_articles,openalex_literature_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,ChEMBL_search_compounds,UniProt_search_proteins,UniProt_get_protein,search_clinical_trials,get_clinical_trial,FDA_get_drug_information,FDA_search_drug_label,DrugBank_get_drug,PubChem_get_compound,semantic_scholar_paper_search"
       ]
     }
   }

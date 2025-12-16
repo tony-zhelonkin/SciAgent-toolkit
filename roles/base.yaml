@@ -1,0 +1,42 @@
+# base.yaml - Default bioinformatics analysis role
+#
+# This role provides the full suite of agents for RNA-seq, single-cell,
+# and general bioinformatics analysis workflows.
+#
+# Includes 8 specialized agents covering:
+# - Research & documentation
+# - Data exploration & interpretation
+# - Publication preparation
+# - Code review & refactoring
+# - Session management
+
+name: base
+description: Default bioinformatics analysis role with full agent suite
+mcp_profile: coding
+
+# Agents to activate (reference by filename without .md)
+# These will be symlinked from agents/ to .claude/agents/
+agents:
+  # Research & Documentation
+  - bioinf-librarian            # Tool/documentation research
+  - bio-research-visualizer     # Biological mechanism research + visualization
+
+  # Data Exploration & Analysis
+  - rnaseq-insight-explorer     # RNAseq data exploration with skepticism
+
+  # Publication & Documentation
+  - rnaseq-methods-writer       # Methods section generation from code
+  - figure-caption-generator    # Publication-quality figure captions (fire-and-forget)
+  - repo-doc-curator            # Repository documentation cleanup
+
+  # Code Review & Quality
+  - refactor-stage-reviewer     # Code refactoring peer review
+
+  # Session Management
+  - handoff                     # Session handoff documentation
+
+# Skills to activate (reference by filename without .md)
+# These will be symlinked from skills/ to .claude/skills/
+skills: []
+  # Future skills:
+  # - checkpoint-caching

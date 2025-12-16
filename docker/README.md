@@ -1,14 +1,16 @@
-# Docker Testing Environment for ToolUniverse
+# Docker Testing Environment for SciAgent-toolkit
 
-This directory contains Docker-based testing infrastructure for validating ToolUniverse installation and MCP server integration with Claude Code and Codex CLI.
+This directory contains Docker-based testing infrastructure for validating the SciAgent-toolkit installation, architecture, and MCP server integration.
 
 ## Overview
 
-The test suite consists of three Docker images built in sequence:
+The test suite consists of five Docker images built in sequence (11 total tests):
 
-1. **tooluniverse-test** - Base image with ToolUniverse and dependencies
-2. **claude-mcp-test** - Adds Claude Code with MCP configuration
-3. **codex-mcp-test** - Adds Codex CLI with MCP configuration
+1. **architecture-test** - Validates role system, templates, and profile switching
+2. **tooluniverse-test** - Base image with ToolUniverse and dependencies
+3. **claude-mcp-test** - Adds Claude Code with MCP configuration
+4. **codex-mcp-test** - Adds Codex CLI with MCP configuration
+5. **gemini-mcp-test** - Adds Gemini CLI
 
 ## Quick Start
 
@@ -43,6 +45,24 @@ docker build -f docker/test/Dockerfile.codex-test \
 
 ## Image Details
 
+### architecture-test
+
+**Base:** ubuntu:22.04
+
+**Purpose:** Validates modularization changes (role system, templates, profiles)
+
+**Tests Performed:**
+1. Role system files exist (`roles/base.yaml`, `activate-role.sh`, `agents/`, `skills/`)
+2. Template files exist (`CLAUDE.md.template`, `GEMINI.md.template`, etc.)
+3. Templates reference `01_modules` (not old `01_scripts`)
+4. Role activation creates correct symlinks
+5. Profile switcher has API key substitution code
+6. Profile switching creates valid JSON
+7. `research-full.mcp.json` has `--include-tools`
+8. `setup-ai.sh` has template support functions
+
+**Size:** ~1.5GB
+
 ### tooluniverse-test
 
 **Base:** ubuntu:22.04
@@ -50,8 +70,8 @@ docker build -f docker/test/Dockerfile.codex-test \
 **Installed:**
 - Python 3.10
 - uv package manager
-- Node.js 18+
-- ToolUniverse MCP server (`/opt/sciagent/tooluniverse-env`)
+- Node.js 20+
+- ToolUniverse MCP server (`/opt/sciagent/scripts/tooluniverse-env`)
 
 **Validation:**
 - ToolUniverse responds to `--help`
@@ -190,9 +210,11 @@ docker run --rm -it tooluniverse-test:latest bash
 ### Remove Test Images
 
 ```bash
+docker rmi architecture-test:latest
 docker rmi tooluniverse-test:latest
 docker rmi claude-mcp-test:latest
 docker rmi codex-mcp-test:latest
+docker rmi gemini-mcp-test:latest
 ```
 
 ### Remove Build Cache
@@ -218,6 +240,9 @@ After successful tests:
            ToolUniverse Docker Integration Test Suite
 ===================================================================
 
+[STEP] Test 0: Building architecture test image...
+[OK] Architecture tests passed
+
 [STEP] Test 1: Building base ToolUniverse test image...
 [OK] Base image built successfully
 [INFO] Testing ToolUniverse MCP server --help...
@@ -237,11 +262,16 @@ After successful tests:
 [INFO] Testing Codex config validity...
 [OK] Codex config is valid TOML
 
+[STEP] Test 4: Building Gemini CLI MCP test image...
+[OK] Gemini test image built successfully
+[INFO] Testing Gemini CLI installation...
+[OK] Gemini CLI is installed
+
 ===================================================================
                          Test Summary
 ===================================================================
-Total tests:  9
-Passed:       9
+Total tests:  11
+Passed:       11
 Failed:       0
 ===================================================================
 

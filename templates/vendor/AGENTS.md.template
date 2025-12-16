@@ -1,0 +1,118 @@
+# AGENTS.md - Universal AI Rules for {{PROJECT_ID}}
+
+> **Full guidelines:** `01_modules/SciAgent-toolkit/docs/guidelines/`
+
+---
+
+## Critical Rules
+
+These rules apply to ALL AI agents (Claude, Gemini, Codex):
+
+### 1. Gene Annotation
+
+**Annotate genes BEFORE filtering.** Once you filter, you lose the ability to annotate filtered-out genes.
+
+```r
+# CORRECT: Annotate first
+dge <- annotate_genes(dge)
+dge <- filter_lowly_expressed(dge)
+
+# WRONG: Filter first
+dge <- filter_lowly_expressed(dge)
+dge <- annotate_genes(dge)  # Missing genes!
+```
+
+### 2. Expression Filtering
+
+**Use `filterByExpr()`, not manual thresholds.**
+
+```r
+# CORRECT
+keep <- filterByExpr(dge, design = design)
+
+# WRONG
+keep <- rowSums(cpm(dge) > 1) >= 3  # Magic numbers!
+```
+
+### 3. Caching Strategy
+
+**Cache anything that takes >1 minute.** Use `load_or_compute()` pattern.
+
+```r
+result <- load_or_compute(
+  checkpoint_file = "1.3_gsea_results.rds",
+  description = "GSEA analysis",
+  compute_fn = function() { ... }
+)
+```
+
+### 4. Visualization
+
+**Colorblind-safe palettes only.** Use viridis, RColorBrewer Set2, or project-defined palettes.
+
+```r
+# Load project colors
+source("02_analysis/config/color_config.R")
+```
+
+---
+
+## Configuration
+
+Import project-specific values from: `02_analysis/config/analysis_config.yaml`
+
+```r
+# R usage
+config <- yaml::read_yaml("02_analysis/config/analysis_config.yaml")
+```
+
+```python
+# Python usage
+import yaml
+with open("02_analysis/config/analysis_config.yaml") as f:
+    config = yaml.safe_load(f)
+```
+
+---
+
+## Directory Structure
+
+```
+00_data/          # Input data (read-only)
+  raw/            # Raw files
+  processed/      # Count matrices
+  references/     # Gene sets, annotations
+
+01_modules/       # Shared code (submodules)
+  RNAseq-toolkit/ # DE/GSEA functions
+  SciAgent-toolkit/ # AI infrastructure
+
+02_analysis/      # Project-specific scripts
+  config/         # Configuration files
+  helpers/        # Project-specific functions
+
+03_results/       # All outputs
+  checkpoints/    # Cached RDS objects
+  tables/         # CSV exports (master tables)
+  plots/          # Figures
+```
+
+---
+
+## Key Files
+
+| File | Purpose |
+|------|---------|
+| `context.md` | Biological question and hypotheses |
+| `tasks.md` | Concrete implementation steps |
+| `notes.md` | Web research and literature notes |
+| `02_analysis/config/analysis_config.yaml` | Project parameters |
+| `02_analysis/config/config.R` | R config loader |
+| `02_analysis/config/color_config.R` | Color palettes |
+
+---
+
+## Version
+
+- **Template version:** 2.0.0
+- **Generated:** {{DATE}}

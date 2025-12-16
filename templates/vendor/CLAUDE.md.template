@@ -1,6 +1,6 @@
 # CLAUDE.md - Claude Code Context for {{PROJECT_ID}}
 
-> **This is a thin wrapper.** Full methodology is in `01_scripts/SciAgent-toolkit/AGENTS.md`.
+> **This is a thin wrapper.** Full methodology is in `01_modules/SciAgent-toolkit/AGENTS.md`.
 > Do not duplicate content here - reference the source.
 
 ---
@@ -16,7 +16,7 @@
 
 ## Methodology Reference
 
-**Read and follow:** `01_scripts/SciAgent-toolkit/AGENTS.md`
+**Read and follow:** `01_modules/SciAgent-toolkit/AGENTS.md`
 
 This file contains:
 - Analysis patterns and philosophy
@@ -24,7 +24,7 @@ This file contains:
 - Code style and naming rules
 - Critical rules (filtering, caching, visualization)
 
-**Detailed guidelines:** `01_scripts/SciAgent-toolkit/docs/guidelines/`
+**Detailed guidelines:** `01_modules/SciAgent-toolkit/docs/guidelines/`
 
 | Module | When to Use |
 |--------|-------------|
@@ -52,7 +52,7 @@ DE_FDR_CUTOFF <- config$thresholds$de_fdr
 
 ## Project Context
 
-**See:** `PROJECT_CONTEXT.md` for biological question, datasets, and hypotheses.
+**See:** `context.md` for biological question, datasets, and hypotheses.
 
 ---
 
@@ -101,8 +101,8 @@ Agents are available in `.claude/agents/` (symlinked from toolkit):
 | File | Purpose |
 |------|---------|
 | `analysis_config.yaml` | Project-specific values |
-| `PROJECT_CONTEXT.md` | Biological question |
-| `01_scripts/SciAgent-toolkit/AGENTS.md` | Universal methodology |
+| `context.md` | Biological question |
+| `01_modules/SciAgent-toolkit/AGENTS.md` | Universal methodology |
 | `03_results/checkpoints/` | Cached results |
 | `03_results/tables/master_*.csv` | Standardized exports |
 
