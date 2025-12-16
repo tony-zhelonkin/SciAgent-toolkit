@@ -1,301 +1,267 @@
-# AGENTS.md - Universal AI Agent Instructions
+# AGENTS.md - SciAgent-toolkit Codebase Instructions
 
 **Version:** 2.0.0
-**Last Updated:** 2025-12-15
-**Purpose:** Single source of truth for AI agent behavior in bioinformatics projects
+**Last Updated:** 2025-12-16
+**Purpose:** Universal AI agent instructions for working with the SciAgent-toolkit codebase
 
 ---
 
-> **This file is the canonical reference for ALL AI agents** (Claude, Gemini, Codex, etc.).
-> Vendor-specific files (`CLAUDE.md`, `GEMINI.md`) should reference this document rather than duplicate content.
+> **This file is for AI agents working on the SciAgent-toolkit codebase itself.**
+> For project-specific analysis methodology, see `templates/vendor/AGENTS.md.template`.
 
 ---
 
-## 1. Agent Role & Identity
+## Repository Overview
 
-You are a **bioinformatics expert** specialized in RNA-seq analysis. Your role is to assist with computational biology workflows following standardized patterns that ensure reproducibility, consistency, and scientific rigor.
+**SciAgent-toolkit** is a modular MCP (Model Context Protocol) infrastructure orchestrator that integrates AI assistants (Claude Code, Gemini CLI, Codex CLI) with specialized scientific research tools for bioinformatics projects.
 
-### Core Competencies
+### Core Purpose
 
-- **Differential Expression Analysis**: limma-voom, DESeq2, edgeR
-- **Gene Set Enrichment**: GSEA, ORA, custom gene sets
-- **Metabolic analysis**: GATOM
-- **Transcription factor predictions**: decoupleR
-- **Data Visualization**: Publication-quality plots, interactive dashboards
-- **Reproducible Workflows**: Checkpoint caching, master tables, modular code
-
-### Guiding Philosophy
-
-1. **Follow established patterns** - Don't reinvent; use toolkit functions; only create new scripts when none alternative available
-2. **Cache expensive operations** - Always use `load_or_compute()` pattern
-3. **Separate concerns** - Processing scripts never plot; viz scripts never compute
-4. **Document outputs** - Every folder gets a README
+1. **Install and configure AI CLI tools** (Claude Code, Gemini CLI, Codex CLI)
+2. **Orchestrate MCP servers** (PAL, Sequential Thinking, Context7, ToolUniverse, Serena)
+3. **Provide reusable agents** for bioinformatics workflows
+4. **Manage roles and profiles** for different analysis contexts
+5. **Template project setup** for consistent AI-assisted analysis
 
 ---
 
-## 2. Methodology Reference
+## Architecture
 
-All analysis follows standardized guidelines documented in modular files:
-
-### Core Guidelines (`docs/guidelines/`)
-
-| Module | When to Reference |
-|--------|-------------------|
-| **[core_architecture.md](docs/guidelines/core_architecture.md)** | Starting any project, understanding structure |
-| **[data_processing.md](docs/guidelines/data_processing.md)** | DE analysis, filtering, normalization |
-| **[gsea_analysis.md](docs/guidelines/gsea_analysis.md)** | Pathway enrichment, MSigDB usage |
-| **[checkpoint_caching.md](docs/guidelines/checkpoint_caching.md)** | Any expensive computation |
-| **[master_tables.md](docs/guidelines/master_tables.md)** | Exporting results, R/Python bridging |
-| **[visualization.md](docs/guidelines/visualization.md)** | Creating plots, colors, themes |
-| **[code_style.md](docs/guidelines/code_style.md)** | Writing any code |
-
-**Quick Reference**: See [docs/guidelines/README.md](docs/guidelines/README.md) for complete index.
-
----
-
-## 3. Critical Rules
-
-### 3.1 Data Processing Rules
-
-1. **Annotate genes BEFORE filtering** - Never lose gene IDs by filtering first
-2. **Use `filterByExpr()`** - Never use manual count thresholds like `rowSums >= 10`
-3. **Gene symbols for MSigDB GSEA** - MSigDB uses gene symbols, not Ensembl IDs
-4. **msigdbr API** - Use `species` parameter only, never `db_species`
-
-### 3.2 Caching Rules
-
-1. **Cache anything >1 minute** - GSEA, DE fitting, annotations
-2. **Use `load_or_compute()` pattern** - Standard caching function
-3. **Checkpoint naming** - `{phase}.{step}_{description}.rds`
-
-### 3.3 Visualization Rules
-
-1. **Colorblind-safe palettes** - Okabe-Ito for categories, Blue-Orange diverging
-2. **Never hardcode colors** - Use config values
-3. **DPI >= 300** - Publication quality
-4. **Both PDF and PNG** - Vector for publication, raster for preview
-
-### 3.4 Code Organization Rules
-
-1. **Processing** - `1.x.*.R` scripts, output to checkpoints
-2. **Master tables** - `2.x.*.R` scripts, output to `tables/`
-3. **R visualization** - `3.x.*.R` scripts, output to `plots/`
-4. **Python/Interactive** - `4.x.*.py` scripts, output to `interactive/`
-
----
-
-## 4. Directory Structure
+### Four-Tier System
 
 ```
-project-root/
-├── 00_data/                    # READ-ONLY input data
-│   ├── processed/              # Count matrices
-│   └── references/             # Gene sets, annotations
-│
-├── 01_scripts/                 # Shared tools
-│   ├── RNAseq-toolkit/         # Reusable analysis functions
-│   └── SciAgent-toolkit/       # AI agent infrastructure (this toolkit)
-│
-├── 02_analysis/                # Project-specific code
-│   ├── config/                 # Configuration files
-│   │   ├── pipeline.yaml       # Single source of truth
-│   │   └── config.R            # R config loader
-│   ├── 1.x.*.R                 # Phase 1: Data preparation
-│   ├── 2.x.*.R                 # Phase 2: Analysis processing, caching
-│   ├── 3.x.*.R                 # Phase 3: R visualization
-│   └── 4.x.*.py                # Phase 4-5: Python/interactive
-│
-├── 03_results/                 # Generated outputs
-│   ├── checkpoints/            # Cached RDS objects
-│   ├── tables/                 # Master CSV exports
-│   ├── plots/                  # Publication figures
-│   └── interactive/            # HTML dashboards
-│
-├── CLAUDE.md                   # Claude Code context (thin wrapper)
-├── GEMINI.md                   # Gemini context (thin wrapper)
-├── analysis_config.yaml        # Project-specific values
-└── PROJECT_CONTEXT.md          # Biological question, datasets
+┌─────────────────────────────────────────────────────────┐
+│  User Interfaces: Claude Code, Gemini CLI, Codex CLI    │
+├─────────────────────────────────────────────────────────┤
+│  Role & Profile System: activate-role.sh, switch-mcp.sh │
+├─────────────────────────────────────────────────────────┤
+│  MCP Servers: PAL, Sequential Thinking, Context7,       │
+│               ToolUniverse, Serena                      │
+├─────────────────────────────────────────────────────────┤
+│  External APIs: ChEMBL, UniProt, PubMed, DrugBank, etc. │
+└─────────────────────────────────────────────────────────┘
 ```
+
+### Key Directories
+
+| Directory | Purpose |
+|-----------|---------|
+| `scripts/` | Installation and configuration scripts |
+| `scripts/mcp_servers/` | Individual MCP server installers |
+| `templates/vendor/` | Project context templates (AGENTS.md, CLAUDE.md, etc.) |
+| `templates/mcp-profiles/` | MCP configuration profiles |
+| `agents/` | Canonical agent definitions |
+| `skills/` | Canonical skill definitions |
+| `roles/` | Role definitions (YAML) |
+| `docs/guidelines/` | Modular methodology guidelines |
+| `docker/test/` | CI/CD test infrastructure |
 
 ---
 
-## 5. Configuration System
+## Critical Rules for Toolkit Development
 
-### 5.1 Project-Specific Values
+### 1. Separation of Concerns
 
-All hardcoded values go in `analysis_config.yaml`:
+**Root-level files** describe the **toolkit codebase**:
+- `AGENTS.md` (this file) - Universal instructions for toolkit development
+- `CLAUDE.md` - Claude Code context for the toolkit
+- `README.md` - Project overview
 
-```yaml
-project:
-  id: "PROJECT-ID"
-  species: "Mus musculus"
+**Template files** (`templates/vendor/`) are for **user projects**:
+- `AGENTS.md.template` - Comprehensive project methodology
+- `CLAUDE.md.template` - Claude Code project context
+- `GEMINI.md.template` - Gemini project context
+- `context.md.template` - Scientific question scaffold
 
-thresholds:
-  de_fdr: 0.05
-  de_logfc: 1.0
-  gsea_nperm: 100000
+### 2. Absolute Paths in MCP Configurations
 
-colors:
-  diverging:
-    down: "#2166AC"
-    neutral: "#F7F7F7"
-    up: "#B35806"
-  databases:
-    Hallmark: "#E69F00"
-    KEGG: "#56B4E9"
-    Reactome: "#009E73"
+**Critical**: `.mcp.json` files MUST use absolute paths because Claude Code doesn't guarantee working directory.
+
+```json
+{
+  "mcpServers": {
+    "tooluniverse": {
+      "command": "uv",
+      "args": ["--directory", "/absolute/path/to/tooluniverse-env", "run", "tooluniverse-mcp"]
+    }
+  }
+}
 ```
 
-### 5.2 Importing Config
+### 3. Template Placeholders
 
-**R:**
-```r
-config <- yaml::read_yaml("analysis_config.yaml")
-DE_FDR_CUTOFF <- config$thresholds$de_fdr
-```
+Use double-brace placeholders in templates. The `setup-ai.sh` script substitutes them:
 
-**Python:**
-```python
-import yaml
-with open("analysis_config.yaml") as f:
-    config = yaml.safe_load(f)
-de_fdr_cutoff = config['thresholds']['de_fdr']
+| Placeholder | Substituted With |
+|-------------|------------------|
+| `{{PROJECT_ID}}` | Basename of project directory |
+| `{{PROJECT_TITLE}}` | Same as PROJECT_ID |
+| `{{DATE}}` | Current date (YYYY-MM-DD) |
+| `{{SPECIES}}` | Default: "Mus musculus" |
+| `{{EXPERIMENTAL_DESIGN}}` | Default: "TBD" |
+
+### 4. Idempotent Scripts
+
+All installation scripts MUST be idempotent:
+- Check for existing installations before installing
+- Safe to run multiple times
+- No destructive operations
+- Support `--force` flag for reinstall
+
+### 5. Agent File Structure
+
+Agents are Markdown files with YAML frontmatter:
+
+```markdown
+---
+name: "agent-identifier"
+description: "When to use this agent (with examples)"
+model: "sonnet" | "opus" | "haiku"
+color: "yellow" | "blue" | "green"
+---
+
+# Agent Identity
+Your agent's role and capabilities...
+
+# Methodology
+How the agent works...
+
+# Examples
+Example use cases...
 ```
 
 ---
 
-## 6. Specialized Agents
+## Development Workflow
 
-The toolkit includes specialized agents for specific tasks:
+### Adding a New Agent
 
-### 6.1 Available Agents (`agents/`)
+1. Create `agents/new-agent-name.md` following the structure above
+2. Add to relevant role(s) in `roles/*.yaml`
+3. Test by activating the role: `./scripts/activate-role.sh <role>`
+4. Document in `agents/README.md`
 
-| Agent | File | Purpose |
-|-------|------|---------|
-| **Bioinformatics Librarian** | `bioinf-librarian.md` | Find tools, documentation, resources |
-| **RNA-seq Methods Writer** | `rnaseq-methods-writer.md` | Generate publication Methods sections |
-| **Figure Caption Generator** | `figure-caption-generator.md` | Create README.md with figure legends |
+### Adding a New MCP Server
 
-### 6.2 Using Agents
+1. Create installer: `scripts/mcp_servers/setup_newserver.sh`
+2. Add to orchestrator: `scripts/setup_mcp_infrastructure.sh`
+3. Update config generator: `scripts/configure_mcp_servers.sh`
+4. Create MCP profile(s): `templates/mcp-profiles/*.json`
+5. Update documentation
 
-Agents are automatically available in Claude Code. Reference them in prompts:
+### Adding a New Role
 
-```
-"Use the rnaseq-methods-writer to document my analysis"
-"Find the best tool for scATAC-seq peak calling"
-```
+1. Create `roles/new-role.yaml`:
+   ```yaml
+   name: new-role
+   description: Role description
+   mcp_profile: coding  # or research-lite, etc.
 
-### 6.3 Agent Placement Rules
+   agents:
+     - agent-name-1
+     - agent-name-2
 
-| Agent Type | Location | Example |
-|------------|----------|---------|
-| Generic/Reusable | `SciAgent-toolkit/agents/` | figure-caption-generator |
-| Project-specific | `.claude/agents/` in project | hypothesis-specific agent |
+   skills: []
+   ```
+2. Test activation: `./scripts/activate-role.sh new-role`
 
----
+### Adding a New MCP Profile
 
-## 7. MCP Tools
-
-### 7.1 PAL (Collaboration & Planning)
-
-Available PAL tools for complex tasks:
-
-| Tool | Use Case |
-|------|----------|
-| `chat` | Brainstorm, validate approaches |
-| `thinkdeep` | Extended reasoning for complex problems |
-| `planner` | Break down projects into actionable plans |
-| `consensus` | Get opinions from multiple AI models |
-| `debug` | Systematic root cause analysis |
-| `codereview` | Professional code reviews |
-
-### 7.2 Context7 (Documentation Lookup)
-
-For API/library, primarily Python documentation:
-```
-"Look up the latest clusterProfiler documentation"
-"Find fgsea usage examples"
-```
-
-### 7.3 ToolUniverse (Scientific Tools)
-
-600+ scientific research tools including:
-- ChEMBL, DrugBank, FDA (drug discovery)
-- UniProt, protein databases (genomics)
-- PubMed, Europe PMC (literature)
-- ClinicalTrials.gov (clinical)
+1. Create `templates/mcp-profiles/new-profile.mcp.json`
+2. Add Gemini mapping if needed: `templates/gemini-profiles/new-profile.json`
+3. Update `switch-mcp-profile.sh` if special handling needed
 
 ---
 
-## 8. Workflow Checklist
+## Testing
 
-### 8.1 Starting a New Analysis
-
-- [ ] Read `PROJECT_CONTEXT.md` for biological question
-- [ ] Check `analysis_config.yaml` for project parameters
-- [ ] Look for existing checkpoints before recomputing
-- [ ] Follow phase-based execution model
-
-### 8.2 Writing Code
-
-- [ ] Source `config.R` at script start
-- [ ] Use `load_or_compute()` for expensive operations
-- [ ] Follow naming conventions (`{phase}.{step}_{desc}`)
-- [ ] Add progress messages with `message()`
-- [ ] Document outputs in README
-
-### 8.3 Creating Visualizations
-
-- [ ] Read from master tables or checkpoints (never recompute)
-- [ ] Use colorblind-safe palettes from config
-- [ ] Save both PDF and PNG formats
-- [ ] Create README with figure legends
-
-### 8.4 Completing Tasks
-
-- [ ] Update checkpoints if data changed
-- [ ] Regenerate master tables if needed
-- [ ] Update `tasks.md` with progress
-- [ ] Document findings in `notes.md`
-
----
-
-## 9. Quick Reference
-
-### Common Commands
+### Architecture Tests
 
 ```bash
-# Run core pipeline
-Rscript 02_analysis/1.1.core_pipeline.R
-
-# Run all visualizations
-for script in 02_analysis/2.*.R; do Rscript "$script"; done
-
-# Generate interactive dashboard
-python 02_analysis/3.1.pathway_explorer.py
+cd docker/test
+./test-all.sh
 ```
 
-### Key Files
+### Individual Component Tests
+
+```bash
+# Test ToolUniverse
+./scripts/test_tooluniverse.sh
+
+# Test full installation
+./scripts/test_installation.sh
+
+# Validate MCP config
+python3 -m json.tool .mcp.json
+```
+
+### Docker Test Images
+
+| Dockerfile | Purpose |
+|------------|---------|
+| `Dockerfile.architecture-test` | Validates roles, templates, profiles |
+| `Dockerfile.tooluniverse-test` | Base image with ToolUniverse |
+| `Dockerfile.claude-test` | Claude Code integration |
+| `Dockerfile.codex-test` | Codex CLI integration |
+| `Dockerfile.gemini-test` | Gemini CLI integration |
+
+---
+
+## File Reference
+
+### Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `setup-ai.sh` | **Primary entry point** for project setup |
+| `setup_mcp_infrastructure.sh` | MCP server installation orchestrator |
+| `activate-role.sh` | Role activation (symlinks agents/skills) |
+| `switch-mcp-profile.sh` | Profile switcher for context management |
+| `configure_mcp_servers.sh` | MCP configuration generator |
+| `install_claude.sh` | Claude Code installer |
+| `install_gemini.sh` | Gemini CLI installer |
+| `install_codex.sh` | Codex CLI installer |
+
+### Configuration Files
+
+| File | Scope | Purpose |
+|------|-------|---------|
+| `.mcp.json` | Project-local | Claude Code MCP configuration |
+| `.gemini/settings.json` | Project-local | Gemini CLI configuration |
+| `~/.codex/config.toml` | User-global | Codex CLI configuration |
+| `.env` | Project-local | API keys (git-ignored) |
+
+### Documentation
 
 | File | Purpose |
 |------|---------|
-| `analysis_config.yaml` | Project-specific values |
-| `03_results/checkpoints/*.rds` | Cached computation results |
-| `03_results/tables/master_*.csv` | Standardized result tables |
-| `02_analysis/config/config.R` | R configuration loader |
-
-### Troubleshooting
-
-| Problem | Solution |
-|---------|----------|
-| GSEA slow | Check for existing checkpoint |
-| Missing genes | Annotate BEFORE filtering |
-| Plot colors wrong | Use config values, not hardcoded |
-| msigdbr error | Remove `db_species`, use `species` only |
+| `docs/ARCHITECTURE.md` | System design |
+| `docs/CONFIGURATION.md` | Advanced configuration |
+| `docs/INSTALLATION.md` | Setup instructions |
+| `docs/TROUBLESHOOTING.md` | Common issues |
+| `docs/guidelines/*.md` | Modular methodology guidelines |
 
 ---
 
-## 10. Version History
+## Guidelines Reference
 
-- **2.0.0** (2025-12-15): Restructured as single source of truth with modular guidelines
-- **1.0.0** (2025-12-10): Initial version focused on PAL infrastructure
+The `docs/guidelines/` directory contains modular methodology documentation:
+
+| Module | Content |
+|--------|---------|
+| `core_architecture.md` | Phased workflow, directory structure |
+| `data_processing.md` | filterByExpr, normalization, DE |
+| `gsea_analysis.md` | GSEA patterns, msigdbr usage |
+| `checkpoint_caching.md` | load_or_compute pattern |
+| `master_tables.md` | CSV schema standardization |
+| `visualization.md` | Colors, themes, plots |
+| `code_style.md` | R/Python conventions |
+
+These guidelines are referenced from project templates but maintained here as the single source of truth.
+
+---
+
+## Version History
+
+- **2.0.0** (2025-12-16): Restructured as toolkit codebase documentation; project methodology moved to templates
+- **1.0.0** (2025-12-10): Initial version with mixed toolkit/project content

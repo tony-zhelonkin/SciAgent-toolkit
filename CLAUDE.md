@@ -6,13 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**SciAgent-toolkit** is a modular MCP (Model Context Protocol) infrastructure orchestrator that integrates AI assistants (Claude Code, Codex CLI) with specialized scientific research tools. This is an **installation and configuration framework**, not a standalone application.
+**SciAgent-toolkit** (v2.0.0) is a modular MCP (Model Context Protocol) infrastructure orchestrator that integrates AI assistants (Claude Code, Gemini CLI, Codex CLI) with specialized scientific research tools. This is an **installation and configuration framework**, not a standalone application.
+
+**Integration:** Used as a submodule in [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker) at `toolkits/SciAgent-toolkit/` and added to new projects at `01_modules/SciAgent-toolkit/`.
 
 ### Core Architecture
 
 Four-tier system:
 1. **User Interfaces**: Claude Code CLI, Gemini CLI, Codex CLI (optional)
-2. **Role & Profile System**: Role-based agent/skill activation, MCP profile switching
+2. **Role & Profile System**: Role-based agent/skill activation (8 pre-configured agents), MCP profile switching (7 profiles)
 3. **MCP Server Layer**: PAL (Collaboration/Planning), Sequential Thinking, Context7, ToolUniverse (600+ scientific tools), Serena (code intelligence)
 4. **External Data Sources**: ChEMBL, UniProt, DrugBank, FDA, PubMed, ClinicalTrials.gov, Europe PMC, etc.
 
@@ -65,9 +67,25 @@ Four-tier system:
 - `tooluniverse-env/` - Python virtual environment for ToolUniverse (managed by uv)
 - `scripts/tooluniverse-env/` - Alternative location in scripts directory
 
-### Agents (Pre-configured)
-- `agents/bioinf-librarian.md` - Expert agent for finding bioinformatics tools/docs
-- `agents/rnaseq-methods-writer.md` - Auto-generates publication Methods sections from RNA-seq code
+### Agents (Pre-configured - 8 total)
+
+**Research & Documentation:**
+- `agents/bioinf-librarian.md` - Find bioinformatics tools, docs, databases, resources via authoritative sources
+- `agents/bio-research-visualizer.md` - Deep research into biological mechanisms + visualization recommendations
+
+**Data Exploration & Analysis:**
+- `agents/rnaseq-insight-explorer.md` - Explore RNAseq data with scientific skepticism; validates claims against actual data
+
+**Publication & Documentation:**
+- `agents/rnaseq-methods-writer.md` - Auto-generate publication Methods sections from RNA-seq code
+- `agents/figure-caption-generator.md` - Publication-quality scientific figure captions (fire-and-forget design)
+- `agents/repo-doc-curator.md` - Audit and consolidate repository documentation
+
+**Code Review & Quality:**
+- `agents/refactor-stage-reviewer.md` - Peer review of refactored code vs. originals
+
+**Session Management:**
+- `agents/handoff.md` - Timestamped session handoff documentation for continuity
 
 ### Docker Testing Infrastructure
 - `docker/test/Dockerfile.architecture-test` - **Architecture validation** (roles, templates, profiles)
@@ -285,12 +303,27 @@ The role system provides a declarative way to configure agents and skills per pr
 
 ```yaml
 name: base
-description: Default bioinformatics analysis role
+description: Default bioinformatics analysis role with full agent suite
 mcp_profile: coding
 
 agents:
-  - bioinf-librarian
-  - rnaseq-methods-writer
+  # Research & Documentation
+  - bioinf-librarian            # Tool/documentation research
+  - bio-research-visualizer     # Biological mechanism research + visualization
+
+  # Data Exploration & Analysis
+  - rnaseq-insight-explorer     # RNAseq data exploration with skepticism
+
+  # Publication & Documentation
+  - rnaseq-methods-writer       # Methods section generation from code
+  - figure-caption-generator    # Publication-quality figure captions
+  - repo-doc-curator            # Repository documentation cleanup
+
+  # Code Review & Quality
+  - refactor-stage-reviewer     # Code refactoring peer review
+
+  # Session Management
+  - handoff                     # Session handoff documentation
 
 skills: []
 ```
@@ -331,8 +364,9 @@ The profile system manages MCP server configuration across all AI CLIs simultane
 | `minimal` | context7, sequential-thinking | ~3k | Fastest startup |
 | `coding` | + pal | ~25k | General coding |
 | `codebase` | + serena | ~75k | Code analysis |
-| `research-lite` | + tooluniverse (core) | ~30k | Targeted research |
+| `research-lite` | + tooluniverse (6 tools) | ~30k | Targeted research |
 | `research-full` | + tooluniverse (14 tools) | ~50k | Scientific research |
+| `hybrid-research` | Claude=coding, Gemini=research | ~35k | Multi-model workflow |
 | `full` | all servers | ~100k | Maximum capability |
 
 #### API Key Substitution
@@ -382,19 +416,57 @@ Example use cases...
 3. Test agent by referencing it in prompts
 4. Document in `agents/README.md`
 
-### Existing Agents
+### Existing Agents (8 total)
 
-#### Bioinformatics Research Librarian
-- **File**: `agents/bioinf-librarian.md`
-- **Purpose**: Find bioinformatics tools, documentation, resources
+#### Research & Documentation
+
+**Bioinformatics Research Librarian** (`bioinf-librarian.md`)
+- **Purpose**: Find bioinformatics tools, documentation, databases, resources
 - **Methodology**: Prioritizes GitHub repos → official docs → peer-reviewed literature
 - **Output**: Structured notes in `web_notes.md`
 
-#### RNA-seq Methods Writer
-- **File**: `agents/rnaseq-methods-writer.md`
+**Bio-Research Visualizer** (`bio-research-visualizer.md`)
+- **Purpose**: Deep research into biological mechanisms + visualization recommendations
+- **Methodology**: Literature review → pathway analysis → visualization strategy
+- **Output**: Research summaries with recommended visualization approaches
+
+#### Data Exploration & Analysis
+
+**RNAseq Insight Explorer** (`rnaseq-insight-explorer.md`)
+- **Purpose**: Explore RNAseq results with scientific skepticism
+- **Methodology**: Validates claims against actual data, questions assumptions
+- **Output**: Data-driven insights with supporting evidence
+
+#### Publication & Documentation
+
+**RNA-seq Methods Writer** (`rnaseq-methods-writer.md`)
 - **Purpose**: Auto-generate publication Methods sections from RNA-seq analysis code
 - **Input**: Analysis scripts and notebooks
 - **Output**: Formal scientific writing with statistical models
+
+**Figure Caption Generator** (`figure-caption-generator.md`)
+- **Purpose**: Generate publication-quality figure captions
+- **Design**: Fire-and-forget - works autonomously without follow-up
+- **Output**: Complete, journal-ready figure captions
+
+**Repository Doc Curator** (`repo-doc-curator.md`)
+- **Purpose**: Audit and consolidate repository documentation
+- **Methodology**: Identifies redundancy, outdated info, gaps
+- **Output**: Cleaned-up, consistent documentation
+
+#### Code Review & Quality
+
+**Refactor Stage Reviewer** (`refactor-stage-reviewer.md`)
+- **Purpose**: Peer review refactored code against originals
+- **Methodology**: Compares functionality, identifies regressions
+- **Output**: Detailed review with approval/rejection
+
+#### Session Management
+
+**Handoff** (`handoff.md`)
+- **Purpose**: Create timestamped session handoff documentation
+- **Methodology**: Captures state, progress, next steps
+- **Output**: Handoff notes for session continuity
 
 ---
 
