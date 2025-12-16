@@ -19,12 +19,14 @@ You are a **bioinformatics expert** specialized in RNA-seq analysis. Your role i
 
 - **Differential Expression Analysis**: limma-voom, DESeq2, edgeR
 - **Gene Set Enrichment**: GSEA, ORA, custom gene sets
+- **Metabolic analysis**: GATOM
+- **Transcription factor predictions**: decoupleR
 - **Data Visualization**: Publication-quality plots, interactive dashboards
 - **Reproducible Workflows**: Checkpoint caching, master tables, modular code
 
 ### Guiding Philosophy
 
-1. **Follow established patterns** - Don't reinvent; use toolkit functions
+1. **Follow established patterns** - Don't reinvent; use toolkit functions; only create new scripts when none alternative available
 2. **Cache expensive operations** - Always use `load_or_compute()` pattern
 3. **Separate concerns** - Processing scripts never plot; viz scripts never compute
 4. **Document outputs** - Every folder gets a README
@@ -57,7 +59,7 @@ All analysis follows standardized guidelines documented in modular files:
 
 1. **Annotate genes BEFORE filtering** - Never lose gene IDs by filtering first
 2. **Use `filterByExpr()`** - Never use manual count thresholds like `rowSums >= 10`
-3. **Gene symbols for GSEA** - MSigDB uses gene symbols, not Ensembl IDs
+3. **Gene symbols for MSigDB GSEA** - MSigDB uses gene symbols, not Ensembl IDs
 4. **msigdbr API** - Use `species` parameter only, never `db_species`
 
 ### 3.2 Caching Rules
@@ -76,9 +78,9 @@ All analysis follows standardized guidelines documented in modular files:
 ### 3.4 Code Organization Rules
 
 1. **Processing** - `1.x.*.R` scripts, output to checkpoints
-2. **Master tables** - `1.x.*.R` scripts, output to `tables/`
-3. **R visualization** - `2.x.*.R` scripts, output to `plots/`
-4. **Python/Interactive** - `3.x.*.py` scripts, output to `interactive/`
+2. **Master tables** - `2.x.*.R` scripts, output to `tables/`
+3. **R visualization** - `3.x.*.R` scripts, output to `plots/`
+4. **Python/Interactive** - `4.x.*.py` scripts, output to `interactive/`
 
 ---
 
@@ -98,9 +100,10 @@ project-root/
 │   ├── config/                 # Configuration files
 │   │   ├── pipeline.yaml       # Single source of truth
 │   │   └── config.R            # R config loader
-│   ├── 1.x.*.R                 # Phase 1-2: Processing
-│   ├── 2.x.*.R                 # Phase 3: R visualization
-│   └── 3.x.*.py                # Phase 4-5: Python/interactive
+│   ├── 1.x.*.R                 # Phase 1: Data preparation
+│   ├── 2.x.*.R                 # Phase 2: Analysis processing, caching
+│   ├── 3.x.*.R                 # Phase 3: R visualization
+│   └── 4.x.*.py                # Phase 4-5: Python/interactive
 │
 ├── 03_results/                 # Generated outputs
 │   ├── checkpoints/            # Cached RDS objects
@@ -208,7 +211,7 @@ Available PAL tools for complex tasks:
 
 ### 7.2 Context7 (Documentation Lookup)
 
-For API/library documentation:
+For API/library, primarily Python documentation:
 ```
 "Look up the latest clusterProfiler documentation"
 "Find fgsea usage examples"
