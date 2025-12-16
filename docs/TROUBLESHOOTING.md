@@ -1,105 +1,164 @@
 # Troubleshooting
 
-## ToolUniverse Issues
+Common issues and solutions for SciAgent-toolkit MCP server configuration.
 
-### Issue: "Connection failed for 'tooluniverse'" or "ModuleNotFoundError"
+---
+
+## Quick Diagnostic Commands
+
+```bash
+# Check MCP server status
+claude mcp list
+
+# Validate configuration file
+python3 -m json.tool .mcp.json
+
+# Run diagnostics
+claude doctor
+
+# Debug ToolUniverse specifically
+./scripts/debug_tooluniverse.sh --verbose
+```
+
+---
+
+## MCP Server Connection Issues
+
+### PAL shows "Failed to connect"
 
 **Symptoms:**
-- Gemini/Claude shows `✕ Error during discovery for server 'tooluniverse'`
-- Logs show `ModuleNotFoundError: No module named 'tooluniverse'`
-- `uv` fails to detect the environment or defaults to the system Python.
+- `/mcp` shows PAL with `✕ failed` status
+- Error about missing environment variables
 
-**Cause:**
-- The `tooluniverse-env` virtual environment may be corrupted or created with incorrect permissions.
-- `uv run` might be picking up the wrong Python interpreter.
+**Cause:** PAL requires at least one AI provider API key.
+
+**Fix:**
+```bash
+# 1. Edit your .env file
+nano .devcontainer/.env
+
+# 2. Add at least ONE of these keys:
+GEMINI_API_KEY=your-key-here     # Get from: https://aistudio.google.com/apikey
+OPENAI_API_KEY=your-key-here     # Get from: https://platform.openai.com/api-keys
+
+# 3. Re-run configuration
+./toolkits/SciAgent-toolkit/scripts/configure_mcp_servers.sh --force
+
+# 4. Restart Claude Code
+```
+
+---
+
+### ToolUniverse shows "connecting..." or "Failed"
+
+**Symptoms:**
+- `/mcp` shows ToolUniverse stuck on "connecting..."
+- Logs show `ModuleNotFoundError: No module named 'tooluniverse'`
+
+**Cause:** Virtual environment is corrupted or `uv` is detecting the wrong Python.
 
 **Fix:**
 
-1.  **Reinstall the environment manually:**
+1. **Reinstall the environment:**
+   ```bash
+   rm -rf tooluniverse-env
+   uv venv tooluniverse-env
+   uv pip install --python tooluniverse-env/bin/python tooluniverse
+   ```
 
-    ```bash
-    # Remove existing environment
-    rm -rf 01_scripts/SciAgent-toolkit/scripts/tooluniverse-env
-    rm -rf tooluniverse-env
+2. **Verify installation:**
+   ```bash
+   ./tooluniverse-env/bin/tooluniverse-smcp-stdio --help
+   ```
 
-    # Create new venv in project root
-    uv venv tooluniverse-env
+3. **Regenerate configuration:**
+   ```bash
+   ./toolkits/SciAgent-toolkit/scripts/configure_mcp_servers.sh --force
+   ```
 
-    # Install tooluniverse using the specific python binary to avoid permission issues
-    uv pip install --python tooluniverse-env/bin/python tooluniverse
-    ```
+**Alternative Fix (Direct Binary):**
 
-2.  **Verify the installation:**
+If `uv run` keeps failing, edit `.mcp.json` to use the direct executable:
 
-    ```bash
-    # Check if the executable works directly
-    ./tooluniverse-env/bin/tooluniverse-smcp-stdio --help
-    ```
-
-3.  **Update `.mcp.json` to use the direct executable:**
-
-    Edit `.mcp.json` and change the `tooluniverse` section to point directly to the binary instead of using `uv run`.
-
-    *From:*
-    ```json
-    "tooluniverse": {
-      "command": "uv",
-      "args": ["--directory", "...", "run", "tooluniverse-smcp-stdio", ...]
-    }
-    ```
-
-    *To:*
-    ```json
-    "tooluniverse": {
-      "command": "/absolute/path/to/tooluniverse-env/bin/tooluniverse-smcp-stdio",
-      "args": ["--include-tools", "..."]
-    }
-    ```
-
-4.  **Restart the CLI:**
-    Exit and restart Gemini/Claude.
+```json
+"tooluniverse": {
+  "command": "/absolute/path/to/tooluniverse-env/bin/tooluniverse-smcp-stdio",
+  "args": ["--include-tools", "..."]
+}
+```
 
 ---
+
+### Context7 not connecting
+
+**Symptoms:** Context7 shows connection errors.
+
+**Note:** Context7 works without an API key for basic usage. Only add a key for higher rate limits or private repository access.
+
+```bash
+# Optional key from: https://context7.com/dashboard
+CONTEXT7_API_KEY=your-key-here
+```
+
+---
+
+### Configuration not taking effect
+
+**Symptoms:** Changes to `.mcp.json` aren't reflected in Claude Code.
+
+**Fix:**
+```bash
+# 1. Force regenerate
+./toolkits/SciAgent-toolkit/scripts/configure_mcp_servers.sh --force
+
+# 2. Restart Claude Code
+exit  # or Ctrl+D
+claude
+
+# 3. Verify
+claude mcp list
+```
+
+---
+
+## ToolUniverse Specific Issues
 
 ### Issue: ToolUniverse installation fails with "Permission denied"
 
 **Symptoms:**
-- `setup_tooluniverse.sh` fails.
+- `setup_tooluniverse.sh` fails
 - Error: `error: failed to remove file ... Permission denied`
 
-**Fix:**
-- Use the manual installation steps above, ensuring you use `uv pip install --python ...` to explicitly target the venv's interpreter.
+**Fix:** Use explicit Python targeting:
+```bash
+uv pip install --python tooluniverse-env/bin/python tooluniverse
+```
 
 ---
 
-### Issue: ToolUniverse fails in "full" or "research-full" profiles
-
-- Switching to `full` or `research-full` profile using `switch_mcp` command results in broken ToolUniverse functionality.
-- Errors regarding invalid arguments passed to `tooluniverse-smcp-stdio` (e.g., `unrecognized arguments: --directory`).
-- This happens when the `.mcp.json` configuration mixes the direct binary path with `uv` arguments.
-
-**Fix:**
-
-- Use the `research-lite` profile which uses a cleaner configuration:
-  ```bash
-  ./scripts/switch-mcp-profile.sh research-lite
-  ```
-- Or manually edit `.mcp.json` to remove `--directory ... run ...` arguments from the `tooluniverse` args list, keeping only the tool-specific arguments (e.g., `--include-tools ...`).
-
----
-
-### Issue: Gemini: ToolUniverse tools not appearing
+### Issue: ToolUniverse fails with invalid arguments
 
 **Symptoms:**
-- After switching to a research profile, `find_tools` returns an empty list `[]` or only default tools.
-- `.gemini/settings.json` appears to have the tools listed in the `args` array.
+- Errors about `--directory` or `--exclude-tool-types` being unrecognized
 
-**Cause:**
-- The `--include-tools` argument in the JSON configuration was passed as a single comma-separated string (e.g., `"Tool1,Tool2"`).
-- The Python `argparse` library (used by ToolUniverse) expects separate arguments for `nargs='+'` or `nargs='*'` when receiving a list from `subprocess`.
+**Cause:** Mixing direct binary execution with `uv` arguments, or using deprecated CLI flags.
 
-**Fix:**
-- Ensure that in `.gemini/settings.json` (and the `templates/gemini-profiles/research.json`), each tool name is a separate string in the `args` array.
+**Fix:** Use the `research-lite` profile or edit `.mcp.json`:
+```bash
+./scripts/switch-mcp-profile.sh research-lite
+```
+
+Or manually edit `.mcp.json` to remove conflicting arguments.
+
+---
+
+### Issue: Gemini - ToolUniverse tools not appearing
+
+**Symptoms:**
+- `find_tools` returns empty list
+- Tools listed in `.gemini/settings.json` but not available
+
+**Cause:** Tool names passed as single comma-separated string instead of separate arguments.
 
 **Incorrect:**
 ```json
@@ -113,29 +172,42 @@
 
 ---
 
+### Issue: Context window overflow with ToolUniverse
+
+**Symptoms:**
+- Claude becomes slow or unresponsive
+- Context usage shows 100%+
+
+**Cause:** Loading all 600+ ToolUniverse tools exceeds context window.
+
+**Fix:** Use a filtered profile:
+```bash
+./scripts/switch-mcp-profile.sh research-lite  # 6 essential tools
+```
+
+Or use `hybrid` profile (Claude=coding, Gemini=research).
+
+---
+
 ## Codex CLI Issues
 
 ### Issue: Installation fails with `npm error code EACCES`
 
 **Symptoms:**
-- Running `npm install -g @openai/codex` or `install_codex.sh` fails.
-- Error log shows `Error: EACCES: permission denied, mkdir '/opt/nvm/versions/node/...'`
+- `npm install -g @openai/codex` fails
+- Error: `Error: EACCES: permission denied, mkdir '/opt/nvm/versions/node/...'`
 
-**Cause:**
-- The global Node.js installation directory (often `/opt/nvm/...` in dev containers) is read-only for the current user.
-- npm attempts to write to this system directory by default.
+**Cause:** npm trying to write to system directory.
 
 **Fix:**
-- Configure npm to use a user-writable directory (e.g., `~/.npm-global`) for global packages.
-
 ```bash
-# 1. Create directory
+# 1. Create user-writable directory
 mkdir -p "$HOME/.npm-global"
 
 # 2. Configure npm
 npm config set prefix "$HOME/.npm-global"
 
-# 3. Add to PATH (add to ~/.bashrc for persistence)
+# 3. Add to PATH
 export PATH="$HOME/.npm-global/bin:$PATH"
 echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
 
@@ -143,22 +215,154 @@ echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
 npm install -g @openai/codex
 ```
 
+---
+
 ### Issue: MCP Handshake Failure (Stdio Noise)
 
 **Symptoms:**
-- Codex CLI starts but shows `⚠ MCP client for 'tooluniverse' failed to start`.
-- Error: `handshaking with MCP server failed: connection closed: initialize response` or `JSON parse error`.
-- Claude/Gemini may connect fine to the same server.
+- Codex shows `⚠ MCP client for 'tooluniverse' failed to start`
+- Error: `handshaking with MCP server failed` or `JSON parse error`
+- Claude/Gemini connect fine to the same server
 
-**Cause:**
-- The Codex CLI enforces strict [MCP over Stdio](https://modelcontextprotocol.io/docs/concepts/transports#stdio) compliance.
-- The `tooluniverse` server (and some python scripts) prints initialization logs (e.g., `🚀 Starting ToolUniverse...`) to **stdout**.
-- This extra text corrupts the JSON-RPC messages required by Codex.
+**Cause:** Codex CLI enforces strict MCP over Stdio compliance. Some servers print logs to stdout, corrupting JSON-RPC messages.
 
-**Fix / Workaround:**
-- **Patch the Server:** Modify the MCP server to print all logs to `stderr` only.
-- **Use Quiet Mode:** If the server supports it, use a flag to suppress stdout logs.
-- **Exclude from Codex:** In `~/.codex/config.toml`, remove the offending server until it is patched.
-- **Use Direct Binary:** Sometimes using the direct binary (e.g., `tooluniverse-env/bin/python`) instead of `uv run` helps if `uv` itself is adding noise.
+**Workarounds:**
+- Use the server's quiet mode if available
+- Use direct binary instead of `uv run`
+- Exclude the server from Codex until patched
 
 ---
+
+## Installation Issues
+
+### Issue: Command not found after install
+
+```bash
+source ~/.bashrc
+# OR restart terminal
+```
+
+---
+
+### Issue: No .mcp.json file created
+
+```bash
+# Configuration script wasn't run or failed
+./scripts/configure_mcp_servers.sh
+
+# Verify
+cat .mcp.json
+```
+
+---
+
+### Issue: Serena installation failed (SSH error)
+
+**Cause:** Git SSH configuration issue.
+
+**Fix:**
+```bash
+git pull origin main
+./scripts/mcp_servers/setup_serena.sh
+
+# Test
+uvx --from git+https://github.com/oraios/serena serena --help
+```
+
+---
+
+### Issue: npm/nvm Prefix Warning
+
+```
+nvm is not compatible with the npm config "prefix" option
+```
+
+This is a **cosmetic warning** - MCP servers still work.
+
+**Optional fix:**
+```bash
+nvm use --delete-prefix $(node --version)
+```
+
+---
+
+## Profile Switching Issues
+
+### Issue: PAL fails after profile switch
+
+**Symptoms:** PAL worked, then fails after `switch-mcp-profile.sh`.
+
+**Cause:** Some profiles use a wrapper script, others use direct `uvx`. The wrapper may not exist.
+
+**Fix:**
+```bash
+# Use a profile with direct uvx invocation
+./scripts/switch-mcp-profile.sh hybrid
+
+# Or install the wrapper
+./scripts/mcp_servers/setup_pal.sh
+```
+
+---
+
+### Issue: API keys not applied after profile switch
+
+**Cause:** Profile templates use placeholders that require shell environment variables to be exported.
+
+**Fix:**
+```bash
+# Export keys in your shell
+export GEMINI_API_KEY="your-key"
+export OPENAI_API_KEY="your-key"
+
+# Re-run profile switch
+./scripts/switch-mcp-profile.sh coding
+```
+
+---
+
+### Issue: Python IndentationError during profile switch
+
+**Status:** Fixed in versions after 2025-12-16.
+
+**Fix:**
+```bash
+cd toolkits/SciAgent-toolkit
+git pull origin main
+```
+
+---
+
+## Technical Reference
+
+### ToolUniverse Transport Modes
+
+ToolUniverse 1.0.14+ has two commands:
+- `tooluniverse-mcp` → HTTP mode (NOT compatible with Claude Code)
+- `tooluniverse-smcp-stdio` → stdio mode (required for Claude Code)
+
+The configuration scripts automatically prefer `tooluniverse-smcp-stdio`.
+
+### API Key Detection Order
+
+Scripts source `.env` files in this order:
+1. `${PROJECT_DIR}/.env`
+2. `${PROJECT_DIR}/.devcontainer/.env`
+
+### Version Compatibility
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| ToolUniverse | 1.0.14+ | Use `tooluniverse-smcp-stdio` |
+| Claude CLI | 2.0.64+ | Required for `claude mcp add` |
+| Node.js | 18+ | Required for npx-based servers |
+| Python | 3.10+ | Required for ToolUniverse |
+
+---
+
+## Getting More Help
+
+- [INSTALLATION.md](INSTALLATION.md) - Full installation guide
+- [CONFIGURATION.md](CONFIGURATION.md) - Advanced configuration
+- [ISSUES.md](ISSUES.md) - Known architectural issues
+- [FAQ.md](FAQ.md) - Frequently asked questions

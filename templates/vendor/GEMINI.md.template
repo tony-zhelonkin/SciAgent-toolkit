@@ -1,6 +1,6 @@
 # GEMINI.md - Gemini Context for {{PROJECT_ID}}
 
-> **This is a thin wrapper.** Full methodology is in `01_scripts/SciAgent-toolkit/AGENTS.md`.
+> **This is a thin wrapper.** Full methodology is in `01_modules/SciAgent-toolkit/AGENTS.md`.
 > Do not duplicate content here - reference the source.
 
 ---
@@ -16,7 +16,7 @@
 
 ## Methodology Reference
 
-**Read and follow:** `01_scripts/SciAgent-toolkit/AGENTS.md`
+**Read and follow:** `01_modules/SciAgent-toolkit/AGENTS.md`
 
 This file contains:
 - Analysis patterns and philosophy
@@ -24,7 +24,7 @@ This file contains:
 - Code style and naming rules
 - Critical rules (filtering, caching, visualization)
 
-**Detailed guidelines:** `01_scripts/SciAgent-toolkit/docs/guidelines/`
+**Detailed guidelines:** `01_modules/SciAgent-toolkit/docs/guidelines/`
 
 ---
 
@@ -47,7 +47,7 @@ The project follows a **5-Phase Workflow**:
 - `00_data/`: Input data (read-only)
   - `processed/`: Count matrices
   - `references/`: Gene sets
-- `01_scripts/`: Shared code
+- `01_modules/`: Shared code
   - `RNAseq-toolkit/`: DE/GSEA functions
   - `SciAgent-toolkit/`: AI agent infrastructure
 - `02_analysis/`: Project-specific scripts
@@ -120,7 +120,7 @@ dge <- readRDS("03_results/checkpoints/1.1_dge_normalized.rds")
 
 ## Development Conventions
 
-1. **Context First**: Read `PROJECT_CONTEXT.md` before coding
+1. **Context First**: Read `context.md` before coding
 2. **Checkpoints**: Save intermediate objects frequently
 3. **Master Tables**: Never hardcode data in viz scripts
 4. **Style**: Tidyverse for R, pandas/pathlib for Python
@@ -140,7 +140,7 @@ dge <- readRDS("03_results/checkpoints/1.1_dge_normalized.rds")
 ## Task for Gemini
 
 When asked to perform analysis:
-1. Check `PROJECT_CONTEXT.md` for biological question
+1. Check `context.md` for biological question
 2. Load relevant checkpoints instead of re-running
 3. Follow `AGENTS.md` methodology
 4. Update this file upon completion

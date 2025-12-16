@@ -12,8 +12,8 @@
     },
     "pal": {
       "type": "stdio",
-      "command": "uvx",
-      "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"]
+      "command": "${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py",
+      "args": []
     }
   }
 }

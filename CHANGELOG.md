@@ -7,6 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.0] - 2025-12-16
+
+### Added
+- **Role System**: New declarative role-based configuration for agents and skills
+  - `roles/base.yaml` - Default bioinformatics analysis role
+  - `scripts/activate-role.sh` - Role activator script (symlinks agents/skills to `.claude/`)
+  - `skills/` directory for custom skills
+- **Template System**: Centralized AI context templates in `templates/vendor/`
+  - `CLAUDE.md.template` - Claude Code project instructions
+  - `GEMINI.md.template` - Gemini CLI project instructions
+  - `AGENTS.md.template` - Universal AI rules for all agents
+  - `context.md.template` - Scientific project context
+  - `analysis_config.yaml.template` - Analysis parameters
+- **Enhanced Profile System** (`switch-mcp-profile.sh`):
+  - API key substitution (`${GEMINI_API_KEY}`, `${OPENAI_API_KEY}`, `${CONTEXT7_API_KEY}`)
+  - `validate_profile()` function for dependency checking
+  - Profile validation before switching
+- **setup-ai.sh Enhancements**:
+  - Template installation with placeholder substitution
+  - Automatic role activation (`activate-role.sh base`)
+  - Creates `02_analysis/config/analysis_config.yaml`
+- **Architecture Tests** (`docker/test/Dockerfile.architecture-test`):
+  - Validates role system, templates, profile switching
+  - 8 sub-tests covering all modularization changes
+- **Gemini CLI Test** (`docker/test/Dockerfile.gemini-test`)
+- **Full test suite** now includes 11 tests (up from 10)
+
+### Changed
+- **scbio-docker Integration**: Directory renamed from `01_scripts/` to `01_modules/`
+- **Template References**: All templates now reference `01_modules` (not `01_scripts`)
+- **research-full.mcp.json**: Added explicit `--include-tools` with 14 curated tools to prevent context overflow
+
 ### Fixed
 - **MCP Configuration**: Fixed incorrect arguments in `full.mcp.json` and `research-full.mcp.json` templates that caused `switch_mcp full` to fail.
   - Removed incorrect `uv` arguments (`--directory`, `run`) that were passed to the direct binary executable.

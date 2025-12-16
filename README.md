@@ -9,9 +9,11 @@ A modular infrastructure for building AI-powered scientific research agents usin
 - **Code Intelligence** with Serena MCP server
 - **Structured Reasoning** via Sequential Thinking MCP server
 - **Multi-Agent Support** for Claude Code, Gemini CLI, and Codex CLI
+- **Role-Based Configuration** via declarative YAML role definitions
 - **Smart Context Management** via profile switching (Coding vs Research modes)
+- **Template System** for consistent AI context files across projects
 - **Modular Installation** with selective component installation
-- **Production-Ready** with comprehensive error handling and validation
+- **Production-Ready** with comprehensive Docker testing (11 tests)
 
 ## Quick Start
 
@@ -24,8 +26,8 @@ cd SciAgent-toolkit
 cp templates/.env.template .env
 # Edit .env and add your API keys (GEMINI_API_KEY, OPENAI_API_KEY, etc.)
 
-# 2. Run the automated installer
-./scripts/setup_mcp_infrastructure.sh
+# 2. Run the automated installer (creates templates, activates role, configures MCP)
+./scripts/setup-ai.sh
 
 # 3. Switch to a profile (e.g., for coding)
 ./scripts/switch-mcp-profile.sh coding
@@ -33,6 +35,13 @@ cp templates/.env.template .env
 # Verify installation
 claude
 /mcp  # Should show: sequential-thinking, pal, context7
+```
+
+### Minimal Setup (Faster)
+
+```bash
+# Skip Serena, Codex, and Gemini for faster setup (2-3 minutes)
+./scripts/setup-ai.sh --minimal
 ```
 
 ## Configuration & Secrets
@@ -77,12 +86,23 @@ The Docker test images in `docker/test/` are for CI/CD validation only.
 
 ## What Gets Installed
 
-- **Claude Code** or **Codex CLI** (AI interfaces)
-- **PAL MCP Server** - Collaboration, planning, and code analysis
-- **Serena MCP Server** - Code intelligence and semantic search
-- **Sequential Thinking MCP Server** - Structured problem solving
-- **ToolUniverse MCP Server** - 600+ scientific research tools
-- **PubMed Plugin** - Biomedical literature access (manual setup)
+### AI CLIs
+- **Claude Code** - Primary coding interface
+- **Gemini CLI** - High-context research agent (optional)
+- **Codex CLI** - Alternative terminal interface (optional)
+
+### MCP Servers
+- **PAL MCP Server** - Multi-model collaboration and planning
+- **Context7** - Library documentation lookup
+- **Sequential Thinking** - Structured problem solving
+- **ToolUniverse** - 600+ scientific research tools
+- **Serena** - Code intelligence and semantic search (optional, 5-15 min build)
+
+### Project Files (via `setup-ai.sh`)
+- **CLAUDE.md, GEMINI.md, AGENTS.md** - AI context files
+- **context.md** - Scientific project context
+- **.claude/agents/, .claude/skills/** - Role-activated agents/skills
+- **.mcp.json** - MCP server configuration
 
 ## Use Cases
 
@@ -104,11 +124,30 @@ Search PubMed/PMC, access full-text articles, extract findings, and map research
 - [Troubleshooting](docs/TROUBLESHOOTING.md) - Common issues and solutions
 - [FAQ](docs/FAQ.md) - Frequently asked questions
 
-## Custom Agents
+## Role System & Custom Agents
 
-This toolkit includes pre-configured Claude agents for bioinformatics workflows:
+This toolkit uses a **role-based system** to configure agents and skills per project:
+
+```bash
+# Activate a role (symlinks agents/skills to .claude/)
+./scripts/activate-role.sh base --project-dir /path/to/project
+```
+
+### Pre-configured Agents
 - **Bioinformatics Research Librarian** - Find tools, docs, and resources
 - **RNA-seq Methods Writer** - Auto-generate publication methods sections
+
+### Creating Custom Roles
+Create `roles/my-role.yaml`:
+```yaml
+name: my-role
+description: Custom workflow role
+mcp_profile: research-lite
+agents:
+  - bioinf-librarian
+  - my-custom-agent
+skills: []
+```
 
 See [agents/README.md](agents/README.md) for details.
 

@@ -1,6 +1,6 @@
 # Testing Guide
 
-**Last Updated:** 2025-12-10
+**Last Updated:** 2025-12-16
 
 This guide explains how to test SciAgent-toolkit installations and MCP server configurations.
 
@@ -8,12 +8,13 @@ This guide explains how to test SciAgent-toolkit installations and MCP server co
 
 ## Testing Overview
 
-SciAgent-toolkit provides two types of testing:
+SciAgent-toolkit provides three types of testing:
 
 | Test Type | Location | Purpose |
 |-----------|----------|---------|
 | **Installation Tests** | `scripts/test_installation.sh` | Verify MCP setup in current environment |
-| **Docker Tests** | `docker/test/test-all.sh` | CI/CD testing with isolated containers |
+| **Architecture Tests** | `docker/test/Dockerfile.architecture-test` | Verify role system, templates, profiles |
+| **Docker Tests** | `docker/test/test-all.sh` | Full CI/CD testing with isolated containers (11 tests) |
 
 ---
 
@@ -129,6 +130,7 @@ Results: 10 passed, 0 failed, 1 warning
 
 | Image | Dockerfile | Purpose |
 |-------|------------|---------|
+| `architecture-test` | `Dockerfile.architecture-test` | Role system, templates, profiles |
 | `tooluniverse-test` | `Dockerfile.tooluniverse-test` | Base with ToolUniverse |
 | `claude-mcp-test` | `Dockerfile.claude-test` | + Claude Code |
 | `codex-mcp-test` | `Dockerfile.codex-test` | + Codex CLI |
@@ -139,8 +141,11 @@ Results: 10 passed, 0 failed, 1 warning
 ```bash
 cd toolkits/SciAgent-toolkit/docker/test
 
-# Run all tests
+# Run all tests (11 tests)
 ./test-all.sh
+
+# Run architecture tests only
+docker build -f Dockerfile.architecture-test -t architecture-test:latest ../..
 
 # Build individual images
 docker build -f Dockerfile.tooluniverse-test -t tooluniverse-test:latest ../..
@@ -157,6 +162,9 @@ docker run --rm -it claude-mcp-test:latest bash
            ToolUniverse Docker Integration Test Suite
 ===================================================================
 
+[STEP] Test 0: Building architecture test image...
+[OK] Architecture tests passed (role system, templates, profiles)
+
 [STEP] Test 1: Building base ToolUniverse test image...
 [OK] Base image built successfully
 [OK] ToolUniverse MCP server responds to --help
@@ -171,14 +179,33 @@ docker run --rm -it claude-mcp-test:latest bash
 [OK] Codex CLI is installed
 [OK] Codex config is valid TOML
 
+[STEP] Test 4: Building Gemini CLI MCP test image...
+[OK] Gemini test image built successfully
+[OK] Gemini CLI is installed
+
 ===================================================================
                          Test Summary
 ===================================================================
-Total tests:  10
-Passed:       10
+Total tests:  11
+Passed:       11
 Failed:       0
 ===================================================================
 ```
+
+### Architecture Tests (Test 0)
+
+The architecture test validates the modularization changes:
+
+| Test | What It Checks |
+|------|----------------|
+| Test 1 | Role system files exist (`roles/base.yaml`, `activate-role.sh`, `agents/`, `skills/`) |
+| Test 2 | Template files exist (`CLAUDE.md.template`, `GEMINI.md.template`, etc.) |
+| Test 3 | Templates reference `01_modules` (not old `01_scripts`) |
+| Test 4 | Role activation creates correct symlinks |
+| Test 5 | Profile switcher has API key substitution code |
+| Test 6 | Profile switching creates valid JSON |
+| Test 7 | `research-full.mcp.json` has `--include-tools` |
+| Test 8 | `setup-ai.sh` has template support functions |
 
 ### Cleanup Test Images
 

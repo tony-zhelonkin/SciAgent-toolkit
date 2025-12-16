@@ -33,6 +33,23 @@ TOTAL_TESTS=0
 PASSED_TESTS=0
 FAILED_TESTS=0
 
+# Test 0: Architecture tests (role system, templates, profile switching)
+echo ""
+log_step "Test 0: Building architecture test image..."
+TOTAL_TESTS=$((TOTAL_TESTS + 1))
+
+if docker build -f docker/test/Dockerfile.architecture-test \
+     -t architecture-test:latest . 2>&1 | tee /tmp/architecture-test-build.log; then
+    log_ok "Architecture tests passed"
+    PASSED_TESTS=$((PASSED_TESTS + 1))
+else
+    log_error "Architecture test build failed. See /tmp/architecture-test-build.log"
+    FAILED_TESTS=$((FAILED_TESTS + 1))
+    echo "==================================================================="
+    echo "Architecture tests failed. Review the changes before proceeding."
+    echo "==================================================================="
+fi
+
 # Test 1: Base ToolUniverse installation
 echo ""
 log_step "Test 1: Building base ToolUniverse test image..."

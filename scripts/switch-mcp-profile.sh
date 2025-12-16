@@ -102,21 +102,94 @@ elif [ -d "${SCRIPT_DIR}/tooluniverse-env" ]; then
     TOOLUNIVERSE_ENV="${SCRIPT_DIR}/tooluniverse-env"
 fi
 
-# Load environment variables for injection
+# Load environment variables for injection (moved before validation)
 load_env "${PROJECT_DIR}"
+
+# Profile validation function (ISSUE-004 fix)
+validate_profile() {
+    local profile="$1"
+    local warnings=()
+
+    # Check for npx (required by most profiles)
+    if ! command -v npx &>/dev/null; then
+        warnings+=("npx not found - sequential-thinking and context7 will fail")
+    fi
+
+    # Check profile-specific dependencies
+    case "$profile" in
+        research-lite|research-full|full)
+            if [ -z "${TOOLUNIVERSE_ENV}" ] || [ ! -d "${TOOLUNIVERSE_ENV}" ]; then
+                warnings+=("ToolUniverse environment not found - tooluniverse server will fail")
+                warnings+=("  Run setup_mcp_infrastructure.sh to install ToolUniverse")
+            fi
+            ;;
+        codebase|full)
+            if ! command -v uvx &>/dev/null; then
+                warnings+=("uvx not found - Serena server may fail (first run takes 5-15 min to compile)")
+            fi
+            ;;
+        coding|hybrid-research|full)
+            if ! command -v uvx &>/dev/null; then
+                warnings+=("uvx not found - PAL server will fail")
+            fi
+            # Check if PAL API keys are set
+            if [ -z "${GEMINI_API_KEY:-}" ] && [ -z "${OPENAI_API_KEY:-}" ]; then
+                warnings+=("Neither GEMINI_API_KEY nor OPENAI_API_KEY set - PAL requires at least one")
+            fi
+            ;;
+    esac
+
+    # Print warnings if any
+    if [ ${#warnings[@]} -gt 0 ]; then
+        log_warn "Profile validation warnings for '${profile}':"
+        for w in "${warnings[@]}"; do
+            echo "  ⚠ ${w}"
+        done
+        echo ""
+    fi
+}
+
+# Run validation before applying profile
+validate_profile "${PROFILE}"
 
 # Copy and process profile
 log_info "Switching to profile: ${PROFILE}"
 
-# Replace ${TOOLUNIVERSE_ENV} placeholder with actual path
-if [ -n "${TOOLUNIVERSE_ENV}" ]; then
-    sed "s|\${TOOLUNIVERSE_ENV}|${TOOLUNIVERSE_ENV}|g" "${PROFILE_FILE}" > "${PROJECT_DIR}/.mcp.json"
+export TOOLKIT_DIR="${TOOLKIT_DIR}"
+
+# Replace placeholders with actual paths and API keys using Python for robustness
+if command -v python3 &>/dev/null; then
+    python3 -c "
+import sys, os
+from pathlib import Path
+
+profile_path = os.path.expanduser('${PROFILE_FILE}')
+output_path = os.path.expanduser('${PROJECT_DIR}/.mcp.json')
+
+# Ensure TOOLKIT_DIR is available as an environment variable
+toolkit_root = os.environ.get('TOOLKIT_DIR', '')
+tool_env = os.environ.get('TOOLUNIVERSE_ENV', '')
+
+with open(profile_path, 'r') as f:
+    content = f.read()
+
+# Path substitutions
+content = content.replace('\${TOOLUNIVERSE_ENV}', tool_env)
+content = content.replace('\${TOOLKIT_ROOT}', toolkit_root)
+
+# API key substitutions (ISSUE-002 fix)
+content = content.replace('\${GEMINI_API_KEY}', os.environ.get('GEMINI_API_KEY', ''))
+content = content.replace('\${OPENAI_API_KEY}', os.environ.get('OPENAI_API_KEY', ''))
+content = content.replace('\${CONTEXT7_API_KEY}', os.environ.get('CONTEXT7_API_KEY', ''))
+
+with open(output_path, 'w') as f:
+    f.write(content)
+"
 else
-    # If no ToolUniverse env found, copy as-is (may fail if profile needs it)
+    # Fallback to direct copy if python3 is not available
     cp "${PROFILE_FILE}" "${PROJECT_DIR}/.mcp.json"
     if grep -q 'TOOLUNIVERSE_ENV' "${PROJECT_DIR}/.mcp.json"; then
-        log_warn "ToolUniverse environment not found - tooluniverse server may not work"
-        log_info "Run setup-ai.sh first or set TOOLUNIVERSE_ENV manually"
+        log_warn "ToolUniverse environment not found or python3 missing - tooluniverse server may not work"
     fi
 fi
 
@@ -147,7 +220,7 @@ if [ -f "${GEMINI_TEMPLATE}" ]; then
     # Read template and substitute variables using Python for safety
     if command -v python3 &>/dev/null; then
         python3 -c "
-import sys, os
+import sys, os, stat
 
 # Read template
 try:
@@ -169,9 +242,12 @@ for key, value in replacements.items():
     content = content.replace(key, value)
 
 # Write output
+settings_path = '${GEMINI_SETTINGS_DIR}/settings.json'
 try:
-    with open('${GEMINI_SETTINGS_DIR}/settings.json', 'w') as f:
+    with open(settings_path, 'w') as f:
         f.write(content)
+    # Set permissions to read/write for owner only
+    os.chmod(settings_path, stat.S_IRUSR | stat.S_IWUSR)
 except Exception as e:
     sys.stderr.write(f'Error writing settings: {e}\\n')
     sys.exit(1)

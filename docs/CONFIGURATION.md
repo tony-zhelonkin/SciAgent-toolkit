@@ -2,6 +2,99 @@
 
 This guide covers advanced configuration options for the SciAgent Toolkit.
 
+## Role System Configuration
+
+The role system provides declarative configuration for agents and skills per project.
+
+### Role Definition Format
+
+```yaml
+# roles/my-role.yaml
+name: my-role
+description: Description shown during activation
+mcp_profile: coding  # Recommended MCP profile
+
+agents:
+  - bioinf-librarian
+  - rnaseq-methods-writer
+
+skills:
+  - my-custom-skill
+```
+
+### Activating Roles
+
+```bash
+# Activate for current directory
+./scripts/activate-role.sh base
+
+# Activate for specific project
+./scripts/activate-role.sh base --project-dir /path/to/project
+
+# List available roles
+ls roles/*.yaml
+```
+
+### What Role Activation Does
+
+1. Creates `.claude/agents/` and `.claude/skills/` directories
+2. Clears existing symlinks (enables role switching)
+3. Symlinks agents from `agents/<name>.md` to `.claude/agents/`
+4. Symlinks skills from `skills/<name>.md` to `.claude/skills/`
+5. Displays recommended MCP profile
+
+---
+
+## Profile System Configuration
+
+The profile system manages MCP server configuration across all AI CLIs.
+
+### Available Profiles
+
+| Profile | MCP Servers | Context | Use Case |
+|---------|-------------|---------|----------|
+| `minimal` | context7, sequential-thinking | ~3k | Fastest startup |
+| `coding` | + pal | ~25k | General coding |
+| `codebase` | + serena | ~75k | Code analysis |
+| `research-lite` | + tooluniverse (core) | ~30k | Targeted research |
+| `research-full` | + tooluniverse (14 tools) | ~50k | Scientific research |
+| `full` | all servers | ~100k | Maximum capability |
+
+### Switching Profiles
+
+```bash
+# Basic usage
+./scripts/switch-mcp-profile.sh coding
+
+# With explicit project directory
+./scripts/switch-mcp-profile.sh research-lite --project-dir /path/to/project
+```
+
+### API Key Substitution
+
+The profile switcher injects API keys from environment variables:
+
+```bash
+# Set in .env file or environment
+export GEMINI_API_KEY="your-gemini-key"
+export OPENAI_API_KEY="your-openai-key"
+export CONTEXT7_API_KEY="your-context7-key"
+
+# Keys are substituted in:
+# - .gemini/settings.json
+# - PAL MCP configuration
+# - Context7 configuration
+```
+
+### Profile Validation
+
+Before switching, the script validates:
+- Required MCP servers are installed
+- Required environment variables are set
+- ToolUniverse environment exists (for research profiles)
+
+---
+
 ## Tool Filtering for Better Performance
 
 ToolUniverse provides 600+ tools, which can overwhelm the context window. You can filter tools to only include what you need.
