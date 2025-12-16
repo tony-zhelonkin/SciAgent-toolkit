@@ -1,0 +1,153 @@
+# GEMINI.md - Gemini Context for {{PROJECT_ID}}
+
+> **This is a thin wrapper.** Full methodology is in `01_scripts/SciAgent-toolkit/AGENTS.md`.
+> Do not duplicate content here - reference the source.
+
+---
+
+## Project Overview
+
+**Project ID:** {{PROJECT_ID}}
+**Title:** {{PROJECT_TITLE}}
+**Species:** {{SPECIES}}
+**Tech Stack:** R (primary analysis), Python (downstream viz), Docker (environment)
+
+---
+
+## Methodology Reference
+
+**Read and follow:** `01_scripts/SciAgent-toolkit/AGENTS.md`
+
+This file contains:
+- Analysis patterns and philosophy
+- Directory structure conventions
+- Code style and naming rules
+- Critical rules (filtering, caching, visualization)
+
+**Detailed guidelines:** `01_scripts/SciAgent-toolkit/docs/guidelines/`
+
+---
+
+## Architecture Summary
+
+The project follows a **5-Phase Workflow**:
+
+| Phase | Description | Key Outputs |
+|-------|-------------|-------------|
+| **1** | Core Analysis (DE, GSEA) | `checkpoints/*.rds` |
+| **2** | Master Tables | `tables/master_*.csv` |
+| **3** | R Visualization | `plots/` |
+| **4** | Python Visualization | `plots/Publication/` |
+| **5** | Interactive Dashboards | `interactive/` |
+
+---
+
+## Directory Layout
+
+- `00_data/`: Input data (read-only)
+  - `processed/`: Count matrices
+  - `references/`: Gene sets
+- `01_scripts/`: Shared code
+  - `RNAseq-toolkit/`: DE/GSEA functions
+  - `SciAgent-toolkit/`: AI agent infrastructure
+- `02_analysis/`: Project-specific scripts
+  - `config/`: Configuration files
+  - `1.x`: Core pipeline
+  - `2.x`: R visualizations
+  - `3.x`: Python visualizations
+- `03_results/`: All outputs
+  - `checkpoints/`: Cached RDS objects
+  - `tables/`: CSV exports
+  - `plots/`: Figures
+
+---
+
+## Project Configuration
+
+**Import values from:** `analysis_config.yaml`
+
+```python
+# Python usage
+import yaml
+with open("analysis_config.yaml") as f:
+    config = yaml.safe_load(f)
+de_fdr = config['thresholds']['de_fdr']
+```
+
+---
+
+## Key Components
+
+### Configuration (`02_analysis/config/`)
+
+- `pipeline.yaml` - Single source of truth
+- `config.R` - R config loader
+
+### Caching
+
+Use `load_or_compute()` pattern for expensive operations (>1 min).
+
+```r
+result <- load_or_compute(
+  checkpoint_file = "1.3_gsea_hallmark.rds",
+  description = "Hallmark GSEA",
+  compute_fn = function() { ... }
+)
+```
+
+---
+
+## Usage
+
+### Running Analysis
+
+```bash
+# Run core pipeline
+Rscript 02_analysis/1.1.core_pipeline.R
+
+# Generate visualizations
+for script in 02_analysis/2.*.R; do Rscript "$script"; done
+```
+
+### Loading Checkpoints
+
+```r
+# Load existing results
+dge <- readRDS("03_results/checkpoints/1.1_dge_normalized.rds")
+```
+
+---
+
+## Development Conventions
+
+1. **Context First**: Read `PROJECT_CONTEXT.md` before coding
+2. **Checkpoints**: Save intermediate objects frequently
+3. **Master Tables**: Never hardcode data in viz scripts
+4. **Style**: Tidyverse for R, pandas/pathlib for Python
+
+---
+
+## Current Status
+
+<!-- Update this section as analysis progresses -->
+
+- **Completed:** (list completed stages)
+- **In Progress:** (current work)
+- **Key Finding:** (notable results)
+
+---
+
+## Task for Gemini
+
+When asked to perform analysis:
+1. Check `PROJECT_CONTEXT.md` for biological question
+2. Load relevant checkpoints instead of re-running
+3. Follow `AGENTS.md` methodology
+4. Update this file upon completion
+
+---
+
+## Version
+
+- **Template version:** 2.0.0
+- **Generated:** {{DATE}}

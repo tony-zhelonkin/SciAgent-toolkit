@@ -1,0 +1,193 @@
+# analysis_config.yaml - Project-Specific Configuration
+# Template version: 2.0.0
+#
+# This file contains ALL project-specific values that should NOT be hardcoded
+# in analysis scripts. Both R and Python can import this file.
+#
+# Usage:
+#   R:      config <- yaml::read_yaml("analysis_config.yaml")
+#   Python: with open("analysis_config.yaml") as f: config = yaml.safe_load(f)
+
+# =============================================================================
+# PROJECT METADATA
+# =============================================================================
+
+project:
+  id: "{{PROJECT_ID}}"
+  title: "{{PROJECT_TITLE}}"
+  species: "{{SPECIES}}"              # "Mus musculus" or "Homo sapiens"
+  genome_build: "{{GENOME_BUILD}}"    # "mm10", "mm39", "hg38", etc.
+
+# =============================================================================
+# EXPERIMENTAL DESIGN
+# =============================================================================
+
+design:
+  groups:
+    - "{{GROUP_1}}"                   # e.g., "Control", "NTC"
+    - "{{GROUP_2}}"                   # e.g., "Treatment", "KO"
+  contrasts:
+    - name: "{{CONTRAST_NAME}}"       # e.g., "Treatment_vs_Control"
+      numerator: "{{GROUP_2}}"
+      denominator: "{{GROUP_1}}"
+  samples_per_group: {{N_SAMPLES}}    # e.g., 5
+
+# =============================================================================
+# ANALYSIS THRESHOLDS
+# =============================================================================
+
+thresholds:
+  # Differential Expression
+  de_fdr: 0.05                        # FDR cutoff for significance
+  de_logfc: 1.0                       # Absolute log2FC cutoff (optional)
+
+  # GSEA
+  gsea_fdr: 0.05                      # FDR cutoff for pathway significance
+  gsea_nperm: 100000                  # Number of permutations
+  gsea_seed: 123                      # Random seed for reproducibility
+  gsea_min_size: 15                   # Minimum gene set size
+  gsea_max_size: 500                  # Maximum gene set size
+
+# =============================================================================
+# COLOR PALETTES (Colorblind-Safe)
+# =============================================================================
+
+colors:
+  # Okabe-Ito palette for categorical data
+  okabe_ito:
+    orange: "#E69F00"
+    sky_blue: "#56B4E9"
+    bluish_green: "#009E73"
+    yellow: "#F0E442"
+    blue: "#0072B2"
+    vermillion: "#D55E00"
+    reddish_purple: "#CC79A7"
+    black: "#000000"
+
+  # Diverging scale for NES, logFC (Blue = down, Orange = up)
+  diverging:
+    down: "#2166AC"
+    neutral: "#F7F7F7"
+    up: "#B35806"
+
+  # Sequential scale for p-values (light = high, dark = low/significant)
+  sequential:
+    low: "#FEE0D2"
+    mid: "#FC9272"
+    high: "#DE2D26"
+
+  # Database-specific colors
+  databases:
+    Hallmark: "#E69F00"
+    KEGG: "#56B4E9"
+    Reactome: "#009E73"
+    WikiPathways: "#F0E442"
+    GO_BP: "#0072B2"
+    GO_MF: "#D55E00"
+    GO_CC: "#CC79A7"
+    MitoCarta: "#117733"
+    TransportDB: "#882255"
+    Custom: "#999999"
+
+  # Group colors for sample comparisons
+  groups:
+    "{{GROUP_1}}": "#56B4E9"           # Control - blue
+    "{{GROUP_2}}": "#E69F00"           # Treatment - orange
+
+# =============================================================================
+# VISUALIZATION SETTINGS
+# =============================================================================
+
+visualization:
+  # Plot dimensions (inches)
+  width: 10
+  height: 8
+  width_narrow: 6                     # Single column
+  width_wide: 14                      # Two columns
+
+  # Resolution
+  dpi: 300                            # Print quality
+
+  # Text sizes
+  base_size: 12                       # Base font size
+  title_size: 14
+  label_size: 11
+
+  # GSEA plot settings
+  n_top_pathways: 20                  # Top pathways to show
+
+  # Volcano plot settings
+  volcano_label_top: 10               # Top genes to label
+
+# =============================================================================
+# DATABASES TO ANALYZE
+# =============================================================================
+
+databases:
+  # MSigDB collections
+  msigdb:
+    - category: "H"
+      subcategory: ""
+      name: "Hallmark"
+    - category: "C2"
+      subcategory: "CP:KEGG"
+      name: "KEGG"
+    - category: "C2"
+      subcategory: "CP:REACTOME"
+      name: "Reactome"
+    - category: "C5"
+      subcategory: "GO:BP"
+      name: "GO_BP"
+
+  # Custom gene sets (optional)
+  custom:
+    # - path: "00_data/references/custom_gene_sets.csv"
+    #   name: "Custom"
+
+# =============================================================================
+# INPUT/OUTPUT PATHS (relative to project root)
+# =============================================================================
+
+paths:
+  # Input
+  counts: "00_data/processed/{{COUNTS_FILE}}"
+  metadata: "00_data/processed/{{METADATA_FILE}}"
+  references: "00_data/references/"
+
+  # Output
+  checkpoints: "03_results/checkpoints/"
+  tables: "03_results/tables/"
+  plots: "03_results/plots/"
+  interactive: "03_results/interactive/"
+
+  # Toolkit
+  rnaseq_toolkit: "01_scripts/RNAseq-toolkit/"
+  sciagent_toolkit: "01_scripts/SciAgent-toolkit/"
+
+# =============================================================================
+# SCHEMA DEFINITIONS (for validation)
+# =============================================================================
+
+schemas:
+  master_gsea_table:
+    required_columns:
+      - pathway_id
+      - pathway_name
+      - database
+      - nes
+      - pvalue
+      - padj
+      - set_size
+      - core_enrichment
+      - contrast
+      - direction
+
+  master_de_table:
+    required_columns:
+      - gene_symbol
+      - logFC
+      - P.Value
+      - adj.P.Val
+      - contrast
+      - significant
+      - direction

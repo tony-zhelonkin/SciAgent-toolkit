@@ -12,8 +12,10 @@
     },
     "tooluniverse": {
       "type": "stdio",
-      "command": "${TOOLUNIVERSE_ENV}/bin/tooluniverse-smcp-stdio",
+      "command": "${TOOLUNIVERSE_ENV}/bin/python",
       "args": [
+        "-m", "tooluniverse.smcp_server",
+        "--transport", "stdio",
         "--include-tools", "EuropePMC_search_articles,openalex_literature_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,UniProt_search_proteins,search_clinical_trials"
       ]
     }
