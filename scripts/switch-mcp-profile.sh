@@ -189,10 +189,18 @@ fi
 # Codex Configuration
 # --------------------------
 CODEX_CONFIG_FILE="${HOME}/.codex/config.toml"
-if [ -f "${CODEX_CONFIG_FILE}" ] && command -v python3 &>/dev/null; then
+
+# Determine which python to use for config updates
+# We prefer the ToolUniverse venv python if available, as it has 'toml' installed
+CONFIG_PYTHON="python3"
+if [ -n "${TOOLUNIVERSE_ENV}" ] && [ -x "${TOOLUNIVERSE_ENV}/bin/python" ]; then
+    CONFIG_PYTHON="${TOOLUNIVERSE_ENV}/bin/python"
+fi
+
+if [ -f "${CODEX_CONFIG_FILE}" ] && command -v "${CONFIG_PYTHON}" &>/dev/null; then
     # Check if toml module is available
-    if ! python3 -c "import toml" &>/dev/null; then
-        log_warn "Python 'toml' module not installed - skipping Codex configuration"
+    if ! "${CONFIG_PYTHON}" -c "import toml" &>/dev/null; then
+        log_warn "Python 'toml' module not installed in ${CONFIG_PYTHON} - skipping Codex configuration"
         log_info "To enable: pip3 install toml (may require sudo in some environments)"
     else
         log_info "Updating Codex configuration..."
@@ -201,7 +209,7 @@ if [ -f "${CODEX_CONFIG_FILE}" ] && command -v python3 &>/dev/null; then
         # For now, we align Codex with the *Claude* profile settings (from .mcp.json)
         # If the profile has ToolUniverse, we enable it in Codex
 
-        python3 -c "
+        "${CONFIG_PYTHON}" -c "
 import sys, os, toml, json
 
 codex_config_path = '${CODEX_CONFIG_FILE}'
@@ -226,10 +234,9 @@ try:
         # Add ToolUniverse to Codex
         # We use the python module invocation for robustness
         codex_config['mcp_servers']['tooluniverse'] = {
-            'command': 'uv',
+            'command': f'{tooluniverse_env}/bin/python',
             'args': [
-                '--directory', tooluniverse_env,
-                'run', 'python', '-m', 'tooluniverse.smcp_server',
+                '-m', 'tooluniverse.smcp_server',
                 '--transport', 'stdio',
                 '--compact-mode' # Default to compact for Codex to save tokens
             ]

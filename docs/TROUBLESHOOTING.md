@@ -87,3 +87,53 @@
 - Or manually edit `.mcp.json` to remove `--directory ... run ...` arguments from the `tooluniverse` args list, keeping only the tool-specific arguments (e.g., `--include-tools ...`).
 
 ---
+
+## Codex CLI Issues
+
+### Issue: Installation fails with `npm error code EACCES`
+
+**Symptoms:**
+- Running `npm install -g @openai/codex` or `install_codex.sh` fails.
+- Error log shows `Error: EACCES: permission denied, mkdir '/opt/nvm/versions/node/...'`
+
+**Cause:**
+- The global Node.js installation directory (often `/opt/nvm/...` in dev containers) is read-only for the current user.
+- npm attempts to write to this system directory by default.
+
+**Fix:**
+- Configure npm to use a user-writable directory (e.g., `~/.npm-global`) for global packages.
+
+```bash
+# 1. Create directory
+mkdir -p "$HOME/.npm-global"
+
+# 2. Configure npm
+npm config set prefix "$HOME/.npm-global"
+
+# 3. Add to PATH (add to ~/.bashrc for persistence)
+export PATH="$HOME/.npm-global/bin:$PATH"
+echo 'export PATH="$HOME/.npm-global/bin:$PATH"' >> "$HOME/.bashrc"
+
+# 4. Retry installation
+npm install -g @openai/codex
+```
+
+### Issue: MCP Handshake Failure (Stdio Noise)
+
+**Symptoms:**
+- Codex CLI starts but shows `⚠ MCP client for 'tooluniverse' failed to start`.
+- Error: `handshaking with MCP server failed: connection closed: initialize response` or `JSON parse error`.
+- Claude/Gemini may connect fine to the same server.
+
+**Cause:**
+- The Codex CLI enforces strict [MCP over Stdio](https://modelcontextprotocol.io/docs/concepts/transports#stdio) compliance.
+- The `tooluniverse` server (and some python scripts) prints initialization logs (e.g., `🚀 Starting ToolUniverse...`) to **stdout**.
+- This extra text corrupts the JSON-RPC messages required by Codex.
+
+**Fix / Workaround:**
+- **Patch the Server:** Modify the MCP server to print all logs to `stderr` only.
+- **Use Quiet Mode:** If the server supports it, use a flag to suppress stdout logs.
+- **Exclude from Codex:** In `~/.codex/config.toml`, remove the offending server until it is patched.
+- **Use Direct Binary:** Sometimes using the direct binary (e.g., `tooluniverse-env/bin/python`) instead of `uv run` helps if `uv` itself is adding noise.
+
+---

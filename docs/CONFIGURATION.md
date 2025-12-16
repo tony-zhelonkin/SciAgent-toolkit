@@ -301,6 +301,25 @@ Best for:
 
 Location: `~/.codex/config.toml`
 
+### Project-Level Codex Configuration
+
+**Finding:** The Codex CLI currently *only* reads configuration from the global file `~/.codex/config.toml`. It does not natively support a project-local `.codex/config.toml` or `.codex.toml`.
+
+**Recommended Strategy:**
+To maintain project-specific settings (like specific tools or strict context limits):
+
+1.  **Store Config in Project:** Create `.codex/config.toml` in your project root.
+2.  **Sync on Context Switch:** Use a script (like `switch-mcp-profile.sh`) to copy/symlink this file to `~/.codex/config.toml` when you start working.
+
+*Example Sync Script Snippet:*
+```bash
+# In your setup script
+if [ -f "${PROJECT_ROOT}/.codex/config.toml" ]; then
+    echo "Applying project-specific Codex config..."
+    cp "${PROJECT_ROOT}/.codex/config.toml" "$HOME/.codex/config.toml"
+fi
+```
+
 ## Configuration Validation
 
 ### Validate Claude Code Configuration

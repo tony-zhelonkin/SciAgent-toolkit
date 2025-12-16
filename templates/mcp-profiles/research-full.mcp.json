@@ -12,8 +12,10 @@
     },
     "tooluniverse": {
       "type": "stdio",
-      "command": "${TOOLUNIVERSE_ENV}/bin/tooluniverse-smcp-stdio",
+      "command": "${TOOLUNIVERSE_ENV}/bin/python",
       "args": [
+        "-m", "tooluniverse.smcp_server",
+        "--transport", "stdio",
         "--hook-type", "SummarizationHook"
       ]
     }

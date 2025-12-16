@@ -20,16 +20,28 @@ A modular infrastructure for building AI-powered scientific research agents usin
 git clone https://github.com/[your-username]/SciAgent-toolkit
 cd SciAgent-toolkit
 
-# Run the automated installer
+# 1. Setup Environment
+cp templates/.env.template .env
+# Edit .env and add your API keys (GEMINI_API_KEY, OPENAI_API_KEY, etc.)
+
+# 2. Run the automated installer
 ./scripts/setup_mcp_infrastructure.sh
 
-# Switch to a profile (e.g., for coding)
+# 3. Switch to a profile (e.g., for coding)
 ./scripts/switch-mcp-profile.sh coding
 
 # Verify installation
 claude
 /mcp  # Should show: sequential-thinking, pal, context7
 ```
+
+## Configuration & Secrets
+
+SciAgent-toolkit uses a `.env` file for secure API key management. A `.env.template` is provided in the `templates/` directory.
+
+1.  **Single Source of Truth**: The `.env` file (git-ignored) holds all your API keys.
+2.  **Auto-Injection**: The `switch-mcp-profile.sh` script automatically reads keys from `.env` and injects them into the generated tool configurations (e.g., `.gemini/settings.json`).
+3.  **Security**: Generated configuration files containing keys are automatically git-ignored to prevent accidental exposure.
 
 **What gets installed automatically:**
 - **AI CLIs:** Claude Code, Gemini CLI, Codex CLI (if selected)

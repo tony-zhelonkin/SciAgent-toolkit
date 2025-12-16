@@ -102,6 +102,14 @@ else
     exit 1
 fi
 
+# Install 'toml' package which is required for parsing Codex configuration in switch-mcp-profile.sh
+log_info "Installing dependencies..."
+if uv pip install --python "${TOOLUNIVERSE_ENV}/bin/python" toml &>/dev/null; then
+    log_ok "Dependency 'toml' installed"
+else
+    log_warn "Failed to install 'toml' - Codex configuration updates may fail"
+fi
+
 # Verify installation
 if uv --directory "${TOOLUNIVERSE_ENV}" run python -c "import tooluniverse; print('ToolUniverse installed successfully')" &>/dev/null; then
     log_ok "ToolUniverse installation verified"
