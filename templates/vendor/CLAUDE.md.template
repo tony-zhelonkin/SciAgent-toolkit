@@ -1,7 +1,7 @@
 # CLAUDE.md - Claude Code Context for {{PROJECT_ID}}
 
-> **This is a thin wrapper.** Full methodology is in `01_modules/SciAgent-toolkit/AGENTS.md`.
-> Do not duplicate content here - reference the source.
+> **Full methodology:** See `AGENTS.md` in this directory for comprehensive analysis guidelines.
+> This file contains Claude Code-specific context and project status tracking.
 
 ---
 
@@ -12,60 +12,63 @@
 **Species:** {{SPECIES}}
 **Design:** {{EXPERIMENTAL_DESIGN}}
 
+**Scientific context:** See `context.md` for biological question, datasets, and hypotheses.
+
 ---
 
-## Methodology Reference
+## Quick Start
 
-**Read and follow:** `01_modules/SciAgent-toolkit/AGENTS.md`
+1. Read `context.md` for the biological question
+2. Check `AGENTS.md` for methodology and critical rules
+3. Look for existing checkpoints in `03_results/checkpoints/`
+4. Follow phase-based execution model
 
-This file contains:
-- Analysis patterns and philosophy
-- Directory structure conventions
-- Code style and naming rules
-- Critical rules (filtering, caching, visualization)
+---
 
-**Detailed guidelines:** `01_modules/SciAgent-toolkit/docs/guidelines/`
+## Claude Code Agents
 
-| Module | When to Use |
-|--------|-------------|
-| `core_architecture.md` | Project structure, phases |
-| `data_processing.md` | DE analysis, filterByExpr |
-| `gsea_analysis.md` | Pathway enrichment |
-| `checkpoint_caching.md` | load_or_compute pattern |
-| `master_tables.md` | CSV exports |
-| `visualization.md` | Colors, themes |
-| `code_style.md` | R/Python conventions |
+Agents are symlinked from the toolkit to `.claude/agents/`:
+
+```bash
+ls -la .claude/agents/
+```
+
+| Agent | Purpose |
+|-------|---------|
+| **bioinf-librarian** | Find tools, documentation, resources |
+| **rnaseq-methods-writer** | Generate publication Methods sections |
+| **figure-caption-generator** | Create README.md with figure legends |
+| **bio-research-visualizer** | Biological mechanism research + viz |
+
+---
+
+## Claude Code Skills
+
+Skills are in `.claude/skills/`:
+
+<!-- List project-specific skills here -->
+
+---
+
+## MCP Servers
+
+Check available MCP servers: `/mcp` inside Claude Code
+
+Key tools:
+- **PAL**: `chat`, `thinkdeep`, `planner`, `consensus`, `debug`, `codereview`
+- **Context7**: Library documentation lookup
+- **ToolUniverse**: 600+ scientific research tools
 
 ---
 
 ## Project Configuration
 
-**Import values from:** `analysis_config.yaml`
+**Import from:** `02_analysis/config/analysis_config.yaml`
 
 ```r
-# R usage
-config <- yaml::read_yaml("analysis_config.yaml")
+config <- yaml::read_yaml("02_analysis/config/analysis_config.yaml")
 DE_FDR_CUTOFF <- config$thresholds$de_fdr
 ```
-
----
-
-## Project Context
-
-**See:** `context.md` for biological question, datasets, and hypotheses.
-
----
-
-## Current Status
-
-<!-- Update this section as analysis progresses -->
-
-| Stage | Status | Key Outputs |
-|-------|--------|-------------|
-| S1: Core DE/GSEA | ⏸️ Pending | `checkpoints/1.1_*.rds` |
-| S2: Master Tables | ⏸️ Pending | `tables/master_*.csv` |
-| S3: R Visualizations | ⏸️ Pending | `plots/` |
-| S4: Python/Interactive | ⏸️ Pending | `interactive/` |
 
 ---
 
@@ -79,20 +82,22 @@ fit <- readRDS("03_results/checkpoints/1.1_fit_object.rds")
 
 ---
 
-## Claude Code Skills
+## Current Status
 
-Skills are available in `.claude/skills/`:
+<!-- Update this section as analysis progresses -->
 
-<!-- List project-specific skills here -->
+| Stage | Status | Key Outputs |
+|-------|--------|-------------|
+| S1: Core DE/GSEA | Not started | `checkpoints/1.1_*.rds` |
+| S2: Master Tables | Not started | `tables/master_*.csv` |
+| S3: R Visualizations | Not started | `plots/` |
+| S4: Python/Interactive | Not started | `interactive/` |
 
----
+**Completed:** (list completed stages)
 
-## Claude Code Agents
+**In Progress:** (current work)
 
-Agents are available in `.claude/agents/` (symlinked from toolkit):
-
-- **figure-caption-generator**: Creates README.md with figure legends
-- **rnaseq-methods-writer**: Generates Methods sections from code
+**Key Finding:** (notable results)
 
 ---
 
@@ -100,9 +105,11 @@ Agents are available in `.claude/agents/` (symlinked from toolkit):
 
 | File | Purpose |
 |------|---------|
-| `analysis_config.yaml` | Project-specific values |
-| `context.md` | Biological question |
-| `01_modules/SciAgent-toolkit/AGENTS.md` | Universal methodology |
+| `AGENTS.md` | **Full methodology** - read this first |
+| `context.md` | Biological question and hypotheses |
+| `tasks.md` | Task tracker |
+| `notes.md` | Web research and literature notes |
+| `02_analysis/config/analysis_config.yaml` | Project parameters |
 | `03_results/checkpoints/` | Cached results |
 | `03_results/tables/master_*.csv` | Standardized exports |
 
