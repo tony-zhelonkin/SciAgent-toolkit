@@ -24,7 +24,7 @@ A modular infrastructure for building AI-powered scientific research agents usin
 
 ```bash
 # Clone the repository
-git clone https://github.com/[your-username]/SciAgent-toolkit
+git clone https://github.com/tony-zhelonkin/SciAgent-toolkit
 cd SciAgent-toolkit
 
 # 1. Setup Environment

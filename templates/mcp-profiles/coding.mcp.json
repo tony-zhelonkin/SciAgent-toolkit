@@ -12,8 +12,12 @@
     },
     "pal": {
       "type": "stdio",
-      "command": "${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py",
-      "args": []
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
+      "env": {
+        "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+        "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+      }
     }
   }
 }

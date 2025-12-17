@@ -74,17 +74,21 @@ fi
 # Parse YAML list items (simple sed/grep for portability, no yq dependency)
 # Handles format:
 #   agents:
-#     - bioinf-librarian
+#     - bioinf-librarian            # inline comments are stripped
 #     - rnaseq-methods-writer
 get_yaml_list() {
     local file="$1"
     local key="$2"
     # Extract section from key: until next top-level key (line starting with letter + colon)
     # Then extract list items (lines with "- item")
+    # Strip inline comments (everything after #) and trailing whitespace
     sed -n "/^${key}:/,/^[a-z]*:/p" "$file" | \
         grep '^[[:space:]]*-' | \
         sed 's/^[[:space:]]*-[[:space:]]*//' | \
-        tr -d '\r'
+        sed 's/[[:space:]]*#.*//' | \
+        sed 's/[[:space:]]*$//' | \
+        tr -d '\r' | \
+        grep -v '^$'
 }
 
 # Get role metadata
