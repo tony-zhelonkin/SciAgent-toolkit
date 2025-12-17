@@ -56,11 +56,12 @@ RUN echo "=== Test 2: Template Files ===" && \
     test -f /opt/sciagent/templates/vendor/analysis_config.yaml.template && echo "  [OK] analysis_config.yaml.template exists"
 
 # Test 3: Verify templates reference 01_modules (not 01_scripts)
+# Note: CLAUDE.md.template is a thin wrapper that delegates to AGENTS.md, so it doesn't need 01_modules directly
 RUN echo "=== Test 3: Template Path References ===" && \
-    grep -q "01_modules" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template references 01_modules" && \
     grep -q "01_modules" /opt/sciagent/templates/vendor/GEMINI.md.template && echo "  [OK] GEMINI.md.template references 01_modules" && \
     grep -q "01_modules" /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template references 01_modules" && \
-    ! grep -q "01_scripts" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template does NOT reference 01_scripts"
+    grep -q "AGENTS.md" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template references AGENTS.md" && \
+    ! grep -q "01_scripts" /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template does NOT reference 01_scripts"
 
 # Test 4: Test activate-role.sh with base role
 RUN echo "=== Test 4: Role Activation ===" && \
@@ -70,6 +71,14 @@ RUN echo "=== Test 4: Role Activation ===" && \
     test -d /workspace/test-project/.claude/skills && echo "  [OK] .claude/skills/ created" && \
     test -L /workspace/test-project/.claude/agents/bioinf-librarian.md && echo "  [OK] bioinf-librarian.md symlinked" && \
     test -L /workspace/test-project/.claude/agents/rnaseq-methods-writer.md && echo "  [OK] rnaseq-methods-writer.md symlinked"
+
+# Test 4b: Verify no spurious warnings from YAML comment parsing (ISSUE-011 fix)
+RUN echo "=== Test 4b: YAML Comment Parsing ===" && \
+    cd /workspace/test-project && \
+    output=$(bash /opt/sciagent/scripts/activate-role.sh base --project-dir /workspace/test-project 2>&1) && \
+    ! echo "$output" | grep -q "Agent not found: #" && echo "  [OK] No spurious '#' agent warnings" && \
+    ! echo "$output" | grep -q "Agent not found: Tool" && echo "  [OK] No spurious 'Tool' agent warnings" && \
+    ! echo "$output" | grep -q "Agent not found: research" && echo "  [OK] No spurious 'research' agent warnings"
 
 # Test 5: Verify switch-mcp-profile.sh has API key substitution code
 RUN echo "=== Test 5: Profile Switcher API Key Support ===" && \
@@ -89,6 +98,12 @@ RUN echo "=== Test 6: Profile Switching ===" && \
 # Test 7: Verify research-full.mcp.json has --include-tools
 RUN echo "=== Test 7: Research Profile Tool Limits ===" && \
     grep -q "include-tools" /opt/sciagent/templates/mcp-profiles/research-full.mcp.json && echo "  [OK] research-full.mcp.json has --include-tools"
+
+# Test 7b: Verify coding profile uses direct uvx for PAL (ISSUE-001/012 fix)
+RUN echo "=== Test 7b: PAL Direct uvx Configuration ===" && \
+    grep -q '"command": "uvx"' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json uses uvx for PAL" && \
+    grep -q 'pal-mcp-server' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json references pal-mcp-server" && \
+    ! grep -q 'start-pal.py' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json does NOT use wrapper script"
 
 # Test 8: Verify setup-ai.sh has template installation code
 RUN echo "=== Test 8: setup-ai.sh Template Support ===" && \

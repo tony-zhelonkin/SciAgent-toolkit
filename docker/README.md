@@ -301,4 +301,4 @@ jobs:
 For issues:
 - **Test failures:** Check build logs in `/tmp/*-build.log`
 - **Installation issues:** See main [TROUBLESHOOTING.md](../docs/TROUBLESHOOTING.md)
-- **GitHub Issues:** https://github.com/your-repo/SciAgent-toolkit/issues
+- **GitHub Issues:** https://github.com/tony-zhelonkin/SciAgent-toolkit/issues
