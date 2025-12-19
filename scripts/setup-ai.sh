@@ -301,4 +301,24 @@ if [ "$SKIP_SERENA" = true ]; then
     echo "  # Then re-run: ./setup-ai.sh --force"
 fi
 
+# --------------------------
+# Security Validation
+# --------------------------
+echo ""
+log_info "Running security validation..."
+VALIDATE_SCRIPT="${SCIAGENT_SCRIPTS}/validate-secrets.sh"
+if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
+    if "${VALIDATE_SCRIPT}" "${PROJECT_DIR}"; then
+        log_ok "Security validation passed"
+    else
+        log_warn "Security issues detected!"
+        log_warn "Review the warnings above and fix .gitignore before committing."
+        echo ""
+        log_info "For more information, see: docs/SECURITY.md"
+    fi
+else
+    log_warn "validate-secrets.sh not found - skipping security validation"
+    log_info "Ensure sensitive files (.mcp.json, .gemini/, .env) are in .gitignore"
+fi
+
 echo ""
