@@ -1,6 +1,37 @@
 ---
-name: rnaseq-insight-explorer
-description: Use this agent when the user needs to explore and interpret RNAseq analysis results stored in RDS or CSV files. Specific scenarios include:\n\n<example>\nContext: User has RNAseq differential expression results and wants to understand what stories the data tells.\nuser: "I have DESeq2 results in results.rds, can you help me understand what's interesting here?"\nassistant: "I'm going to use the Task tool to launch the rnaseq-insight-explorer agent to explore your RNAseq results and identify interesting patterns."\n<commentary>The user has RNAseq data that needs exploration and interpretation. Use the rnaseq-insight-explorer agent to analyze the data structure, identify meaningful patterns, and suggest visualizations.</commentary>\n</example>\n\n<example>\nContext: User claims they found a specific biological mechanism in their data.\nuser: "The results show that inflammation genes are upregulated, confirming our hypothesis about the immune response pathway."\nassistant: "Let me use the rnaseq-insight-explorer agent to validate this finding and check for alternative explanations."\n<commentary>The user is presenting a biased interpretation. Use the rnaseq-insight-explorer agent to critically evaluate the claim, check the actual data, and identify whether other mechanisms could explain the findings.</commentary>\n</example>\n\n<example>\nContext: After completing differential expression analysis, user wants to create meaningful figures.\nuser: "I just finished the DESeq2 analysis. What figures should I make to present these results?"\nassistant: "I'm going to use the rnaseq-insight-explorer agent to examine your results and recommend appropriate visualizations."\n<commentary>The user needs guidance on visualization strategy. Use the rnaseq-insight-explorer agent to explore the data structure and suggest figures that would best expose the biological insights.</commentary>\n</example>\n\nProactively use this agent when:\n- RNAseq results files (RDS, CSV) are present in the project directory\n- The user mentions differential expression, gene expression analysis, or transcriptomics\n- The user presents interpretations that should be verified against the actual data\n- The user asks about data visualization for genomics results
+name: insight-explorer
+description: |
+  Explore DATA FILES (RDS, CSV) with scientific skepticism. Use when you have result files that need statistical exploration, pattern discovery, and visualization recommendations.
+
+  ## Distinction from bio-interpreter
+
+  | Agent | Input | Action | Output |
+  |-------|-------|--------|--------|
+  | **insight-explorer** | Data files (RDS/CSV) | Statistical exploration | Data patterns + viz recommendations |
+  | **bio-interpreter** | Gene/pathway names | Web research → literature | Mechanism explanation in `web_notes.md` |
+
+  **Use insight-explorer when:** User has DATA FILES that need EXPLORATION
+  **Use bio-interpreter when:** User has FINDINGS that need BIOLOGICAL CONTEXT
+
+  ## Handoff pattern
+  `insight-explorer` discovers patterns → identifies genes/pathways → `bio-interpreter` researches mechanisms
+
+  <example>
+  user: "I have DESeq2 results in results.rds. What's interesting here?"
+  assistant: "I'll use insight-explorer to explore patterns in your data."
+  </example>
+
+  <example>
+  user: "The results show inflammation genes are upregulated, confirming our hypothesis."
+  assistant: "Let me use insight-explorer to validate this claim against the actual data."
+  </example>
+
+  <example>
+  user: "I finished the analysis. What figures should I make?"
+  assistant: "I'll use insight-explorer to examine your results and recommend visualizations."
+  </example>
+
+  Works with any omics data: RNAseq, scRNAseq, proteomics, etc.
 model: sonnet
 color: blue
 ---

@@ -3,19 +3,30 @@
 # activate-role.sh - Activates a role by populating .claude/ directories
 #
 # Usage:
-#   ./activate-role.sh [role-name] [--project-dir DIR]
+#   ./activate-role.sh [role-name] [mcp-profile] [--project-dir DIR]
 #
 # Reads role YAML definition, creates .claude/agents/ and .claude/skills/
-# directories, and symlinks specified agents/skills from the toolkit.
+# directories, symlinks specified agents/skills from the toolkit, and
+# automatically switches to the recommended MCP profile.
+#
+# Arguments:
+#   role-name    - Role to activate (default: base)
+#   mcp-profile  - Optional MCP profile override (default: from role YAML)
+#
+# MCP Profile Behavior:
+#   - If mcp-profile is specified, uses that instead of the role's default
+#   - If not specified, uses the mcp_profile defined in the role YAML
+#   - User can switch profiles independently later with switch-mcp-profile.sh
 #
 # Roles:
-#   base       - Default bioinformatics analysis role (bioinf-librarian, rnaseq-methods-writer)
-#   coding     - Code-focused role (future)
-#   research   - Research-focused role (future)
+#   base       - Default bioinformatics analysis role (hybrid-research profile)
+#   sc-atac    - Single-cell ATAC-seq role
 #
 # Examples:
-#   ./activate-role.sh base                          # Use current directory
-#   ./activate-role.sh base --project-dir ~/project  # Specify project directory
+#   ./activate-role.sh base                              # Use role's default MCP profile
+#   ./activate-role.sh base coding                       # Override with 'coding' profile
+#   ./activate-role.sh base --project-dir ~/project      # Specify project directory
+#   ./activate-role.sh base research-lite --project-dir ~/project  # Both overrides
 
 set -euo pipefail
 
@@ -34,21 +45,38 @@ log_ok()    { echo -e "${GREEN}[OK]${NC} $*"; }
 log_warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 
+# Show help first (before any other processing)
+for arg in "$@"; do
+    if [[ "$arg" == "--help" || "$arg" == "-h" ]]; then
+        # Extract only the header comment block (lines 2-29)
+        sed -n '2,29p' "$0" | sed 's/^# //' | sed 's/^#//'
+        exit 0
+    fi
+done
+
 # Default values
-ROLE="${1:-base}"
+ROLE="base"
+MCP_PROFILE_OVERRIDE=""
 PROJECT_DIR="${PWD}"
 
-# Parse arguments
-shift || true  # Shift past role name if provided
+# Parse positional arguments first (role and optional mcp-profile)
+if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+    ROLE="$1"
+    shift
+fi
+
+# Check if next argument is an MCP profile override (not starting with --)
+if [[ $# -gt 0 && ! "$1" =~ ^-- ]]; then
+    MCP_PROFILE_OVERRIDE="$1"
+    shift
+fi
+
+# Parse remaining options
 while [[ $# -gt 0 ]]; do
     case $1 in
         --project-dir)
             PROJECT_DIR="$2"
             shift 2
-            ;;
-        --help|-h)
-            grep '^#' "$0" | grep -v '#!/usr/bin/env' | sed 's/^# //' | sed 's/^#//'
-            exit 0
             ;;
         *)
             log_error "Unknown option: $1"
@@ -149,9 +177,39 @@ log_info "  Agents: ${AGENTS_COUNT}"
 log_info "  Skills: ${SKILLS_COUNT}"
 log_info "  Location: ${CLAUDE_DIR}/"
 
-# Suggest MCP profile if defined
-if [ -n "$MCP_PROFILE" ]; then
+# Determine which MCP profile to use
+FINAL_MCP_PROFILE=""
+if [ -n "$MCP_PROFILE_OVERRIDE" ]; then
+    FINAL_MCP_PROFILE="$MCP_PROFILE_OVERRIDE"
+    log_info "Using MCP profile override: ${FINAL_MCP_PROFILE}"
+elif [ -n "$MCP_PROFILE" ]; then
+    FINAL_MCP_PROFILE="$MCP_PROFILE"
+    log_info "Using role's recommended MCP profile: ${FINAL_MCP_PROFILE}"
+fi
+
+# Automatically switch MCP profile
+if [ -n "$FINAL_MCP_PROFILE" ]; then
     echo ""
-    log_info "Recommended MCP profile: ${MCP_PROFILE}"
-    log_info "  To apply: ./switch-mcp-profile.sh ${MCP_PROFILE}"
+    log_info "Switching MCP profile..."
+
+    # Call switch-mcp-profile.sh
+    SWITCH_SCRIPT="${SCRIPT_DIR}/switch-mcp-profile.sh"
+    if [ -x "$SWITCH_SCRIPT" ]; then
+        if "$SWITCH_SCRIPT" "$FINAL_MCP_PROFILE" --project-dir "$PROJECT_DIR"; then
+            echo ""
+            log_ok "MCP profile '${FINAL_MCP_PROFILE}' applied"
+        else
+            log_warn "Failed to switch MCP profile. You can try manually:"
+            log_info "  ${SWITCH_SCRIPT} ${FINAL_MCP_PROFILE} --project-dir ${PROJECT_DIR}"
+        fi
+    else
+        log_warn "switch-mcp-profile.sh not found at ${SWITCH_SCRIPT}"
+        log_info "To apply MCP profile manually: ./switch-mcp-profile.sh ${FINAL_MCP_PROFILE}"
+    fi
+
+    echo ""
+    log_info "To switch to a different MCP profile later:"
+    log_info "  ${SCRIPT_DIR}/switch-mcp-profile.sh <profile-name>"
+else
+    log_warn "No MCP profile defined for role '${ROLE}'"
 fi

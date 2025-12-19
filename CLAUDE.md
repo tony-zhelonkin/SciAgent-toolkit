@@ -587,6 +587,46 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, testing proc
 
 ---
 
+## After Modifying Agents or Roles
+
+**IMPORTANT**: After making ANY changes to files in `agents/`, `skills/`, or `roles/`, you MUST test role activation to ensure changes are not breaking and propagate to dependent projects.
+
+### Mandatory Testing Steps
+
+1. **Test role activation locally** (from toolkit directory):
+   ```bash
+   ./scripts/activate-role.sh base --project-dir .
+   ```
+
+2. **If a parent project uses this toolkit as a submodule**, re-activate the role from the parent directory to propagate changes:
+   ```bash
+   # From the parent project root (e.g., /workspaces/AdaW_eWAT_WL_2025)
+   ./01_modules/SciAgent-toolkit/scripts/activate-role.sh base --project-dir .
+   ```
+
+3. **Verify symlinks were created correctly**:
+   ```bash
+   ls -la .claude/agents/
+   ls -la .claude/skills/
+   ```
+
+### Why This Matters
+
+- Agent/skill files in `agents/` and `skills/` are the **canonical source**
+- Projects using this toolkit have **symlinks** pointing to these files
+- Changes to agent files take effect immediately via symlinks
+- Role activation must succeed to confirm YAML syntax and file references are valid
+- Re-running activation in parent projects ensures their `.claude/` directories stay in sync
+
+### Quick Validation Command
+
+```bash
+# One-liner to test from toolkit directory
+./scripts/activate-role.sh base --project-dir . && echo "Role activation: OK" || echo "Role activation: FAILED"
+```
+
+---
+
 ## Quick Reference
 
 ### Check Installation Status

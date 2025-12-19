@@ -193,7 +193,15 @@ else
     fi
 fi
 
-# ... (previous code)
+log_ok "Updated .mcp.json"
+
+# Check if .mcp.json is git-ignored (security check)
+if git -C "${PROJECT_DIR}" check-ignore -q "${PROJECT_DIR}/.mcp.json" 2>/dev/null; then
+    log_info "Note: .mcp.json contains API keys and is git-ignored (safe)."
+else
+    log_warn ".mcp.json contains API keys but is NOT git-ignored!"
+    log_warn "Add '.mcp.json' to .gitignore to prevent accidental credential exposure."
+fi
 
 # --------------------------
 # Gemini Configuration
@@ -253,7 +261,13 @@ except Exception as e:
     sys.exit(1)
 "
         log_ok "Updated .gemini/settings.json"
-        log_info "Note: .gemini/settings.json contains API keys but is git-ignored (safe)."
+        # Check if .gemini/settings.json is actually git-ignored
+        if git -C "${PROJECT_DIR}" check-ignore -q "${GEMINI_SETTINGS_DIR}/settings.json" 2>/dev/null; then
+            log_info "Note: .gemini/settings.json contains API keys and is git-ignored (safe)."
+        else
+            log_warn ".gemini/settings.json contains API keys but is NOT git-ignored!"
+            log_warn "Add '.gemini/' to .gitignore to prevent accidental credential exposure."
+        fi
     else
         log_warn "python3 not found - skipping Gemini configuration"
     fi
