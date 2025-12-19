@@ -212,4 +212,16 @@ if [ -n "$FINAL_MCP_PROFILE" ]; then
     log_info "  ${SCRIPT_DIR}/switch-mcp-profile.sh <profile-name>"
 else
     log_warn "No MCP profile defined for role '${ROLE}'"
+
+    # Run security validation even without MCP profile switch
+    echo ""
+    log_info "Running security validation..."
+    VALIDATE_SCRIPT="${SCRIPT_DIR}/validate-secrets.sh"
+    if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
+        if "${VALIDATE_SCRIPT}" "${PROJECT_DIR}"; then
+            log_ok "Security validation passed"
+        else
+            log_warn "Security issues detected - see warnings above"
+        fi
+    fi
 fi

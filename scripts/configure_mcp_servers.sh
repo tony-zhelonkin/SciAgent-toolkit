@@ -88,4 +88,16 @@ if [ "$FORCE" = true ] || [ ! -f "${PROJECT_DIR}/.mcp.json" ]; then
 else
     log_info "Configuration already exists. Skipping default profile application."
     log_info "Use --force to overwrite with default 'coding' profile."
+
+    # Still run security validation even when not applying profile
+    echo ""
+    log_info "Running security validation..."
+    VALIDATE_SCRIPT="${SCRIPT_DIR}/validate-secrets.sh"
+    if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
+        if "${VALIDATE_SCRIPT}" "${PROJECT_DIR}"; then
+            log_ok "Security validation passed"
+        else
+            log_warn "Security issues detected - see warnings above"
+        fi
+    fi
 fi

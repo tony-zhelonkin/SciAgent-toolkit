@@ -310,16 +310,65 @@ try:
     # Load Codex Config
     with open(codex_config_path, 'r') as f:
         codex_config = toml.load(f)
-    
-    # Load MCP JSON to check if ToolUniverse is active
+
+    # Load MCP JSON to check which servers are active
     with open(mcp_json_path, 'r') as f:
         mcp_config = json.load(f)
-        
-    has_tu = 'tooluniverse' in mcp_config.get('mcpServers', {})
-    
+
+    mcp_servers = mcp_config.get('mcpServers', {})
+
     if 'mcp_servers' not in codex_config:
         codex_config['mcp_servers'] = {}
-        
+
+    # -------------------------
+    # PAL MCP Server
+    # -------------------------
+    # SECURITY: Use env_vars to forward API keys from shell environment
+    # instead of hardcoding them in config. This is the secure pattern for Codex.
+    if 'pal' in mcp_servers:
+        codex_config['mcp_servers']['pal'] = {
+            'type': 'stdio',
+            'command': 'uvx',
+            'args': [
+                '--from', 'git+https://github.com/BeehiveInnovations/pal-mcp-server.git',
+                'pal-mcp-server'
+            ],
+            # Forward API keys from shell environment (secure - no hardcoded values)
+            'env_vars': ['GEMINI_API_KEY', 'OPENAI_API_KEY', 'OPENROUTER_API_KEY', 'XAI_API_KEY', 'CONTEXT7_API_KEY']
+        }
+    elif 'pal' in codex_config['mcp_servers']:
+        del codex_config['mcp_servers']['pal']
+
+    # -------------------------
+    # Sequential Thinking
+    # -------------------------
+    if 'sequential-thinking' in mcp_servers:
+        codex_config['mcp_servers']['sequential-thinking'] = {
+            'type': 'stdio',
+            'command': 'npx',
+            'args': ['-y', '@modelcontextprotocol/server-sequential-thinking']
+        }
+    elif 'sequential-thinking' in codex_config['mcp_servers']:
+        del codex_config['mcp_servers']['sequential-thinking']
+
+    # -------------------------
+    # Context7
+    # -------------------------
+    if 'context7' in mcp_servers:
+        codex_config['mcp_servers']['context7'] = {
+            'type': 'stdio',
+            'command': 'npx',
+            'args': ['-y', '@upstash/context7-mcp'],
+            'env_vars': ['CONTEXT7_API_KEY']  # Optional key for higher rate limits
+        }
+    elif 'context7' in codex_config['mcp_servers']:
+        del codex_config['mcp_servers']['context7']
+
+    # -------------------------
+    # ToolUniverse
+    # -------------------------
+    has_tu = 'tooluniverse' in mcp_servers
+
     if has_tu and tooluniverse_env:
         # Add ToolUniverse to Codex
         # We use the python module invocation for robustness
@@ -328,17 +377,17 @@ try:
             'args': [
                 '-m', 'tooluniverse.smcp_server',
                 '--transport', 'stdio',
-                '--compact-mode' # Default to compact for Codex to save tokens
+                '--compact-mode'  # Default to compact for Codex to save tokens
             ]
         }
-    elif 'tooluniverse' in codex_config['mcp_servers']:
+    elif 'tooluniverse' in codex_config.get('mcp_servers', {}):
         # Remove ToolUniverse if not in profile
         del codex_config['mcp_servers']['tooluniverse']
-        
+
     # Write back
     with open(codex_config_path, 'w') as f:
         toml.dump(codex_config, f)
-        
+
 except Exception as e:
     # simplified error handling
     sys.stderr.write(f'Warning: Could not update Codex config: {e}\\n')
@@ -424,5 +473,22 @@ if command -v jq &>/dev/null; then
 else
     grep -o '"[^"]*":' "${PROJECT_DIR}/.mcp.json" | head -10 | tr -d '":' | sed 's/^/  - /'
 fi
+echo ""
+
+# --------------------------
+# Security Validation
+# --------------------------
+VALIDATE_SCRIPT="${SCRIPT_DIR}/validate-secrets.sh"
+if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
+    echo ""
+    log_info "Running security validation..."
+    if "${VALIDATE_SCRIPT}" "${PROJECT_DIR}"; then
+        log_ok "Security validation passed"
+    else
+        log_warn "Security issues detected - see warnings above"
+        log_info "Fix gitignore issues before committing!"
+    fi
+fi
+
 echo ""
 log_info "Restart Claude Code to apply: exit && claude"
