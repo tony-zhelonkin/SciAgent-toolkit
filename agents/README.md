@@ -1,13 +1,56 @@
 # Claude Agents for Bioinformatics
 
-Pre-configured Claude agents optimized for bioinformatics and scientific research workflows.
+Pre-configured Claude agents for bioinformatics and scientific research workflows.
+
+## Quick Reference
+
+| Agent | Purpose | Trigger |
+|-------|---------|---------|
+| `docs-librarian` | Find tool/package documentation | "What are the parameters for...?" |
+| `bio-interpreter` | Research biological mechanisms | "What's the mechanism behind...?" |
+| `insight-explorer` | Explore data files with skepticism | "What's interesting in this data?" |
+| `captions` | Generate figure legends | "Document the plots in..." |
+| `doc-curator` | Clean up repo documentation | "Help organize the docs" |
+| `code-reviewer` | Review refactored code | "Review my refactoring" |
+| `handoff` | Create session handoff docs | "Let's wrap up for today" |
+
+## Agent Separation Logic
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                 docs-librarian                                   │
+│  Find DOCUMENTATION for tools/packages                          │
+│  Input: Tool/package name                                        │
+│  Output: web_notes.md with docs, parameters, best practices     │
+│  Tools: Context7, WebSearch, WebFetch                           │
+└─────────────────────────────────────────────────────────────────┘
+                              ↓ user has findings
+┌─────────────────────────────────────────────────────────────────┐
+│                    WORKFLOW HANDOFF                              │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  insight-explorer                    bio-interpreter             │
+│  ─────────────────                   ──────────────             │
+│  INPUT: Data files (RDS/CSV)         INPUT: Gene/pathway names  │
+│  ACTION: Statistical exploration     ACTION: Literature research │
+│  OUTPUT: Data patterns + viz recs    OUTPUT: web_notes.md       │
+│                                                                  │
+│  "What patterns are in this data?"   "What does this mean       │
+│                                       biologically?"             │
+│                                                                  │
+│         ↓ discovers patterns                                     │
+│         ↓ identifies genes/pathways                             │
+│         └──────────────────────────→ researches mechanisms      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
 ## Role-Based Activation
 
-Agents are activated via the **role system**. When you activate a role, the specified agents are symlinked to `.claude/agents/`:
+Agents are activated via the role system:
 
 ```bash
-# Activate the base role (includes all 8 agents)
+# Activate base role (includes all 7 agents)
 ./scripts/activate-role.sh base --project-dir /path/to/project
 
 # View available roles
@@ -16,246 +59,159 @@ ls roles/*.yaml
 
 ### Base Role (`roles/base.yaml`)
 
-The base role includes all 8 agents organized by function:
-
 ```yaml
 name: base
-description: Default bioinformatics analysis role with full agent suite
-mcp_profile: coding
+description: Default bioinformatics analysis role
+mcp_profile: hybrid-research
 
 agents:
   # Research & Documentation
-  - bioinf-librarian            # Tool/documentation research
-  - bio-research-visualizer     # Biological mechanism research + visualization
-
-  # Data Exploration & Analysis
-  - rnaseq-insight-explorer     # RNAseq data exploration with skepticism
-
-  # Publication & Documentation
-  - rnaseq-methods-writer       # Methods section generation from code
-  - figure-caption-generator    # Publication-quality figure captions
-  - repo-doc-curator            # Repository documentation cleanup
-
-  # Code Review & Quality
-  - refactor-stage-reviewer     # Code refactoring peer review
-
+  - docs-librarian      # Tool/package documentation
+  - bio-interpreter     # Biological mechanism research
+  # Data Exploration
+  - insight-explorer    # Data exploration with skepticism
+  # Publication
+  - captions            # Figure caption generation
+  - doc-curator         # Repository documentation
+  # Code Quality
+  - code-reviewer       # Refactoring peer review
   # Session Management
-  - handoff                     # Session handoff documentation
+  - handoff             # Session handoff documentation
 
-skills: []
+skills:
+  - annotate-rnaseq-data
 ```
 
-## Available Agents (8 total)
+## Agent Details
 
-### Research & Documentation
+### docs-librarian
+**Purpose:** Find documentation for bioinformatics tools, libraries, packages, workflows.
 
-#### Bioinformatics Research Librarian
-**File:** `bioinf-librarian.md`
+**Tools:** Context7 (for packages), WebSearch, WebFetch
 
-Expert agent for finding bioinformatics tools, documentation, and resources. Use when you need to:
-- Research specific tools (Seurat, ArchR, MACS2)
-- Find parameter documentation
-- Locate GitHub repositories
-- Compare tool versions
-- Investigate best practices
+**Use when:**
+- Need current parameters for a tool
+- Looking for GitHub issues/solutions
+- Researching best practices
+- Comparing tool versions
 
-**Example usage:**
-```
-"I need documentation for MACS2 peak calling with ATAC-seq data"
-```
+**Output:** Findings recorded in `web_notes.md`
 
-#### Bio-Research Visualizer
-**File:** `bio-research-visualizer.md`
+---
 
-Deep web research into biological mechanisms underlying bioinformatics findings, followed by visualization recommendations. Use when you need to:
-- Explain biological mechanisms behind gene expression patterns
-- Research pathway interactions and crosstalk
-- Identify cell types from marker expression
-- Get visualization recommendations for biological insights
+### bio-interpreter
+**Purpose:** Research biological mechanisms underlying findings via literature.
 
-**Example usage:**
-```
-"I found upregulation of ISG15, MX1, OAS1. What's the biological mechanism and how should I visualize this?"
-```
+**Use when:**
+- Gene expression patterns need biological explanation
+- Pathway enrichment needs mechanistic context
+- Cell types need functional characterization
 
-### Data Exploration & Analysis
+**Output:** Mechanism explanation in `web_notes.md`
 
-#### RNAseq Insight Explorer
-**File:** `rnaseq-insight-explorer.md`
+---
 
-Explore and interpret RNAseq analysis results with scientific skepticism. Use when you need to:
-- Explore DESeq2/edgeR results stored in RDS/CSV files
-- Validate user interpretations against actual data
-- Identify unexpected patterns or overlooked findings
-- Get visualization recommendations based on data characteristics
+### insight-explorer
+**Purpose:** Explore data files (RDS, CSV) with scientific skepticism.
 
-**Key Feature:** Applies critical thinking to avoid confirmation bias - verifies claims against actual data.
+**Use when:**
+- Have results files that need exploration
+- User makes claims that should be validated
+- Need visualization recommendations based on data
 
-**Example usage:**
-```
-"I have DESeq2 results in results.rds, can you help me understand what's interesting here?"
-```
+**Output:** Structured report with data patterns and viz recommendations
 
-### Publication & Documentation
+---
 
-#### RNA-seq Methods Writer
-**File:** `rnaseq-methods-writer.md`
+### captions
+**Purpose:** Generate publication-quality figure captions. Fire-and-forget design.
 
-Automatically generates publication-ready Methods sections from RNA-seq analysis code. Use when you need to:
-- Document completed RNA-seq analyses
-- Generate reproducible methods descriptions
-- Extract statistical models from code
-- Create formal scientific writing from scripts
+**Use when:**
+- Need to document plots/figures
+- Creating README.md for output directories
 
-**Example usage:**
-```
-"Generate a methods section from my RNA-seq analysis in ./analysis"
-```
+**Output:** Writes directly to README.md (don't call TaskOutput)
 
-#### Figure Caption Generator
-**File:** `figure-caption-generator.md`
+---
 
-Generates publication-quality scientific captions for bioinformatics outputs. **Fire-and-forget design** - writes directly to README.md files.
+### doc-curator
+**Purpose:** Audit and consolidate repository documentation.
 
-Use when you need to:
-- Document figures, tables, and data files
-- Trace outputs back to generating scripts
-- Create Cell/Nature/Science quality figure legends
-- Document output directories with comprehensive READMEs
+**Use when:**
+- Documentation has become messy/scattered
+- Preparing repo for sharing
+- Need to validate docs against code
 
-**Usage Pattern (IMPORTANT):**
-```
-# Launch with run_in_background: true
-# DO NOT call TaskOutput - wastes context
-# Verify completion: ls <target_dir>/README.md
-```
+**Output:** Cleaned, consolidated documentation
 
-**Example usage:**
-```
-"Document the plots in 03_results/plots/QC/"
-```
+---
 
-#### Repository Documentation Curator
-**File:** `repo-doc-curator.md`
+### code-reviewer
+**Purpose:** Rigorous peer review of refactored code.
 
-Audit, consolidate, and improve repository documentation. Use when you need to:
-- Clean up messy documentation after refactoring
-- Validate documentation accuracy against code
-- Consolidate scattered docs into unified structure
-- Prepare repository for external sharing
+**Use when:**
+- Completed a refactoring
+- Need to verify functionality preserved
+- Want reproducibility assessment
 
-**Example usage:**
-```
-"The repo has gotten messy with outdated docs. Can you help organize it?"
-```
+**Output:** Structured review report with verdict
 
-### Code Review & Quality
+---
 
-#### Refactor Stage Reviewer
-**File:** `refactor-stage-reviewer.md`
+### handoff
+**Purpose:** Create timestamped session handoff documentation.
 
-Independent peer review of refactored analysis stages. Use when you need to:
-- Compare refactored code against original
-- Verify compliance with project plan
-- Assess reproducibility
-- Review scientific integrity of code changes
+**Use when:**
+- Completing a work session
+- Reaching a checkpoint
+- Need to document progress for continuity
 
-**Example usage:**
-```
-"I've finished refactoring the preprocessing script. Can you review it against the original?"
-```
-
-### Session Management
-
-#### Handoff
-**File:** `handoff.md`
-
-Create timestamped handoff documentation for session continuity. Use when you need to:
-- Document completed work before ending a session
-- Create checkpoint documentation
-- Enable seamless session resumption
-
-**Features:**
-- Timestamped filenames (`handoff_YYYYMMDD_HHMMSS.md`)
-- Auto-archives previous handoffs to `.handoff_archive/`
-- Focused on immediate next steps
-
-**Example usage:**
-```
-"Let's wrap up for today. We got the integration working."
-```
-
-## Using These Agents
-
-1. **Activate a role** to symlink agents to `.claude/agents/`
-2. Agents are automatically discovered by Claude Code
-3. Reference agents in your prompts when needed
-4. Agents have specialized tools and knowledge for their domains
-
-## Creating Custom Agents
-
-See the existing agent files for template structure. Key components:
-- Frontmatter with name, description, model, color
-- Agent identity and expertise
-- Methodology and protocols
-- Example usage patterns
-
-### Adding to a Role
-
-After creating an agent, add it to a role definition:
-
-```yaml
-# roles/my-custom-role.yaml
-name: my-custom-role
-description: Custom workflow role
-agents:
-  - bioinf-librarian
-  - my-new-agent  # Your new agent
-skills: []
-```
+**Output:** `handoff_YYYYMMDD_HHMMSS.md` with archive management
 
 ## Directory Structure
 
 ```
-SciAgent-toolkit/
-├── agents/                           # Canonical agent definitions (8 total)
-│   ├── bioinf-librarian.md           # Tool/documentation research
-│   ├── bio-research-visualizer.md    # Biological mechanism research
-│   ├── rnaseq-insight-explorer.md    # RNAseq data exploration
-│   ├── rnaseq-methods-writer.md      # Methods section generation
-│   ├── figure-caption-generator.md   # Publication figure captions
-│   ├── repo-doc-curator.md           # Repository documentation
-│   ├── refactor-stage-reviewer.md    # Code refactoring review
-│   └── handoff.md                    # Session handoff
-├── skills/                           # Custom skills (empty by default)
-├── roles/
-│   └── base.yaml                     # Role that references all agents
-└── scripts/
-    └── activate-role.sh              # Symlinks agents to .claude/agents/
+agents/
+├── docs-librarian.md     # Tool/package documentation
+├── bio-interpreter.md    # Biological mechanism research
+├── insight-explorer.md   # Data exploration
+├── captions.md           # Figure caption generation
+├── doc-curator.md        # Repository documentation
+├── code-reviewer.md      # Refactoring review
+├── handoff.md            # Session handoff
+├── README.md             # This file
+└── .deprecated/
+    └── rnaseq-methods-writer.md  # Deprecated
 ```
 
-When a role is activated, symlinks are created:
-```
-project/
-└── .claude/
-    └── agents/
-        ├── bioinf-librarian.md -> /path/to/SciAgent-toolkit/agents/bioinf-librarian.md
-        ├── bio-research-visualizer.md -> ...
-        ├── rnaseq-insight-explorer.md -> ...
-        ├── rnaseq-methods-writer.md -> ...
-        ├── figure-caption-generator.md -> ...
-        ├── repo-doc-curator.md -> ...
-        ├── refactor-stage-reviewer.md -> ...
-        └── handoff.md -> ...
-```
+## Creating Custom Agents
 
-## Contributing New Agents
+1. Create `agents/new-agent.md` with YAML frontmatter:
+   ```yaml
+   ---
+   name: new-agent
+   description: |
+     When to use this agent...
+     <example>...</example>
+   tools: Tool1, Tool2, ...
+   model: sonnet
+   color: blue
+   ---
 
-Have an idea for a useful bioinformatics agent? Please:
-1. Create agent definition following existing format
-2. Add to appropriate role(s) in `roles/`
-3. Test thoroughly
-4. Document use cases
-5. Submit a pull request
+   Agent instructions here...
+   ```
 
-See [CONTRIBUTING.md](../CONTRIBUTING.md) for details.
+2. Add to role in `roles/base.yaml`:
+   ```yaml
+   agents:
+     - new-agent
+   ```
+
+3. Activate role:
+   ```bash
+   ./scripts/activate-role.sh base --project-dir /path/to/project
+   ```
+
+## Contributing
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines.

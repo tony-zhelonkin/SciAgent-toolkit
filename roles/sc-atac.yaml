@@ -1,14 +1,16 @@
-# base.yaml - Default bioinformatics analysis role
+# sc-atac.yaml - sc-atac-seq focused analysis role
 #
 # This role provides agents for RNA-seq, single-cell,
-# and general bioinformatics analysis workflows.
+# and regulatory networks, TF, CRE focused workflows.
 #
-# Includes 7 specialized agents covering:
+# Includes standard 7 agents covering:
 # - Research & documentation
 # - Data exploration & interpretation
 # - Publication preparation
 # - Code review
 # - Session management
+# Includes ATAC-focused and general single-cells skills:
+# - 
 
 name: base
 description: Default bioinformatics analysis role with full agent suite
@@ -33,5 +35,6 @@ agents:
 # Skills to activate (reference by filename without .md)
 # These will be symlinked from skills/ to .claude/skills/
 skills:
-  - annotate-te-rnaseq-data
-  - gatom-metabolomic-predictions
+  - crescendo-scatac-cre-analysis
+  - scenic-tf-regulatory-networks
+  - anndatar-seurat-scanpy-conversion

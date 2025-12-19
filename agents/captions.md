@@ -1,5 +1,5 @@
 ---
-name: figure-caption-generator
+name: captions
 description: |
   Generates publication-quality scientific captions for bioinformatics outputs (figures, tables, data files). Traces outputs to generating scripts and writes comprehensive README.md files.
 
