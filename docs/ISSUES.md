@@ -923,6 +923,174 @@ git commit -m "Update SciAgent-toolkit to fix template references"
 
 ---
 
+### ISSUE-017: nvm Conflicts with Pre-installed Node.js + Custom npm Prefix
+
+**Severity**: High
+**Impact**: setup-ai.sh fails when Node.js is pre-installed with custom npm prefix
+**Reproducible**: Yes
+**Status**: 🔍 Design Decision Required - Option C recommended
+
+#### Description
+
+When running `setup-ai.sh` in an environment where Node.js was pre-installed (e.g., from NodeSource) AND has a custom npm prefix configured (`npm config set prefix ~/.npm-global`), the setup fails because nvm is incompatible with existing npm prefix configurations.
+
+#### Error Output
+
+```
+[INFO] Installing nvm...
+=> You currently have modules installed globally with `npm`. These will no
+=> longer be linked to the active version of Node when you install a new node
+=> with `nvm`; and they may (depending on how you construct your `$PATH`)
+=> override the binaries of modules installed with `nvm`:
+
+/home/devuser/.npm-global/lib
+├── @anthropic-ai/claude-code@2.0.71
+├── ts-node@10.9.2
+└── typescript@5.9.3
+
+[INFO] Installing/using Node.js LTS via nvm...
+Installing latest LTS version.
+Downloading and installing node v24.12.0...
+...
+Your user's .npmrc file (${HOME}/.npmrc)
+has a `globalconfig` and/or a `prefix` setting, which are incompatible with nvm.
+Run `nvm use --delete-prefix v24.12.0` to unset it.
+[ERROR] Setup failed. Check the output above for errors.
+```
+
+#### Root Cause
+
+**Two conflicting Node.js management strategies:**
+
+| Component | Strategy | Mechanism |
+|-----------|----------|-----------|
+| **scbio-docker v0.5.3** | System-level Node.js | NodeSource PPA (`/usr/bin/node`) |
+| **SciAgent-toolkit** | User-level Node.js | nvm (`~/.nvm/versions/node/...`) |
+| **Custom prefix pattern** | User-writable global packages | `npm config set prefix ~/.npm-global` |
+
+The conflict occurs when:
+1. Node.js is pre-installed at system level (scbio-docker Dockerfile lines 229-235)
+2. User configures `npm config set prefix ~/.npm-global` to avoid sudo for global packages
+3. This creates `~/.npmrc` with a `prefix` setting
+4. `setup-ai.sh` calls `ensure_nvm()` which installs nvm
+5. nvm installs fine, but `nvm use` fails because nvm doesn't work with custom npm prefixes
+
+#### Affected Code Paths
+
+**scbio-docker Dockerfile** (docker/base/Dockerfile:229-235):
+```dockerfile
+# Install Node.js (for MCP servers: npx required)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    rm -rf /var/lib/apt/lists/* && \
+    node --version && npm --version && npx --version
+```
+
+**SciAgent-toolkit common.sh** (scripts/common.sh:144-187):
+```bash
+ensure_nvm() {
+    export NVM_DIR="$HOME/.nvm"
+    # ... installs nvm if not present ...
+    if ! command -v node &>/dev/null || [[ $(which node) == "/usr/bin/node" ]]; then
+        log_info "Installing/using Node.js LTS via nvm..."
+        nvm install --lts  # <-- This fails when .npmrc has prefix
+        nvm use --lts
+    fi
+}
+```
+
+**The trigger condition** (common.sh:172):
+```bash
+[[ $(which node) == "/usr/bin/node" ]]
+```
+This condition explicitly detects system Node.js and tries to switch to nvm-managed Node.js, which triggers the conflict.
+
+#### Why This Design Exists
+
+1. **scbio-docker pre-installs Node.js**: Ensures MCP servers work immediately without installation delays
+2. **SciAgent-toolkit prefers nvm**: Allows user-controlled Node.js versions without sudo
+3. **Custom npm prefix pattern**: Common workaround for containers where `/usr/lib/node_modules` is read-only
+
+The three patterns are individually valid but mutually incompatible.
+
+#### Recommended Solution: Option C - Clean Separation of Concerns
+
+**Don't pre-install Node.js in Docker image. Let SciAgent-toolkit manage it via nvm.**
+
+This is the cleanest architectural approach:
+
+| Responsibility | Owner |
+|----------------|-------|
+| Base OS + build tools + R + Python venvs | scbio-docker Dockerfile |
+| Node.js + npm + AI CLI tools | SciAgent-toolkit (via nvm) |
+
+**Changes required in scbio-docker:**
+
+1. **Remove Node.js installation from Dockerfile** (lines 229-235):
+   ```dockerfile
+   # REMOVE THIS SECTION:
+   # Install Node.js (for MCP servers: npx required)
+   # RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+   #     apt-get install -y nodejs && \
+   #     rm -rf /var/lib/apt/lists/* && \
+   #     node --version && npm --version && npx --version
+   ```
+
+2. **Keep only curl** (already present for other downloads)
+
+3. **Update CLAUDE.md** to reflect that Node.js is installed at runtime by SciAgent-toolkit
+
+**Benefits:**
+- Clean separation: scbio-docker = science stack, SciAgent-toolkit = AI stack
+- No conflicting Node.js installations
+- User gets nvm for version management
+- Consistent behavior across all environments (not just scbio-docker)
+
+**Tradeoffs:**
+- First-run setup takes ~1-2 minutes longer (nvm + Node.js download)
+- Requires network access during setup
+
+#### Alternative Options (Not Recommended)
+
+**Option A: Skip nvm when Node.js is pre-installed**
+- Would require modifying `ensure_nvm()` to detect and accept system Node.js
+- Violates SciAgent-toolkit's design of user-controlled Node.js
+- Creates implicit dependency on host environment
+
+**Option B: Remove conflicting .npmrc before nvm installation**
+- Destructive: removes user's npm configuration
+- May break other tools that depend on that configuration
+
+**Option D: Document and provide manual workaround**
+- Poor UX: user must troubleshoot and fix manually
+- Doesn't solve root cause
+
+#### User Workarounds (Until Fix is Implemented)
+
+Users encountering this error can:
+
+1. **Remove the conflicting .npmrc**:
+   ```bash
+   rm ~/.npmrc
+   ./modules/SciAgent-toolkit/scripts/setup-ai.sh
+   ```
+
+2. **Remove only the prefix line**:
+   ```bash
+   sed -i '/^prefix/d' ~/.npmrc
+   ./modules/SciAgent-toolkit/scripts/setup-ai.sh
+   ```
+
+3. **Rebuild container without pre-installed Node.js**:
+   Edit Dockerfile to remove Node.js installation, rebuild image
+
+#### Related Issues
+
+- ISSUE-009: Claude Code Installation Hangs After Permission Failure
+- ISSUE-010: toml Package Installation Fails in Read-Only Base Venv
+
+---
+
 ## Change Log
 
 | Date | Change | Author |
@@ -940,6 +1108,7 @@ git commit -m "Update SciAgent-toolkit to fix template references"
 | 2025-12-16 | **Resolved ISSUE-001, ISSUE-012**: Standardized PAL on direct uvx in coding.mcp.json | Claude Code |
 | 2025-12-16 | **Resolved ISSUE-005**: Verified research-full.mcp.json has --include-tools | Claude Code |
 | 2025-12-16 | **Triaged ISSUE-013, 014, 015**: Marked as needs investigation | Claude Code |
+| 2025-12-16 | Added ISSUE-017 (nvm conflicts with pre-installed Node.js + custom npm prefix) | Claude Code |
 
 ---
 
