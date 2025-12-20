@@ -12,9 +12,11 @@
     },
     "tooluniverse": {
       "type": "stdio",
-      "command": "${TOOLUNIVERSE_ENV}/bin/python",
+      "command": "uv",
       "args": [
-        "-m", "tooluniverse.smcp_server",
+        "--directory", "${TOOLUNIVERSE_ENV}",
+        "run",
+        "python", "-m", "tooluniverse.smcp_server",
         "--transport", "stdio",
         "--include-tools", "EuropePMC_search_articles,openalex_literature_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,UniProt_search_proteins,search_clinical_trials"
       ]
