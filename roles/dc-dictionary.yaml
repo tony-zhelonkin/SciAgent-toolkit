@@ -1,0 +1,69 @@
+# dc-dictionary.yaml - DC_Dictionary Project Execution Role
+#
+# Optimized for executing the DC_Dictionary resource paper plan (v9.2+)
+# covering Phases A2-F: Hub mechanism, external validation, human translation.
+#
+# Key workflows supported:
+# - Phase A2-A3: Module definition + ChromVAR (R-based, minimal skill needs)
+# - Phase B1-B4: DA, motifs, CREscendo, peak→gene (R-based + CREscendo skill)
+# - Phase B5: SCENIC+ via metacells (pycistopic → pycistarget → scenic+)
+# - Phase C1-C4: scGLUE external space + scArches Hub projection
+# - Phase D-E: Module scoring + human translation
+#
+# MCP Profile: hybrid-research
+#   - Claude: coding profile (fast, focused)
+#   - Gemini: research profile (literature, tool lookup via ToolUniverse)
+#   - PAL: Cross-model collaboration when needed
+#
+# Best used when:
+# - Executing plan.md phases systematically
+# - Running SCENIC+ or scGLUE workflows
+# - Performing Hub→External projection with scArches
+# - Heavy ATAC-seq analysis with CRE/motif interpretation
+
+name: dc-dictionary
+description: DC_Dictionary plan execution - Hub mechanism, external validation, human translation
+mcp_profile: hybrid-research
+
+# Agents for plan execution
+agents:
+  # Research & Documentation
+  - docs-librarian            # Tool/doc lookup for bioinformatics tools
+  - bio-interpreter           # Biological mechanism interpretation
+
+  # Data Exploration & Analysis
+  - insight-explorer          # Explore analysis results with skepticism
+
+  # Publication & Documentation
+  - captions                  # Figure caption generation
+  - doc-curator               # Documentation cleanup
+
+  # Code Review & Quality
+  - code-reviewer             # Review generated scripts
+
+  # Session Management
+  - handoff                   # Session handoff documentation
+
+# Skills aligned to plan.md phases
+skills:
+  # === Foundation ===
+  - anndatar-seurat-scanpy-conversion  # §2.4: Seurat ↔ h5ad conversion
+  - scvi-framework                     # C3 foundation: scvi-tools patterns
+
+  # === Phase B: Hub Mechanism ===
+  - crescendo-scatac-cre-analysis      # B3: Sub-peak CRE analysis
+  - pycistopic-atac-topic-modeling     # B5 PREREQUISITE: ATAC topic modeling
+  - pycistarget-motif-enrichment       # B5 support: Motif enrichment
+  - scenic-grn-inference               # B5: SCENIC+ eRegulons
+
+  # === Phase C: External Validation ===
+  - scglue-unpaired-multiomics-integration  # C1: External RNA↔ATAC integration
+  - scvi-scanvi                        # C3: Semi-supervised label transfer
+  - scvi-scarches-reference-mapping    # C3: Query-to-reference projection
+
+  # === Phase A3 Fallback ===
+  - scvi-peakvi                        # A3 fallback: ATAC embedding if ChromVAR fails
+
+  # === Discovery (optional) ===
+  - genenmf-metaprogram-discovery      # A2 alternative: NMF-based module discovery
+  - single-cell-vector-search          # Atlas-scale similarity search
