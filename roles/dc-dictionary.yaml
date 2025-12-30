@@ -1,10 +1,12 @@
 # dc-dictionary.yaml - DC_Dictionary Project Execution Role
 #
-# Optimized for executing the DC_Dictionary resource paper plan (v9.2+)
+# Optimized for executing the DC_Dictionary resource paper plan (v9.5+)
 # covering Phases A2-F: Hub mechanism, external validation, human translation.
 #
 # Key workflows supported:
-# - Phase A2-A3: Module definition + ChromVAR (R-based, minimal skill needs)
+# - Phase A2a-c: DE-based module definition + pathway enrichment (ORA, GSEA)
+# - Phase A2d: GeneNMF meta-program discovery (combinatorial programs)
+# - Phase A3: ChromVAR TF activity
 # - Phase B1-B4: DA, motifs, CREscendo, peak→gene (R-based + CREscendo skill)
 # - Phase B5: SCENIC+ via metacells (pycistopic → pycistarget → scenic+)
 # - Phase C1-C4: scGLUE external space + scArches Hub projection
@@ -17,6 +19,7 @@
 #
 # Best used when:
 # - Executing plan.md phases systematically
+# - Running GeneNMF for combinatorial program discovery (A2d)
 # - Running SCENIC+ or scGLUE workflows
 # - Performing Hub→External projection with scArches
 # - Heavy ATAC-seq analysis with CRE/motif interpretation
@@ -50,6 +53,12 @@ skills:
   - anndatar-seurat-scanpy-conversion  # §2.4: Seurat ↔ h5ad conversion
   - scvi-framework                     # C3 foundation: scvi-tools patterns
 
+  # === Phase A2: Module Definition ===
+  - genenmf-metaprogram-discovery      # A2d: NMF meta-program discovery (combinatorial programs)
+
+  # === Phase A3 Fallback ===
+  - scvi-peakvi                        # A3 fallback: ATAC embedding if ChromVAR fails
+
   # === Phase B: Hub Mechanism ===
   - crescendo-scatac-cre-analysis      # B3: Sub-peak CRE analysis
   - pycistopic-atac-topic-modeling     # B5 PREREQUISITE: ATAC topic modeling
@@ -61,9 +70,5 @@ skills:
   - scvi-scanvi                        # C3: Semi-supervised label transfer
   - scvi-scarches-reference-mapping    # C3: Query-to-reference projection
 
-  # === Phase A3 Fallback ===
-  - scvi-peakvi                        # A3 fallback: ATAC embedding if ChromVAR fails
-
-  # === Discovery (optional) ===
-  - genenmf-metaprogram-discovery      # A2 alternative: NMF-based module discovery
+  # === Optional Discovery ===
   - single-cell-vector-search          # Atlas-scale similarity search

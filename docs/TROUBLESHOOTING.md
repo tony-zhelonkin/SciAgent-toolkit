@@ -451,6 +451,81 @@ Full methodology is documented in `AGENTS.md`. This file contains Gemini-specifi
 
 ---
 
+## Project Analysis Troubleshooting
+
+### Memory Issues
+
+**Issue: R session crashes during large operations**
+
+**Solution:**
+```r
+# Check memory usage
+gc()
+pryr::mem_used()
+
+# Force garbage collection between operations
+rm(large_object); gc()
+
+# Use disk-backed operations for very large data
+options(future.globals.maxSize = 8 * 1024^3)  # 8GB limit
+```
+
+### Peak Calling Issues
+
+**Issue: MACS3 can't find fragment files**
+
+**Diagnosis:**
+```r
+# Check fragments path
+Fragments(seurat_obj)
+
+# Verify file exists
+file.exists(Fragments(seurat_obj)[[1]]@path)
+```
+
+**Solution:** Use original fragment paths, not symlinks or copied files.
+
+### Checkpoint Loading Issues
+
+**Issue: "cannot open connection" or "object not found"**
+
+**Diagnosis:**
+```bash
+# Check file exists and size
+ls -lh /path/to/checkpoint.rds
+
+# Check file integrity
+R -e 'x <- readRDS("/path/to/checkpoint.rds"); class(x)'
+```
+
+**Solution:** Re-run the stage that creates the checkpoint, or restore from backup.
+
+### Quick Health Check Script
+
+Run this to diagnose common issues:
+
+```bash
+#!/bin/bash
+echo "=== DC_Dictionary Health Check ==="
+echo ""
+echo "1. Environment Variables"
+for var in GEMINI_API_KEY OPENAI_API_KEY CONTEXT7_API_KEY; do
+    [ -n "${!var}" ] && echo "   $var: SET" || echo "   $var: NOT SET"
+done
+echo ""
+echo "2. Gemini Settings"
+[ -f ~/.gemini/settings.json ] && cat ~/.gemini/settings.json | grep -E "(disableYoloMode|auth)" || echo "   No settings file"
+echo ""
+echo "3. R Environment"
+which R && R --version | head -1 || echo "   R not found"
+echo ""
+echo "4. Working Directory"
+pwd
+ls -la *.md 2>/dev/null | head -5
+```
+
+---
+
 ## Getting More Help
 
 - [INSTALLATION.md](INSTALLATION.md) - Full installation guide
