@@ -33,5 +33,20 @@ agents:
 # Skills to activate (reference by filename without .md)
 # These will be symlinked from skills/ to .claude/skills/
 skills:
-  - annotate-te-rnaseq-data
-  - gatom-metabolomic-predictions
+  # Data conversion
+  - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
+  # RNA-seq analysis
+  - annotate-te-rnaseq-data            # TE/repeat annotation
+  - gatom-metabolomic-predictions      # GATOM metabolomics
+  # scATAC-seq analysis
+  - pycistopic-atac-topic-modeling     # Topic modeling for ATAC
+  - crescendo-scatac-cre-analysis      # CRE differential analysis
+  # Multi-omics integration
+  - scglue-unpaired-multiomics-integration  # scGLUE unpaired RNA+ATAC integration
+  # GRN inference
+  - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
+  # Reference models & deep learning
+  - scvi-framework                     # scvi-tools foundation (scVI, scANVI, MultiVI, etc.)
+  - scvi-ldvae-interpretable-factors   # LinearSCVI for interpretable factor analysis
+  - scvi-scarches-reference-mapping    # scArches query-to-reference atlas mapping
+  - single-cell-vector-search          # Cell state atlas search

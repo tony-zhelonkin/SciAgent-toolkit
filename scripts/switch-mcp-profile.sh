@@ -94,12 +94,12 @@ if [ ! -f "${PROFILE_FILE}" ]; then
     exit 1
 fi
 
-# Auto-detect ToolUniverse environment location
-TOOLUNIVERSE_ENV=""
+# Auto-detect ToolUniverse environment location and export for Python
+export TOOLUNIVERSE_ENV=""
 if [ -d "${PROJECT_DIR}/tooluniverse-env" ]; then
-    TOOLUNIVERSE_ENV="${PROJECT_DIR}/tooluniverse-env"
+    export TOOLUNIVERSE_ENV="${PROJECT_DIR}/tooluniverse-env"
 elif [ -d "${SCRIPT_DIR}/tooluniverse-env" ]; then
-    TOOLUNIVERSE_ENV="${SCRIPT_DIR}/tooluniverse-env"
+    export TOOLUNIVERSE_ENV="${SCRIPT_DIR}/tooluniverse-env"
 fi
 
 # Load environment variables for injection (moved before validation)
@@ -123,12 +123,9 @@ validate_profile() {
                 warnings+=("  Run setup_mcp_infrastructure.sh to install ToolUniverse")
             fi
             ;;
-        codebase|full)
-            if ! command -v uvx &>/dev/null; then
-                warnings+=("uvx not found - Serena server may fail (first run takes 5-15 min to compile)")
-            fi
-            ;;
-        coding|hybrid-research|full)
+        # NOTE: Serena removed - Claude Code now has internal code intelligence
+        # codebase profile now just uses pal for collaboration
+        coding|codebase|hybrid-research|full)
             if ! command -v uvx &>/dev/null; then
                 warnings+=("uvx not found - PAL server will fail")
             fi

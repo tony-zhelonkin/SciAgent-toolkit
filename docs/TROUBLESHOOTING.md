@@ -360,6 +360,97 @@ Scripts source `.env` files in this order:
 
 ---
 
+## PAL clink to Gemini CLI Issues
+
+### Issue: PAL clink fails with "YOLO mode is disabled by settings"
+
+**Symptoms:**
+- `mcp__pal__clink(cli_name: "gemini", ...)` returns error
+- Error message: `Cannot start in YOLO mode when it is disabled by settings`
+- Return code 52
+
+**Cause:** PAL's embedded Gemini CLI config (`conf/cli_clients/gemini.json`) adds `--yolo` flag, but user's Gemini settings have `disableYoloMode: true`.
+
+**Fix:**
+```bash
+# Enable YOLO mode in Gemini settings
+cat ~/.gemini/settings.json
+# Change "disableYoloMode": true → "disableYoloMode": false
+```
+
+Or manually edit:
+```json
+{
+  "security": {
+    "disableYoloMode": false
+  }
+}
+```
+
+---
+
+### Issue: PAL clink fails with "Could not find child token in parent raw content"
+
+**Symptoms:**
+- Gemini CLI crashes during startup
+- Error: `[ERROR] [ImportProcessor] Could not find child token in parent raw content`
+- Often references content from `GEMINI.md` or `AGENTS.md`
+
+**Cause:** Gemini CLI's markdown parser has trouble with certain constructs, especially:
+- Blockquotes (`>`) containing bold (`**`) text
+- Complex nested markdown formatting
+
+**Example problematic content:**
+```markdown
+> **Full methodology:** See `AGENTS.md` in this directory...
+```
+
+**Fix:** Simplify the markdown in your project's `GEMINI.md`:
+```markdown
+# Change FROM:
+> **Full methodology:** See `AGENTS.md` in this directory for guidelines.
+
+# Change TO:
+Full methodology is documented in `AGENTS.md`. This file contains Gemini-specific context.
+```
+
+---
+
+### Issue: PAL clink fails with "GEMINI_API_KEY environment variable" error
+
+**Symptoms:**
+- Gemini CLI starts but immediately exits
+- Error: `When using Gemini API, you must specify the GEMINI_API_KEY environment variable`
+
+**Cause:** The `.env` file containing API keys is not loaded into the shell environment. Claude Code runs in a separate process from your terminal, so manual `source .env` doesn't propagate.
+
+**Root Cause:** Unlike PAL's internal API calls (which can read `.env` files), `clink` spawns an external CLI process that inherits environment variables from the shell. If `GEMINI_API_KEY` isn't exported, the Gemini CLI can't authenticate.
+
+**Workaround Options:**
+
+1. **Add to shell profile** (recommended):
+   ```bash
+   echo 'source /path/to/project/.devcontainer/.env' >> ~/.bashrc
+   source ~/.bashrc
+   # Restart Claude Code
+   ```
+
+2. **Export before starting Claude Code:**
+   ```bash
+   export GEMINI_API_KEY="your-key-here"
+   claude
+   ```
+
+3. **Use PAL's direct model calls instead of clink:**
+   ```
+   mcp__pal__chat(prompt: "...", model: "gemini-2.5-pro")
+   ```
+   PAL's direct API calls can source `.env` files internally.
+
+**Note:** This is an architectural limitation - see ISSUES.md for ISSUE-018.
+
+---
+
 ## Getting More Help
 
 - [INSTALLATION.md](INSTALLATION.md) - Full installation guide

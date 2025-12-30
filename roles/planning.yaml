@@ -1,0 +1,57 @@
+# planning.yaml - Planning and architecture role with full research stack
+#
+# This role provides agents and tools optimized for:
+# - Extensive planning with literature search (ToolUniverse, EuropePMC, PubMed)
+# - Cross-model consensus via PAL (Claude ↔ Gemini collaboration)
+# - Codebase exploration and semantic search (Serena)
+# - Implementation planning from existing work
+# - Biological interpretation of analysis goals
+#
+# MCP Profile: full
+#   - PAL: Cross-model collaboration, consensus building, deep thinking
+#   - ToolUniverse: 600+ scientific tools (literature, drug, protein DBs)
+#   - Serena: Semantic code search and symbol navigation
+#   - Context7: Library documentation
+#   - Sequential-thinking: Structured reasoning
+#
+# Best used when:
+# - Starting new analysis phases requiring literature review
+# - Planning refactoring of existing pipelines
+# - Making architectural decisions needing multi-model input
+# - Heavy research tasks delegated to Gemini via PAL clink
+
+name: planning
+description: Planning role with cross-model consensus - Claude delegates research to Gemini
+mcp_profile: hybrid-research
+
+# Agents for planning phase
+agents:
+  # Research & Documentation
+  - docs-librarian          # Find tools, docs, methods, resources
+  - bio-interpreter         # Biological context interpretation
+
+  # Data Exploration & Analysis
+  - insight-explorer        # Codebase exploration with scientific skepticism
+
+  # Code Review & Quality
+  - code-reviewer           # Review existing code before refactoring
+
+  # Session Management
+  - handoff                 # Session continuity documentation
+
+# Skills to activate (all skills for comprehensive planning)
+# These will be symlinked from skills/ to .claude/skills/
+skills:
+  # Data conversion
+  - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
+  # RNA-seq analysis
+  - annotate-te-rnaseq-data            # TE/repeat annotation
+  - gatom-metabolomic-predictions      # GATOM metabolomics
+  # scATAC-seq analysis
+  - pycistopic-atac-topic-modeling     # Topic modeling for ATAC
+  - crescendo-scatac-cre-analysis      # CRE differential analysis
+  # GRN inference
+  - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
+  # Reference models
+  - scvi-hub-models                    # scVI/scANVI pretrained models
+  - single-cell-vector-search          # Cell state atlas search
