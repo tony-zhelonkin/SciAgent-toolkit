@@ -35,7 +35,7 @@ Have pretrained reference?
     │   └─ Basic integration → scVI (scvi-basic.md)
     ├─ CITE-seq? → totalVI
     ├─ Multiome (RNA+ATAC)? → MultiVI (scvi-multivi.md)
-    ├─ scATAC-seq only? → PeakVI
+    ├─ scATAC-seq only? → PeakVI (scvi-peakvi.md)
     └─ Perturbation study? → contrastiveVI (scvi-contrastivevi.md)
 ```
 
@@ -45,6 +45,7 @@ Have pretrained reference?
 | scANVI | scRNA-seq + labels | Semi-supervised label transfer | `scvi-scanvi.md` |
 | MrVI | scRNA-seq + samples | Sample-level effects, covariate DE | `scvi-mrvi.md` |
 | MultiVI | Multiome | RNA + ATAC joint modeling | `scvi-multivi.md` |
+| PeakVI | scATAC-seq | Accessibility embedding & DA | `scvi-peakvi.md` |
 | contrastiveVI | Perturbation | Salient vs background variation | `scvi-contrastivevi.md` |
 | LinearSCVI | scRNA-seq | Interpretable linear decoder | `scvi-linearscvi.md` |
 | AmortizedLDA | scRNA-seq | Topic modeling | `scvi-lda.md` |
