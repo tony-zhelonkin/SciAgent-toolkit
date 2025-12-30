@@ -13,7 +13,7 @@
    All data processing happens in Phase 1. Visualization scripts only read pre-computed results.
 
 2. **Single Source of Truth**
-   Configuration lives in one place (YAML), colors defined once, schemas validated everywhere.
+   Configuration lives in one place, colors defined once, schemas validated everywhere.
 
 3. **Checkpoint Everything Expensive**
    Any computation taking >1 minute must be cached. First run: 45-60 min. Subsequent runs: 5-10 min.
