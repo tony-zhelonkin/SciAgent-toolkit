@@ -1091,6 +1091,116 @@ Users encountering this error can:
 
 ---
 
+### ISSUE-018: PAL clink to Gemini CLI Fails Due to Multiple Configuration Conflicts
+
+**Severity**: High
+**Impact**: PAL's `clink` tool cannot delegate to Gemini CLI out-of-the-box
+**Reproducible**: Yes
+**Status**: 🔍 Documented - Multiple root causes identified
+
+#### Description
+
+When using `mcp__pal__clink(cli_name: "gemini", ...)` from Claude Code, the call fails with one or more errors:
+
+1. **YOLO mode conflict**: Return code 52, "Cannot start in YOLO mode when it is disabled by settings"
+2. **Markdown parsing error**: `[ERROR] [ImportProcessor] Could not find child token in parent raw content`
+3. **Missing API key**: "When using Gemini API, you must specify the GEMINI_API_KEY environment variable"
+
+#### Root Causes
+
+**Issue A: YOLO Mode Hardcoded in PAL**
+
+PAL's embedded CLI client config (`conf/cli_clients/gemini.json`) contains:
+```json
+{
+  "additional_args": ["--yolo"]
+}
+```
+
+This conflicts with Gemini's default user settings (`~/.gemini/settings.json`):
+```json
+{
+  "security": {
+    "disableYoloMode": true
+  }
+}
+```
+
+**Problem**: PAL assumes YOLO mode is available, but Gemini CLI's default security settings disable it.
+
+**Issue B: Gemini CLI Markdown Parser Sensitivity**
+
+Gemini CLI's `ImportProcessor` fails to parse certain markdown constructs in project context files (`GEMINI.md`, `AGENTS.md`):
+
+```markdown
+# This causes parsing failure:
+> **Full methodology:** See `AGENTS.md` in this directory...
+```
+
+The blockquote (`>`) with nested bold (`**`) triggers a token parsing error.
+
+**Issue C: Environment Variable Inheritance Gap**
+
+PAL's `clink` tool spawns external CLI processes that inherit environment variables from the shell. Unlike PAL's internal API calls (which can read `.env` files), external CLIs require:
+
+| Requirement | PAL Internal API | PAL clink (External CLI) |
+|-------------|------------------|--------------------------|
+| API key source | Reads `.env` files | Inherits from shell env |
+| User action needed | None (automatic) | Must export vars manually |
+
+If `GEMINI_API_KEY` isn't in the shell environment when Claude Code starts, the spawned Gemini CLI cannot authenticate.
+
+#### Affected Components
+
+| Component | Issue | Owner |
+|-----------|-------|-------|
+| PAL MCP (`conf/cli_clients/gemini.json`) | Hardcoded `--yolo` | PAL upstream |
+| Gemini CLI | `disableYoloMode: true` default | Google |
+| Gemini CLI | Markdown ImportProcessor | Google |
+| SciAgent-toolkit templates | Problematic markdown patterns | SciAgent-toolkit |
+| Shell environment | `.env` not auto-loaded | User/devcontainer config |
+
+#### Current Workarounds
+
+See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#pal-clink-to-gemini-cli-issues) for user-facing solutions:
+
+1. **YOLO mode**: Edit `~/.gemini/settings.json` to set `disableYoloMode: false`
+2. **Markdown parsing**: Simplify `GEMINI.md` to avoid blockquotes with nested formatting
+3. **API key**: Add `source .env` to `~/.bashrc` or export before starting Claude Code
+
+#### Recommended Fixes
+
+**Short-term (SciAgent-toolkit):**
+
+1. Update `templates/vendor/GEMINI.md.template` line 3 to avoid problematic markdown patterns:
+   ```markdown
+   # Change FROM:
+   > **Full methodology:** See `AGENTS.md` in this directory...
+
+   # Change TO:
+   Full methodology is documented in `AGENTS.md`. This file contains Gemini-specific context.
+   ```
+2. Document the YOLO mode requirement in setup scripts
+3. Add `.env` sourcing to devcontainer `postCreateCommand`
+
+**Medium-term (PAL upstream):**
+
+1. Make `--yolo` flag configurable or check if YOLO is enabled before passing
+2. Pass environment variables from `.env` files to spawned CLI processes
+3. Add CLI compatibility checks before spawning
+
+**Long-term (Gemini CLI upstream):**
+
+1. Improve ImportProcessor robustness for common markdown patterns
+2. Consider making YOLO mode opt-out rather than opt-in for programmatic usage
+
+#### Related Issues
+
+- ISSUE-003: Two-Stage Environment Binding Creates Stale Configuration (same `.env` inheritance problem)
+- ISSUE-016: Project CLAUDE.md Points to Wrong AGENTS.md (template quality)
+
+---
+
 ## Change Log
 
 | Date | Change | Author |
@@ -1109,6 +1219,7 @@ Users encountering this error can:
 | 2025-12-16 | **Resolved ISSUE-005**: Verified research-full.mcp.json has --include-tools | Claude Code |
 | 2025-12-16 | **Triaged ISSUE-013, 014, 015**: Marked as needs investigation | Claude Code |
 | 2025-12-16 | Added ISSUE-017 (nvm conflicts with pre-installed Node.js + custom npm prefix) | Claude Code |
+| 2025-12-29 | Added ISSUE-018 (PAL clink to Gemini CLI configuration conflicts) | Claude Code |
 
 ---
 
