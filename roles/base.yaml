@@ -47,6 +47,6 @@ skills:
   - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
   # Reference models & deep learning
   - scvi-framework                     # scvi-tools foundation (scVI, scANVI, MultiVI, etc.)
-  - scvi-ldvae-interpretable-factors   # LinearSCVI for interpretable factor analysis
+  - scvi-linearscvi                    # LinearSCVI for interpretable factor analysis
   - scvi-scarches-reference-mapping    # scArches query-to-reference atlas mapping
   - single-cell-vector-search          # Cell state atlas search
