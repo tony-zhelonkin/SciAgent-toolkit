@@ -78,6 +78,27 @@ scRNA-seq → ──────────────────────
 
 ---
 
+### Trajectory & RNA Velocity
+
+| Skill | Purpose | Key Tools |
+|-------|---------|-----------|
+| `rna-velocity-trajectory.md` | Infer cell dynamics from spliced/unspliced RNA | scVelo, VeloVI, Chronocell, CellRank |
+
+**Tool Decision Tree:**
+```
+Quick exploration? → scVelo steady-state
+Publication-quality velocity? → scVelo dynamical
+Need uncertainty estimates? → VeloVI
+Explicit topology/pseudotime? → Chronocell
+Fate probabilities & terminal states? → CellRank
+```
+
+**Data Requirements:**
+- Spliced/unspliced count quantification (velocyto, kallisto|bustools, alevin-fry)
+- Process timescale must match RNA half-life (~hours)
+
+---
+
 ### Data Utilities
 
 | Skill | Purpose |
@@ -216,4 +237,7 @@ multivi_model = scvi.model.MULTIVI(multiome_adata)
 - **scvi-tools**: https://docs.scvi-tools.org/
 - **SCENIC+**: https://scenicplus.readthedocs.io/
 - **scGLUE**: https://scglue.readthedocs.io/
+- **scVelo**: https://scvelo.readthedocs.io/
+- **CellRank**: https://cellrank.readthedocs.io/
+- **Chronocell**: https://github.com/pachterlab/Chronocell
 - **scverse ecosystem**: https://scverse.org/
