@@ -152,6 +152,54 @@ Or manually edit `.mcp.json` to remove conflicting arguments.
 
 ---
 
+## Gemini CLI Issues
+
+### Issue: Gemini CLI says "must specify GEMINI_API_KEY" despite key in .env
+
+**Symptoms:**
+- Running `gemini` or `gemini update` shows:
+  ```
+  When using Gemini API, you must specify the GEMINI_API_KEY environment variable.
+  Update your environment and try again (no reload needed if using .env)!
+  ```
+- The key IS in `.devcontainer/.env` file
+
+**Cause:** The `.devcontainer/.env` file is used by Docker Compose during container creation, but it doesn't automatically export variables to the running shell. The shell environment is separate from the `.env` file contents.
+
+**Fix - Option 1 (Recommended - Persistent):**
+Add auto-sourcing to your `.bashrc`:
+```bash
+# Add .env sourcing to bashrc
+cat >> ~/.bashrc << 'ENVBLOCK'
+
+# Auto-source project .env files for API keys
+if [ -f "/path/to/project/.devcontainer/.env" ]; then
+    set -a
+    source "/path/to/project/.devcontainer/.env"
+    set +a
+fi
+ENVBLOCK
+
+# Apply immediately
+source ~/.bashrc
+```
+
+**Fix - Option 2 (Quick - Current Session Only):**
+```bash
+export GEMINI_API_KEY=$(grep "^GEMINI_API_KEY=" .devcontainer/.env | cut -d'=' -f2)
+gemini  # Now works
+```
+
+**Verification:**
+```bash
+echo "Key set: ${GEMINI_API_KEY:+yes}"
+gemini --version  # Should work without API key error
+```
+
+**Note:** This is different from PAL clink failing with GEMINI_API_KEY error (see below in PAL section). This issue is about Gemini CLI directly.
+
+---
+
 ### Issue: Gemini - ToolUniverse tools not appearing
 
 **Symptoms:**
@@ -268,6 +316,68 @@ git pull origin main
 # Test
 uvx --from git+https://github.com/oraios/serena serena --help
 ```
+
+---
+
+### Issue: PAL setup fails with "Broken symlink" error
+
+**Symptoms:**
+- `setup-ai.sh` fails during PAL MCP installation
+- Error message:
+  ```
+  error: Failed to inspect Python interpreter from active virtual environment at `venv/bin/python3`
+    Caused by: Broken symlink at `venv/bin/python3`, was the underlying Python interpreter removed?
+  hint: Consider recreating the environment (e.g., with `uv venv`)
+  [ERROR] Failed to install pal-mcp-server
+  ```
+
+**Cause:** A stale `venv` directory exists from a previous setup on a different machine or container. The Python symlinks inside point to a non-existent path (e.g., another user's home directory or a removed Python installation).
+
+Example broken symlink:
+```
+venv/bin/python -> /home/other-user/.local/share/uv/python/cpython-3.11.14-linux-x86_64-gnu/bin/python3.11
+```
+
+The setup script checks `if [ ! -d "venv" ]` and skips venv creation if the directory exists, even if it's broken.
+
+**Fix:**
+```bash
+# Remove the stale venv directory
+rm -rf /path/to/SciAgent-toolkit/mcp_servers/pal/venv
+
+# Re-run setup
+./scripts/setup-ai.sh --force
+```
+
+**Prevention:** The `venv/` pattern is in `.gitignore`, so these directories should not be committed. If you're sharing the toolkit across environments (e.g., via a mounted volume or synced folder), ensure venv directories are excluded.
+
+**Verification:**
+```bash
+# Check if venv symlinks are valid
+ls -la mcp_servers/pal/venv/bin/python*
+# If the target path doesn't exist on this machine, delete and recreate
+```
+
+---
+
+### Issue: PAL setup reports failure but actually works
+
+**Symptoms:**
+- `setup-ai.sh` shows `[ERROR] Failed to install pal-mcp-server` and `[ERROR] PAL MCP setup failed`
+- However, PAL MCP is actually functional when tested
+
+**Cause:** The error occurs when `uv` tries to inspect an existing venv directory during the setup script. If the venv was created successfully moments before (in a previous step), `uv` may report a misleading error about the Python interpreter while the installation actually completed.
+
+**Diagnosis:**
+```bash
+# Test if PAL actually works
+/path/to/SciAgent-toolkit/mcp_servers/pal/venv/bin/pal-mcp-server --help
+
+# Check if Python in venv works
+/path/to/SciAgent-toolkit/mcp_servers/pal/venv/bin/python --version
+```
+
+**Resolution:** If the above tests pass, PAL is installed correctly despite the error message. You can safely ignore the error and verify PAL works in Claude Code with `/mcp`.
 
 ---
 
