@@ -36,17 +36,17 @@ skills:
   # Data conversion
   - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
   # RNA-seq analysis
-  - annotate-te-rnaseq-data            # TE/repeat annotation
   - gatom-metabolomic-predictions      # GATOM metabolomics
+  # RNA velocity & trajectory inference
+  - rna-velocity-trajectory            # scVelo, VeloVI, Chronocell, CellRank
+  # Meta-program discovery
+  - genenmf-metaprogram-discovery      # GeneNMF for meta-program/signature discovery
   # scATAC-seq analysis
   - pycistopic-atac-topic-modeling     # Topic modeling for ATAC
   - crescendo-scatac-cre-analysis      # CRE differential analysis
-  # Multi-omics integration
-  - scglue-unpaired-multiomics-integration  # scGLUE unpaired RNA+ATAC integration
   # GRN inference
   - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
   # Reference models & deep learning
   - scvi-framework                     # scvi-tools foundation (scVI, scANVI, MultiVI, etc.)
   - scvi-linearscvi                    # LinearSCVI for interpretable factor analysis
   - scvi-scarches-reference-mapping    # scArches query-to-reference atlas mapping
-  - single-cell-vector-search          # Cell state atlas search
