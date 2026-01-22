@@ -4,6 +4,8 @@
 **Status**: Active - Complexity Analysis & Improvement Plan
 **Version**: 1.0.0
 
+**Related docs**: [ISSUES.md](ISSUES.md) (individual issue tracking) | [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (user-facing quick fixes)
+
 This document analyzes the current architecture of SciAgent-toolkit, identifies sources of accidental complexity, and proposes a plan to reduce the interoperation surface area while maintaining functionality.
 
 ---
