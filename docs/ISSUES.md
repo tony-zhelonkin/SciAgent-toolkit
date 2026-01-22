@@ -1,10 +1,12 @@
 # SciAgent-toolkit Architecture Issues
 
 **Created**: 2025-12-16
-**Version**: Current (as of v1.x)
+**Version**: Current (as of v2.0)
 **Status**: Active issue tracking for MCP configuration system
 
 This document catalogs architectural issues, design inconsistencies, and technical debt in the SciAgent-toolkit MCP configuration system. Issues are prioritized by severity and impact.
+
+**Related docs**: [TROUBLESHOOTING.md](TROUBLESHOOTING.md) (user-facing quick fixes) | [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) (strategic refactoring plan)
 
 ---
 
@@ -12,76 +14,9 @@ This document catalogs architectural issues, design inconsistencies, and technic
 
 ### ISSUE-001: PAL Server Definition Inconsistency Across Profiles
 
-**Severity**: Critical
-**Impact**: PAL MCP fails on initial setup with `--force` flag
-**Reproducible**: Yes
-**Status**: ✅ Resolved (2025-12-16) - All profiles now use direct uvx approach
+**Severity**: Critical | **Status**: ✅ Resolved (2025-12-16) | **See also**: ISSUE-012
 
-#### Description
-
-PAL MCP server is defined using **two incompatible approaches** across different profile templates:
-
-| Profile | PAL Command | Requires Setup |
-|---------|-------------|----------------|
-| `coding.mcp.json` | `${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py` | Yes (`setup_pal.sh`) |
-| `codebase.mcp.json` | `uvx --from git+...` (direct) | No |
-| `full.mcp.json` | `uvx --from git+...` (direct) | No |
-| `hybrid-research.mcp.json` | `uvx --from git+...` (direct) | No |
-
-#### Root Cause
-
-1. `coding.mcp.json` expects a wrapper script at `${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py`
-2. This wrapper is **only created** when `setup_pal.sh` is run
-3. The wrapper's purpose is to load `.env` files and inject API keys at runtime
-4. Direct `uvx` invocation (other profiles) requires environment variables to be **already set** in the shell or passed via `env:` block
-
-#### Failure Scenario
-
-```bash
-./setup-ai.sh --force
-# setup_mcp_infrastructure.sh runs
-# PAL is installed (setup_pal.sh creates wrapper)
-# configure_mcp_servers.sh applies "coding" profile → uses wrapper → WORKS
-
-./switch-mcp-profile.sh hybrid
-# Applies hybrid-research.mcp.json → uses direct uvx → FAILS
-# Because env vars (GEMINI_API_KEY, OPENAI_API_KEY) are not substituted
-
-claude
-# PAL shows "Missing environment variables: GEMINI_API_KEY, OPENAI_API_KEY"
-```
-
-#### Recommended Fix
-
-**Option A (Consistent Wrapper)**: Standardize on the wrapper approach for all profiles:
-```json
-{
-  "pal": {
-    "type": "stdio",
-    "command": "${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py",
-    "args": []
-  }
-}
-```
-- Wrapper handles environment loading consistently
-- Requires `setup_pal.sh` to have been run
-
-**Option B (Direct uvx + Substitution)**: Use direct uvx with proper env var substitution:
-```json
-{
-  "pal": {
-    "type": "stdio",
-    "command": "uvx",
-    "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
-    "env": {
-      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
-    }
-  }
-}
-```
-- Requires `switch-mcp-profile.sh` to substitute `${GEMINI_API_KEY}` placeholders
-- Currently **NOT implemented** in the substitution logic
+**Resolution**: All profiles now standardized on direct `uvx` approach. Wrapper script (`start-pal.py`) removed from templates. PAL env block uses `${GEMINI_API_KEY}` / `${OPENAI_API_KEY}` placeholders substituted at profile switch time.
 
 ---
 
@@ -233,55 +168,9 @@ validate_profile_requirements() {
 
 ### ISSUE-005: ToolUniverse Tool Count Inconsistency
 
-**Severity**: Medium
-**Impact**: Token estimates inaccurate, potential context overflow
-**Reproducible**: Yes
-**Status**: ✅ Resolved - research-full.mcp.json now has --include-tools with 14 tools
+**Severity**: Medium | **Status**: ✅ Resolved
 
-#### Description
-
-Different profiles specify different tool subsets, but one profile is misconfigured:
-
-| Profile | Stated Tokens | Tool Specification |
-|---------|---------------|-------------------|
-| `research-lite.mcp.json` | ~30k | `--include-tools` with 6 tools |
-| `research-full.mcp.json` | ~50k | `--hook-type SummarizationHook` **but no --include-tools** |
-| `full.mcp.json` | ~100k | `--include-tools` with 14 tools |
-
-#### Problem
-
-`research-full.mcp.json` without `--include-tools` loads **all 600+ tools**, consuming 500k+ tokens, vastly exceeding the stated ~50k estimate and the 200k context limit.
-
-#### Current research-full.mcp.json
-
-```json
-{
-  "tooluniverse": {
-    "type": "stdio",
-    "command": "${TOOLUNIVERSE_ENV}/bin/python",
-    "args": [
-      "-m", "tooluniverse.smcp_server",
-      "--transport", "stdio",
-      "--hook-type", "SummarizationHook"
-    ]
-  }
-}
-```
-
-#### Recommended Fix
-
-Add `--include-tools` to `research-full.mcp.json`:
-
-```json
-{
-  "args": [
-    "-m", "tooluniverse.smcp_server",
-    "--transport", "stdio",
-    "--hook-type", "SummarizationHook",
-    "--include-tools", "EuropePMC_search_articles,openalex_literature_search,pubmed_search,semantic_scholar_search,ChEMBL_search_similar_molecules,ChEMBL_get_molecule,ChEMBL_search_targets,DrugBank_search,UniProt_search_proteins,UniProt_get_protein,search_clinical_trials,get_clinical_trial_details,FDA_adverse_events,FDA_drug_labels"
-  ]
-}
-```
+**Resolution**: `research-full.mcp.json` now includes `--include-tools` with 14 specific tools, preventing 600+ tool context overflow. All profiles now have explicit tool specifications.
 
 ---
 
@@ -463,239 +352,33 @@ The switcher can then validate requirements before applying.
 
 ### ISSUE-009: Claude Code Installation Hangs After Permission Failure
 
-**Severity**: Low
-**Impact**: First-run setup gets stuck, requires container rebuild
-**Reproducible**: Yes (intermittent, after certain failure states)
-**Status**: ✅ Mitigated (2025-12-16) - Root cause addressed in scbio-docker v0.5.3
+**Severity**: Low | **Status**: ✅ Mitigated in scbio-docker v0.5.3
 
-#### Description
-
-When `setup-ai.sh` runs after a previous partial failure (e.g., permission denied during toml install), the Claude Code installation process can hang indefinitely at:
-
-```
-[INFO] Installing Claude Code native build latest...
-```
-
-#### Reproduction Steps
-
-1. Run `setup-ai.sh --force` in a fresh container
-2. If toml installation fails with permission error, script continues
-3. Claude Code installation begins but never completes
-4. Process hangs at "Installing Claude Code native build latest..."
-5. Subsequent manual runs of `install_claude.sh` report directory not writable
-
-#### Observed Behavior
-
-```
-[INFO] Installing python package: toml...
-ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied
-[WARN] Standard install failed (read-only venv?). Retrying with --user...
-ERROR: Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
-[WARN] Failed to install 'toml'. Codex config updates may fail.
-...
-[INFO] Installing Claude Code native build latest...
-# HANGS HERE
-```
-
-#### Workaround
-
-Rebuild container from scratch: `Dev Containers: Rebuild Container`
-
-#### Investigation Notes
-
-- May be related to corrupted state in `~/.local/` after partial install
-- May be related to npm/node state from previous nvm installation
-- Fresh container build succeeds on first attempt
-
-#### Mitigation
-
-**scbio-docker v0.5.3** pre-installs the dependencies that were causing permission failures:
-- Node.js 20 LTS (npm, npx) - eliminates nvm permission issues
-- uv/uvx - eliminates permission issues with MCP server installation
-- `toml` Python package - eliminates permission errors in base venv
-
-With these dependencies pre-installed, the cascade of permission failures that led to installation hangs no longer occurs. Users on older image versions should rebuild with v0.5.3.
+**Resolution**: Pre-installing Node.js 20 LTS, uv/uvx, and `toml` in the Docker image eliminates the cascade of permission failures that caused installation hangs. Users on older images should rebuild.
 
 ---
 
 ### ISSUE-010: toml Package Installation Fails in Read-Only Base Venv
 
-**Severity**: Low
-**Impact**: Codex config.toml updates may fail
-**Reproducible**: Yes
-**Status**: ✅ Resolved (2025-12-16)
+**Severity**: Low | **Status**: ✅ Resolved (2025-12-16)
 
-#### Description
-
-The setup script attempts to install the `toml` Python package for Codex configuration, but fails because:
-
-1. `/opt/venvs/base` is a read-only system venv (by design in scbio-docker)
-2. `--user` fallback fails because user site-packages aren't visible in the virtualenv
-
-#### Error Output
-
-```
-[INFO] Installing python package: toml...
-ERROR: Could not install packages due to an OSError: [Errno 13] Permission denied: '/opt/venvs/base/lib/python3.10/site-packages/toml'
-Check the permissions.
-
-[WARN] Standard install failed (read-only venv?). Retrying with --user...
-ERROR: Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
-[WARN] Failed to install 'toml'. Codex config updates may fail.
-```
-
-#### Root Cause
-
-The scbio-docker base image has a two-tier library architecture:
-- System venv `/opt/venvs/base` is read-only (owned by root)
-- User packages should go to user library, but virtualenv isolation prevents `--user` installs
-
-#### Potential Solutions (Not Implemented)
-
-1. Pre-install `toml` in the base Docker image during build
-2. Create a separate user-writable venv for setup scripts
-3. Use a different TOML library that's already installed (e.g., Python 3.11+ has `tomllib`)
-4. Rewrite Codex config generation to not require Python toml parsing
-
-#### Resolution
-
-**Fix implemented**: Added `toml` package to `docker/requirements/base.txt` in scbio-docker.
-
-The `toml` package is now pre-installed in the base venv during Docker image build (Stage 1: Builder), then copied to the runtime image (Stage 2). This ensures the package is available when `setup-ai.sh` runs for Codex configuration.
-
-**File changed**: `docker/requirements/base.txt`
-```
-# Configuration parsing (for SciAgent-toolkit Codex config)
-toml
-```
-
-**Note**: Requires rebuilding the Docker image to take effect:
-```bash
-scripts/build.sh  # or docker build -f docker/base/Dockerfile
-```
+**Resolution**: Added `toml` to `docker/requirements/base.txt` in scbio-docker. Pre-installed during image build.
 
 ---
 
 ### ISSUE-011: Agent Activation Script Parses Markdown Headers as Agent Names
 
-**Severity**: Low
-**Impact**: Cosmetic warnings during role activation, no functional impact
-**Reproducible**: Yes
-**Status**: ✅ Resolved (2025-12-16)
+**Severity**: Low | **Status**: ✅ Resolved (2025-12-16)
 
-#### Description
-
-When `activate-role.sh` activates the base role, it produces numerous warnings about non-existent agents. These appear to be parsing errors where markdown header content and description text are being interpreted as agent names.
-
-#### Example Output
-
-```
-[OK]   Agent: bioinf-librarian
-[WARN]   Agent not found: # (expected at .../agents/#.md)
-[WARN]   Agent not found: Tool/documentation (expected at .../agents/Tool/documentation.md)
-[WARN]   Agent not found: research (expected at .../agents/research.md)
-[OK]   Agent: bio-research-visualizer
-[WARN]   Agent not found: # (expected at .../agents/#.md)
-[WARN]   Agent not found: Biological (expected at .../agents/Biological.md)
-[WARN]   Agent not found: mechanism (expected at .../agents/mechanism.md)
-```
-
-#### Pattern Analysis
-
-The warnings follow a pattern suggesting the script is parsing the agent file's YAML frontmatter `description:` field:
-- `#` - Markdown header marker
-- `Tool/documentation` - Part of "Tool/documentation research" description
-- `Biological mechanism research` - Split into individual words
-
-#### Root Cause (Suspected)
-
-The `roles/base.yaml` file or the parsing logic in `activate-role.sh` may be:
-1. Reading agent file headers in addition to names
-2. Splitting description text on spaces/special characters
-3. Treating each word as a separate agent reference
-
-#### Functional Impact
-
-**None** - The actual agents are correctly symlinked despite the warnings. Only cosmetic output is affected.
-
-#### Resolution
-
-**Fixed** in `scripts/activate-role.sh`: Updated `get_yaml_list()` function to properly strip inline YAML comments.
-
-The parsing pipeline now:
-1. Extracts the YAML section for the key
-2. Finds list items (lines with `- item`)
-3. Removes leading dash and whitespace
-4. **NEW**: Strips inline comments (everything after `#`)
-5. **NEW**: Removes trailing whitespace
-6. Filters out empty lines
-
-**Before (broken):**
-```yaml
-- bioinf-librarian            # Tool/documentation research
-```
-Was parsed as multiple items: `bioinf-librarian`, `#`, `Tool/documentation`, `research`
-
-**After (fixed):**
-```yaml
-- bioinf-librarian            # Tool/documentation research
-```
-Is correctly parsed as single item: `bioinf-librarian`
+**Resolution**: Fixed `get_yaml_list()` in `activate-role.sh` to strip inline YAML comments (everything after `#`), preventing description words from being interpreted as agent names.
 
 ---
 
 ### ISSUE-012: PAL MCP Not Connected with Default 'coding' Profile
 
-**Severity**: Low
-**Impact**: PAL unavailable until profile switch
-**Reproducible**: Yes
-**Status**: ✅ Resolved (2025-12-16)
+**Severity**: Low | **Status**: ✅ Resolved (2025-12-16) | **See also**: ISSUE-001
 
-#### Description
-
-After running `setup-ai.sh`, PAL MCP is not automatically connected in Claude Code when using the default `coding` profile. It only becomes available after switching to `hybrid` profile via `switch-mcp-profile.sh`.
-
-#### Observed Behavior
-
-1. Run `setup-ai.sh --force` → completes successfully
-2. Start `claude` → `/mcp` shows only context7 and sequential-thinking (no PAL)
-3. Run `./switch-mcp-profile.sh hybrid` → PAL now connected
-4. Restart `claude` → `/mcp` shows context7, sequential-thinking, AND pal
-
-#### Investigation Notes
-
-- Setup completion shows `coding` profile applied
-- The `coding` profile template should include PAL
-- May be related to ISSUE-001 (PAL definition inconsistency)
-- May require explicit `switch-mcp-profile.sh coding` after initial setup
-
-#### Workaround
-
-Run `./switch-mcp-profile.sh hybrid` (or `coding` explicitly) after setup completes.
-
-#### Resolution
-
-**Root Cause**: The `coding.mcp.json` profile template was using the PAL wrapper approach (`${TOOLKIT_ROOT}/mcp_servers/pal/start-pal.py`) which requires `setup_pal.sh` to create the wrapper script. This script was not being called consistently.
-
-**Fix**: Updated `templates/mcp-profiles/coding.mcp.json` to use the direct `uvx` approach (same as hybrid-research profile):
-
-```json
-{
-  "pal": {
-    "type": "stdio",
-    "command": "uvx",
-    "args": ["--from", "git+https://github.com/BeehiveInnovations/pal-mcp-server.git", "pal-mcp-server"],
-    "env": {
-      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
-    }
-  }
-}
-```
-
-This change also addresses **ISSUE-001** (PAL Server Definition Inconsistency) by standardizing all profiles on the direct uvx approach. Combined with the scbio-docker v0.5.3 pre-installation of `uvx`, PAL now works out-of-the-box with all profiles.
-
-**Note**: Users still need to set `GEMINI_API_KEY` and/or `OPENAI_API_KEY` in their `.env` file for PAL to authenticate with the model providers.
+**Resolution**: All profile templates (including `coding.mcp.json`) now use direct `uvx` for PAL instead of wrapper script. Combined with scbio-docker v0.5.3 pre-installing `uvx`, PAL works out-of-the-box. Users must set API keys in `.env`.
 
 ---
 
@@ -1203,73 +886,11 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#pal-clink-to-gemini-cli-issues) for 
 
 ### ISSUE-019: PAL MCP Fails Due to PYTHONPATH Collision with Project config.py
 
-**Severity**: Critical
-**Impact**: PAL MCP server fails to start when project has a `config.py` file in PYTHONPATH
-**Reproducible**: Yes
-**Status**: ✅ Resolved (2026-01-18) - Added PYTHONPATH clearing to profile templates
+**Severity**: Critical | **Status**: ✅ Resolved (2026-01-18)
 
-#### Description
+**Problem**: PAL's `from config import ...` resolves to project's `config.py` when PYTHONPATH includes project scripts directory, causing `ModuleNotFoundError`.
 
-PAL MCP server fails with a Python import error when running from a project that has a `config.py` file in the PYTHONPATH. This is because PAL's internal `server.py` imports `from config import ...`, which Python resolves to the project's `config.py` instead of PAL's internal config module.
-
-**Error message:**
-```
-Traceback (most recent call last):
-  File "...pal-mcp-server...", line 6, in <module>
-    from server import run
-  File ".../server.py", line 46, in <module>
-    from config import (  # noqa: E402
-  File "/workspaces/project/01_Scripts/Python_scripts/config.py", line 15, in <module>
-    import pandas as pd
-ModuleNotFoundError: No module named 'pandas'
-```
-
-#### Root Cause
-
-1. The devcontainer sets `PYTHONPATH` to include the project's Python scripts directory
-2. PAL's `server.py` uses relative imports (`from config import ...`)
-3. Python's import system finds the project's `config.py` first
-4. The project's `config.py` has different dependencies (pandas) not installed in PAL's environment
-
-#### Solution
-
-Clear `PYTHONPATH` in the PAL server's environment block in `.mcp.json`:
-
-```json
-{
-  "pal": {
-    "env": {
-      "PYTHONPATH": "",
-      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
-      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
-    }
-  }
-}
-```
-
-#### Files Modified (2026-01-18)
-
-**Claude Code MCP profiles:**
-- `templates/mcp-profiles/coding.mcp.json`
-- `templates/mcp-profiles/hybrid-research.mcp.json`
-- `templates/mcp-profiles/codebase.mcp.json`
-- `templates/mcp-profiles/full.mcp.json`
-
-**Gemini CLI profiles:**
-- `templates/gemini-profiles/coding.json`
-- `templates/gemini-profiles/codebase.json`
-- `templates/gemini-profiles/research.json`
-
-All PAL env blocks now include `"PYTHONPATH": ""` to isolate PAL from project Python paths.
-
-**Note:** This affects BOTH Claude Code (`.mcp.json`) AND Gemini CLI (`.gemini/settings.json`). Both use PAL MCP and both are susceptible to the same PYTHONPATH collision.
-
-#### Prevention
-
-This is a namespace collision issue. Alternative solutions considered:
-1. Rename project's `config.py` to `project_config.py` (user burden)
-2. Use uvx `--isolated` flag (not supported)
-3. Clear PYTHONPATH in env block (chosen solution - minimal impact)
+**Resolution**: Added `"PYTHONPATH": ""` to PAL's env block in all profile templates (7 files: `templates/mcp-profiles/*.mcp.json` + `templates/gemini-profiles/*.json`). Re-run profile switcher to apply.
 
 ---
 

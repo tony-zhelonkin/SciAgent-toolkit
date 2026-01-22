@@ -2,6 +2,37 @@
 
 Common issues and solutions for SciAgent-toolkit MCP server configuration.
 
+**Related docs**: [ISSUES.md](ISSUES.md) (detailed issue tracking) | [ARCHITECTURE_REVIEW.md](ARCHITECTURE_REVIEW.md) (strategic refactoring plan)
+
+---
+
+## Environment Variable Loading (Common Root Cause)
+
+Many issues below stem from API keys not being available in the shell. The `.devcontainer/.env` file is NOT auto-sourced into interactive shells.
+
+**Universal Fix (add to `~/.bashrc`):**
+```bash
+_source_project_env() {
+    local project_dir=""
+    if [ -d "/workspaces" ]; then
+        for d in /workspaces/*/; do
+            [ -f "${d}.devcontainer/.env" ] && project_dir="${d%/}" && break
+        done
+    fi
+    [ -z "$project_dir" ] && project_dir="${PWD}"
+    [ -f "${project_dir}/.devcontainer/.env" ] && { set -a; source "${project_dir}/.devcontainer/.env"; set +a; }
+    [ -f "${project_dir}/.env" ] && { set -a; source "${project_dir}/.env"; set +a; }
+}
+_source_project_env
+```
+
+**Quick one-liner (current session only):**
+```bash
+set -a && source .devcontainer/.env && set +a
+```
+
+**Verify:** `echo "Key set: ${GEMINI_API_KEY:+yes}"`
+
 ---
 
 ## Quick Diagnostic Commands
@@ -85,34 +116,10 @@ source .devcontainer/.env
 
 ### API keys show as "${GEMINI_API_KEY}" literal in .mcp.json (ISSUE-020)
 
-**Symptoms:**
-- `.mcp.json` contains literal `${GEMINI_API_KEY}` instead of actual key
-- PAL fails with "API key required" even though keys are in `.env`
+**Symptoms:** `.mcp.json` contains literal `${GEMINI_API_KEY}` instead of actual key value.
 
-**Cause:** The `.devcontainer/.env` file is NOT automatically sourced into shell environment. The profile switcher reads from shell environment, not directly from `.env`.
-
-**Fix:**
+**Fix:** See [Environment Variable Loading](#environment-variable-loading-common-root-cause) above, then re-run profile switcher:
 ```bash
-# Option 1: Add auto-sourcing to ~/.bashrc (permanent)
-cat >> ~/.bashrc << 'ENVBLOCK'
-
-# Auto-source project .env files for API keys
-_source_project_env() {
-    local project_dir="${PWD}"
-    if [ -f "${project_dir}/.devcontainer/.env" ]; then
-        set -a; source "${project_dir}/.devcontainer/.env"; set +a
-    fi
-    if [ -f "${project_dir}/.env" ]; then
-        set -a; source "${project_dir}/.env"; set +a
-    fi
-}
-_source_project_env
-ENVBLOCK
-
-source ~/.bashrc
-
-# Option 2: Manual source before running profile switcher
-set -a && source .devcontainer/.env && set +a
 ./01_Scripts/SciAgent-toolkit/scripts/switch-mcp-profile.sh coding
 ```
 
@@ -225,47 +232,9 @@ Or manually edit `.mcp.json` to remove conflicting arguments.
 
 ### Issue: Gemini CLI says "must specify GEMINI_API_KEY" despite key in .env
 
-**Symptoms:**
-- Running `gemini` or `gemini update` shows:
-  ```
-  When using Gemini API, you must specify the GEMINI_API_KEY environment variable.
-  Update your environment and try again (no reload needed if using .env)!
-  ```
-- The key IS in `.devcontainer/.env` file
+**Symptoms:** `gemini` shows "must specify GEMINI_API_KEY" even though key is in `.devcontainer/.env`.
 
-**Cause:** The `.devcontainer/.env` file is used by Docker Compose during container creation, but it doesn't automatically export variables to the running shell. The shell environment is separate from the `.env` file contents.
-
-**Fix - Option 1 (Recommended - Persistent):**
-Add auto-sourcing to your `.bashrc`:
-```bash
-# Add .env sourcing to bashrc
-cat >> ~/.bashrc << 'ENVBLOCK'
-
-# Auto-source project .env files for API keys
-if [ -f "/path/to/project/.devcontainer/.env" ]; then
-    set -a
-    source "/path/to/project/.devcontainer/.env"
-    set +a
-fi
-ENVBLOCK
-
-# Apply immediately
-source ~/.bashrc
-```
-
-**Fix - Option 2 (Quick - Current Session Only):**
-```bash
-export GEMINI_API_KEY=$(grep "^GEMINI_API_KEY=" .devcontainer/.env | cut -d'=' -f2)
-gemini  # Now works
-```
-
-**Verification:**
-```bash
-echo "Key set: ${GEMINI_API_KEY:+yes}"
-gemini --version  # Should work without API key error
-```
-
-**Note:** This is different from PAL clink failing with GEMINI_API_KEY error (see below in PAL section). This issue is about Gemini CLI directly.
+**Fix:** See [Environment Variable Loading](#environment-variable-loading-common-root-cause) above. The `.env` file is NOT auto-exported to shell sessions.
 
 ---
 
@@ -308,56 +277,11 @@ Then restart Gemini CLI.
 
 ### Issue: API keys not loaded in new terminal sessions (Devcontainer)
 
-**Symptoms:**
-- First terminal after container start: API keys work
-- New terminal tabs: `gemini` asks for API key again
-- `echo $GEMINI_API_KEY` returns empty in new terminals
+**Symptoms:** New terminal tabs lose API keys even though first terminal worked.
 
-**Cause:** Docker Compose reads `.env` during container creation but doesn't export variables to interactive shell sessions. The `~/.bashrc` approach may fail if terminal doesn't start in the project directory.
+**Fix:** See [Environment Variable Loading](#environment-variable-loading-common-root-cause) above. The workspace-aware `_source_project_env` function handles devcontainer path detection.
 
-**Fix - Option 1 (Best - Requires Container Rebuild):**
-
-Add `env_file` to your `docker-compose.yml`:
-```yaml
-services:
-  dev-core:
-    env_file:
-      - .env  # Loads .devcontainer/.env at container start
-    # ... rest of config
-```
-
-Then rebuild the container:
-- VS Code: **Ctrl+Shift+P** → "Dev Containers: Rebuild Container"
-
-**Fix - Option 2 (Robust bashrc for Devcontainers):**
-
-Replace the simple bashrc sourcing with workspace-aware detection:
-```bash
-# Add to ~/.bashrc
-_source_project_env() {
-    local project_dir=""
-    # Auto-detect workspace in devcontainers
-    if [ -d "/workspaces" ]; then
-        for d in /workspaces/*/; do
-            if [ -f "${d}.devcontainer/.env" ]; then
-                project_dir="${d%/}"
-                break
-            fi
-        done
-    fi
-    [ -z "$project_dir" ] && project_dir="${PWD}"
-
-    if [ -f "${project_dir}/.devcontainer/.env" ]; then
-        set -a; source "${project_dir}/.devcontainer/.env"; set +a
-    fi
-}
-_source_project_env
-```
-
-**Fix - Option 3 (Quick - Current Session):**
-```bash
-set -a && source /workspaces/YOUR_PROJECT/.devcontainer/.env && set +a
-```
+**Alternative (requires container rebuild):** Add `env_file: [.env]` to your `docker-compose.yml` service definition, then rebuild via **Ctrl+Shift+P** → "Dev Containers: Rebuild Container".
 
 ---
 
