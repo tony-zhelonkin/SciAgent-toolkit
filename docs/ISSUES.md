@@ -1201,6 +1201,126 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#pal-clink-to-gemini-cli-issues) for 
 
 ---
 
+### ISSUE-019: PAL MCP Fails Due to PYTHONPATH Collision with Project config.py
+
+**Severity**: Critical
+**Impact**: PAL MCP server fails to start when project has a `config.py` file in PYTHONPATH
+**Reproducible**: Yes
+**Status**: ✅ Resolved (2026-01-18) - Added PYTHONPATH clearing to profile templates
+
+#### Description
+
+PAL MCP server fails with a Python import error when running from a project that has a `config.py` file in the PYTHONPATH. This is because PAL's internal `server.py` imports `from config import ...`, which Python resolves to the project's `config.py` instead of PAL's internal config module.
+
+**Error message:**
+```
+Traceback (most recent call last):
+  File "...pal-mcp-server...", line 6, in <module>
+    from server import run
+  File ".../server.py", line 46, in <module>
+    from config import (  # noqa: E402
+  File "/workspaces/project/01_Scripts/Python_scripts/config.py", line 15, in <module>
+    import pandas as pd
+ModuleNotFoundError: No module named 'pandas'
+```
+
+#### Root Cause
+
+1. The devcontainer sets `PYTHONPATH` to include the project's Python scripts directory
+2. PAL's `server.py` uses relative imports (`from config import ...`)
+3. Python's import system finds the project's `config.py` first
+4. The project's `config.py` has different dependencies (pandas) not installed in PAL's environment
+
+#### Solution
+
+Clear `PYTHONPATH` in the PAL server's environment block in `.mcp.json`:
+
+```json
+{
+  "pal": {
+    "env": {
+      "PYTHONPATH": "",
+      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+    }
+  }
+}
+```
+
+#### Files Modified (2026-01-18)
+
+**Claude Code MCP profiles:**
+- `templates/mcp-profiles/coding.mcp.json`
+- `templates/mcp-profiles/hybrid-research.mcp.json`
+- `templates/mcp-profiles/codebase.mcp.json`
+- `templates/mcp-profiles/full.mcp.json`
+
+**Gemini CLI profiles:**
+- `templates/gemini-profiles/coding.json`
+- `templates/gemini-profiles/codebase.json`
+- `templates/gemini-profiles/research.json`
+
+All PAL env blocks now include `"PYTHONPATH": ""` to isolate PAL from project Python paths.
+
+**Note:** This affects BOTH Claude Code (`.mcp.json`) AND Gemini CLI (`.gemini/settings.json`). Both use PAL MCP and both are susceptible to the same PYTHONPATH collision.
+
+#### Prevention
+
+This is a namespace collision issue. Alternative solutions considered:
+1. Rename project's `config.py` to `project_config.py` (user burden)
+2. Use uvx `--isolated` flag (not supported)
+3. Clear PYTHONPATH in env block (chosen solution - minimal impact)
+
+---
+
+### ISSUE-020: API Keys Not Auto-Sourced from .env in Shell Environment
+
+**Severity**: High
+**Impact**: MCP profile switching fails to substitute API keys, resulting in `${GEMINI_API_KEY}` literal strings in .mcp.json
+**Reproducible**: Yes
+**Status**: ✅ Documented - User must add .env sourcing to bashrc
+
+#### Description
+
+The `.devcontainer/.env` file containing API keys is not automatically sourced into the shell environment. The `switch-mcp-profile.sh` script substitutes `${GEMINI_API_KEY}` etc. from the shell environment, but if those variables aren't set, the literal placeholder strings end up in `.mcp.json`.
+
+#### Root Cause
+
+1. Docker Compose reads `.devcontainer/.env` during container creation
+2. This sets environment variables for the container lifecycle, NOT for interactive shells
+3. When user opens a terminal, shell environment is separate from `.env` file contents
+4. `switch-mcp-profile.sh` calls `load_env()` which sources `.env`, but only for that script's session
+5. The script then uses Python to substitute, but Python inherits the original shell's environment
+
+#### Solution
+
+Add auto-sourcing to `~/.bashrc`:
+
+```bash
+# Auto-source project .env files for API keys
+_source_project_env() {
+    local project_dir="${PWD}"
+    if [ -f "${project_dir}/.devcontainer/.env" ]; then
+        set -a
+        source "${project_dir}/.devcontainer/.env"
+        set +a
+    fi
+    if [ -f "${project_dir}/.env" ]; then
+        set -a
+        source "${project_dir}/.env"
+        set +a
+    fi
+}
+_source_project_env
+```
+
+#### Related Issues
+
+- ISSUE-003: Two-Stage Environment Binding Creates Stale Configuration
+- ISSUE-018: PAL clink to Gemini CLI Fails Due to Multiple Configuration Conflicts
+
+---
+
 ## Change Log
 
 | Date | Change | Author |
@@ -1220,6 +1340,9 @@ See [TROUBLESHOOTING.md](TROUBLESHOOTING.md#pal-clink-to-gemini-cli-issues) for 
 | 2025-12-16 | **Triaged ISSUE-013, 014, 015**: Marked as needs investigation | Claude Code |
 | 2025-12-16 | Added ISSUE-017 (nvm conflicts with pre-installed Node.js + custom npm prefix) | Claude Code |
 | 2025-12-29 | Added ISSUE-018 (PAL clink to Gemini CLI configuration conflicts) | Claude Code |
+| 2026-01-18 | Added ISSUE-019 (PYTHONPATH collision with project config.py) - **Resolved** | Claude Code |
+| 2026-01-18 | Added ISSUE-020 (API keys not auto-sourced from .env) - **Documented** | Claude Code |
+| 2026-01-18 | Fixed profile templates: Added PYTHONPATH clearing to PAL env block | Claude Code |
 
 ---
 
