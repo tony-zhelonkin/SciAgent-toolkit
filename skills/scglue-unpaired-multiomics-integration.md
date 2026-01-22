@@ -594,9 +594,9 @@ motif_bed = scglue.genomics.read_bed("JASPAR2022-mm10.bed.gz")
 ### Integration with Existing Checkpoints
 
 ```python
-# Load existing S6 checkpoints
-rna = sc.read_h5ad("03_results/00_main_refactored/checkpoints/S6_rna_final.h5ad")
-atac = sc.read_h5ad("03_results/00_main_refactored/checkpoints/S6_atac_final.h5ad")
+# Load preprocessed modalities
+rna = sc.read_h5ad("path/to/rna_preprocessed.h5ad")
+atac = sc.read_h5ad("path/to/atac_preprocessed.h5ad")
 
 # Ensure raw counts available
 if "counts" not in rna.layers:
