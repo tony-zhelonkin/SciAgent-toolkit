@@ -49,6 +49,75 @@ OPENAI_API_KEY=your-key-here     # Get from: https://platform.openai.com/api-key
 
 ---
 
+### PAL fails with "ModuleNotFoundError: No module named 'pandas'" (ISSUE-019)
+
+**Symptoms:**
+- `/mcp` shows PAL with `✕ failed` status
+- Error traceback mentions your project's `config.py` file
+- Error: `from config import ...` followed by `ModuleNotFoundError`
+
+**Cause:** Your project has a `config.py` file in `PYTHONPATH`, which shadows PAL's internal `config.py` module. This is a Python namespace collision.
+
+**Fix:**
+```bash
+# 1. Add PYTHONPATH clearing to PAL's env block in .mcp.json
+# Edit .mcp.json and ensure the PAL section looks like:
+{
+  "pal": {
+    "env": {
+      "PYTHONPATH": "",
+      "GEMINI_API_KEY": "${GEMINI_API_KEY}",
+      "OPENAI_API_KEY": "${OPENAI_API_KEY}"
+    }
+  }
+}
+
+# 2. Or re-run profile switcher (templates now include this fix)
+source .devcontainer/.env
+./01_Scripts/SciAgent-toolkit/scripts/switch-mcp-profile.sh coding
+
+# 3. Restart Claude Code
+```
+
+**Note:** This fix was added to all profile templates in 2026-01-18. If using older templates, manually add `"PYTHONPATH": ""` to PAL's env block.
+
+---
+
+### API keys show as "${GEMINI_API_KEY}" literal in .mcp.json (ISSUE-020)
+
+**Symptoms:**
+- `.mcp.json` contains literal `${GEMINI_API_KEY}` instead of actual key
+- PAL fails with "API key required" even though keys are in `.env`
+
+**Cause:** The `.devcontainer/.env` file is NOT automatically sourced into shell environment. The profile switcher reads from shell environment, not directly from `.env`.
+
+**Fix:**
+```bash
+# Option 1: Add auto-sourcing to ~/.bashrc (permanent)
+cat >> ~/.bashrc << 'ENVBLOCK'
+
+# Auto-source project .env files for API keys
+_source_project_env() {
+    local project_dir="${PWD}"
+    if [ -f "${project_dir}/.devcontainer/.env" ]; then
+        set -a; source "${project_dir}/.devcontainer/.env"; set +a
+    fi
+    if [ -f "${project_dir}/.env" ]; then
+        set -a; source "${project_dir}/.env"; set +a
+    fi
+}
+_source_project_env
+ENVBLOCK
+
+source ~/.bashrc
+
+# Option 2: Manual source before running profile switcher
+set -a && source .devcontainer/.env && set +a
+./01_Scripts/SciAgent-toolkit/scripts/switch-mcp-profile.sh coding
+```
+
+---
+
 ### ToolUniverse shows "connecting..." or "Failed"
 
 **Symptoms:**
@@ -197,6 +266,98 @@ gemini --version  # Should work without API key error
 ```
 
 **Note:** This is different from PAL clink failing with GEMINI_API_KEY error (see below in PAL section). This issue is about Gemini CLI directly.
+
+---
+
+### Issue: PAL shows "Disconnected" in Gemini CLI (ISSUE-019 variant)
+
+**Symptoms:**
+- Running `gemini` and typing `/mcp` shows:
+  ```
+  🟢 sequential-thinking - Ready
+  🟢 context7 - Ready
+  🔴 pal - Disconnected
+  ```
+- PAL works fine in Claude Code but fails in Gemini
+
+**Cause:** Same PYTHONPATH collision issue as Claude Code. Your project has a `config.py` file that shadows PAL's internal module. The `.gemini/settings.json` file needs `PYTHONPATH: ""` in the PAL env block.
+
+**Fix:**
+```bash
+# Edit .gemini/settings.json and add PYTHONPATH to PAL env block:
+{
+  "pal": {
+    "env": {
+      "PYTHONPATH": "",        # <-- Add this line
+      "GEMINI_API_KEY": "...",
+      "OPENAI_API_KEY": "..."
+    }
+  }
+}
+```
+
+Or re-run the profile switcher (templates now include this fix):
+```bash
+set -a && source .devcontainer/.env && set +a
+./01_Scripts/SciAgent-toolkit/scripts/switch-mcp-profile.sh coding
+```
+
+Then restart Gemini CLI.
+
+---
+
+### Issue: API keys not loaded in new terminal sessions (Devcontainer)
+
+**Symptoms:**
+- First terminal after container start: API keys work
+- New terminal tabs: `gemini` asks for API key again
+- `echo $GEMINI_API_KEY` returns empty in new terminals
+
+**Cause:** Docker Compose reads `.env` during container creation but doesn't export variables to interactive shell sessions. The `~/.bashrc` approach may fail if terminal doesn't start in the project directory.
+
+**Fix - Option 1 (Best - Requires Container Rebuild):**
+
+Add `env_file` to your `docker-compose.yml`:
+```yaml
+services:
+  dev-core:
+    env_file:
+      - .env  # Loads .devcontainer/.env at container start
+    # ... rest of config
+```
+
+Then rebuild the container:
+- VS Code: **Ctrl+Shift+P** → "Dev Containers: Rebuild Container"
+
+**Fix - Option 2 (Robust bashrc for Devcontainers):**
+
+Replace the simple bashrc sourcing with workspace-aware detection:
+```bash
+# Add to ~/.bashrc
+_source_project_env() {
+    local project_dir=""
+    # Auto-detect workspace in devcontainers
+    if [ -d "/workspaces" ]; then
+        for d in /workspaces/*/; do
+            if [ -f "${d}.devcontainer/.env" ]; then
+                project_dir="${d%/}"
+                break
+            fi
+        done
+    fi
+    [ -z "$project_dir" ] && project_dir="${PWD}"
+
+    if [ -f "${project_dir}/.devcontainer/.env" ]; then
+        set -a; source "${project_dir}/.devcontainer/.env"; set +a
+    fi
+}
+_source_project_env
+```
+
+**Fix - Option 3 (Quick - Current Session):**
+```bash
+set -a && source /workspaces/YOUR_PROJECT/.devcontainer/.env && set +a
+```
 
 ---
 
