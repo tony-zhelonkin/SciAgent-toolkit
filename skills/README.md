@@ -61,12 +61,38 @@ scRNA-seq → ──────────────────────
 
 ---
 
-### Multi-omics Integration
+### Multimodal Analysis (Paired Data)
 
 | Skill | Purpose | Key Feature |
 |-------|---------|-------------|
+| `seurat-multimodal-analysis.md` | **R/Seurat** - CITE-seq, 10x Multiome, WNN, Signac, ChromVAR | Full R ecosystem |
+| `python-multimodal-10x.md` | **Python** - muon, SnapATAC2, Harmony, scanpy for multiome | Full Python ecosystem |
 | `scglue-unpaired-multiomics-integration.md` | Unpaired integration | Guidance graph |
 | `treearches-hierarchy-learning.md` | Reference mapping with hierarchy | Tree-structured latent |
+
+**Multiome Decision Tree:**
+```
+10x Multiome (RNA+ATAC paired)?
+├─ R ecosystem preferred? → seurat-multimodal-analysis.md (WNN, Signac)
+├─ Python preferred? → python-multimodal-10x.md (muon, SnapATAC2)
+└─ Deep learning integration? → scvi-multivi.md
+
+CITE-seq (RNA+Protein)?
+├─ R/Seurat → seurat-multimodal-analysis.md (WNN for ADT)
+└─ Python → python-multimodal-10x.md (muon)
+
+Unpaired modalities (separate experiments)?
+└─ → scglue-unpaired-multiomics-integration.md
+```
+
+---
+
+### 10x Genomics Pipelines & QC
+
+| Skill | Purpose |
+|-------|---------|
+| `cellranger-arc-multiome.md` | Cell Ranger ARC pipeline for 10x Multiome ATAC+GEX |
+| `iterative-peak-merging.md` | Iterative summit-preserving peak set construction |
 
 ---
 
@@ -99,11 +125,21 @@ Fate probabilities & terminal states? → CellRank
 
 ---
 
-### Data Utilities
+### Cell Type Annotation & Transfer Learning
+
+| Skill | Purpose | Method |
+|-------|---------|--------|
+| `cellxgene-census-annotation.md` | Annotation transfer via CZ CELLxGENE Census (33M+ cells) | KNN in pre-computed embedding space |
+| `scembed-atac-annotation.md` | scATAC-seq cell-type annotation via transfer learning | Region embedding + vector DB search |
+
+---
+
+### Data Utilities & Conversion
 
 | Skill | Purpose |
 |-------|---------|
 | `anndatar-seurat-scanpy-conversion.md` | R/Python data format conversion |
+| `louper-seurat-conversion.md` | Seurat to 10x Loupe Browser (.cloupe) |
 | `single-cell-vector-search.md` | Semantic search over cell embeddings |
 | `annotate-te-rnaseq-data.md` | Transposable element quantification |
 
