@@ -8,10 +8,30 @@ Common issues and solutions for SciAgent-toolkit MCP server configuration.
 
 ## Environment Variable Loading (Common Root Cause)
 
-Many issues below stem from API keys not being available in the shell. The `.devcontainer/.env` file is NOT auto-sourced into interactive shells.
+Many issues below stem from API keys not being available in the shell. The `.devcontainer/.env` file is NOT auto-sourced into interactive shells, and `~/.bashrc` resets on every container rebuild.
 
-**Universal Fix (add to `~/.bashrc`):**
+### Permanent Fix: `source_env.sh` (Recommended)
+
+Place an idempotent injection script at `.devcontainer/scripts/source_env.sh` and call it from `postCreateCommand` in `devcontainer.json`. This survives container rebuilds.
+
+**`.devcontainer/scripts/source_env.sh`:**
 ```bash
+#!/usr/bin/env bash
+# source_env.sh - Inject .env auto-sourcing into shell profile
+# Called by postCreateCommand to survive container rebuilds.
+set -euo pipefail
+
+MARKER="_source_project_env"
+TARGET="${HOME}/.bashrc"
+
+# Idempotent: skip if already present
+if grep -q "$MARKER" "$TARGET" 2>/dev/null; then
+    exit 0
+fi
+
+cat >> "$TARGET" << 'EOF'
+
+# Auto-source project .env files (API keys for Gemini, PAL, etc.)
 _source_project_env() {
     local project_dir=""
     if [ -d "/workspaces" ]; then
@@ -24,12 +44,29 @@ _source_project_env() {
     [ -f "${project_dir}/.env" ] && { set -a; source "${project_dir}/.env"; set +a; }
 }
 _source_project_env
+EOF
 ```
 
-**Quick one-liner (current session only):**
+**`devcontainer.json` hook:**
+```json
+"postCreateCommand": "bash .devcontainer/scripts/source_env.sh && echo 'Container up and running'"
+```
+
+**Why this works:** `postCreateCommand` runs once per container creation, injecting the function into the fresh `~/.bashrc`. Every subsequent shell (new terminal, tmux pane, `bash -l`) inherits the exported keys.
+
+**First-time setup for an existing container** (if you haven't rebuilt yet):
+```bash
+bash .devcontainer/scripts/source_env.sh
+```
+
+### Quick one-liner (current session only):
 ```bash
 set -a && source .devcontainer/.env && set +a
 ```
+
+### Why manual `.bashrc` edits alone don't persist
+
+Dev Containers recreate `~/.bashrc` from the base image on every rebuild. Adding the function manually works until the next rebuild. The `source_env.sh` + `postCreateCommand` approach re-injects it automatically.
 
 **Verify:** `echo "Key set: ${GEMINI_API_KEY:+yes}"`
 
@@ -279,7 +316,7 @@ Then restart Gemini CLI.
 
 **Symptoms:** New terminal tabs lose API keys even though first terminal worked.
 
-**Fix:** See [Environment Variable Loading](#environment-variable-loading-common-root-cause) above. The workspace-aware `_source_project_env` function handles devcontainer path detection.
+**Fix:** Use the `source_env.sh` script approach described in [Environment Variable Loading](#environment-variable-loading-common-root-cause) above. This injects the auto-sourcing function into `~/.bashrc` via `postCreateCommand`, so it survives container rebuilds and applies to every new shell.
 
 **Alternative (requires container rebuild):** Add `env_file: [.env]` to your `docker-compose.yml` service definition, then rebuild via **Ctrl+Shift+P** → "Dev Containers: Rebuild Container".
 
@@ -623,12 +660,12 @@ Full methodology is documented in `AGENTS.md`. This file contains Gemini-specifi
 
 **Workaround Options:**
 
-1. **Add to shell profile** (recommended):
+1. **Use `source_env.sh`** (recommended, persists across rebuilds):
    ```bash
-   echo 'source /path/to/project/.devcontainer/.env' >> ~/.bashrc
-   source ~/.bashrc
+   bash .devcontainer/scripts/source_env.sh
    # Restart Claude Code
    ```
+   See [Environment Variable Loading](#environment-variable-loading-common-root-cause) for full setup.
 
 2. **Export before starting Claude Code:**
    ```bash
