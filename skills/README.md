@@ -96,11 +96,12 @@ Unpaired modalities (separate experiments)?
 
 ---
 
-### Differential Accessibility
+### Differential Accessibility & TF Activity
 
 | Skill | Purpose | Key Feature |
 |-------|---------|-------------|
 | `crescendo-scatac-cre-analysis.md` | CRE-level DA testing | Sub-peak resolution |
+| `chromvar-motif-accessibility.md` | TF motif activity from chromatin accessibility | Bias-corrected deviation scores |
 
 ---
 

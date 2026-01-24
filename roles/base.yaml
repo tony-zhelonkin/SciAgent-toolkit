@@ -44,6 +44,7 @@ skills:
   # scATAC-seq analysis
   - pycistopic-atac-topic-modeling     # Topic modeling for ATAC
   - crescendo-scatac-cre-analysis      # CRE differential analysis
+  - chromvar-motif-accessibility       # TF motif activity from chromatin accessibility
   # GRN inference
   - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
   # Reference models & deep learning
