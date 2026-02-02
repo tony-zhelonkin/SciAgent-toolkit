@@ -45,9 +45,21 @@ skills:
   - pycistopic-atac-topic-modeling     # Topic modeling for ATAC
   - crescendo-scatac-cre-analysis      # CRE differential analysis
   - chromvar-motif-accessibility       # TF motif activity from chromatin accessibility
+  - tf-footprint-differential-analysis # TF footprinting & differential binding (TOBIAS/HINT-ATAC/Signac)
   # GRN inference
   - scenic-grn-inference               # SCENIC+ eRegulon inference (multiome + unpaired)
-  # Reference models & deep learning
-  - scvi-framework                     # scvi-tools foundation (scVI, scANVI, MultiVI, etc.)
-  - scvi-linearscvi                    # LinearSCVI for interpretable factor analysis
-  - scvi-scarches-reference-mapping    # scArches query-to-reference atlas mapping
+  # scvi-tools ecosystem (all submodules)
+  - scvi-framework                     # scvi-tools foundation overview
+  - scvi-basic                         # Core scVI model for scRNA-seq
+  - scvi-scanvi                        # Semi-supervised annotation with scANVI
+  - scvi-multivi                       # Joint RNA+ATAC with MultiVI
+  - scvi-peakvi                        # scATAC-seq with PeakVI
+  - scvi-mrvi                          # Multi-resolution variational inference
+  - scvi-contrastivevi                 # Contrastive analysis between conditions
+  - scvi-linearscvi                    # LinearSCVI for interpretable factors
+  - scvi-lda                           # Latent Dirichlet Allocation for topics
+  - scvi-hub-models                    # Pre-trained models from scvi-hub
+  - scvi-scarches-reference-mapping    # scArches query-to-reference mapping
+  - treearches-hierarchy-learning      # treeArches hierarchical cell type learning
+  # Multiomics integration
+  - scglue-unpaired-multiomics-integration  # scGLUE for unpaired scRNA+scATAC integration

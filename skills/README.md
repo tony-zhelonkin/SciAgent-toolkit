@@ -102,6 +102,7 @@ Unpaired modalities (separate experiments)?
 |-------|---------|-------------|
 | `crescendo-scatac-cre-analysis.md` | CRE-level DA testing | Sub-peak resolution |
 | `chromvar-motif-accessibility.md` | TF motif activity from chromatin accessibility | Bias-corrected deviation scores |
+| `tf-footprint-differential-analysis.md` | TF footprinting & differential binding | TOBIAS + HINT-ATAC + Signac |
 
 ---
 
