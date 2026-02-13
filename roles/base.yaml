@@ -38,6 +38,7 @@ skills:
   # RNA-seq analysis
   - gatom-metabolomic-predictions      # GATOM metabolomics
   # RNA velocity & trajectory inference
+  - starsolo-spliced-unspliced         # STARsolo Velocyto mode: spliced/unspliced from FASTQ
   - rna-velocity-trajectory            # scVelo, VeloVI, Chronocell, CellRank
   # Meta-program discovery
   - genenmf-metaprogram-discovery      # GeneNMF for meta-program/signature discovery
