@@ -154,6 +154,36 @@ install.packages("pak")
 pak::pak("scverse/anndataR", dependencies = TRUE)
 ```
 
+## Multi-Assay / Multimodal Conversion
+
+anndataR converts **one assay at a time**. For multi-assay Seurat objects (RNA + ATAC, CITE-seq), export each assay separately and assemble in Python.
+
+### Quick Path
+```r
+# Export each assay
+rna_adata <- as_AnnData(seurat_obj, assay_name = "RNA", x_mapping = "counts")
+rna_adata$write_h5ad("rna.h5ad")
+
+atac_adata <- as_AnnData(seurat_obj, assay_name = "ATAC")
+atac_adata$write_h5ad("atac.h5ad")
+```
+
+```python
+# Assemble in Python
+import mudata as md
+rna = sc.read_h5ad("rna.h5ad")
+atac = sc.read_h5ad("atac.h5ad")
+mdata = md.MuData({"rna": rna, "atac": atac})
+```
+
+### ChromatinAssay Warning
+
+Signac's ChromatinAssay has extra slots (peak GRanges, fragment file paths) that are **lost** during anndataR conversion. Extract these manually before converting.
+
+**For full multi-assay conversion workflow, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md).**
+
+---
+
 ## Debug Checklist
 1. Check R version: `getRversion() >= "4.5.0"`
 2. Verify file exists: `file.exists("file.h5ad")`

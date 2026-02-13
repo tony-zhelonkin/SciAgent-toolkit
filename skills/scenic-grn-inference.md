@@ -86,7 +86,7 @@ For unpaired data (different cells for RNA vs ATAC), SCENIC+ creates **pseudo-mu
 **Prerequisites for unpaired data:**
 1. Good cell-type annotations for BOTH RNA and ATAC
 2. Annotations must match between modalities (same label vocabulary)
-3. Sufficient cells per cell-type (recommend ≥50 per group)
+3. Sufficient cells per cell-type (recommend ≥50 per group, ≥30 is marginal)
 
 **Config for unpaired data:**
 ```yaml
@@ -97,6 +97,60 @@ params_data_preparation:
 ```
 
 **Expected output:** ~100-300 pseudo-multiome metacells (depends on cell-type granularity)
+
+### Condition-Specific Metacells (Composite Labels)
+
+To preserve **condition-specific** regulatory differences, use composite celltype × condition labels:
+
+```python
+# Create composite annotation BEFORE SCENIC+ input
+rna.obs["celltype_condition"] = (
+    rna.obs["cell_type"].astype(str) + "_" + rna.obs["condition"].astype(str)
+)
+atac.obs["celltype_condition"] = (
+    atac.obs["cell_type"].astype(str) + "_" + atac.obs["condition"].astype(str)
+)
+```
+
+```yaml
+params_data_preparation:
+  is_multiome: False
+  key_to_group_by: "celltype_condition"   # e.g., "cDC1A_WT", "cDC1A_IL12"
+  nr_cells_per_metacells: 10
+```
+
+**Adaptive per-group cell counts** (for groups with different sizes):
+```python
+# In SCENIC+ Python API (not Snakemake):
+create_SCENICPLUS_object(
+    ...,
+    multi_ome_mode=False,
+    key_to_group_by="celltype_condition",
+    nr_cells_per_metacells={
+        "cDC1A_WT": 10,
+        "cDC1A_IL12": 10,
+        "Chol_cDC2B_WT": 5,     # Small group: fewer cells per metacell
+        "ISG_Mac_KO": 5,         # Small group: fewer cells per metacell
+    }
+)
+```
+
+**Caveat (from GitHub Discussion #215):** Avoid using the same grouping variable for metacell creation AND downstream differential analysis to prevent circular logic. When grouping is based on pre-existing annotations and differential analysis uses eRegulon scores, this is mitigated.
+
+### Benchmark Context: SCENIC+ vs Alternatives (Unpaired)
+
+| Method | TF Recovery | Enhancer-Gene f-score | Unpaired Support | Notes |
+|--------|------------|----------------------|-----------------|-------|
+| **SCENIC+** | 178 TFs | 0.12 | Yes (metacells) | Best TF-centric eRegulons |
+| **scGLUE** | Via pySCENIC | 0.3-0.4 | Yes (native) | Better enhancer-gene links |
+| **STREAM** | Best overall | 0.4-0.5 | No (paired only) | Benchmark winner, needs multiome |
+| **CellOracle** | 235 TFs | — | Yes | Requires GRN prior |
+
+**Recommendation:** Use SCENIC+ for TF-centric eRegulons + scGLUE independently for enhancer-gene validation. See [scGLUE skill](scglue-unpaired-multiomics-integration.md).
+
+### Input Data Preparation (Unpaired)
+
+For converting Seurat objects to h5ad for SCENIC+, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md) Part 4.2.
 
 ## Workflow
 
