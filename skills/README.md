@@ -61,13 +61,14 @@ scRNA-seq → ──────────────────────
 
 ---
 
-### Multimodal Analysis (Paired Data)
+### Multimodal Analysis (Paired & Unpaired Data)
 
 | Skill | Purpose | Key Feature |
 |-------|---------|-------------|
-| `seurat-multimodal-analysis.md` | **R/Seurat** - CITE-seq, 10x Multiome, WNN, Signac, ChromVAR | Full R ecosystem |
+| `multimodal-anndata-mudata.md` | **R→Python conversion** for multi-assay Seurat → MuData | Unpaired/paired container patterns |
+| `seurat-multimodal-analysis.md` | **R/Seurat** - CITE-seq, 10x Multiome, WNN, Signac, ChromVAR, unpaired anchor imputation | Full R ecosystem |
 | `python-multimodal-10x.md` | **Python** - muon, SnapATAC2, Harmony, scanpy for multiome | Full Python ecosystem |
-| `scglue-unpaired-multiomics-integration.md` | Unpaired integration | Guidance graph |
+| `scglue-unpaired-multiomics-integration.md` | Unpaired integration + enhancer-gene inference | Guidance graph |
 | `treearches-hierarchy-learning.md` | Reference mapping with hierarchy | Tree-structured latent |
 
 **Multiome Decision Tree:**
@@ -82,7 +83,10 @@ CITE-seq (RNA+Protein)?
 └─ Python → python-multimodal-10x.md (muon)
 
 Unpaired modalities (separate experiments)?
-└─ → scglue-unpaired-multiomics-integration.md
+├─ Need to convert Seurat→Python? → multimodal-anndata-mudata.md (conversion recipes)
+├─ Integration → scglue-unpaired-multiomics-integration.md
+├─ GRN inference → scenic-grn-inference.md (metacell mode)
+└─ Stay in R (anchor imputation) → seurat-multimodal-analysis.md (Part 6)
 ```
 
 ---

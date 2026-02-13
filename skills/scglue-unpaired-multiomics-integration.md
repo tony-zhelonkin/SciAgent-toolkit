@@ -678,6 +678,42 @@ scglue.genomics.write_scenic_feather(ranking, path)  # Export for pySCENIC
 
 ---
 
+## scGLUE vs SCENIC+ for GRN Inference
+
+Both tools can infer gene regulatory networks from unpaired RNA + ATAC data, but they are **complementary, not competing**.
+
+| Feature | scGLUE Regulatory Inference | SCENIC+ eRegulons |
+|---------|----------------------------|-------------------|
+| **Method** | Feature embedding cosine similarity | GBM importance + correlation + motif enrichment |
+| **Output** | Gene-peak connections (q-value filtered) | TF-region-gene triplets with rankings |
+| **Strengths** | Better enhancer-gene detection (f-score ~0.3-0.4) | Better TF-centric modules; AUC scoring per cell |
+| **Weaknesses** | Requires separate pySCENIC step for TF assignment | Weaker enhancer-gene detection (f-score ~0.12) |
+| **Best for** | Phase C integration + enhancer-gene validation | Phase B5 TF-centric GRN inference |
+
+### Recommended Strategy
+
+1. **SCENIC+ for GRN inference** (Phase B5): Use native unpaired metacell mode
+2. **scGLUE for integration** (Phase C): Align with external atlases
+3. **scGLUE regulatory inference as validation**: Run Stage 6 independently, compare gene-peak links with SCENIC+ eRegulon regions for high-confidence regulatory calls
+
+### Do NOT Chain scGLUE → SCENIC+
+
+There is **no established workflow** for using scGLUE output as SCENIC+ input. Attempting to create pseudo-paired data from scGLUE nearest-neighbor matching:
+- Requires custom code (no tool support)
+- May blur condition-specific regulatory signals
+- Introduces artificial pairing that is not biologically meaningful
+- Adds complexity without proven quality gains
+
+Instead, run both tools independently and intersect results.
+
+See [SCENIC+ skill](scenic-grn-inference.md) for GRN-specific workflows.
+
+### Input Data Preparation
+
+For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md) Part 4.1.
+
+---
+
 ## Resources
 
 - **Documentation:** https://scglue.readthedocs.io/

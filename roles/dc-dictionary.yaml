@@ -50,8 +50,9 @@ agents:
 # Skills aligned to plan.md phases
 skills:
   # === Foundation ===
-  - anndatar-seurat-scanpy-conversion  # §2.4: Seurat ↔ h5ad conversion
-  - scvi-framework                     # C3 foundation: scvi-tools patterns
+  - anndatar-seurat-scanpy-conversion    # §2.4: Seurat ↔ h5ad conversion
+  - multimodal-anndata-mudata            # Multi-assay Seurat → MuData for unpaired RNA+ATAC
+  - scvi-framework                       # C3 foundation: scvi-tools patterns
 
   # === Phase A2: Module Definition ===
   - genenmf-metaprogram-discovery      # A2d: NMF meta-program discovery (combinatorial programs)

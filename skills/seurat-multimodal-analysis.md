@@ -601,6 +601,72 @@ merged <- merge(
 
 ---
 
+## Part 6: Unpaired Cross-Modality Integration (No Bridge Required)
+
+### When to Use
+- Separate scRNA-seq and scATAC-seq experiments from the same cell pool (NOT true multiome)
+- No multiome bridge dataset available
+- Gene activity scores already computed (via `GeneActivity()` in Signac)
+
+### 6.1 Find Transfer Anchors (CCA)
+```r
+# Gene activity serves as shared feature space
+DefaultAssay(rna_ref) <- "RNA"
+DefaultAssay(atac_obj) <- "RNA"  # Gene activity scores
+
+rna_ref <- FindVariableFeatures(rna_ref, nfeatures = 3000)
+
+transfer.anchors <- FindTransferAnchors(
+  reference = rna_ref,
+  query = atac_obj,
+  features = VariableFeatures(rna_ref),
+  reference.assay = "RNA",
+  query.assay = "RNA",       # Gene activity scores
+  reduction = "cca",         # CCA for cross-modality (NOT rpca)
+  dims = 1:30
+)
+```
+
+### 6.2 Label Transfer
+```r
+predictions <- TransferData(
+  anchorset = transfer.anchors,
+  refdata = rna_ref$cell_annotations,
+  weight.reduction = atac_obj[["lsi"]],
+  dims = 2:30               # Skip LSI component 1 (depth-correlated)
+)
+atac_obj <- AddMetaData(atac_obj, predictions)
+# Check: prediction.score.max > 0.5 = well-anchored
+```
+
+### 6.3 Expression Imputation (Exploratory)
+```r
+# Impute RNA expression for all ATAC cells
+refdata <- GetAssayData(rna_ref, assay = "RNA", layer = "data")[VariableFeatures(rna_ref), ]
+imputation <- TransferData(
+  anchorset = transfer.anchors,
+  refdata = refdata,
+  weight.reduction = atac_obj[["lsi"]],
+  dims = 2:30
+)
+atac_obj[["imputed_RNA"]] <- imputation
+```
+
+### 6.4 Quality and Limitations
+
+| What works well | What does NOT |
+|----------------|---------------|
+| Label transfer (~90% accuracy) | Single-cell resolution (smoothed) |
+| Co-embedding in shared UMAP | Rare cell states (few anchors) |
+| Population-level gene signatures | Enhancer-driven genes (gene activity misses distal) |
+| Validation of ChromVAR TF activity | Dynamic range (compressed variance) |
+
+**For GRN inference:** Imputed expression is suitable for **population-level** TF-gene relationships but **not** single-cell regulatory dynamics. For publication-quality GRN, use SCENIC+ metacell approach — see [SCENIC+ skill](scenic-grn-inference.md). Seurat imputation can serve as a **validation layer** for SCENIC+ eRegulons.
+
+**Benchmark (Ma et al., Genome Biology 2023):** Seurat and scGLUE ranked as top 2 methods for unpaired RNA+ATAC integration.
+
+---
+
 ## Common Pitfalls and Solutions
 
 ### Data Preparation
