@@ -150,7 +150,22 @@ create_SCENICPLUS_object(
 
 ### Input Data Preparation (Unpaired)
 
-For converting Seurat objects to h5ad for SCENIC+, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md) Part 4.2.
+For converting Seurat/Signac objects to h5ad for SCENIC+, see [scenic-r-python-interop](scenic-r-python-interop.md):
+- **Scenario A**: Signac ATAC → pycisTopic (count matrix export)
+- **Scenario E**: Seurat RNA → AnnData (raw count preservation)
+
+## API Versions
+
+SCENIC+ has two distinct API surfaces:
+
+| API | Version | When to Use |
+|-----|---------|-------------|
+| **Snakemake pipeline** | v1.0+ release | Standard workflows, reproducible configs |
+| **Python standalone** | 1.0a2 (wrapper API) | Custom workflows, interactive exploration |
+
+The Snakemake pipeline (Sections 3-5 below) is the primary documented path. For the standalone Python API, see the [Standalone Python API](#standalone-python-api-non-snakemake) section.
+
+---
 
 ## Workflow
 
@@ -284,11 +299,98 @@ hc_eregulons = eregulons[
 tf_rss = rss.loc[rss.max(axis=1) > 0.5]
 ```
 
+## Standalone Python API (Non-Snakemake)
+
+For interactive or custom workflows, use the Python API directly instead of Snakemake. This is especially useful for unpaired data with condition-specific metacells.
+
+### scenicplus 1.0a2 (Wrapper API)
+
+```python
+from scenicplus.scenicplus_class import create_SCENICPLUS_object
+from scenicplus.wrappers.run_scenicplus import run_scenicplus
+
+# Step 1: Create SCENIC+ object
+# For UNPAIRED data: set multi_ome_mode=False
+scplus_obj = create_SCENICPLUS_object(
+    GEX_anndata=rna_adata,       # With .raw saved before normalization
+    cisTopic_obj=cistopic_obj,    # From pycisTopic with LDA model attached
+    menr=menr,                    # Merged cisTarget + DEM results dict
+    multi_ome_mode=False,         # CRITICAL for unpaired data
+    key_to_group_by="celltype",   # Metadata column for metacell grouping
+    nr_cells_per_metacells=5      # Cells sampled per metacell
+)
+
+# Step 2: Run SCENIC+ (eRegulon inference)
+run_scenicplus(
+    scplus_obj,
+    variable=["celltype"],
+    species="mus_musculus",
+    assembly="mm10",
+    tf_file="default",
+    save_path="scenic_output/",
+    biomart_host="http://www.ensembl.org",
+    upstream=[1000, 150000],
+    downstream=[1000, 150000],
+    calculate_TF_eGRN_correlation=True,
+    calculate_DEGs_DARs=True,
+    export_to_loom_file=True,
+    export_to_UCSC_file=True,
+    n_cpu=20,
+    _temp_dir="scenic_tmp/"
+)
+```
+
+> **Note:** `run_scenicplus` may not exist in all 1.0a2 builds. If import fails, check the installed package: `python -c "from scenicplus.wrappers import run_scenicplus; print('OK')"`. Alternative: use the CLI commands from `scenicplus.cli.commands`.
+
+### Condition-Specific Metacells (Python API)
+
+```python
+# Create composite celltype × condition labels
+rna_adata.obs["celltype_condition"] = (
+    rna_adata.obs["celltype"].astype(str) + "_" +
+    rna_adata.obs["condition"].astype(str)
+)
+cistopic_obj.cell_data["celltype_condition"] = (
+    cistopic_obj.cell_data["celltype"].astype(str) + "_" +
+    cistopic_obj.cell_data["condition"].astype(str)
+)
+
+# Use composite label for metacell grouping
+scplus_obj = create_SCENICPLUS_object(
+    GEX_anndata=rna_adata,
+    cisTopic_obj=cistopic_obj,
+    menr=menr,
+    multi_ome_mode=False,
+    key_to_group_by="celltype_condition",  # e.g., "cDC1A_WT", "cDC1A_WTposIL12"
+    nr_cells_per_metacells=5
+)
+```
+
+### Adaptive Per-Group Cell Counts
+
+For groups with varying cell counts, pass a dict:
+
+```python
+scplus_obj = create_SCENICPLUS_object(
+    ...,
+    key_to_group_by="celltype_condition",
+    nr_cells_per_metacells={
+        "CD8apos_cDC1_WT": 10,
+        "CD8apos_cDC1_WTposIL12": 10,
+        "Chol_cDC2B_WT": 5,         # Smaller group
+        "ISG_Mac_Batf3_KO": 5,      # Smaller group
+    }
+)
+```
+
+---
+
 ## Standalone pycistarget vs Snakemake
 
 | Approach | When to Use |
 |----------|-------------|
 | **SCENIC+ Snakemake** | Full GRN workflow, standard parameters |
+| **Standalone Python API** | Custom workflows, unpaired data with condition metacells |
 | **Standalone pycistarget** | Custom motif analysis, parameter tuning, exploratory cistrome analysis |
 
 For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, cistrome extraction), see [pycistarget skill](pycistarget-motif-enrichment.md).
@@ -326,7 +428,13 @@ For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, ci
 - [ ] `is_multiome: True` in config
 
 **For non-multiome (unpaired) data:**
-- [ ] `is_multiome: False` in config
+- [ ] `is_multiome: False` in config (or `multi_ome_mode=False` in Python API)
 - [ ] `key_to_group_by` set to cell-type annotation column
 - [ ] RNA and ATAC annotations use identical label vocabulary
 - [ ] ≥50 cells per group for robust metacells
+
+## Related Skills
+
+- [scenic-r-python-interop](scenic-r-python-interop.md) — R → Python data handoff (Signac export, RNA raw preservation)
+- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling (prerequisite)
+- [pycistarget](pycistarget-motif-enrichment.md) — Standalone motif enrichment

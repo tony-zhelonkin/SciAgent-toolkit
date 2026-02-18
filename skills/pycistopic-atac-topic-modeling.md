@@ -80,9 +80,9 @@ bw_paths, bed_paths = export_pseudobulk(
     input_data=cell_data, variable="cell_type", sample_id_col="sample_id",
     chromsizes=chromsizes, path_to_fragments=fragments_dict, n_cpu=10)
 
-# 2. MACS peak calling
+# 2. MACS peak calling (use macs3, not macs2)
 narrow_peaks = peak_calling(
-    macs_path="macs2", bed_paths=bed_paths, outdir="macs_out",
+    macs_path="macs3", bed_paths=bed_paths, outdir="macs_out",
     genome_size='mm', input_format='BEDPE', n_cpu=10)
 
 # 3. Consensus peaks (TCGA iterative filtering)
@@ -109,15 +109,43 @@ cistopic_obj.add_cell_data(cell_metadata)
 ```python
 from pycisTopic.cistopic_class import create_cistopic_object
 cistopic_obj = create_cistopic_object(fragment_matrix=count_matrix,
-    path_to_blacklist=blacklist_bed)
+    cell_names=cell_names, region_names=region_names,
+    tag_cells=False, project="my_project")
 ```
 
-**Export from Signac:**
+**Export from Signac (Seurat v5):**
 ```r
-peak_matrix <- GetAssayData(obj, assay="peaks", slot="counts")
-rownames <- paste0(seqnames(granges(obj[["peaks"]])), ":",
-    start(granges(obj[["peaks"]])), "-", end(granges(obj[["peaks"]])))
+# Seurat v5 uses layer=, not slot= (v4 used slot="counts")
+DefaultAssay(obj) <- "peaks_hub_filtered"
+peak_matrix <- GetAssayData(obj, layer = "counts")
+region_names <- paste0(seqnames(granges(obj[["peaks_hub_filtered"]])), ":",
+    start(granges(obj[["peaks_hub_filtered"]])), "-",
+    end(granges(obj[["peaks_hub_filtered"]])))
 ```
+
+For complete R → Python handoff patterns (h5ad export, fragment harmonization, metadata), see [scenic-r-python-interop](scenic-r-python-interop.md).
+
+---
+
+## Starting with an Existing Peak Atlas
+
+If you already have a consensus peak set (e.g., from ArchR, a published atlas, or a prior analysis), skip Stages 2-3 entirely:
+
+```python
+from pycisTopic.cistopic_class import create_cistopic_object_from_fragments
+
+# Use existing peaks — no pseudobulk or MACS needed
+cistopic_obj = create_cistopic_object_from_fragments(
+    path_to_fragments=fragments_dict,
+    path_to_regions="peak_atlas.bed",        # Your pre-built consensus peaks
+    path_to_blacklist="mm10_blacklist.bed",
+    valid_bc=barcodes_passing_qc
+)
+```
+
+Alternatively, if you've already counted peaks in R (e.g., via Signac), use `create_cistopic_object()` with the pre-counted matrix — see [scenic-r-python-interop](scenic-r-python-interop.md) Scenario A and D.
+
+Proceed directly to Stage 5 (LDA Topic Modeling).
 
 ---
 
@@ -150,11 +178,16 @@ cistopic_obj.add_LDA_model(model)
 ## Stage 6: Downstream Analysis
 
 ### Topic Binarization
+
+`binarize_topics()` returns a **single dict** per call (not a tuple). Call separately for region and cell targets:
+
 ```python
 from pycisTopic.topic_binarization import binarize_topics
 
-region_topics = binarize_topics(cistopic_obj, method='otsu')  # or 'ntop', ntop=3000
-cell_topics = binarize_topics(cistopic_obj, target='cell', method='li')
+# Region binarization (default target='region')
+region_topics = binarize_topics(cistopic_obj, method='otsu')      # returns dict
+# Cell binarization (separate call)
+cell_topics = binarize_topics(cistopic_obj, target='cell', method='li')  # returns dict
 ```
 
 ### Differential Accessibility
@@ -281,6 +314,12 @@ cistopic_obj.add_LDA_model(evaluate_models(models, return_model=True))
 topics = binarize_topics(cistopic_obj, method='otsu')
 imputed = impute_accessibility(cistopic_obj)
 ```
+
+## Related Skills
+
+- [scenic-r-python-interop](scenic-r-python-interop.md) — R → Python data handoff (Signac, ArchR, cisTopic R bridge)
+- [scenic-grn-inference](scenic-grn-inference.md) — SCENIC+ eRegulon inference (downstream)
+- [pycistarget-motif-enrichment](pycistarget-motif-enrichment.md) — Motif enrichment on binarized topics
 
 ## API Reference
 
