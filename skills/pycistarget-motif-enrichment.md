@@ -311,6 +311,8 @@ For separate RNA and ATAC experiments, pycistarget analysis remains the same. Th
 
 See [SCENIC+ skill](scenic-grn-inference.md) for metacell configuration.
 
+For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see [scenic-r-python-interop](scenic-r-python-interop.md).
+
 ---
 
 ## Quality Metrics
@@ -341,6 +343,7 @@ See [SCENIC+ skill](scenic-grn-inference.md) for metacell configuration.
 | Slow DEM with Shuffle | Use 'Other' contrast, or reduce motif set |
 | Empty cistromes | Check annotation version matches database |
 | Species mismatch | Ensure DB, annotation, and data use same genome |
+| Batch motif enrichment | Use `run_pycistarget` wrapper from `scenicplus.wrappers.run_pycistarget` for batch processing |
 
 ## Quick Checklist
 

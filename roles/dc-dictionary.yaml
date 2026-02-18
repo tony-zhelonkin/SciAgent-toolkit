@@ -62,6 +62,7 @@ skills:
 
   # === Phase B: Hub Mechanism ===
   - crescendo-scatac-cre-analysis      # B3: Sub-peak CRE analysis
+  - scenic-r-python-interop            # B5 BRIDGE: R→Python data handoff
   - pycistopic-atac-topic-modeling     # B5 PREREQUISITE: ATAC topic modeling
   - pycistarget-motif-enrichment       # B5 support: Motif enrichment
   - scenic-grn-inference               # B5: SCENIC+ eRegulons
