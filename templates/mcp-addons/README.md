@@ -99,3 +99,4 @@ Same format as profile templates. Each key becomes a server entry in `.mcp.json`
 | Addon | Status | Description |
 |-------|--------|-------------|
 | `jupyter` | Placeholder | Jupyter MCP Server for notebook interaction |
+| `notebook-tools` | Active | Lightweight read/search/navigate tools for .ipynb files (no server needed) |
