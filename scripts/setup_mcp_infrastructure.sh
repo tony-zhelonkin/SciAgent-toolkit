@@ -58,6 +58,7 @@ INSTALL_MCP=true
 INSTALL_PUBMED=true
 INSTALL_TOOLUNIVERSE=true
 INSTALL_PAL=true
+INSTALL_JUPYTER=false  # Addon — opt-in only
 
 # Parse command-line arguments
 while [[ $# -gt 0 ]]; do
@@ -110,6 +111,10 @@ while [[ $# -gt 0 ]]; do
             INSTALL_PAL=false
             shift
             ;;
+        --with-jupyter)
+            INSTALL_JUPYTER=true
+            shift
+            ;;
         --help)
             grep '^#' "$0" | grep -v '#!/usr/bin/env' | sed 's/^# //' | sed 's/^#//'
             exit 0
@@ -143,6 +148,8 @@ echo "    - sequential:   $([ "$INSTALL_MCP" = true ] && echo "YES" || echo "SKI
 echo "    - PubMed:       $([ "$INSTALL_PUBMED" = true ] && echo "YES" || echo "SKIP")"
 echo "    - ToolUniverse: $([ "$INSTALL_TOOLUNIVERSE" = true ] && echo "YES" || echo "SKIP")"
 echo "    - PAL:          $([ "$INSTALL_PAL" = true ] && echo "YES" || echo "SKIP")"
+echo "  Addons:"
+echo "    - Jupyter:      $([ "$INSTALL_JUPYTER" = true ] && echo "YES" || echo "SKIP (use --with-jupyter)")"
 echo ""
 
 # ============================================================================
@@ -293,7 +300,27 @@ else
 fi
 
 # ============================================================================
-# 8. Final Configuration
+# 8. Jupyter MCP Addon (opt-in)
+# ============================================================================
+if [ "$INSTALL_JUPYTER" = true ]; then
+    separator "Installing Jupyter MCP Addon"
+    if [ -f "${SCRIPT_DIR}/mcp_servers/setup_jupyter.sh" ]; then
+        bash "${SCRIPT_DIR}/mcp_servers/setup_jupyter.sh" || {
+            log_error "Jupyter MCP setup failed"
+            exit 1
+        }
+    else
+        log_warn "setup_jupyter.sh not found — skipping Jupyter setup"
+        log_info "The Jupyter addon template is available but setup script is deferred."
+        log_info "You can still enable the addon manually:"
+        log_info "  ${SCRIPT_DIR}/manage-addon.sh enable jupyter --project-dir ${PROJECT_DIR}"
+    fi
+else
+    log_warn "Skipping Jupyter MCP addon (use --with-jupyter to install)"
+fi
+
+# ============================================================================
+# 9. Final Configuration (renumbered from 8)
 # ============================================================================
 separator "Finalizing Configuration"
 
@@ -317,7 +344,7 @@ else
 fi
 
 # ============================================================================
-# 9. Verification
+# 10. Verification
 # ============================================================================
 separator "Verification"
 
@@ -417,6 +444,7 @@ if [ $CHECKS_FAILED -eq 0 ]; then
     [ "$INSTALL_PUBMED" = true ] && echo "    - pubmed: Biomedical literature access"
     [ "$INSTALL_TOOLUNIVERSE" = true ] && echo "    - tooluniverse: 600+ scientific tools"
     [ "$INSTALL_PAL" = true ] && echo "    - pal: Collaboration, planning, and code analysis"
+    [ "$INSTALL_JUPYTER" = true ] && echo "    - jupyter: Jupyter MCP Server (addon)"
     echo ""
 
     log_info "Configuration files:"

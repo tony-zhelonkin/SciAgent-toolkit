@@ -190,7 +190,93 @@ else
     fi
 fi
 
-log_ok "Updated .mcp.json"
+log_ok "Updated .mcp.json (profile: ${PROFILE})"
+
+# --------------------------
+# Addon Merge Layer
+# --------------------------
+# Merge active addons into .mcp.json (preserves addons across profile switches)
+ADDONS_STATE_PATH="${PROJECT_DIR}/.claude/active-addons.json"
+ADDONS_TEMPLATE_DIR="${TOOLKIT_DIR}/templates/mcp-addons"
+
+if [ -f "${ADDONS_STATE_PATH}" ] && command -v python3 &>/dev/null; then
+    export PROJECT_DIR="${PROJECT_DIR}"
+    export TOOLKIT_DIR="${TOOLKIT_DIR}"
+    python3 << 'ADDON_PYEOF'
+import json
+import os
+import re
+import sys
+
+project_dir = os.environ.get('PROJECT_DIR', '')
+toolkit_dir = os.environ.get('TOOLKIT_DIR', '')
+mcp_json_path = os.path.join(project_dir, '.mcp.json')
+state_path = os.path.join(project_dir, '.claude', 'active-addons.json')
+addons_template_dir = os.path.join(toolkit_dir, 'templates', 'mcp-addons')
+
+# Read .mcp.json
+try:
+    with open(mcp_json_path) as f:
+        mcp_config = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError) as e:
+    sys.exit(0)
+
+# Read active-addons.json
+try:
+    with open(state_path) as f:
+        state = json.load(f)
+except (FileNotFoundError, json.JSONDecodeError):
+    sys.exit(0)
+
+addons = state.get('addons', {})
+merged_names = []
+
+for addon_name, addon_state in addons.items():
+    if not addon_state.get('enabled', False):
+        continue
+
+    template_path = os.path.join(addons_template_dir, f'{addon_name}.addon.json')
+    if not os.path.exists(template_path):
+        print(f"Warning: Addon template not found: {addon_name}", file=sys.stderr)
+        continue
+
+    try:
+        with open(template_path) as f:
+            addon_template = json.load(f)
+    except json.JSONDecodeError as e:
+        print(f"Warning: Invalid addon template {addon_name}: {e}", file=sys.stderr)
+        continue
+
+    addon_servers = addon_template.get('mcpServers', {})
+    if 'mcpServers' not in mcp_config:
+        mcp_config['mcpServers'] = {}
+
+    for server_name, server_config in addon_servers.items():
+        mcp_config['mcpServers'][server_name] = server_config
+        merged_names.append(server_name)
+
+if merged_names:
+    # Re-substitute env vars in the merged result
+    content = json.dumps(mcp_config, indent=2)
+    def env_replace(match):
+        var_name = match.group(1)
+        return os.environ.get(var_name, '')
+    content = re.sub(r'\$\{([^}]+)\}', env_replace, content)
+
+    with open(mcp_json_path, 'w') as f:
+        f.write(content)
+
+    names = ', '.join(merged_names)
+    print(f"Merged addon server(s): {names}", file=sys.stderr)
+ADDON_PYEOF
+
+    if [ $? -eq 0 ]; then
+        log_ok "Addon merge complete"
+    fi
+else
+    # No active-addons.json — addon merge is a no-op (backward compatible)
+    :
+fi
 
 # Check if .mcp.json is git-ignored (security check)
 if git -C "${PROJECT_DIR}" check-ignore -q "${PROJECT_DIR}/.mcp.json" 2>/dev/null; then
