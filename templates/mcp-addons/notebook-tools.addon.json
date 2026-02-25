@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "name": "notebook-tools",
+    "description": "Lightweight notebook read/search/navigate tools for AI agents (no Jupyter server needed)",
+    "requires_setup": false,
+    "context_tokens_estimate": "~2k",
+    "runtime_dependency": "None — reads .ipynb files directly",
+    "env_vars": []
+  },
+  "mcpServers": {
+    "notebook-tools": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/tony-zhelonkin/notebook-tools-mcp.git",
+        "notebook-tools-mcp"
+      ]
+    }
+  }
+}
