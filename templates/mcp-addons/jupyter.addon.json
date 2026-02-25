@@ -1,0 +1,22 @@
+{
+  "_meta": {
+    "name": "jupyter",
+    "description": "Jupyter MCP Server - native notebook interaction for AI agents",
+    "requires_setup": true,
+    "setup_script": "setup_jupyter.sh",
+    "context_tokens_estimate": "~5k",
+    "runtime_dependency": "JupyterLab server (headless OK)",
+    "env_vars": ["JUPYTER_URL", "JUPYTER_TOKEN"]
+  },
+  "mcpServers": {
+    "jupyter": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["jupyter-mcp-server@latest"],
+      "env": {
+        "JUPYTER_URL": "${JUPYTER_URL}",
+        "JUPYTER_TOKEN": "${JUPYTER_TOKEN}"
+      }
+    }
+  }
+}
