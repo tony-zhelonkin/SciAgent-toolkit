@@ -6,7 +6,8 @@
     "setup_script": "setup_jupyter.sh",
     "context_tokens_estimate": "~5k",
     "runtime_dependency": "JupyterLab server (headless OK)",
-    "env_vars": ["JUPYTER_URL", "JUPYTER_TOKEN"]
+    "env_vars": ["JUPYTER_URL", "JUPYTER_TOKEN"],
+    "tool_permissions": []
   },
   "mcpServers": {
     "jupyter": {
