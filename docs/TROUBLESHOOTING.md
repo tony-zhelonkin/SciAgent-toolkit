@@ -758,6 +758,86 @@ ls -la *.md 2>/dev/null | head -5
 
 ---
 
+## MCP Addon Tools Denied in Subagents
+
+### Symptoms
+
+- MCP addon tools (like `nb_search`, `nb_read_cell`) are denied when called from Claude Code subagents (Task tool)
+- The main conversation can use the tools (after interactive approval), but subagents auto-deny them
+- Only tools that the user has manually approved at least once work; the rest are silently blocked
+
+### Cause
+
+`manage-addon.sh` (before the fix) added MCP server entries to `.mcp.json` but never added `mcp__<server>__<tool>` entries to `permissions.allow` in `.claude/settings.local.json`. Claude Code subagents run autonomously and can't prompt interactively, so unapproved MCP tools are auto-denied.
+
+### What was changed (4 files)
+
+| File | Change |
+|------|--------|
+| `templates/mcp-addons/notebook-tools.addon.json` | Added `tool_permissions` array with all 11 tool names |
+| `templates/mcp-addons/jupyter.addon.json` | Added empty `tool_permissions` array (ready for future population) |
+| `scripts/manage-addon.sh` | `update_settings_local()` now reads `tool_permissions` from all enabled addon templates, strips stale `mcp__*` entries, and merges current addon permissions into `permissions.allow` |
+| `scripts/switch-mcp-profile.sh` | Settings generation block now reads `active-addons.json` + addon templates to include tool permissions alongside default permissions |
+
+### How the permission flow works
+
+**Addon template** (e.g. `notebook-tools.addon.json`):
+```json
+{
+  "_meta": {
+    "tool_permissions": [
+      "mcp__notebook-tools__nb_overview",
+      "mcp__notebook-tools__nb_read_cell",
+      "..."
+    ]
+  }
+}
+```
+
+**Enable flow:** `cmd_enable()` → `update_settings_local()` reads all enabled addons' `tool_permissions`, strips old `mcp__*` entries from `permissions.allow`, appends current ones (deduplicated).
+
+**Disable flow:** `cmd_disable()` sets `enabled: false` first → `update_settings_local()` rebuilds from only enabled addons, so disabled addon's permissions are removed.
+
+**Profile switch flow:** `switch-mcp-profile.sh` reads `active-addons.json` + addon templates to include addon tool permissions in the fresh `settings.local.json` it writes, so permissions survive profile changes.
+
+### Verification
+
+After enabling an addon:
+```bash
+# Check permissions were added
+jq '.permissions.allow' .claude/settings.local.json | grep mcp__notebook-tools
+
+# Test: disable should remove them
+./scripts/manage-addon.sh disable notebook-tools --project-dir .
+jq '.permissions.allow' .claude/settings.local.json | grep mcp__notebook-tools  # should return empty
+
+# Test: enable should add them back
+./scripts/manage-addon.sh enable notebook-tools --project-dir .
+jq '.permissions.allow' .claude/settings.local.json | grep mcp__notebook-tools  # should show 11 entries
+
+# Test: profile switch preserves addon permissions
+./scripts/switch-mcp-profile.sh coding
+jq '.permissions.allow' .claude/settings.local.json | grep mcp__notebook-tools  # should still show 11 entries
+```
+
+### For addon authors
+
+When creating a new addon template, always include a `tool_permissions` array in `_meta` listing every `mcp__<server>__<tool>` that the addon provides. Without this, subagents will be unable to use the addon's tools:
+
+```json
+{
+  "_meta": {
+    "name": "my-addon",
+    "tool_permissions": [
+      "mcp__my-addon__tool_one",
+      "mcp__my-addon__tool_two"
+    ]
+  }
+}
+```
+
+---
+
 ## Getting More Help
 
 - [INSTALLATION.md](INSTALLATION.md) - Full installation guide

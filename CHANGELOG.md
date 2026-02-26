@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **MCP addon tool permissions**: `manage-addon.sh` now reads `tool_permissions` from addon templates and merges them into `settings.local.json` `permissions.allow`. Previously, addon tools were denied in subagents (Task tool) because subagents can't prompt interactively for permission.
+  - `manage-addon.sh`: `update_settings_local()` strips stale `mcp__*` entries and rebuilds from enabled addons
+  - `switch-mcp-profile.sh`: Settings generation includes addon tool permissions (survives profile switches)
+  - `notebook-tools.addon.json`: Added `tool_permissions` array with all 11 tool names
+  - `jupyter.addon.json`: Added empty `tool_permissions` array for future use
+
 ## [2.0.0] - 2025-12-16
 
 ### Added

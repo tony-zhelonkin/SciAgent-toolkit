@@ -479,19 +479,24 @@ except Exception as e:
     fi
 fi
 
-# Update .claude/settings.local.json with enabled servers
+# Update .claude/settings.local.json with enabled servers + addon tool permissions
 CLAUDE_DIR="${PROJECT_DIR}/.claude"
 mkdir -p "${CLAUDE_DIR}"
 
-# Extract server names from .mcp.json
+# Extract server names from .mcp.json and merge addon tool permissions
 if command -v python3 &>/dev/null; then
     python3 << PYEOF
 import json
 import os
+import sys
 
-claude_dir = os.path.join(os.environ.get('PROJECT_DIR', ''), '.claude')
-mcp_json_path = os.path.join(os.environ.get('PROJECT_DIR', ''), '.mcp.json')
+project_dir = os.environ.get('PROJECT_DIR', '')
+toolkit_dir = os.environ.get('TOOLKIT_DIR', '')
+claude_dir = os.path.join(project_dir, '.claude')
+mcp_json_path = os.path.join(project_dir, '.mcp.json')
 settings_local_path = os.path.join(claude_dir, 'settings.local.json')
+state_path = os.path.join(claude_dir, 'active-addons.json')
+addons_template_dir = os.path.join(toolkit_dir, 'templates', 'mcp-addons')
 
 os.makedirs(claude_dir, exist_ok=True)
 
@@ -505,31 +510,62 @@ except Exception as e:
     sys.stderr.write(f'Warning: Could not read .mcp.json: {e}\n')
     servers = []
 
-# Define default permissions, including the corrected bash globbing
-default_permissions = {
-    "allow": [
-        "Fs(read:*)",
-        "Fs(write:*)",
-        "Shell(git:*)",
-        "Shell(npx:*)",
-        "Shell(npm:*)",
-        "Shell(uvx:*)",
-        "Bash(for f in :*)",
-        "Web(fetch:*)",
-        "Web(google_web_search:*)"
-    ],
-    "deny": []
-}
+# Define default permissions
+default_permissions = [
+    "Fs(read:*)",
+    "Fs(write:*)",
+    "Shell(git:*)",
+    "Shell(npx:*)",
+    "Shell(npm:*)",
+    "Shell(uvx:*)",
+    "Bash(for f in :*)",
+    "Web(fetch:*)",
+    "Web(google_web_search:*)"
+]
+
+# Collect tool permissions from all enabled addons
+addon_permissions = []
+try:
+    with open(state_path) as f:
+        state = json.load(f)
+    for addon_name, addon_state in state.get('addons', {}).items():
+        if not addon_state.get('enabled', False):
+            continue
+        template_path = os.path.join(addons_template_dir, f'{addon_name}.addon.json')
+        if not os.path.exists(template_path):
+            continue
+        with open(template_path) as f:
+            addon_template = json.load(f)
+        perms = addon_template.get('_meta', {}).get('tool_permissions', [])
+        addon_permissions.extend(perms)
+except (FileNotFoundError, json.JSONDecodeError):
+    pass  # No active-addons.json — skip
+
+# Merge: default permissions + addon tool permissions (deduplicated)
+all_permissions = default_permissions + addon_permissions
+seen = set()
+deduped = []
+for entry in all_permissions:
+    if entry not in seen:
+        seen.add(entry)
+        deduped.append(entry)
 
 settings_content = {
     "enabledMcpjsonServers": servers,
-    "permissions": default_permissions
+    "permissions": {
+        "allow": deduped,
+        "deny": []
+    }
 }
 
 with open(settings_local_path, "w") as f:
     json.dump(settings_content, f, indent=2)
 
-print(f"Updated {settings_local_path}")
+addon_count = len(addon_permissions)
+msg = f"Updated {settings_local_path}"
+if addon_count > 0:
+    msg += f" (includes {addon_count} addon tool permission(s))"
+print(msg)
 PYEOF
 else
     log_warn "python3 not found - settings.local.json not updated"

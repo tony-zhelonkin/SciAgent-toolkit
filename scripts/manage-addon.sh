@@ -216,7 +216,7 @@ if merged_count > 0:
 PYEOF
 }
 
-# Update settings.local.json to include addon servers
+# Update settings.local.json to include addon servers and tool permissions
 update_settings_local() {
     local project_dir="$1"
     local mcp_json="${project_dir}/.mcp.json"
@@ -233,10 +233,14 @@ update_settings_local() {
     python3 << 'PYEOF'
 import json
 import os
+import sys
 
 project_dir = os.environ.get('PROJECT_DIR', '')
+toolkit_dir = os.environ.get('TOOLKIT_DIR', '')
 mcp_json_path = os.path.join(project_dir, '.mcp.json')
 settings_path = os.path.join(project_dir, '.claude', 'settings.local.json')
+state_path = os.path.join(project_dir, '.claude', 'active-addons.json')
+addons_template_dir = os.path.join(toolkit_dir, 'templates', 'mcp-addons')
 
 # Read current server list from .mcp.json
 try:
@@ -244,21 +248,66 @@ try:
         mcp_config = json.load(f)
     servers = list(mcp_config.get('mcpServers', {}).keys())
 except Exception:
-    import sys; sys.exit(0)
+    sys.exit(0)
 
 # Read current settings.local.json
 try:
     with open(settings_path) as f:
         settings = json.load(f)
 except Exception:
-    import sys; sys.exit(0)
+    sys.exit(0)
 
 # Update enabledMcpjsonServers
 settings['enabledMcpjsonServers'] = servers
 
+# Collect tool permissions from all enabled addons
+addon_permissions = []
+try:
+    with open(state_path) as f:
+        state = json.load(f)
+    for addon_name, addon_state in state.get('addons', {}).items():
+        if not addon_state.get('enabled', False):
+            continue
+        template_path = os.path.join(addons_template_dir, f'{addon_name}.addon.json')
+        if not os.path.exists(template_path):
+            continue
+        with open(template_path) as f:
+            addon_template = json.load(f)
+        perms = addon_template.get('_meta', {}).get('tool_permissions', [])
+        addon_permissions.extend(perms)
+except (FileNotFoundError, json.JSONDecodeError):
+    pass  # No active-addons.json or parse error — skip
+
+# Merge addon tool permissions into permissions.allow (deduplicated)
+if 'permissions' not in settings:
+    settings['permissions'] = {'allow': [], 'deny': []}
+if 'allow' not in settings['permissions']:
+    settings['permissions']['allow'] = []
+
+allow_list = settings['permissions']['allow']
+
+# Remove any stale mcp__*__* entries that are NOT in the current addon_permissions set
+# (This handles disable: old perms get cleaned, new ones get added)
+non_addon_entries = [e for e in allow_list if not e.startswith('mcp__')]
+# Keep mcp__ entries that belong to currently enabled addons
+allow_list = non_addon_entries + addon_permissions
+
+# Deduplicate while preserving order
+seen = set()
+deduped = []
+for entry in allow_list:
+    if entry not in seen:
+        seen.add(entry)
+        deduped.append(entry)
+
+settings['permissions']['allow'] = deduped
+
 # Write back
 with open(settings_path, 'w') as f:
     json.dump(settings, f, indent=2)
+
+if addon_permissions:
+    print(f"Merged {len(addon_permissions)} tool permission(s) into settings.local.json")
 PYEOF
 }
 

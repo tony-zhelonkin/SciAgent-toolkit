@@ -5,7 +5,20 @@
     "requires_setup": false,
     "context_tokens_estimate": "~2k",
     "runtime_dependency": "None — reads .ipynb files directly",
-    "env_vars": []
+    "env_vars": [],
+    "tool_permissions": [
+      "mcp__notebook-tools__nb_overview",
+      "mcp__notebook-tools__nb_read_cell",
+      "mcp__notebook-tools__nb_read_cells",
+      "mcp__notebook-tools__nb_search",
+      "mcp__notebook-tools__nb_metadata",
+      "mcp__notebook-tools__nb_read_section",
+      "mcp__notebook-tools__nb_search_dir",
+      "mcp__notebook-tools__nb_headings",
+      "mcp__notebook-tools__nb_write_cell",
+      "mcp__notebook-tools__nb_insert_cell",
+      "mcp__notebook-tools__nb_delete_cell"
+    ]
   },
   "mcpServers": {
     "notebook-tools": {
