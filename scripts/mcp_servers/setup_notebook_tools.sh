@@ -58,17 +58,44 @@ fi
 # ============================================================================
 # 2. Install package
 # ============================================================================
+LOCAL_DIR="${PROJECT_DIR}/01_modules/notebook-tools-mcp"
+NEEDS_INSTALL=false
+
 if ${PYTHON_CMD} -c "import notebook_tools_mcp" 2>/dev/null; then
-    log_ok "notebook-tools-mcp is already installed"
+    # Check if local submodule version is newer than installed version
+    if [ -d "${LOCAL_DIR}" ] && [ -f "${LOCAL_DIR}/pyproject.toml" ]; then
+        INSTALLED_VER=$(${PYTHON_CMD} -c "import notebook_tools_mcp; print(notebook_tools_mcp.__version__)" 2>/dev/null || echo "0.0.0")
+        SOURCE_VER=$(${PYTHON_CMD} -c "
+import configparser, pathlib
+p = pathlib.Path('${LOCAL_DIR}/pyproject.toml')
+# Simple TOML version extraction (avoids tomllib dep on py3.10)
+for line in p.read_text().splitlines():
+    if line.strip().startswith('version'):
+        print(line.split('=')[1].strip().strip('\"'))
+        break
+" 2>/dev/null || echo "0.0.0")
+        if [ "${INSTALLED_VER}" != "${SOURCE_VER}" ]; then
+            log_info "Version mismatch: installed=${INSTALLED_VER}, source=${SOURCE_VER}"
+            NEEDS_INSTALL=true
+        else
+            log_ok "notebook-tools-mcp ${INSTALLED_VER} is already installed and up to date"
+        fi
+    else
+        log_ok "notebook-tools-mcp is already installed"
+    fi
 else
-    log_info "Installing notebook-tools-mcp from ${REPO_URL}..."
+    NEEDS_INSTALL=true
+fi
+
+if [ "${NEEDS_INSTALL}" = true ]; then
+    log_info "Installing notebook-tools-mcp..."
 
     # Prefer local clone if present (submodule), otherwise install from git
-    LOCAL_DIR="${PROJECT_DIR}/01_modules/notebook-tools-mcp"
     if [ -d "${LOCAL_DIR}" ] && [ -f "${LOCAL_DIR}/pyproject.toml" ]; then
         log_info "Found local clone at ${LOCAL_DIR}, installing editable"
         pip install -e "${LOCAL_DIR}"
     else
+        log_info "Installing from ${REPO_URL}"
         pip install "git+${REPO_URL}"
     fi
 fi
