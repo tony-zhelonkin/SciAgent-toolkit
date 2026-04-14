@@ -45,6 +45,10 @@ skills:
   - bulk-rnaseq-gsea-master-tables    # GSEA result normalization & master table assembly
   - bulk-rnaseq-gsea-visualization    # GSEA plots (dotplot, running sum, barplot) & pathway explorer
   - gatom-metabolomic-predictions      # GATOM metabolomics
+  # DecoupleR activity inference
+  - decoupler-tf-activity              # TF activity via ULM + CollecTRI
+  - progeny-pathway-activity           # Pathway activity via MLM + PROGENy
+  - decoupler-activity-visualization   # TF & PROGENy visualization
   # RNA velocity & trajectory inference
   - starsolo-spliced-unspliced         # STARsolo Velocyto mode: spliced/unspliced from FASTQ
   - rna-velocity-trajectory            # scVelo, VeloVI, Chronocell, CellRank
