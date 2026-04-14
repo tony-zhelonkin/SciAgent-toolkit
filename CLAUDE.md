@@ -47,10 +47,16 @@ Four-tier system:
 ### Role System
 - `roles/` - Role definitions (YAML files)
 - `roles/base.yaml` - Default bioinformatics analysis role
-- `agents/` - Canonical location for custom Claude agents
-- `skills/` - Canonical location for custom Claude skills
+- `agents/` - Canonical location for custom Claude agents (flat `.md` files)
+- `skills/` - Canonical location for custom Claude skills (directory format)
+  - `skills/<name>/SKILL.md` - canonical entry point for each skill
+  - `skills/<name>/{references,scripts,checks,assets}/` - optional supporting dirs
+  - `skills/_TEMPLATE/` - starter template (copy to author new skills)
+  - `skills/skill-creator/` - reference Rich-tier implementation
 - `.claude/agents/` - Symlinked agents (populated by `activate-role.sh`)
 - `.claude/skills/` - Symlinked skills (populated by `activate-role.sh`)
+  - Directory-format skills are symlinked as directories (preserves supporting dirs)
+  - Legacy flat-format skills are still supported; see `skills/README.md` for the format guide
 
 ### Template System
 - `templates/vendor/` - AI context templates installed by `setup-ai.sh`
@@ -334,7 +340,10 @@ skills: []
 2. **Create directories**: `.claude/agents/` and `.claude/skills/`
 3. **Clear existing symlinks**: Removes old role configuration
 4. **Symlink agents**: Links each agent from `agents/<name>.md` to `.claude/agents/`
-5. **Symlink skills**: Links each skill from `skills/<name>.md` to `.claude/skills/`
+5. **Symlink skills** (directory-first, flat fallback):
+   - If `skills/<name>/SKILL.md` exists → symlinks the whole directory to `.claude/skills/<name>`
+   - Otherwise if `skills/<name>.md` exists → symlinks the file to `.claude/skills/<name>.md`
+   - Logs `(dir)` or `(flat)` per skill to indicate which format resolved
 6. **Suggest MCP profile**: Displays recommended `switch-mcp-profile.sh` command
 
 #### Creating Custom Roles

@@ -159,15 +159,24 @@ for agent in $(get_yaml_list "$ROLE_FILE" "agents"); do
 done
 
 # Symlink skills
+# Resolves skills in two formats (directory-first, then flat):
+#   1. Canonical: skills/<name>/SKILL.md   -> symlinks the whole directory
+#   2. Legacy:    skills/<name>.md         -> symlinks the single file
 SKILLS_COUNT=0
 for skill in $(get_yaml_list "$ROLE_FILE" "skills"); do
-    src="${SKILLS_DIR}/${skill}.md"
-    if [ -f "$src" ]; then
-        ln -sf "$src" "${CLAUDE_DIR}/skills/${skill}.md"
-        log_ok "  Skill: ${skill}"
+    dir_src="${SKILLS_DIR}/${skill}"
+    file_src="${SKILLS_DIR}/${skill}.md"
+    if [ -f "${dir_src}/SKILL.md" ]; then
+        # -sfn: replace existing symlink without following it (critical for dirs)
+        ln -sfn "$dir_src" "${CLAUDE_DIR}/skills/${skill}"
+        log_ok "  Skill: ${skill} (dir)"
+        SKILLS_COUNT=$((SKILLS_COUNT + 1))
+    elif [ -f "$file_src" ]; then
+        ln -sf "$file_src" "${CLAUDE_DIR}/skills/${skill}.md"
+        log_ok "  Skill: ${skill} (flat)"
         SKILLS_COUNT=$((SKILLS_COUNT + 1))
     else
-        log_warn "  Skill not found: ${skill} (expected at ${src})"
+        log_warn "  Skill not found: ${skill} (expected ${dir_src}/SKILL.md or ${file_src})"
     fi
 done
 
