@@ -44,6 +44,7 @@ skills:
   - bulk-rnaseq-gsea-custom-db        # Non-MSigDB database prep & GSEA (MitoCarta, TransportDB, etc.)
   - bulk-rnaseq-gsea-master-tables    # GSEA result normalization & master table assembly
   - bulk-rnaseq-gsea-visualization    # GSEA plots (dotplot, running sum, barplot) & pathway explorer
+  - bulk-rnaseq-pathway-explorer      # Interactive HTML pathway/TF/PROGENy/TE dashboards from master tables
   - gatom-metabolomic-predictions      # GATOM metabolomics
   # DecoupleR activity inference
   - decoupler-tf-activity              # TF activity via ULM + CollecTRI
