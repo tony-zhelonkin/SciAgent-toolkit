@@ -20,6 +20,7 @@ metadata:
     - mitocarta
     - transportdb
     - bulk-rnaseq
+    - bundled-databases
   complementary-skills:
     - bulk-rnaseq-gsea-msigdb
     - bulk-rnaseq-gsea-master-tables
@@ -52,10 +53,37 @@ The core abstraction is **T2G/T2N** -- every external database, regardless of it
 
 ---
 
+### Bundled Databases (Pre-packaged)
+
+The RNAseq-toolkit ships these databases ready for immediate use via `load_reference_db()`:
+
+| Database | Name | Description |
+|----------|------|-------------|
+| `mitopathways` | MitoPathways 3.0 | Hierarchical mitochondrial pathways (human, converted to mouse) |
+| `mitoxplorer` | mitoXplorer 3.0 | Mitochondrial functional classifications (native mouse) |
+| `mito_unified` | Unified Mito | MitoPathways + mitoXplorer merged with Jaccard deduplication |
+| `transportdb` | TransportDB 2.0 | Membrane transporter families (TCDB) |
+
+```r
+source(file.path(toolkit_dir, "scripts/GSEA/GSEA_processing/load_reference_db.R"))
+db <- load_reference_db("mito_unified")
+# Returns list(T2G, T2N, source, created) -- ready for clusterProfiler::GSEA()
+```
+
+For GATOM network files (not bundled, ~24MB), use `download_gatom_references()`.
+
+Each bundled database includes `CITATIONS.bib` for proper attribution. Use `get_reference_db_info("mitopathways")` to retrieve citation info.
+
+---
+
 ## Decision Tree
 
 ```
 Have a non-MSigDB gene set database to run GSEA on?
+|
++-- Is this a bundled database (mito, transportdb)?
+|   +-- YES --> load_reference_db("name") -- done, skip to GSEA execution
+|   +-- NO  --> continue below (BYOD workflow)
 |
 +-- What format is the raw file?
 |   |

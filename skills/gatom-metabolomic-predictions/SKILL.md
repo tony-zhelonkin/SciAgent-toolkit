@@ -86,7 +86,14 @@ Handle duplicates: keep lowest p-value per gene.
 | Combined | Above + `gene2reaction.combined.*.tsv` |
 | Rhea-lipid | `network.rhea.lipids.rds`, `met.lipids.db.rds`, gene2reaction file; use `topology="metabolites"` |
 
-Download: `http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/`
+Download (manual): `http://artyomovlab.wustl.edu/publications/supp_materials/GATOM/`
+
+**Recommended download method (RNAseq-toolkit helper):**
+```r
+source(file.path(toolkit_dir, "scripts/GSEA/GSEA_processing/load_reference_db.R"))
+download_gatom_references(dest_dir = "00_data/references/gatom")
+# Downloads: network.kegg.rds, network.combined.rds, met.*.rds, org.Mm.eg.gatom.anno.rds, gene2reaction TSVs
+```
 
 ## Sensitivity Analysis
 k.gene is heuristic—run multiple values:
