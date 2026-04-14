@@ -39,7 +39,11 @@ skills:
   - single-cell-rna-qc                 # MAD-based QC filtering for scRNA-seq
   # Data conversion
   - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
-  # RNA-seq analysis
+  # Bulk RNA-seq GSEA pipeline
+  - bulk-rnaseq-gsea-msigdb           # MSigDB GSEA execution (fgsea, clusterProfiler)
+  - bulk-rnaseq-gsea-custom-db        # Non-MSigDB database prep & GSEA (MitoCarta, TransportDB, etc.)
+  - bulk-rnaseq-gsea-master-tables    # GSEA result normalization & master table assembly
+  - bulk-rnaseq-gsea-visualization    # GSEA plots (dotplot, running sum, barplot) & pathway explorer
   - gatom-metabolomic-predictions      # GATOM metabolomics
   # RNA velocity & trajectory inference
   - starsolo-spliced-unspliced         # STARsolo Velocyto mode: spliced/unspliced from FASTQ
