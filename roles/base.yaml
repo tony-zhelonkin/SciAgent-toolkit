@@ -33,6 +33,10 @@ agents:
 # Skills to activate (reference by filename without .md)
 # These will be symlinked from skills/ to .claude/skills/
 skills:
+  # scverse Foundation
+  - anndata                            # AnnData data structure — foundation for scverse ecosystem
+  - scanpy                             # Standard scRNA-seq QC, clustering, visualization
+  - single-cell-rna-qc                 # MAD-based QC filtering for scRNA-seq
   # Data conversion
   - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
   # RNA-seq analysis
@@ -64,3 +68,5 @@ skills:
   - treearches-hierarchy-learning      # treeArches hierarchical cell type learning
   # Multiomics integration
   - scglue-unpaired-multiomics-integration  # scGLUE for unpaired scRNA+scATAC integration
+  # Meta — skill authoring
+  - skill-creator                       # Meta-skill: create, evaluate, improve Claude Code skills

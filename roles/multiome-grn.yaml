@@ -1,0 +1,66 @@
+# multiome-grn.yaml - Multiome Gene Regulatory Network Inference
+#
+# Stack: SCENIC+, scGLUE, CREscendo, pycisTopic, scVI/scANVI
+# Tools: paired & unpaired RNA+ATAC integration, eRegulon inference,
+#        sub-peak CRE analysis, TF motif enrichment
+#
+# Use when:
+#   - Building enhancer-driven GRNs from paired or unpaired RNA+ATAC
+#   - SCENIC+ eRegulon inference (metacell mode for unpaired)
+#   - scGLUE cross-modality integration
+#   - CREscendo sub-peak CRE differential analysis
+#   - Hub mechanism / external validation workflows
+#
+# Excludes:
+#   - Trajectory / velocity
+#   - Basic scRNA-seq QC (use scrna-atlas for that)
+#   - Seurat multimodal (R-side)
+
+name: multiome-grn
+description: Multiome GRN inference — SCENIC+, scGLUE, CREscendo, pycisTopic, scVI/scANVI
+mcp_profile: hybrid-research
+
+agents:
+  # Research & Documentation
+  - docs-librarian            # Tool/doc lookup for bioinformatics tools
+  - bio-interpreter           # Biological mechanism interpretation
+
+  # Data Exploration & Analysis
+  - insight-explorer          # Explore analysis results with skepticism
+
+  # Publication & Documentation
+  - captions                  # Figure caption generation
+  - doc-curator               # Documentation cleanup
+
+  # Code Review & Quality
+  - code-reviewer             # Review generated scripts
+
+  # Session Management
+  - handoff                   # Session handoff documentation
+
+skills:
+  # === Foundation ===
+  - anndata                                    # AnnData I/O, subsetting
+  - anndatar-seurat-scanpy-conversion          # Seurat <-> h5ad conversion
+  - multimodal-anndata-mudata                  # Multi-assay Seurat -> MuData for unpaired RNA+ATAC
+  - scvi-framework                             # scvi-tools shared patterns
+
+  # === Module Definition & DE ===
+  - genenmf-metaprogram-discovery              # NMF meta-program discovery
+
+  # === ATAC Analysis ===
+  - scvi-peakvi                                # ATAC embedding (fallback if ChromVAR fails)
+  - crescendo-scatac-cre-analysis              # Sub-peak CRE analysis
+  - pycistopic-atac-topic-modeling             # ATAC topic modeling (SCENIC+ prerequisite)
+  - pycistarget-motif-enrichment               # TF motif enrichment
+
+  # === GRN Inference ===
+  - scenic-grn-inference                       # SCENIC+ eRegulon inference (multiome + unpaired)
+
+  # === Cross-Modality Integration ===
+  - scglue-unpaired-multiomics-integration     # scGLUE for unpaired scRNA+scATAC
+  - scvi-scanvi                                # Semi-supervised label transfer
+  - scvi-scarches-reference-mapping            # Query-to-reference projection
+
+  # === Discovery ===
+  - single-cell-vector-search                  # Atlas-scale similarity search

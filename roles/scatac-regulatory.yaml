@@ -1,0 +1,59 @@
+# scatac-regulatory.yaml - scATAC-seq Regulatory Analysis
+#
+# Stack: CREscendo, ChromVAR, TF footprinting, pycisTopic, SCENIC+
+# Tools: chromatin accessibility, TF activity, differential accessibility,
+#        peak-to-gene linkage, motif enrichment
+#
+# Use when:
+#   - scATAC-seq differential accessibility analysis
+#   - TF motif activity scoring (ChromVAR)
+#   - TF footprinting (TOBIAS, HINT-ATAC, Signac)
+#   - Sub-peak CRE analysis (CREscendo)
+#   - Building regulatory networks from ATAC data
+#
+# Excludes:
+#   - scRNA-seq QC/normalization/clustering (use scrna-atlas)
+#   - Trajectory / velocity
+#   - scGLUE unpaired integration (use multiome-grn)
+
+name: scatac-regulatory
+description: scATAC-seq regulatory analysis — CREscendo, ChromVAR, TF footprinting, pycisTopic, SCENIC+
+mcp_profile: hybrid-research
+
+agents:
+  # Research & Documentation
+  - docs-librarian
+  - bio-interpreter
+  # Data Exploration & Analysis
+  - insight-explorer
+  # Publication & Documentation
+  - captions
+  - doc-curator
+  # Code Review & Quality
+  - code-reviewer
+  # Session Management
+  - handoff
+
+skills:
+  # === Foundation ===
+  - anndata                                    # AnnData I/O
+  - anndatar-seurat-scanpy-conversion          # R <-> Python conversion
+
+  # === ATAC Processing ===
+  - cellranger-arc-multiome                    # Cell Ranger ARC pipeline
+  - iterative-peak-merging                     # Summit-preserving peak set construction
+  - pycistopic-atac-topic-modeling             # ATAC topic modeling
+
+  # === Differential Accessibility & TF Activity ===
+  - crescendo-scatac-cre-analysis              # Sub-peak CRE differential analysis
+  - chromvar-motif-accessibility               # TF motif activity (bias-corrected deviations)
+  - tf-footprint-differential-analysis         # TF footprinting (TOBIAS/HINT-ATAC/Signac)
+  - pycistarget-motif-enrichment               # TF motif enrichment in region sets
+
+  # === GRN Inference ===
+  - scenic-grn-inference                       # SCENIC+ eRegulon inference
+
+  # === Embedding ===
+  - scvi-framework                             # scvi-tools shared patterns
+  - scvi-peakvi                                # PeakVI ATAC embedding
+  - scembed-atac-annotation                    # Transfer learning annotation for scATAC

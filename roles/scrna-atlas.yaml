@@ -1,0 +1,61 @@
+# scrna-atlas.yaml - scRNA-seq Atlas Integration & Annotation
+#
+# Stack: scRNA-seq integration, annotation, multi-sample DE
+# Tools: scanpy, scVI, scANVI, scArches, MrVI, GeneNMF, CellxGene Census
+#
+# Use when:
+#   - Building or analyzing large scRNA-seq atlases (100K+ cells)
+#   - Multi-batch integration with scVI
+#   - Semi-supervised annotation with scANVI + marker rescue
+#   - Multi-sample DE (tumor vs healthy, conditions) via MrVI
+#   - Gene program scoring and meta-program discovery
+#
+# Excludes:
+#   - Trajectory / velocity (no scVelo, CellRank)
+#   - All ATAC-seq skills
+#   - Multiomics / MuData containers
+#   - scVI models: ContrastiveVI, LinearSCVI, LDA, treeArches
+
+name: scrna-atlas
+description: scRNA-seq atlas integration & annotation — scVI/scANVI, multi-sample DE, gene programs
+mcp_profile: hybrid-research
+
+agents:
+  # Research & Documentation
+  - docs-librarian              # Tool/doc lookup — scverse, scanpy, scvi-tools
+  - bio-interpreter             # Biology interpretation; cell type / condition context
+
+  # Data Exploration & Analysis
+  - insight-explorer            # Explore results with skepticism; validates claims vs data
+
+  # Publication & Documentation
+  - captions                    # Figure caption generation (fire-and-forget)
+  - doc-curator                 # Repository documentation cleanup
+
+  # Code Review & Quality
+  - code-reviewer               # Review generated notebooks and scripts
+
+  # Session Management
+  - handoff                     # Session continuity documentation
+
+skills:
+  # === scverse Foundation ===
+  - anndata                             # AnnData I/O, subsetting, concat, memory efficiency
+  - scanpy                              # QC, normalization, UMAP, Leiden, markers, dotplots
+  - single-cell-rna-qc                  # MAD-based QC filtering for scRNA-seq
+
+  # === scvi-tools ===
+  - scvi-framework                      # Patterns shared across all scvi-tools models
+  - scvi-basic                          # scVI: batch correction, latent space
+  - scvi-scanvi                         # scANVI: semi-supervised annotation transfer
+  - scvi-scarches-reference-mapping     # scArches: query-to-reference projection
+  - scvi-mrvi                           # MrVI: multi-sample DE, covariate effects
+  - scvi-hub-models                     # Pre-trained scVI/scANVI models from scvi-hub
+
+  # === Annotation & Discovery ===
+  - cellxgene-census-annotation         # Annotation transfer from CZ Census (33M cells)
+  - genenmf-metaprogram-discovery       # Gene program / meta-program discovery (NMF)
+  - single-cell-vector-search           # Atlas-scale cell state similarity search
+
+  # === Data Utilities ===
+  - anndatar-seurat-scanpy-conversion   # R <-> Python h5ad conversion (anndataR)

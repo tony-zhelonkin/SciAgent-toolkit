@@ -1,10 +1,58 @@
 # SciAgent Skills Library
 
-This directory contains modular skill files for single-cell and multi-omics analysis. Each skill provides structured guidance for a specific tool or workflow.
+This directory contains modular skills for single-cell and multi-omics analysis. Each skill provides structured guidance for a specific tool or workflow.
+
+## Skill Format
+
+Skills use the **canonical Claude Code directory format**:
+
+```
+skills/<skill-name>/
+├── SKILL.md              # REQUIRED — entry point with YAML frontmatter
+├── references/           # Deep-dive topic guides (loaded on demand)
+├── scripts/              # Executable Python/Bash/R helpers
+├── checks/               # Verification scripts and checklists
+└── assets/               # Templates, configs, example data
+```
+
+The role activator (`scripts/activate-role.sh`) resolves skills in this order:
+1. **Directory format** (canonical): `skills/<name>/SKILL.md` → symlinks the directory
+2. **Flat format** (legacy): `skills/<name>.md` → symlinks the single file
+
+Both coexist during migration. Authoring new skills uses the directory format only.
+
+See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full reference implementation. The complete format spec is at `docs/skills_organisation/design/SKILLS_FORMAT_v3.md`.
 
 ---
 
 ## Skill Categories
+
+### scverse Foundation (Core Data Structures & QC)
+
+These skills are prerequisites for all other scverse workflows. Start here if you're new to the ecosystem or working with `.h5ad` files.
+
+| Skill | Purpose |
+|-------|---------|
+| `anndata.md` | AnnData structure — the shared data container for all scverse tools |
+| `scanpy.md` | Standard scRNA-seq QC, clustering, visualization, and DE |
+| `single-cell-rna-qc.md` | MAD-based QC filtering — data-driven outlier detection for scRNA-seq |
+
+**Starting a new scRNA-seq project?**
+```
+New to single-cell or running a standard workflow?
+└─ scanpy.md (QC → normalize → UMAP → Leiden → markers)
+
+Need to integrate multiple batches or samples with deep learning?
+└─ scvi-framework.md → then scanpy for downstream
+
+Have spliced/unspliced RNA data for trajectory direction?
+└─ rna-velocity-trajectory.md (start after scanpy clustering)
+
+Working with format questions (.h5ad reading, subsetting, concat)?
+└─ anndata.md
+```
+
+---
 
 ### scvi-tools Family (Deep Learning Models)
 
@@ -267,10 +315,108 @@ multivi_model = scvi.model.MULTIVI(multiome_adata)
 
 ## Adding New Skills
 
-1. Follow naming convention: `tool-name-purpose.md` or `scvi-modelname.md`
-2. Include sections: Overview, Installation, Quick Start, Key Parameters, Common Issues
-3. Reference related skills (e.g., "See `scvi-framework.md` for installation")
-4. Add to appropriate category in this README
+### 1. Copy the template
+
+```bash
+cp -r skills/_TEMPLATE skills/<your-skill-name>
+cd skills/<your-skill-name>
+```
+
+Directory name MUST be kebab-case and match the `name:` frontmatter field.
+
+The template ships with `name: SKILL_IDENTIFIER` as a placeholder. That value intentionally fails `quick_validate.py`'s kebab-case check — rename it and every other field should already validate cleanly.
+
+### 2. Fill the SKILL.md frontmatter
+
+The **canonical Claude Code skill schema** only allows these top-level keys:
+`name`, `description`, `license`, `metadata`, `allowed-tools`, `compatibility`.
+
+Anything else causes canonical validators (e.g. `skill-creator/scripts/quick_validate.py`,
+Claude Desktop plugin loader) to fail. All v3 taxonomy fields must therefore be
+**nested under `metadata:`**.
+
+Required (top-level):
+- `name` — matches directory name; kebab-case; `^[a-z0-9-]+$`
+- `description` — 1-3 sentences, include trigger keywords so the AI activates on intent. If your description contains a raw colon (e.g. `"scVI: integration..."`), wrap it in quotes or use YAML block scalar (`|`).
+
+Recommended (nested under `metadata:`):
+- `category` — `foundation` | `integration` | `annotation` | `analysis` | `workflow` | `practice`
+- `tier` — `simple` | `standard` | `rich` (see below)
+- `tags` — free-form discovery tags (YAML list)
+- `complementary-skills` — related skill names (YAML list)
+- `contraindications` — when NOT to use this skill (YAML list of strings)
+- `version` — semver of the skill itself
+- `upstream-docs` — canonical documentation URL
+- `skill-author`, `last-reviewed` — provenance
+
+**Canonical frontmatter example:**
+
+```yaml
+---
+name: my-skill
+description: One sentence. Use when <trigger>. For <other case> use other-skill.
+license: MIT
+metadata:
+  skill-author: SciAgent-toolkit
+  last-reviewed: 2026-04-14
+  version: 1.0.0
+  upstream-docs: https://example.org/docs
+  category: foundation
+  tier: standard
+  tags: [tag-a, tag-b]
+  complementary-skills:
+    - related-skill-a
+  contraindications:
+    - "Do not use for X. Use other-skill instead."
+---
+```
+
+Validate with `python skill-creator/scripts/quick_validate.py skills/<your-skill>/`.
+
+### 3. Choose a tier
+
+| Tier | Contents | When |
+|---|---|---|
+| **Simple** | `SKILL.md` only | One primary use case, few parameters, fits in <200 lines |
+| **Standard** | `SKILL.md` + `references/` | Multiple use cases with deep-dive guides |
+| **Rich** | `SKILL.md` + `references/` + `scripts/` + `checks/` | Complex workflow with executable verification |
+
+Skills are promoted from Simple → Standard → Rich additively. Start simple; add subdirectories only when needed.
+
+### 4. Required SKILL.md sections (per tier)
+
+| Section | Simple | Standard | Rich |
+|---|---|---|---|
+| Frontmatter | REQUIRED | REQUIRED | REQUIRED |
+| Overview | REQUIRED | REQUIRED | REQUIRED |
+| Decision Tree | Optional | REQUIRED | REQUIRED |
+| Quick Start (with verification block) | REQUIRED | REQUIRED | REQUIRED |
+| Progressive Depth (Basic/Intermediate/Advanced) | Optional | REQUIRED | REQUIRED |
+| Verification Checklist | REQUIRED | REQUIRED | REQUIRED |
+| Common Pitfalls (Symptom/Cause/Fix) | REQUIRED | REQUIRED | REQUIRED |
+| Complementary Skills | Optional | RECOMMENDED | REQUIRED |
+
+### 5. Keep SKILL.md provider-agnostic
+
+The body prose must work for any agentic harness (Claude Code, Gemini CLI, Codex CLI). If a skill genuinely needs provider-specific instructions, factor them into `references/claude.md`, `references/gemini.md`, etc.
+
+### 6. Factor long content into `references/`
+
+SKILL.md should stay under ~400 lines. If a section grows beyond ~300 lines, move it to `references/<topic>.md` and reference from SKILL.md.
+
+### 7. Activate and test
+
+Add the skill name (without `.md`) to the role YAML (`roles/base.yaml` or a new role), then:
+
+```bash
+./scripts/activate-role.sh base --project-dir /path/to/project
+ls -la /path/to/project/.claude/skills/<your-skill-name>
+# Should be a symlink pointing to 01_modules/SciAgent-toolkit/skills/<your-skill-name>
+```
+
+### 8. Add to the category table above
+
+Place your skill in the appropriate category section in this README.
 
 ---
 
