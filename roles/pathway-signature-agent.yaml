@@ -1,0 +1,62 @@
+# pathway-signature-agent.yaml - Pathway / TF / signature functional interpretation
+#
+# Stack: GSEA (MSigDB + custom DB + CoReSh-derived), decoupleR TF + PROGENy activities,
+#        CoReSh public-data signature search, interactive pathway-explorer.
+#
+# Use when:
+#   - Interpreting what clusters / conditions mean functionally from pseudobulk DE
+#   - Running multi-database GSEA (Hallmark, KEGG, Reactome, GO, Mito, TransportDB, custom gene sets)
+#   - Layering CollecTRI TF + PROGENy signalling activity on top of GSEA
+#   - Searching ~80K GEO datasets for coregulation of cluster / program signatures
+#   - Emitting master_unified.csv + interactive pathway_explorer HTMLs
+#
+# Excludes:
+#   - scRNA QC / integration / annotation upstream (use scrna-atlas)
+#   - GRN / ATAC / multiome (use multiome-grn)
+#   - Trajectory / velocity
+
+name: pathway-signature-agent
+description: Pathway/TF/signature functional interpretation — GSEA + decoupleR + CoReSh + pathway-explorer
+mcp_profile: pal-only
+
+agents:
+  # Research & Documentation
+  - docs-librarian            # Tool/doc lookup: msigdbr, decoupleR, coresh, pathway-explorer
+  - bio-interpreter           # Biological mechanism interpretation of enrichment hits
+
+  # Data Exploration & Analysis
+  - insight-explorer          # Skeptical validation of GSEA / TF / CoReSh claims vs data
+
+  # Publication & Documentation
+  - captions                  # Figure captions for static GSEA/TF/PROGENy plots
+  - doc-curator               # Keep project docs consistent
+
+  # Code Review & Quality
+  - code-reviewer             # Review enrichment pipeline scripts and viz scripts
+
+  # Session Management
+  - handoff                   # Session handoff documentation
+
+skills:
+  # === Foundation / data I/O ===
+  - anndata                              # h5ad I/O for pseudobulk aggregation
+  - scanpy                               # Pseudobulk prep (Python-side, if needed)
+  - anndatar-seurat-scanpy-conversion    # R <-> Python bridge
+
+  # === Bulk GSEA pipeline (canonical stack) ===
+  - bulk-rnaseq-gsea-msigdb              # H, C2 (KEGG/Reactome), C3, C5 via run_gsea()
+  - bulk-rnaseq-gsea-custom-db           # Bundled DBs (Mito/TransportDB) + custom gene sets + CoReSh-derived GMT
+  - bulk-rnaseq-gsea-master-tables       # 13-col schema, normalize_gsea_results, idempotent append
+  - bulk-rnaseq-gsea-visualization       # Static R dotplot/barplot/running-sum PDFs
+  - bulk-rnaseq-pathway-explorer         # Interactive HTML dashboards over master_unified.csv
+
+  # === Activity inference (decoupleR) ===
+  - decoupler-tf-activity                # CollecTRI + ULM TF activities
+  - progeny-pathway-activity             # PROGENy + MLM signalling activities
+  - decoupler-activity-visualization     # Static TF + PROGENy figures
+
+  # === Public-data signature search ===
+  - coresh-signature-search              # CoReSh over ~80K GEO datasets + GSEA bridge
+
+  # === Optional metabolic extension ===
+  - gatom-metabolomic-predictions        # Active metabolic modules; pseudo-NES rows
