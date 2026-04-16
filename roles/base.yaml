@@ -40,16 +40,11 @@ skills:
   # Data conversion
   - anndatar-seurat-scanpy-conversion  # Seurat ↔ Scanpy format conversion
   # Bulk RNA-seq GSEA pipeline
-  - bulk-rnaseq-gsea-msigdb           # MSigDB GSEA execution (fgsea, clusterProfiler)
-  - bulk-rnaseq-gsea-custom-db        # Non-MSigDB database prep & GSEA (MitoCarta, TransportDB, etc.)
-  - bulk-rnaseq-gsea-master-tables    # GSEA result normalization & master table assembly
-  - bulk-rnaseq-gsea-visualization    # GSEA plots (dotplot, running sum, barplot) & pathway explorer
+  - bulk-rnaseq-gsea                  # GSEA pipeline router: MSigDB, custom DBs, master tables, visualization
+  - bulk-rnaseq-activity-inference     # Activity inference router: DecoupleR TF (ULM+CollecTRI), PROGENy (MLM), visualization
   - bulk-rnaseq-pathway-explorer      # Interactive HTML pathway/TF/PROGENy/TE dashboards from master tables
   - gatom-metabolomic-predictions      # GATOM metabolomics
-  # DecoupleR activity inference
-  - decoupler-tf-activity              # TF activity via ULM + CollecTRI
-  - progeny-pathway-activity           # Pathway activity via MLM + PROGENy
-  - decoupler-activity-visualization   # TF & PROGENy visualization
+  - coresh-signature-search            # CORESH: rank ~80K public GEO datasets by coregulation of a gene signature
   # RNA velocity & trajectory inference
   - starsolo-spliced-unspliced         # STARsolo Velocyto mode: spliced/unspliced from FASTQ
   - rna-velocity-trajectory            # scVelo, VeloVI, Chronocell, CellRank
