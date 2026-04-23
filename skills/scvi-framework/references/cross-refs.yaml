@@ -1,0 +1,84 @@
+# Single-source-of-truth cross-reference manifest for the scvi-tools skill cluster.
+#
+# Each key is a skill name; each value is the list of skill names that belong in its
+# metadata.complementary-skills. The validator (scripts/validate_cross_refs.py)
+# compares this manifest against each child SKILL.md frontmatter and reports drift.
+#
+# Edit this file FIRST, then update child SKILL.md files to match. The validator is
+# advisory, not blocking, so individual skills can justify a temporary divergence
+# — but the long-term rule is: this YAML is authoritative.
+
+scvi-framework:
+  - scvi-basic
+  - scvi-scanvi
+  - scvi-mrvi
+  - scvi-lda
+  - scvi-linearscvi
+  - scvi-contrastivevi
+  - scvi-multivi
+  - scvi-peakvi
+  - scvi-scarches-reference-mapping
+  - scvi-hub-models
+  - anndata
+
+scvi-basic:
+  - scvi-framework
+  - scvi-scanvi
+  - scvi-scarches-reference-mapping
+  - single-cell-rna-qc
+  - anndata
+  - scanpy
+
+scvi-scanvi:
+  - scvi-framework
+  - scvi-basic
+  - scvi-scarches-reference-mapping
+  - cellxgene-census-annotation
+  - treearches-hierarchy-learning
+
+scvi-mrvi:
+  - scvi-framework
+  - scvi-basic
+  - scvi-scanvi
+
+scvi-multivi:
+  - scvi-framework
+  - scvi-peakvi
+  - python-multimodal-10x
+  - scglue-unpaired-multiomics-integration
+
+scvi-peakvi:
+  - scvi-framework
+  - scvi-multivi
+  - chromvar-motif-accessibility
+  - pycistopic-atac-topic-modeling
+
+scvi-lda:
+  - scvi-framework
+  - scvi-linearscvi
+  - genenmf-metaprogram-discovery
+  - pycistopic-atac-topic-modeling
+
+scvi-linearscvi:
+  - scvi-framework
+  - scvi-basic
+  - scvi-lda
+  - genenmf-metaprogram-discovery
+
+scvi-contrastivevi:
+  - scvi-framework
+  - scvi-basic
+  - scvi-mrvi
+
+scvi-hub-models:
+  - scvi-framework
+  - scvi-scarches-reference-mapping
+  - cellxgene-census-annotation
+  - treearches-hierarchy-learning
+
+scvi-scarches-reference-mapping:
+  - scvi-framework
+  - scvi-basic
+  - scvi-scanvi
+  - scvi-hub-models
+  - treearches-hierarchy-learning

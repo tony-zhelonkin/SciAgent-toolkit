@@ -36,7 +36,15 @@ metadata:
 
 # scVI: Basic Integration and Batch Correction
 
-**Foundation:** See `scvi-framework` skill for installation, data prep, and core patterns.
+**Foundation:** `scvi-framework` is the router and holds all shared patterns. Jump directly to:
+- `scvi-framework/references/setup-anndata.md` — batch/covariate registration, raw-count rule
+- `scvi-framework/references/training-and-gpu.md` — train call and GPU settings
+- `scvi-framework/references/common-outputs.md` — latent, normalized expression, Bayesian DE
+- `scvi-framework/references/count-distributions.md` — ZINB vs NB for scRNA
+- `scvi-framework/references/gotchas.md` — shared symptom/cause/fix table
+- `scvi-framework/checks/pre-train-checklist.md` — pre-flight before `.train()`
+
+This file covers only the parts that differ for scVI.
 
 ## When to Use scVI
 

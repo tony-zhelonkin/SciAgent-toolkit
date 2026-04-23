@@ -28,7 +28,14 @@ metadata:
 
 # scArches: Query-to-Reference Mapping
 
-**Foundation:** See `scvi-framework.md` for installation and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/scarches-core.md` — the three mandatory flags and `prepare_query_anndata` / `load_query_data` contract
+- `scvi-framework/references/setup-anndata.md`
+- `scvi-framework/references/hub-loading.md` — for pretrained references
+- `scvi-framework/references/interop-matrix.md` — which scvi models support scArches
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the advanced parts: architectural surgery, weighted-KNN label transfer, novel-state detection.
 
 ## When to Use scArches
 

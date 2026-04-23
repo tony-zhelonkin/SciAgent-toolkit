@@ -31,7 +31,12 @@ metadata:
 
 # AmortizedLDA: Topic Modeling for Single-Cell
 
-**Foundation:** See `scvi-framework.md` for installation and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md` — raw counts with MT genes removed
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the parts that differ for AmortizedLDA (discrete topic modeling).
 
 ## When to Use AmortizedLDA
 

@@ -32,7 +32,13 @@ metadata:
 
 # contrastiveVI: Perturbation Analysis
 
-**Foundation:** See `scvi-framework.md` for installation and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md` — plus the target-vs-background split specific to contrastiveVI
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/common-outputs.md`
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the parts that differ for contrastiveVI (salient vs background latent).
 
 ## When to Use contrastiveVI
 

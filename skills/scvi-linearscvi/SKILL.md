@@ -31,7 +31,13 @@ metadata:
 
 # LinearSCVI: Interpretable Factor Analysis
 
-**Foundation:** See `scvi-framework.md` for installation and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md`
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/common-outputs.md` — latent + the linear-decoder-specific `get_loadings()`
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the parts that differ for LinearSCVI (interpretable linear decoder; no scArches).
 
 ## When to Use LinearSCVI
 

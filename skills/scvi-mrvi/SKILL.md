@@ -32,7 +32,13 @@ metadata:
 
 # MrVI: Multi-Sample Analysis
 
-**Foundation:** See `scvi-framework.md` for installation and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md` — **critical**: `sample_key` (biological) vs `batch_key` (technical)
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/common-outputs.md`
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the parts that differ for MrVI (multi-donor cohort modeling).
 
 ## When to Use MrVI
 

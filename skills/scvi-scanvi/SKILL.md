@@ -36,7 +36,14 @@ metadata:
 
 # scANVI: Semi-Supervised Label Transfer
 
-**Foundation:** See `scvi-framework` skill for installation and `scvi-basic` for scVI.
+**Foundation:** inherits all shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md` — add `labels_key` and `unlabeled_category` for scANVI
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/common-outputs.md` — Bayesian DE and `predict()` for label transfer
+- `scvi-framework/references/scarches-core.md` — shared query-mapping contract
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+Always initialize scANVI from a trained scVI model — see `scvi-basic`. This file covers only the parts that differ for scANVI.
 
 ## When to Use scANVI
 

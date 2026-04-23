@@ -27,7 +27,14 @@ metadata:
 
 # PeakVI: scATAC-seq Analysis
 
-**Foundation:** See `scvi-framework.md` for installation, data prep, and core patterns.
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/setup-anndata.md` — peaks-by-cells registration (no HVG step)
+- `scvi-framework/references/count-distributions.md` — Bernoulli vs Poisson for ATAC
+- `scvi-framework/references/training-and-gpu.md`
+- `scvi-framework/references/interop-matrix.md` — PeakVI ↔ MultiVI
+- `scvi-framework/references/gotchas.md`, `scvi-framework/checks/pre-train-checklist.md`
+
+This file covers only the parts that differ for PeakVI (scATAC-only).
 
 ## When to Use PeakVI
 

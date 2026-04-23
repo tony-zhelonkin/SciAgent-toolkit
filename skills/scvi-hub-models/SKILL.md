@@ -28,6 +28,14 @@ metadata:
 
 # scvi-hub Pretrained Models Skill
 
+**Foundation:** inherits shared patterns from `scvi-framework`. Jump to:
+- `scvi-framework/references/hub-loading.md` — the pull / minification / cache contract
+- `scvi-framework/references/scarches-core.md` — what to do after loading a reference
+- `scvi-framework/references/interop-matrix.md` — which hub models support scArches
+- `scvi-framework/references/gotchas.md`
+
+This file covers only hub-specific concerns: browsing, selection heuristics, minified vs unminified, and upload recipes.
+
 ## Overview
 scvi-hub hosts pretrained scvi-tools models on Hugging Face Hub for query-to-reference mapping, label transfer, and joint embedding analysis. Key use cases: projecting new data onto atlases, transferring cell type labels, analyzing multi-sample/multi-condition datasets, and querying joint embeddings across modalities.
 
