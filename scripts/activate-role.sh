@@ -89,6 +89,8 @@ done
 ROLE_FILE="${TOOLKIT_DIR}/roles/${ROLE}.yaml"
 AGENTS_DIR="${TOOLKIT_DIR}/agents"
 SKILLS_DIR="${TOOLKIT_DIR}/skills"
+COMMANDS_DIR="${TOOLKIT_DIR}/commands"
+SYSTEM_PROMPTS_DIR="${TOOLKIT_DIR}/system-prompts"
 CLAUDE_DIR="${PROJECT_DIR}/.claude"
 
 # Check if role file exists
@@ -132,6 +134,7 @@ log_info "Activating role: ${ROLE}"
 ROLE_NAME=$(get_yaml_value "$ROLE_FILE" "name")
 ROLE_DESC=$(get_yaml_value "$ROLE_FILE" "description")
 MCP_PROFILE=$(get_yaml_value "$ROLE_FILE" "mcp_profile")
+OUTPUT_STYLE=$(get_yaml_value "$ROLE_FILE" "output_style")
 
 if [ -n "$ROLE_DESC" ]; then
     log_info "Description: ${ROLE_DESC}"
@@ -140,10 +143,25 @@ fi
 # Create directories
 mkdir -p "${CLAUDE_DIR}/agents"
 mkdir -p "${CLAUDE_DIR}/skills"
+mkdir -p "${CLAUDE_DIR}/commands"
+mkdir -p "${CLAUDE_DIR}/output-styles"
 
 # Clear existing symlinks (for role switching)
 find "${CLAUDE_DIR}/agents" -type l -delete 2>/dev/null || true
 find "${CLAUDE_DIR}/skills" -type l -delete 2>/dev/null || true
+find "${CLAUDE_DIR}/commands" -type l -delete 2>/dev/null || true
+find "${CLAUDE_DIR}/output-styles" -type l -delete 2>/dev/null || true
+
+# Symlink every system-prompt into .claude/output-styles/ so Claude Code
+# can discover them all. One is selected at a time via settings.json.
+OUTPUT_STYLES_COUNT=0
+if [ -d "$SYSTEM_PROMPTS_DIR" ]; then
+    for sp in "${SYSTEM_PROMPTS_DIR}"/*.md; do
+        [ -f "$sp" ] || continue
+        ln -sf "$sp" "${CLAUDE_DIR}/output-styles/$(basename "$sp")"
+        OUTPUT_STYLES_COUNT=$((OUTPUT_STYLES_COUNT + 1))
+    done
+fi
 
 # Symlink agents
 AGENTS_COUNT=0
@@ -180,11 +198,55 @@ for skill in $(get_yaml_list "$ROLE_FILE" "skills"); do
     fi
 done
 
+# Symlink commands (optional — role YAML may omit commands: list)
+# Commands live at toolkit/commands/<name>.md and symlink into .claude/commands/
+COMMANDS_COUNT=0
+for cmd in $(get_yaml_list "$ROLE_FILE" "commands"); do
+    src="${COMMANDS_DIR}/${cmd}.md"
+    if [ -f "$src" ]; then
+        ln -sf "$src" "${CLAUDE_DIR}/commands/${cmd}.md"
+        log_ok "  Command: /${cmd}"
+        COMMANDS_COUNT=$((COMMANDS_COUNT + 1))
+    else
+        log_warn "  Command not found: ${cmd} (expected at ${src})"
+    fi
+done
+
+# Pin the output style in .claude/settings.json if the role specifies one.
+# Merges into existing settings.json (preserves other keys). Requires python3.
+if [ -n "$OUTPUT_STYLE" ]; then
+    SETTINGS_FILE="${CLAUDE_DIR}/settings.json"
+    if command -v python3 >/dev/null 2>&1; then
+        python3 - "$SETTINGS_FILE" "$OUTPUT_STYLE" <<'PY'
+import json, sys, os
+path, style = sys.argv[1], sys.argv[2]
+data = {}
+if os.path.exists(path):
+    try:
+        with open(path) as f:
+            data = json.load(f)
+    except (json.JSONDecodeError, OSError):
+        data = {}
+data["outputStyle"] = style
+os.makedirs(os.path.dirname(path), exist_ok=True)
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+        log_ok "  Output style: ${OUTPUT_STYLE} (pinned in settings.json)"
+    else
+        log_warn "  python3 not found — cannot pin outputStyle=${OUTPUT_STYLE}"
+        log_info "  Set manually: add \"outputStyle\": \"${OUTPUT_STYLE}\" to ${SETTINGS_FILE}"
+    fi
+fi
+
 echo ""
 log_ok "Role '${ROLE}' activated"
-log_info "  Agents: ${AGENTS_COUNT}"
-log_info "  Skills: ${SKILLS_COUNT}"
-log_info "  Location: ${CLAUDE_DIR}/"
+log_info "  Agents:        ${AGENTS_COUNT}"
+log_info "  Skills:        ${SKILLS_COUNT}"
+log_info "  Commands:      ${COMMANDS_COUNT}"
+log_info "  Output styles: ${OUTPUT_STYLES_COUNT} available${OUTPUT_STYLE:+, active=${OUTPUT_STYLE}}"
+log_info "  Location:      ${CLAUDE_DIR}/"
 
 # Determine which MCP profile to use
 FINAL_MCP_PROFILE=""

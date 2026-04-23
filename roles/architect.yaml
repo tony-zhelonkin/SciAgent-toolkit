@@ -1,0 +1,94 @@
+# architect.yaml — Architecture-first software development role
+#
+# Naming note: this role is named `architect` (no `-agent` suffix). The
+# `-agent` suffix in some other roles (`pathway-signature-agent`) collides
+# with the term "agent" in "LLM agent" and creates needless ambiguity.
+# Roles live in `roles/` and LLM agents live in `agents/` — different
+# directories, so the shared word `architect` between this role and the
+# `architect` LLM agent (the consistency gate) carries no risk of confusion.
+#
+# Purpose
+#   A composable harness for non-trivial software changes where *design
+#   before code* is the explicit discipline. Pipeline:
+#
+#     /map <feature>                  → docs/{feature}/map.md
+#     /review <feature> --as <csv>    → docs/{feature}/review/<agent>.md
+#     /synthesize <feature>           → docs/{feature}/synthesis.md
+#     /design <feature>               → docs/{feature}/design/*.md + review.md
+#     /plan <feature>                 → docs/{feature}/plan/*.md
+#     /implement <feature> <phase>    → code
+#
+# Every stage is human-gated. Artifacts compound downstream: reviewers read
+# map.md rather than re-exploring the codebase (60–80% of agent tokens
+# otherwise go to orientation, per 2026 subagent-cost literature).
+#
+# Reviewer panel is composable:
+#   /review --as all                       — 6 reviewers in parallel
+#   /review --as all --but stat,divergent  — 4 reviewers (all minus listed)
+#   /review --as bioinf,ml                 — just those two
+#
+# Use when
+#   - Non-trivial feature, refactor, or redesign where upfront design pays off
+#   - Cross-cutting concerns that need multiple expert lenses
+#   - Work where the scientific/biological reasoning matters as much as
+#     software structure (pathway-explorer being the first consumer)
+#
+# Do NOT use when
+#   - One-line fixes, throwaway scripts, or exploratory data analysis
+#     (use the base or pathway-signature-agent role for those)
+#   - Running a bioinformatics analysis pipeline (this role has no
+#     anndata/scanpy/scvi skills — intentionally minimal)
+
+name: architect
+description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement
+mcp_profile: pal-only
+
+# Output style (main-agent system prompt) — resolved by `name:` frontmatter
+# in system-prompts/<file>.md. Written into .claude/settings.json by
+# activate-role.sh. Omit this field to leave the existing outputStyle alone.
+output_style: architect-mentor
+
+# Agents activate into .claude/agents/ via symlink
+agents:
+  # === Reviewer panel (invoked by /review --as <csv>|all) ===
+  - bioinf       # computational biologist / bioinformatics methods
+  - wetlab       # wet-lab experimental validation & prioritisation
+  - graphic      # Tufte-style information graphic design
+  - stat         # statistician (inference, MT correction, power)
+  - divergent    # contrarian / saboteur / blind-spot finder
+  - ml           # ML & manifold scientist (embedding validity, distance metrics)
+
+  # === Pipeline agents (invoked by specific commands) ===
+  - mapper          # read-only codebase cartographer (/map)
+  - architect       # architecture consistency/completeness gate (/design)
+  - synth           # consensus synthesizer (/synthesize)
+  - status-reporter # portfolio-state aggregator (/status) — Sonnet, frontmatter+grep only, no file writes
+
+  # === Meta agent (cross-feature portfolio orchestrator) ===
+  - meta-architect  # reads across features, writes docs/_meta/* (/meta-map, /meta-design, /meta-plan)
+
+  # === Parallel-propagation agent (invoked by /meta-apply — one per feature, dispatched in parallel) ===
+  - feature-reviser  # applies accepted MADRs to one feature's design/ (edit-and-cite; no re-architecting)
+
+# Skills activate into .claude/skills/ via symlink
+skills:
+  - architecture-first-dev   # methodology reminder: when to use which stage
+
+# Commands activate into .claude/commands/ via symlink
+# (Requires activate-role.sh with commands support.)
+commands:
+  - map
+  - review
+  - synthesize
+  - design
+  - architect       # standalone architect gate — re-run consistency/completeness review without re-entering /design
+  - plan
+  - implement
+  - verify          # mechanical drift check: plan + design vs current code (main-agent only; produces verify.md)
+  - status          # one-page portfolio-state summary (main-agent only; read-only; <30s)
+  - diagram         # feature-level diagram renderer: collects Mermaid from design artifacts into diagrams.md (main-agent; read-only; <10s)
+  # === Meta-layer commands (cross-feature; optional) ===
+  - meta-map
+  - meta-design
+  - meta-apply      # parallel propagation of accepted MADRs to per-feature designs (dispatches N feature-revisers)
+  - meta-plan

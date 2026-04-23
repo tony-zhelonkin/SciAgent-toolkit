@@ -58,6 +58,8 @@ Working with format questions (.h5ad reading, subsetting, concat)?
 
 The scvi-tools ecosystem provides probabilistic deep learning models for single-cell analysis. All skills follow a consistent pattern and share installation/configuration via the framework document.
 
+**Architecture (2026-04-20):** `scvi-framework/` is the **Rich-tier router** for this cluster. Shared patterns (`setup_anndata`, batch vs sample keys, scArches flags, hub loading, gotchas, count distributions, GPU, troubleshooting) live in `scvi-framework/references/` and are referenced by every child SKILL.md instead of being duplicated. The cross-reference manifest at `scvi-framework/references/cross-refs.yaml` is the single source of truth for each child's `complementary-skills:` graph. Self-evolution hooks: `scvi-framework/references/troubleshooting.md` (append-only failure log) and `scvi-framework/checks/pre-train-checklist.md` (extend on encounter).
+
 | Skill | Purpose | Modality |
 |-------|---------|----------|
 | `scvi-framework.md` | **Foundation** - installation, patterns, model selection | All |
