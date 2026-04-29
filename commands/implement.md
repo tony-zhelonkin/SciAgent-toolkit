@@ -32,14 +32,20 @@ Read in order:
 
 ## Phase 2: Verify prior phases are done
 
-For phases `1..N-1` (where `N` is the phase about to run), check the phase file for a "Completed" marker or verify key files listed as "Files to Create" exist and are non-empty.
+For phases `1..N-1` (where `N` is the phase about to run), check the phase file's **frontmatter `status:` field** (canonical, see Phase 3 step 5):
+
+- `status: shipped` → phase complete, OK to proceed.
+- `status: deferred` → phase deliberately skipped (e.g., headless-Chrome subphase-b), OK to proceed.
+- `status: in-progress` / `not-started` / `blocked` / missing → STOP.
+
+Backwards-compat fallback (until all phase docs migrated): accept `status: DONE` as equivalent to `shipped`. If frontmatter is absent entirely, fall back to "verify key files listed as `## Files to Create` exist and are non-empty" — but warn that the phase doc lacks the canonical schema and should be backfilled.
 
 If prior phases are incomplete, stop:
 ```
 Phase {N-1} does not appear complete ({reason}). Complete previous phases first.
 ```
 
-In `--auto` mode: the starting phase is the first unfinished one, so Phase-2 gating reduces to "confirm phases 1..(start-1) are complete." If they aren't, stop and surface which.
+In `--auto` mode: the starting phase is the first unfinished one, so Phase-2 gating reduces to "confirm phases 1..(start-1) are `shipped` or `deferred`." If any aren't, stop and surface which.
 
 ## Phase 3: Execute
 
@@ -57,7 +63,26 @@ Then:
 2. Follow existing code patterns from `map.md` (naming, structure, imports).
 3. Keep the surface area minimal — only what the phase specifies.
 4. Run the project's tests if test infrastructure exists (check `map.md` for test locations).
-5. Update the phase file: mark each "Files to Create" / "Files to Modify" as done.
+5. **Stamp the phase doc's frontmatter with the canonical schema** (this is the load-bearing step `/status` and `/verify` both read):
+
+   ```yaml
+   ---
+   phase: <N>
+   feature: <slug>
+   status: shipped              # one of: not-started | in-progress | shipped | deferred | blocked
+   completed: YYYY-MM-DD        # today's date when this step runs
+   commit: <SHA>                # output of `git rev-parse HEAD` after the phase commit lands; empty string OK if user hasn't committed yet
+   files_touched:               # canonical list — every path Created OR Modified in this phase, no backticks, one per line
+     - <path1>
+     - <path2>
+   verification: pass | partial | deferred
+   notes: <optional one-liner; any per-subphase status (e.g. 'subphase-a shipped, subphase-b deferred')>
+   ---
+   ```
+
+   Replace any existing frontmatter at the top of the file. Do NOT modify the body prose. If the phase has subphases (e.g., 12a/12b) and only some shipped, set `status: shipped` if at least one shipped, `verification: partial`, and explain which subphase ships in `notes:`. Use `verification: deferred` for phases whose tests are deliberately skipped (e.g., headless-Chrome subphase-b across the project).
+
+6. **Mark in-body checkboxes/Status lines** under `## Verification` and `## Files to Create/Modify` as `[x]` where applicable. The frontmatter is canonical for tooling; the body checkboxes are for human readability and should agree with the frontmatter.
 
 Then Phase 4 (verify) and Phase 5 (handoff) below.
 
@@ -75,6 +100,7 @@ Then loop `phase = start; phase ≤ N; phase++`:
 1. Load `phase-NN.md` (if not already loaded).
 2. Execute the phase: create/modify files, follow patterns, run phase-scoped tests.
 3. Run the phase's Verification checklist.
+3a. **Stamp the canonical frontmatter** per single-phase Phase 3 step 5 above (`status: shipped` on green, `status: in-progress` if Verification partially passed and the loop is about to halt, `status: blocked` on hard failure). This frontmatter write happens regardless of which decision-point branch fires next.
 4. **Decision point** — exactly one path applies:
    - **All Verification items pass** → emit a one-liner, `phase += 1`, continue loop:
      ```

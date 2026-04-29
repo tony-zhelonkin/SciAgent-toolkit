@@ -35,6 +35,32 @@ The sub-agent returns a single markdown block (portfolio table + meta layer + co
 
 If the sub-agent's output is malformed (missing table, missing legend, missing Recommended next step), re-dispatch once with a reminder to follow the Phase-3 template exactly. If the second attempt also fails, surface the failure to the user and suggest they re-run `/status` after the next stable session — do not patch the output by hand.
 
+## Phase 3: Diagnose `/status` ↔ `/verify` disagreement (cheap consistency check)
+
+After the sub-agent's output is surfaced, the main agent runs ONE additional cheap check (no full reads):
+
+For each feature whose row shows `shipped/total` < `total` (i.e., open phases), check whether `docs/{feature}/verify.md` exists and what its frontmatter `verdict:` says. If `verify.md` says `verdict: CLEAN` but the row shows open phases, the two artifacts disagree — emit a one-line warning beneath the table:
+
+```
+⚠ Disagreement: {feature} — /status sees {shipped}/{total} phases shipped, but verify.md (last run YYYY-MM-DD) says CLEAN. One of them is stale: either re-run `/implement {feature} --auto` to ship the open phases, or re-run `/verify {feature}` to update the verdict.
+```
+
+Conversely, if `shipped/total == total/total` but `verify.md` says `INCOMPLETE` or `DRIFT`, emit:
+
+```
+⚠ Disagreement: {feature} — all phases marked `shipped` but verify.md says {VERDICT}. Re-run `/verify {feature}` to refresh the verdict against current code.
+```
+
+This is the **diagnostic disagreement signal** — `/status` (cheap, frontmatter-driven) and `/verify` (expensive, code-driven) are now distinct sources of truth that should converge. When they don't, surface the gap immediately so the user can pick which one to refresh.
+
+One Bash call total:
+
+```bash
+grep -H '^verdict:' docs/*/verify.md 2>/dev/null
+```
+
+Cross-reference against the sub-agent's per-feature shipped/total counts. Emit warnings only when there's a mismatch. Stay silent when they agree.
+
 ## Rules
 
 1. **Read-only.** `/status` writes no files. Ever. If the user wants durable state, they commit the sub-agent's output to `docs/_meta/STATUS.md` manually.

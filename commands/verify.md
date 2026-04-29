@@ -83,12 +83,34 @@ ADR-004 | 4 guardrails on cluster-union export   | (behavioral cluster)  | —  
 ...
 ```
 
-## Phase 4: Check file existence + mtime
+## Phase 4: Check file existence — frontmatter-first
 
-For every row in the phase table, check the file on disk:
+The cheap path. Most phase docs (post-Tier-1 schema migration) carry a canonical frontmatter that already declares ship-state authoritatively. Use it.
+
+### Phase 4a — read every `phase-NN.md` frontmatter (single batched grep):
+
+```bash
+grep -H -A 12 '^---$' docs/{feature}/plan/phase-*.md 2>/dev/null
+```
+
+For each phase block, extract the canonical fields written by `/implement` Phase 3 step 5: `status`, `completed`, `commit`, `files_touched`, `verification`.
+
+Decision tree per phase:
+
+- **`status: shipped` AND `commit:` is set** → run `git ls-tree -r <commit> -- <files_touched_paths>` to confirm the listed files existed at that commit. If yes → all rows for that phase are `OK`. No source-tree mtime check needed; this phase is canonically green.
+- **`status: shipped` but `commit:` is empty** (user shipped but hasn't committed yet, or pre-canonical schema) → fall through to Phase 4b mtime path for that phase only.
+- **`status: deferred`** → mark all rows for that phase `⏭ DEFERRED`. No file checks. Note `verification: deferred` rationale in the output.
+- **`status: in-progress` / `not-started` / `blocked`** → for each `files_touched` entry: confirm file exists; if it does, mark `IN PROGRESS`; if not, mark `NOT YET IMPLEMENTED`.
+- **No frontmatter `status:` field at all** (legacy phase docs) → fall through to Phase 4b for that phase. Emit a warning: "phase-NN lacks canonical frontmatter; run `scripts/migrate_phase_frontmatter.py` to fix."
+
+Backwards-compat: accept legacy `status: DONE` as `shipped`.
+
+### Phase 4b — mtime fallback (legacy path, used only when 4a falls through):
+
+For every row in the phase table from Phase 2, check the file on disk:
 
 - **`create` action**: file should exist now. If missing → `MISSING`. If present → `OK`.
-- **`modify` action**: file should exist AND have been modified since the plan was drafted (approximation — compare mtime against plan's frontmatter `date:`). If unchanged → `NOT YET IMPLEMENTED`. If modified later → `OK`. If file is absent entirely → `MISSING` (the plan assumed it existed to modify, so absence is a pre-existing data issue).
+- **`modify` action**: file should exist AND have been modified since the plan was drafted. If unchanged → `NOT YET IMPLEMENTED`. If modified later → `OK`. If file is absent → `MISSING`.
 
 Use `Bash` for mtime:
 
@@ -96,7 +118,9 @@ Use `Bash` for mtime:
 stat -c '%Y' <path>   # Linux
 ```
 
-Convert to ISO date; compare against `plan/phase-NN.md` frontmatter `date:` (parse YAML frontmatter). Tolerate ±1 day slop (filesystem timestamps can be stale after git operations).
+Convert to ISO date; compare against `plan/phase-NN.md` frontmatter `date:`. Tolerate ±1 day slop.
+
+**Warning to emit when 4b runs:** "Phase-NN fell back to mtime heuristic because frontmatter is missing or `commit:` was empty. Mtime is unreliable when sister features touch the same files; this phase's verdict should be hand-confirmed."
 
 ## Phase 5: Check ADR anchors
 
@@ -108,20 +132,25 @@ For every ADR/MADR row with `verifiable: yes`, run `Grep` for the anchor in the 
 
 For `NEEDS_HUMAN_REVIEW` rows, don't grep; they go to the "Open questions for human review" section of the output.
 
-## Phase 6: Scope-drift detection
+## Phase 6: Scope-drift detection — `files_touched`-first
 
-Collect the set of files:
+The frontmatter `files_touched:` list is the canonical scope ground truth. Use it.
 
-- **Plan scope**: every path named in the phase tables (Phase 2).
-- **Map scope**: every path under `map.md § Key files` and `map.md § Blast radius` (best effort — parse the markdown headings).
+### Phase 6a — canonical scope (when frontmatter is present):
 
-Union these = **expected feature area**.
+Build the **shipped scope** = union of every `files_touched:` entry across every phase with `status: shipped`. This is the authoritative "what this feature has changed."
 
-For every file in the expected feature area that's been modified recently (mtime within the plan's drafting window to now), check that the file appears in the plan's Files-to-Create OR Files-to-Modify lists. If a file was modified but is NOT in any phase's lists → **scope drift** candidate.
+For every file in the expected feature area (from `map.md § Key files` and `map.md § Blast radius`) that was modified after the feature's first phase `completed:` date, check whether it appears in the shipped scope. If yes → no drift. If no → **scope drift** candidate.
 
-Use `Bash(find)` with a date predicate for the mtime scan; exclude `.git/`, `docs/`, `tests/` fixtures, build artifacts (`__pycache__`, `*.pyc`, `dist/`, `build/`), and lock files (`uv.lock`, `poetry.lock`).
+This is robust to cross-feature mtime pollution: a sister feature's edit to `html_generator.py` won't flag as drift here because mtime no longer enters the decision — the question is "is this file in any shipped phase's `files_touched:`?", which has a deterministic answer regardless of when it was last touched by whom.
 
-Note: scope drift isn't automatically a defect — helper functions often get added to existing files during implementation. The goal is to *surface* them so the user can decide whether to backfill the plan or revert.
+If a feature's plan promises a `phase-N+1.md` that doesn't exist on disk but its files have been modified — that's the **out-of-plan implementation** case (the `phase-13` of biological-workflow). Flag explicitly: "Files modified in feature area `[paths...]` are NOT named in any existing `phase-NN.md`. Either backfill `plan/phase-(N+1).md` or revert."
+
+### Phase 6b — mtime-based scope (legacy fallback when frontmatter absent):
+
+Same as the original logic: union of plan-table paths + map paths = expected feature area. `find` for mtime within plan-drafting window to now. Exclude `.git/`, `docs/`, build artifacts, lock files.
+
+Surface every drifted file the user can decide whether to backfill, revert, or promote to ADR.
 
 ## Phase 7: Test inventory
 
@@ -140,9 +169,40 @@ Apply the following precedence (first match wins):
 3. **NEEDS REVIEW** — INCOMPLETE/DRIFT both clean, BUT >30% of ADRs were flagged `NEEDS_HUMAN_REVIEW` (i.e., the design is behavior-heavy and verify couldn't reach conviction on most of it).
 4. **CLEAN** — everything else.
 
-## Phase 9: Write verify.md
+## Phase 9: Write verify.md — idempotent
 
-Write `docs/{feature}/verify.md`. One file; overwrite if present. Format:
+`/verify` is meant to be re-runnable. Earlier runs may have curated `## Open questions for human review` notes that future runs must NOT silently destroy.
+
+### Phase 9a — read existing `verify.md` if present
+
+Before writing, if `docs/{feature}/verify.md` exists, read it and extract:
+
+- The full `## Open questions for human review` section body (text under that H2 until the next H2).
+- Any ADR/MADR IDs that are still flagged `NEEDS_HUMAN_REVIEW` in the new run.
+
+### Phase 9b — preserve human annotations across re-runs
+
+Merge rule: in the new `verify.md`, the `## Open questions for human review` section is the **union** of:
+
+1. New `NEEDS_HUMAN_REVIEW` ADRs surfaced this run (with anchor + recommendation).
+2. Prior-run question-bullets whose ADR/MADR ID appears in the new `NEEDS_HUMAN_REVIEW` set (preserve verbatim — they may contain hand-curated notes).
+
+Drop prior-run question-bullets whose ADR is now mechanically `OK` or `MISSING` (those questions are stale).
+
+### Phase 9c — append a Run history block
+
+Add a `## Run history` section near the bottom listing the verdict + date of the current run, prepended to any prior `## Run history` block. Format:
+
+```markdown
+## Run history
+
+- 2026-04-29 — DRIFT — phase-13 implemented without plan doc
+- 2026-04-26 — CLEAN — initial verify
+```
+
+This gives a thin audit trail without growing `verify.md` unboundedly. Old runs are summarised, not duplicated.
+
+### Phase 9d — write the file. Format:
 
 ```markdown
 ---

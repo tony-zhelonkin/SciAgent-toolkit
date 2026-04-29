@@ -50,10 +50,22 @@ Issue these calls. Batch them in the same message where independence allows:
    grep -H "^Verdict:" docs/*/design/review.md 2>/dev/null
    ```
 
-3. **Phase counts (one call):**
+3. **Phase counts AND ship-state (one call — frontmatter scan):**
    ```bash
-   ls docs/*/plan/phase-*.md 2>/dev/null | awk -F/ '{print $2}' | sort | uniq -c
+   grep -H -A 10 '^---$' docs/*/plan/phase-*.md 2>/dev/null
    ```
+
+   Parse the YAML frontmatter block at the top of each `phase-NN.md`. Extract the `status:` field. Vocabulary (canonical, set by `/implement` Phase 3 step 5):
+   - `shipped` — phase complete (counts toward "shipped")
+   - `deferred` — deliberately skipped subphase (counts toward "shipped" for portfolio-progress purposes; flagged in `notes:` if user wants detail)
+   - `in-progress` / `blocked` — counts as "open"
+   - `not-started` — counts as "open"
+
+   Backwards-compat: accept legacy `status: DONE` as equivalent to `shipped`.
+
+   If a `phase-NN.md` has NO frontmatter `status:` field, count it as "unknown" — phase exists but its ship-state is not machine-readable. This is the signal that the phase predates the canonical schema and should be backfilled (run `scripts/migrate_phase_frontmatter.py` once per portfolio to fix).
+
+   Emit per-feature: `shipped/total` (e.g. `12/12`, `3/6`). If any phases are `unknown`, append `(N unknown)` — the user should treat those as ambiguous and run `/verify` to confirm.
 
 4. **Existence checks for map.md / synthesis.md (one Glob):**
    Use `Glob` with pattern `docs/*/map.md` and `docs/*/synthesis.md`; record the presence set.
@@ -110,17 +122,21 @@ Return exactly this block as your final message, filled in:
 Scope: {resolved feature list}.
 
 ## Per-feature
-| Feature | Map | Synth | Design | Architect | Plan | Phases | Outstanding |
-|---------|-----|-------|--------|-----------|------|--------|-------------|
-| {slug}  | ✅  | ✅    | APPROVED | READY   | DRAFT | 8    | plan gate pending |
-| ...     | ... | ...   | ...      | ...     | ...   | ...  | ... |
+| Feature | Map | Synth | Design | Architect | Plan | Phases (shipped/total) | Outstanding |
+|---------|-----|-------|--------|-----------|------|------------------------|-------------|
+| {slug}  | ✅  | ✅    | APPROVED | READY   | DRAFT | 8/8                    | plan gate pending |
+| {slug2} | ✅  | ✅    | APPROVED | READY   | APPROVED | 3/6 (3 open)        | implement open |
+| {slug3} | ✅  | ✅    | APPROVED | READY   | APPROVED | 12 (unknown)          | backfill phase frontmatter |
+| ...     | ... | ...   | ...      | ...     | ...   | ...                    | ... |
 
 Legend for "Outstanding":
 - `plan gate pending` — design is READY but plan still DRAFT / not APPROVED
 - `design drafting` — design/README present, no review verdict yet
+- `implement open` — plan APPROVED but `shipped < total` phases (run `/implement` next)
 - `verify INCOMPLETE` — implementation shipped but verify gate failing
 - `NEEDS_ITERATION` — architect verdict requires a design revision
-- `—` / `steady-state` — nothing blocked
+- `backfill phase frontmatter` — phase docs predate the canonical `status:` schema; run `scripts/migrate_phase_frontmatter.py`
+- `—` / `steady-state` — nothing blocked, all phases shipped
 - `?` — cross-feature conflict suspected (see below)
 
 ## Meta layer
@@ -139,7 +155,9 @@ Legend for "Outstanding":
 {one sentence, based on state. Examples:
 - "One feature is blocked at GATE 2 — run `/design {slug}` and respond to the gate."
 - "{N} features READY + plans drafted; run `/meta-plan` to sequence the portfolio."
-- "All features READY + plans READY; proceed to `/implement` in portfolio-phase order."}
+- "All features READY + plans APPROVED but {M} have shipped < total phases — run `/implement {slug} --auto` for {first slug}."
+- "All features fully shipped (N/N each); proceed to `/verify --all` for a portfolio-wide drift sweep."
+- "{K} features show `(N unknown)` phase counts — phase docs predate the canonical `status:` schema; run `scripts/migrate_phase_frontmatter.py` once to backfill."}
 ```
 
 Omit sections that would be empty (e.g., no plans drafted yet).
