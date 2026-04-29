@@ -1,13 +1,15 @@
 ---
 parent: ./README.md
 view: how-to
+version: 2
+revised: 2026-04-29
 ---
 
-# Integration guide — wiring git automation into the harness
+# Integration guide — wiring git automation into the harness (v2)
 
 The concrete steps to take this proposal from spec to shipped. Read
-`01-architecture.md` and `03-decisions.md` first; this file assumes
-those decisions are accepted.
+`01-architecture.md` and `03-decisions.md` first; this file assumes the
+v2 decisions are accepted.
 
 ---
 
@@ -15,50 +17,80 @@ those decisions are accepted.
 
 | Path | Purpose |
 |------|---------|
-| `scripts/architect-commit.sh` | The helper script. All git logic. |
-| `templates/architect.git.template` | Config template. Copied into `.claude/architect.git` by `activate-role.sh --with-git`. |
-| `docs/workflows/architect/git/examples/sample-log.md` | Worked `git log --oneline` example from a synthetic feature. |
+| `scripts/architect-commit.sh` | L2 git operator. ~120 lines bash. |
+| `scripts/_render.py` | L3 subject/body renderer + `guard()` filter. ~150 lines Python. |
+| `scripts/_render_test.py` | pytest: 13 commands × happy-path + forbidden-string rejection. ~80 lines. |
+| `templates/architect.git.template` | L1 config template. ~15 lines. |
+| `docs/workflows/architect/git/examples/sample-log.md` | Worked `git log --oneline` from one feature run. |
+| `docs/workflows/architect/git/examples/sample-architect.git.log` | Worked transparency log from the same run. |
 
 ## Files to modify
 
 | Path | What changes |
 |------|--------------|
-| `commands/map.md` | + Phase N: Commit (see template below) |
-| `commands/review.md` | + Phase N: Commit |
-| `commands/synthesize.md` | + Phase N: Commit |
-| `commands/design.md` | + Phase N: Commit A (Gate 1), Commit B (Gate 2), Commit C (architect READY) |
-| `commands/architect.md` | + Phase N: Commit |
-| `commands/plan.md` | + Phase N: Commit |
-| `commands/implement.md` | + Phase 5 → Phase 6: Commit (shift the hand-off phase to Phase 6) |
-| `commands/verify.md` | + Phase N: Commit |
-| `commands/meta-map.md` | + Phase N: Commit |
-| `commands/meta-design.md` | + Phase N: Commit |
-| `commands/meta-apply.md` | + Phase 5 amendments (commit after option-1/option-2 resolution) + Phase 6 architect-batch commit |
-| `commands/meta-plan.md` | + Phase N: Commit |
-| `commands/status.md` | + "This command does not commit." note |
-| `scripts/activate-role.sh` | + `--with-git` flag that copies the template |
+| `commands/map.md` | + 3-line "Phase N: Commit" trigger |
+| `commands/review.md` | + 3-line trigger |
+| `commands/synthesize.md` | + 3-line trigger |
+| `commands/design.md` | + 3-line trigger (single commit at Gate 2 — see ADR-014) |
+| `commands/architect.md` | + 3-line trigger |
+| `commands/plan.md` | + 3-line trigger |
+| `commands/implement.md` | + 3-line trigger as Phase 5 (current Phase 5 hand-off becomes Phase 6) |
+| `commands/verify.md` | + 3-line trigger |
+| `commands/meta-map.md` | + 3-line trigger |
+| `commands/meta-design.md` | + 3-line trigger |
+| `commands/meta-apply.md` | + 3-line trigger (single atomic commit — see ADR-014) |
+| `commands/meta-plan.md` | + 3-line trigger |
+| `commands/status.md` | + one-line note: "This command does not commit." |
+| `scripts/activate-role.sh` | + `--with-git` flag (~6 lines) |
 | `docs/workflows/architect/README.md` | + link to `git/README.md` in document index |
+
+Total docs/script delta from v1: **~325 lines fewer in command files**
+(no bash heredocs); **~230 lines added in scripts** (renderer + tests +
+helper trim); net ≈ 95 lines smaller AND testable AND single-source-of-truth.
 
 ---
 
-## The helper script — `scripts/architect-commit.sh`
+## L2 — `scripts/architect-commit.sh`
 
-Specification (not yet code). Implement in bash, pass shellcheck,
+Specification (not yet code). Implement in bash, pass `shellcheck`,
 executable bit set.
 
 ```bash
 #!/usr/bin/env bash
 # architect-commit.sh — provider-agnostic commit helper for the architect harness.
-# Usage: see 01-architecture.md § 1.
+# Usage: see git/01-architecture.md § L2.
 set -euo pipefail
 
-# --- Parse flags ---
-# --command, --feature, --phase, --subject, --body, --body-file, --paths,
-# --dry-run, --verbose. Unknown flag => exit 2.
-
-# --- Load config (if present) ---
+# --- Constants ---
+LOG_FILE=".claude/architect.git.log"
 CONFIG=".claude/architect.git"
+RENDERER="scripts/_render.py"
+
+# --- Parse flags ---
+# --command, --feature, --paths, --phase, --dry-run, --verbose, --selftest
+# Unknown flag => exit 2.
+
+# --- log_line: append one structured line to L0 transparency log ---
+log_line() {
+  local verdict="$1" sha="${2:-}" detail="${3:-}"
+  printf '%s | %-12s | %-7s | %-12s | %-7s | %s\n' \
+    "$(date -u +%Y-%m-%dT%H:%M:%S+00:00)" \
+    "$COMMAND" "$FEATURE" "$verdict" "${sha:--}" "$detail" \
+    >>"$LOG_FILE" 2>/dev/null || true
+}
+
+# --- Selftest mode ---
+if [[ "${1:-}" == "--selftest" ]]; then
+  # 1. Dry-run with fake args, confirm exit 0 and no git state change.
+  # 2. Config-absent path, confirm graceful skip.
+  # 3. Renderer reachability check (python3 + scripts/_render.py present).
+  # Failure of any sub-test exits non-zero with which sub-test broke.
+  exit 0
+fi
+
+# --- Load config ---
 if [[ ! -f "$CONFIG" ]]; then
+  log_line "skipped" "-" "disabled (no $CONFIG)"
   echo "architect-commit: disabled (no $CONFIG); skipping"
   exit 0
 fi
@@ -68,100 +100,252 @@ source "$CONFIG"
 : "${ARCHITECT_GIT_COMMIT_ON:=}"
 : "${ARCHITECT_GIT_BRANCHES:=false}"
 : "${ARCHITECT_GIT_BRANCH_PREFIX:=architect/}"
-: "${ARCHITECT_GIT_META_BRANCH:=current}"
 
 # Hardcoded safety rails — config values are ignored.
 ARCHITECT_GIT_ATTRIBUTION=false
 ARCHITECT_GIT_AUTOPUSH=false
 
 # --- Early exits ---
-[[ "$ARCHITECT_GIT_AUTOCOMMIT" == "true" ]] || { echo "architect-commit: AUTOCOMMIT=false; skipping"; exit 0; }
-[[ -z "$ARCHITECT_GIT_COMMIT_ON" || ",${ARCHITECT_GIT_COMMIT_ON}," == *",${COMMAND},"* ]] \
-  || { echo "architect-commit: command '$COMMAND' not in COMMIT_ON; skipping"; exit 0; }
-
+if [[ "$ARCHITECT_GIT_AUTOCOMMIT" != "true" ]]; then
+  log_line "skipped" "-" "AUTOCOMMIT=false"
+  echo "architect-commit: AUTOCOMMIT=false; skipping"; exit 0
+fi
+if [[ -n "$ARCHITECT_GIT_COMMIT_ON" && ",${ARCHITECT_GIT_COMMIT_ON}," != *",${COMMAND},"* ]]; then
+  log_line "skipped" "-" "command not in COMMIT_ON"
+  exit 0
+fi
 git rev-parse --is-inside-work-tree >/dev/null 2>&1 \
-  || { echo "architect-commit: not inside a git worktree" >&2; exit 3; }
+  || { log_line "refused" "-" "not-in-worktree"; echo "architect-commit: not in a git worktree" >&2; exit 3; }
 
-# --- Branch management ---
-if [[ "$ARCHITECT_GIT_BRANCHES" == "true" ]]; then
-  # Meta commands may pin to a portfolio branch.
-  if [[ "$FEATURE" == "_meta" && "$ARCHITECT_GIT_META_BRANCH" == "portfolio" ]]; then
-    TARGET_BRANCH="${ARCHITECT_GIT_BRANCH_PREFIX}_meta"
-  elif [[ "$FEATURE" != "_meta" ]]; then
-    TARGET_BRANCH="${ARCHITECT_GIT_BRANCH_PREFIX}${FEATURE}"
-  fi
-  if [[ -n "${TARGET_BRANCH:-}" ]]; then
-    CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-    if [[ "$CURRENT_BRANCH" != "$TARGET_BRANCH" ]]; then
-      if git show-ref --verify --quiet "refs/heads/$TARGET_BRANCH"; then
-        git switch "$TARGET_BRANCH" \
-          || { echo "architect-commit: failed to switch to $TARGET_BRANCH" >&2; exit 5; }
-      else
-        git switch -c "$TARGET_BRANCH" \
-          || { echo "architect-commit: failed to create $TARGET_BRANCH" >&2; exit 5; }
-      fi
+# --- Branch management (visible switch) ---
+if [[ "$ARCHITECT_GIT_BRANCHES" == "true" && "$FEATURE" != "_meta" ]]; then
+  TARGET="${ARCHITECT_GIT_BRANCH_PREFIX}${FEATURE}"
+  CURRENT=$(git rev-parse --abbrev-ref HEAD)
+  if [[ "$CURRENT" != "$TARGET" ]]; then
+    if git show-ref --verify --quiet "refs/heads/$TARGET"; then
+      git switch "$TARGET" || { log_line "refused" "-" "branch-switch-failed"; exit 5; }
+    else
+      git switch -c "$TARGET" || { log_line "refused" "-" "branch-create-failed"; exit 5; }
     fi
+    log_line "switched" "-" "$TARGET (was $CURRENT)"
+    echo "architect-commit: switched to branch $TARGET (was $CURRENT)"
   fi
 fi
 
-# --- Stage paths (explicit list only) ---
-# Validate each path is inside the worktree; abort on traversal.
+# --- Stage paths (explicit list only; reject traversal) ---
 REPO_ROOT=$(git rev-parse --show-toplevel)
 for p in "${PATH_LIST[@]}"; do
   ABS=$(readlink -f -- "$p" 2>/dev/null || realpath -- "$p")
   [[ "$ABS" == "$REPO_ROOT"/* ]] \
-    || { echo "architect-commit: path '$p' outside repo root" >&2; exit 4; }
+    || { log_line "refused" "-" "path-outside-repo: $p"; echo "architect-commit: path '$p' outside repo root" >&2; exit 4; }
 done
 git add -- "${PATH_LIST[@]}"
 
 # --- Skip empty commits ---
 if git diff --cached --quiet; then
+  log_line "skipped" "-" "empty staging"
   echo "architect-commit: nothing staged; skipping"
   exit 0
 fi
 
-# --- Compose commit message ---
-# Subject + optional body. NO TRAILERS. NO LLM MENTIONS.
+# --- Render subject + body via L3 ---
+RENDER_OUT=$(python3 "$RENDERER" \
+  --command="$COMMAND" --feature="$FEATURE" \
+  ${PHASE:+--phase=$PHASE} \
+  --paths="$(IFS=,; echo "${PATH_LIST[*]}")" 2>&1) || {
+  log_line "refused" "-" "renderer-error"
+  echo "architect-commit: renderer error:" >&2
+  echo "$RENDER_OUT" >&2
+  exit 5
+}
+
+# RENDER_OUT format: subject\n\nbody (body may be empty).
+SUBJECT=$(printf '%s\n' "$RENDER_OUT" | sed -n '1p')
+BODY=$(printf '%s\n' "$RENDER_OUT" | sed -n '3,$p')
+
+# --- Compose commit message file (NO TRAILERS) ---
 MSG_FILE=$(mktemp)
 trap 'rm -f "$MSG_FILE"' EXIT
 {
   echo "$SUBJECT"
-  if [[ -n "${BODY:-}" ]]; then
+  if [[ -n "$BODY" ]]; then
     echo ""
     echo "$BODY"
   fi
 } >"$MSG_FILE"
 
-# --- Commit (hooks respected; never --no-verify, --amend, or -f) ---
+# --- Dry-run short circuit ---
 if [[ "$DRY_RUN" == "true" ]]; then
-  echo "architect-commit: [dry-run] would commit with:"
+  log_line "dry-run" "-" "$SUBJECT"
+  echo "architect-commit: [dry-run] would commit:"
   cat "$MSG_FILE"
   exit 0
 fi
 
-git commit -F "$MSG_FILE" \
-  || { echo "architect-commit: git commit failed (see output above)" >&2; exit 5; }
+# --- Commit (hooks respected; never --no-verify, --amend, or -f) ---
+if ! git commit -F "$MSG_FILE"; then
+  log_line "hook-failed" "-" "git-commit-rc=$?"
+  echo "architect-commit: git commit failed (see output above)" >&2
+  exit 5
+fi
 
-echo "architect-commit: committed $(git rev-parse --short HEAD) on $(git rev-parse --abbrev-ref HEAD)"
+SHA=$(git rev-parse --short HEAD)
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+log_line "committed" "$SHA" "$SUBJECT"
+echo "architect-commit: ✓ $SUBJECT ($SHA) on $BRANCH"
 ```
-
-### Self-test mode
-
-```bash
-./scripts/architect-commit.sh --selftest
-```
-
-runs:
-
-1. A `--dry-run` invocation with fake args, confirms no git state change.
-2. A config-absent path, confirms graceful skip.
-3. A forbidden-string audit: `grep -RnE "(Co-Authored-By|Generated with|🤖|Anthropic|Claude Code)"` against the script and template, expecting **zero hits**.
-
-Failure of any sub-test exits non-zero and prints which sub-test broke.
 
 ---
 
-## The config template — `templates/architect.git.template`
+## L3 — `scripts/_render.py`
+
+Specification (not yet code).
+
+```python
+#!/usr/bin/env python3
+"""Subject/body renderer for architect-commit.sh.
+
+Reads canonical frontmatter from docs/{feature}/... and produces a
+deterministic (subject, body) tuple. Applies guard() to reject any
+LLM/vendor attribution string before returning.
+"""
+import argparse
+import re
+import sys
+from pathlib import Path
+
+FORBIDDEN_PATTERNS = [
+    re.compile(p, re.IGNORECASE) for p in [
+        r"co-authored-by:\s*(claude|gemini|codex|gpt|openai|anthropic|google)",
+        r"generated with (claude|gemini|codex|openai)",
+        r"claude code", r"anthropic", r"openai", r"<noreply@(anthropic|google|openai)\.com>",
+        r"🤖", r"🧠", r"✨",
+    ]
+]
+
+
+class GuardError(ValueError):
+    pass
+
+
+def guard(text: str) -> str:
+    for pat in FORBIDDEN_PATTERNS:
+        if pat.search(text):
+            raise GuardError(f"forbidden pattern matched: {pat.pattern!r}")
+    return text
+
+
+def _read_frontmatter(path: Path) -> dict:
+    """Parse simple YAML frontmatter from the top of a markdown file."""
+    text = path.read_text()
+    m = re.match(r"^---\s*\n(.*?\n)---\s*\n", text, re.DOTALL)
+    if not m:
+        return {}
+    fm: dict = {}
+    for line in m.group(1).splitlines():
+        if ":" in line and not line.startswith("  "):
+            k, _, v = line.partition(":")
+            fm[k.strip()] = v.strip()
+    return fm
+
+
+def _render_map(feature, **_):
+    fm = _read_frontmatter(Path(f"docs/{feature}/map.md"))
+    loc = fm.get("loc", "?")
+    files = fm.get("files", "?")
+    n_oq = fm.get("open_questions", "0")
+    subject = f"docs({feature}): map codebase ({loc} locs across {files} files)"
+    body = f"Open questions: {n_oq} (see map.md § Open Questions)." if n_oq != "0" else ""
+    return subject, body
+
+
+def _render_review(feature, paths, **_):
+    reviewers = sorted({Path(p).stem for p in paths if "/review/" in p})
+    subject = f"docs({feature}): review [{', '.join(reviewers)}]"
+    return subject, ""
+
+
+def _render_implement(feature, phase, **_):
+    fm = _read_frontmatter(Path(f"docs/{feature}/plan/phase-{phase:02d}.md"))
+    title = fm.get("focus", f"phase {phase}")
+    subject = f"feat({feature}): phase {phase} — {title}"
+    body = ""  # body composed from `## Verification` checkboxes if present
+    return subject, body
+
+
+# ... 10 more _render_<command> functions
+COMMAND_HANDLERS = {
+    "map": _render_map,
+    "review": _render_review,
+    "synthesize": lambda **kw: ...,
+    "design": lambda **kw: ...,
+    "architect": lambda **kw: ...,
+    "plan": lambda **kw: ...,
+    "implement": _render_implement,
+    "verify": lambda **kw: ...,
+    "meta-map": lambda **kw: ...,
+    "meta-design": lambda **kw: ...,
+    "meta-apply": lambda **kw: ...,
+    "meta-plan": lambda **kw: ...,
+}
+
+
+def render_subject_body(command, feature, paths, phase=None):
+    fn = COMMAND_HANDLERS[command]
+    subject, body = fn(feature=feature, paths=paths, phase=phase)
+    return guard(subject), guard(body)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--command", required=True)
+    ap.add_argument("--feature", required=True)
+    ap.add_argument("--paths", required=True, help="comma-separated")
+    ap.add_argument("--phase", type=int, default=None)
+    args = ap.parse_args()
+    paths = [p for p in args.paths.split(",") if p]
+    try:
+        subject, body = render_subject_body(args.command, args.feature, paths, args.phase)
+    except GuardError as e:
+        print(f"_render: guard rejected: {e}", file=sys.stderr)
+        sys.exit(2)
+    except Exception as e:
+        print(f"_render: error: {e}", file=sys.stderr)
+        sys.exit(1)
+    print(subject)
+    print()
+    if body:
+        print(body)
+
+
+if __name__ == "__main__":
+    main()
+```
+
+---
+
+## Pytest — `scripts/_render_test.py`
+
+Coverage:
+
+- 13 commands × happy-path: feed a fixture `docs/` tree, assert
+  `(subject, body)` shape matches the catalog in `02-behavior.md §
+  Worked examples`.
+- 7 forbidden-string injection cases (one per pattern class): assert
+  `guard()` raises `GuardError`.
+- Frontmatter-missing graceful failure: render returns a generic-but-
+  valid subject when `phase-N.md` lacks fields.
+- Idempotency: same inputs → same outputs.
+
+Run with:
+
+```bash
+pytest scripts/_render_test.py -v
+```
+
+---
+
+## L1 — `templates/architect.git.template`
 
 Exact contents (copy verbatim into `.claude/architect.git` by
 `activate-role.sh --with-git`):
@@ -171,259 +355,73 @@ Exact contents (copy verbatim into `.claude/architect.git` by
 # Delete this file to disable auto-commit entirely.
 
 ARCHITECT_GIT_AUTOCOMMIT=true
+
+# Which commands may auto-commit. Comma-separated. Default: all.
 ARCHITECT_GIT_COMMIT_ON=map,review,synthesize,design,architect,plan,implement,verify,meta-map,meta-design,meta-apply,meta-plan
+
+# Create a feature branch (prefix + slug) on first commit for that
+# feature. Leave false for single-branch workflows.
 ARCHITECT_GIT_BRANCHES=false
 ARCHITECT_GIT_BRANCH_PREFIX=architect/
-ARCHITECT_GIT_META_BRANCH=current
 
 # HARDCODED false — the script ignores any other value.
 ARCHITECT_GIT_ATTRIBUTION=false
 ARCHITECT_GIT_AUTOPUSH=false
 ```
 
-Note the comments. Users will edit this file; comments are the nearest
-docs when they're three weeks deep in a project.
+Note: `ARCHITECT_GIT_META_BRANCH` was removed in v2 (see ADR-015).
 
 ---
 
-## Command integration — the template
+## L4 — Command-level integration template
 
-Paste this block near the end of each `commands/*.md` that writes an
-artifact. Replace the three placeholders per command.
+Paste this block at the end of each `commands/*.md` that writes an
+artifact. **No subject template**, **no body composition**, **no
+attribution reminder** (renderer's `guard()` is the enforcement).
 
 ```markdown
 ## Phase N: Commit (if enabled)
 
-After the gate approves the artifact(s) above, invoke the commit helper:
-
-```
-scripts/architect-commit.sh \
-  --command=<command-name> \
-  --feature={slug} \
-  --subject="<type>({slug}): <templated-subject>" \
-  --body-file=<(cat <<BODY
-<optional multi-line body>
-BODY
-) \
-  --paths=<comma-separated path list>
-```
-
-The helper no-ops if `.claude/architect.git` is absent or if this
-command is not in `ARCHITECT_GIT_COMMIT_ON`. It commits on the current
-branch unless `ARCHITECT_GIT_BRANCHES=true`.
-
-**Do NOT append any authorship trailers, `Co-Authored-By` lines,
-`Signed-off-by: <provider>` markers, or "Generated with …" lines. The
-commit author is whatever git config produces; the harness is
-provider-agnostic.**
+Invoke `scripts/architect-commit.sh --command=<this-command-name> \
+--feature={slug} --paths=<comma-separated paths just written>`. The
+helper composes the message via `scripts/_render.py` and no-ops if
+`.claude/architect.git` is absent.
 
 If the helper exits non-zero (hook failure, branch conflict, etc.),
 surface the error verbatim to the user and stop. Do NOT retry; do NOT
 pass `--no-verify`.
 ```
 
----
+`/status` carries instead:
 
-## Per-command integration — exact subjects & paths
-
-### `commands/map.md` — new Phase 4
-
-```
---command=map
---feature={slug}
---subject="docs({slug}): map codebase ({loc} locs across {files} files)"
---body-file=<(printf 'Open questions: %d (see map.md § Open Questions).\n' {n_oq})
---paths=docs/{slug}/map.md
-```
-
-Skip the commit when Phase 1 resolved to "use existing" (nothing was
-written).
-
-### `commands/review.md` — new Phase 5
-
-```
---command=review
---feature={slug}
---subject="docs({slug}): review [{sorted_reviewer_list}]"
---paths=docs/{slug}/review/<reviewer-1>.md,docs/{slug}/review/<reviewer-2>.md,...
-```
-
-Path list = files actually written this invocation (not pre-existing).
-
-### `commands/synthesize.md` — new Phase 4
-
-```
---command=synthesize
---feature={slug}
---subject="docs({slug}): synthesize reviews ({n_convergent} P0, {n_divergent} divergent)"
---paths=docs/{slug}/synthesis.md
-```
-
-Skip when Phase 1 early-exited (0 or 1 reviewer files).
-
-### `commands/design.md` — three commit points
-
-**After Phase 3a Gate 1:**
-
-```
---command=design
---feature={slug}
---subject="docs({slug}): design README — scope & acceptance criteria"
---paths=docs/{slug}/design/README.md
-```
-
-**After Phase 4 Gate 2 (post status-flip to APPROVED):**
-
-```
---command=design
---feature={slug}
---subject="docs({slug}): design bundle ({n_adrs} ADRs, {n_oqs} OQs) — status APPROVED"
---body-file=<(printf 'Deferred: %s.\n' "$deferred_ids_csv")
---paths=docs/{slug}/design/README.md,docs/{slug}/design/01-architecture.md,docs/{slug}/design/02-behavior.md,docs/{slug}/design/03-decisions.md[,...]
-```
-
-**After Phase 5 architect verdict (only if READY):**
-
-```
---command=design
---feature={slug}
---subject="docs({slug}): architect verdict READY"
---paths=docs/{slug}/design/review.md
-```
-
-If verdict is NEEDS_ITERATION or NEEDS_DISCUSSION: no commit. The
-command already halts and asks the user.
-
-### `commands/architect.md` — new Phase 5
-
-```
---command=architect
---feature={slug}
---subject="docs({slug}): architect verdict {VERDICT}"
---paths=docs/{slug}/design/review.md[,docs/{slug}/design/*.md if status flipped]
-```
-
-### `commands/plan.md` — new Phase 5
-
-```
---command=plan
---feature={slug}
---subject="docs({slug}): plan ({n_phases} phases)"
---body-file=<(printf 'phase-%02d: %s\n' ...)
---paths=docs/{slug}/plan/README.md,docs/{slug}/plan/phase-01.md,...,docs/{slug}/plan/phase-{N}.md
-```
-
-### `commands/implement.md` — renumbered Phase 5 → Phase 6 (new Phase 5: Commit)
-
-Insert BEFORE the current Phase 5 (which becomes Phase 6: Hand off to
-next phase):
-
-```
-## Phase 5: Commit (if enabled)
-
-Run ONLY if Phase 4 verification passed cleanly (no ❌ or ⚠️ marks).
-If verification failed, the command halts at Phase 4 — this phase is
-unreachable until the user fixes and re-runs.
-
-Commit template:
-
---command=implement
---feature={slug}
---phase={N}
---subject="feat({slug}): phase {N} — {phase_title}"        # or docs({slug}): if no non-docs paths
---body-file=<( ... verification checklist as - [x] bullets ... )
---paths=<Files-to-Create from phase-N.md>,<Files-to-Modify from phase-N.md>,docs/{slug}/plan/phase-{N}.md
-```
-
-Only use `feat(` when `--paths` contains at least one path not starting
-with `docs/`. Otherwise `docs(`.
-
-Renumber the existing Phase 5 (hand-off) to Phase 6 and leave its body
-unchanged. The WAIT-for-user instruction at the end still applies —
-commit fires *before* the WAIT, so the committed state is what the user
-sees when they decide to proceed.
-
-### `commands/verify.md` — new Phase 10 (current Phase 9 stays as "Write verify.md")
-
-```
---command=verify
---feature={slug}
---subject="docs({slug}): verify — verdict {CLEAN|INCOMPLETE|DRIFT|NEEDS_REVIEW}"
---paths=docs/{slug}/verify.md
-```
-
-### `commands/status.md` — add a one-line note
-
-Replace any commit-adjacent content with:
-
-```
+```markdown
 ## Commit behaviour
 
 `/status` is chat-only and writes no files; this command never commits.
 ```
 
-### `commands/meta-map.md` — new Phase 5
+---
 
-```
---command=meta-map
---feature=_meta
---subject="docs(_meta): map portfolio ({n_features} features, {n_convergent} convergent concerns)"
---paths=docs/_meta/map.md
-```
+## Per-command path lists
 
-### `commands/meta-design.md` — new Phase 7
+The `<paths>` substitution per command (the renderer derives subject
+and body from frontmatter, so paths are the only command-specific
+context here):
 
-```
---command=meta-design
---feature=_meta
---subject="docs(_meta): design ({n_madrs} MADRs) — status APPROVED"
---body-file=<( per-MADR one-liner listing )
---paths=docs/_meta/design.md[,docs/_meta/deferred.md if appended]
-```
-
-### `commands/meta-apply.md` — amend Phase 5 and add Phase 6.5 (architect-batch commit)
-
-Amend Phase 5 option 1 ("approve all OK features"):
-
-> After flipping `status: DRAFT → APPROVED` on each approved feature,
-> invoke the commit helper ONCE PER approved feature (serially), before
-> dispatching the architect batch in Phase 6:
->
-> ```
-> --command=meta-apply
-> --feature={feat}
-> --subject="docs({feat}): apply meta-design ({n_madrs} MADRs)"
-> --body-file=<( applied-MADR list + deferred-row IDs )
-> --paths=docs/{feat}/design/*.md,<slice of docs/_meta/deferred.md for this feature's ID block>
-> ```
-
-Amend Phase 5 option 2 ("approve some, reject others"):
-
-> For REJECTED features: run `git restore docs/{feat}/design/*.md` and
-> strip their deferred rows. **Do not commit rejected features.** For
-> APPROVED features: proceed as option 1.
-
-Add Phase 6.5 after architect batch returns (between Phase 6 and
-Phase 7):
-
-```
---command=meta-apply
---feature=_meta
---subject="docs(_meta): architect gate post-meta-apply — {R} READY, {I} NEEDS_ITERATION, {D} NEEDS_DISCUSSION"
---paths=docs/{feat-1}/design/review.md,docs/{feat-2}/design/review.md,...[,any design/*.md files where APPROVED was rolled back to DRAFT in Phase 7]
-```
-
-Phase 7's "roll back APPROVED → DRAFT for NEEDS_ITERATION features"
-edits are included in this Phase 6.5 commit.
-
-### `commands/meta-plan.md` — new Phase 7
-
-```
---command=meta-plan
---feature=_meta
---subject="docs(_meta): plan ({n_portfolio_phases} portfolio phases)"
---paths=docs/_meta/plan.md
-```
+| Command | `--paths` value |
+|---------|-----------------|
+| `/map` | `docs/{slug}/map.md` |
+| `/review` | comma-separated list of review files written this invocation |
+| `/synthesize` | `docs/{slug}/synthesis.md` |
+| `/design` | `docs/{slug}/design/README.md,docs/{slug}/design/01-architecture.md,docs/{slug}/design/02-behavior.md,docs/{slug}/design/03-decisions.md,docs/{slug}/design/review.md` (full bundle, single commit) |
+| `/architect` | `docs/{slug}/design/review.md` + any `design/*.md` whose status flipped |
+| `/plan` | `docs/{slug}/plan/README.md` + every `docs/{slug}/plan/phase-*.md` |
+| `/implement` | every path in `phase-N.md` frontmatter `files_touched:` + the phase doc itself; `--phase=N` flag also passed |
+| `/verify` | `docs/{slug}/verify.md` |
+| `/meta-map` | `docs/_meta/map.md`; `--feature=_meta` |
+| `/meta-design` | `docs/_meta/design.md`[,`docs/_meta/deferred.md`]; `--feature=_meta` |
+| `/meta-apply` | every approved feature's `docs/{feat}/design/*.md` + relevant `docs/_meta/deferred.md` slice (single atomic commit); `--feature=_meta` |
+| `/meta-plan` | `docs/_meta/plan.md`; `--feature=_meta` |
 
 ---
 
@@ -432,10 +430,8 @@ edits are included in this Phase 6.5 commit.
 Add one flag and one block:
 
 ```bash
-# New flag: --with-git
-# ...in the arg parsing loop:
+# New flag
     --with-git) WITH_GIT=true ;;
-# ...
 
 # Near the end, after agent/skill symlinking:
 if [[ "${WITH_GIT:-false}" == "true" ]]; then
@@ -446,88 +442,86 @@ if [[ "${WITH_GIT:-false}" == "true" ]]; then
   else
     cp "$TEMPLATE" "$TARGET"
     echo "architect-commit: installed $TARGET (edit to customise)"
+    echo "architect-commit: log will accumulate at $PROJECT_DIR/.claude/architect.git.log"
   fi
 fi
 ```
 
 ---
 
-## Rollout order
+## Rollout — 5 PRs (compressed from v1's 8)
 
-Do not do all of this in one PR. The safe order:
+The reduced v2 scope merits a tighter sequence. Between PRs the harness
+remains usable; users without `.claude/architect.git` see no
+behavioural change.
 
-1. **PR 1 — helper script + template (no command changes).**
-   Adds `scripts/architect-commit.sh` and
-   `templates/architect.git.template` with `--selftest` passing.
-   Run `./scripts/architect-commit.sh --selftest` in CI (if CI exists).
-   Run the forbidden-string audit:
-   ```
-   grep -RnE "(Co-Authored-By|Generated with|🤖|Anthropic|Claude Code|Gemini|Codex)" \
-     scripts/architect-commit.sh templates/architect.git.template
-   ```
-   Expect zero hits.
-2. **PR 2 — activate-role.sh `--with-git` flag.** Copies the template
-   into `.claude/architect.git` on opt-in. No command changes yet; the
-   file exists but no command invokes the script.
-3. **PR 3 — wire `/map` and `/verify` only.** Small, low-blast-radius
-   commands. Run a full walkthrough on a test feature; confirm
-   `git log` shape matches `02-behavior.md § Log-shape`.
-4. **PR 4 — wire `/review`, `/synthesize`, `/plan`.** Artifact-only
-   commands, no code touches.
-5. **PR 5 — wire `/design` and `/architect`.** Two-commit design is the
-   subtle case; test both gates fire correctly.
-6. **PR 6 — wire `/implement`.** Code-touching command. Test with a
-   feature where pre-commit hooks fail intentionally to confirm the
-   halt-and-surface flow.
-7. **PR 7 — wire meta commands (`/meta-map`, `/meta-design`,
-   `/meta-apply`, `/meta-plan`).** `/meta-apply`'s per-feature commit
-   loop is the largest change.
-8. **PR 8 — docs update.** Add `docs/workflows/architect/git/` to the
-   main README index, update `05-meta-approach.md` with cross-refs to
-   the meta-layer commit behaviour.
-
-Between PRs, the harness is usable: users without `.claude/architect.git`
-see no behavioural change at all; users who opted in see progressively
-more commands auto-committing.
+1. **PR 1 — L0 + L1 + L2 + L3 + tests (no command changes).**
+   Adds `scripts/architect-commit.sh`, `scripts/_render.py`,
+   `scripts/_render_test.py`, and `templates/architect.git.template`.
+   Acceptance: `pytest scripts/_render_test.py -v` passes;
+   `./scripts/architect-commit.sh --selftest` passes.
+2. **PR 2 — `activate-role.sh --with-git` flag.** Copies the template
+   into `.claude/architect.git` on opt-in. No command files changed yet.
+3. **PR 3 — wire cheap commands.** `/map`, `/verify`, `/status`. Run a
+   walkthrough on a test feature; confirm `git log` shape matches
+   `02-behavior.md § Log-shape` and `.claude/architect.git.log` reflects
+   each invocation.
+4. **PR 4 — wire artifact + design commands.** `/review`,
+   `/synthesize`, `/plan`, `/design`, `/architect`. Test single-commit
+   `/design` (Gate 2 only).
+5. **PR 5 — wire `/implement` + meta commands.** Code-touching
+   command with intentional pre-commit hook failure to verify
+   halt-and-surface. Then `/meta-map`, `/meta-design`, `/meta-apply`
+   (single atomic commit), `/meta-plan`.
 
 ---
 
 ## Acceptance checklist
 
-A v1 rollout is done when:
+A v2 rollout is done when:
 
-- [ ] `scripts/architect-commit.sh --selftest` passes.
-- [ ] Forbidden-string grep across the script and all touched
-      `commands/*.md` returns zero hits.
-- [ ] Walkthrough on a throwaway feature produces the log shape in
-      `02-behavior.md § Log-shape`.
+- [ ] `pytest scripts/_render_test.py -v` passes (13 commands × happy
+      path + 7 forbidden-string rejections + frontmatter-missing).
+- [ ] `./scripts/architect-commit.sh --selftest` passes.
+- [ ] Walkthrough on a throwaway feature produces the 11-commit log
+      shape in `02-behavior.md § Log-shape`.
+- [ ] `.claude/architect.git.log` after the walkthrough has one line
+      per command invocation, no missing entries.
 - [ ] With `.claude/architect.git` absent, the harness behaves exactly
-      as it did before (no new commits, no script invocations that
-      fail).
-- [ ] With `ARCHITECT_GIT_BRANCHES=true`, a second feature creates a
-      distinct `architect/{slug}` branch without clobbering the first.
+      as it did before (no commits, helper exits 0 quietly).
+- [ ] With `ARCHITECT_GIT_BRANCHES=true`, branch creation emits the
+      visible chat line AND a `switched` log line.
 - [ ] Intentionally failing a pre-commit hook halts the harness with
-      the hook output visible to the user; no `--no-verify` is ever
-      invoked.
-- [ ] `/meta-apply` with a mix of approved/rejected features produces
-      exactly one commit per approved feature and no commit (plus
-      `git restore`) per rejected feature.
+      the hook output; `hook-failed` line in the log.
+- [ ] `/meta-apply` with mixed approved/rejected features produces
+      exactly one atomic commit covering all approved features (not N).
+- [ ] `git restore` against a path with uncommitted hand-edits is
+      refused with the file list (ADR-016).
+- [ ] Forbidden-string injection attempts in any rendered field raise
+      `GuardError` and surface `refused | renderer-error` in the log.
 
-When all boxes are checked, update this doc's status in the parent
-README from "proposal" to "implemented".
+When all boxes are checked, update `git/README.md` status from
+"proposal v2" to "implemented".
 
 ---
 
 ## After-implementation maintenance
 
-- When a new command is added to the harness (e.g. a hypothetical
-  `/deprecate` or `/release`), add it to `ARCHITECT_GIT_COMMIT_ON`'s
-  default list and add a "Phase N: Commit" block to the command file.
-- When a new reviewer is added (e.g. `security`), no commit changes are
-  needed — `/review` already globs the review directory.
-- If pre-commit hooks become a common source of friction, consider
-  adding a `--skip-hooks=<specific-hook-name>` passthrough. Still NEVER
-  a blanket `--no-verify`.
-- Keep the forbidden-string grep in CI. It is the single strongest
-  guard against attribution drift as Claude Code / Gemini / Codex
-  update their defaults.
+- **New command added to harness** (e.g. hypothetical `/deprecate`):
+  add an entry to `COMMAND_HANDLERS` in `_render.py`, add a happy-path
+  test in `_render_test.py`, add the command to
+  `ARCHITECT_GIT_COMMIT_ON`'s default list, paste the L4 trigger block
+  into the new command file.
+- **New reviewer added to `/review`** (e.g. `security`): no changes
+  needed. The renderer derives the reviewer list from the `--paths`
+  list automatically.
+- **Pre-commit hooks become friction:** never blanket `--no-verify`.
+  If a specific hook is the issue, consider a future
+  `--skip-hooks=<specific-hook-name>` passthrough; surface the
+  motivation as a deferred decision under ADR-019.
+- **Forbidden-string drift** (a provider invents a new attribution
+  format): add the new pattern to `FORBIDDEN_PATTERNS` in
+  `_render.py`; add a test case in `_render_test.py`. Single-file
+  change.
+- **Log file gets large:** `truncate -s 0 .claude/architect.git.log`
+  manually. Don't add rotation logic to the harness.
