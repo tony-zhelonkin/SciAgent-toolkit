@@ -125,7 +125,7 @@ get_yaml_list() {
 get_yaml_value() {
     local file="$1"
     local key="$2"
-    grep "^${key}:" "$file" | sed "s/${key}:\s*//" | tr -d '\r"' | xargs
+    grep "^${key}:" "$file" 2>/dev/null | sed "s/${key}:\s*//" | tr -d '\r"' | xargs || true
 }
 
 log_info "Activating role: ${ROLE}"
