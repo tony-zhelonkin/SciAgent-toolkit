@@ -59,3 +59,7 @@ skills:
 
   # === Data Utilities ===
   - anndatar-seurat-scanpy-conversion   # R <-> Python h5ad conversion (anndataR)
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution

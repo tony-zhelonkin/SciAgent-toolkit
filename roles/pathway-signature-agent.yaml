@@ -60,3 +60,7 @@ skills:
 
   # === Optional metabolic extension ===
   - gatom-metabolomic-predictions        # Active metabolic modules; pseudo-NES rows
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution

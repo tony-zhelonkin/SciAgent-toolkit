@@ -55,3 +55,7 @@ skills:
   # Reference models
   - scvi-hub-models                    # scVI/scANVI pretrained models
   - single-cell-vector-search          # Cell state atlas search
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution

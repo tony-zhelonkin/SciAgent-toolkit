@@ -92,3 +92,5 @@ commands:
   - meta-design
   - meta-apply      # parallel propagation of accepted MADRs to per-feature designs (dispatches N feature-revisers)
   - meta-plan
+  # === Universal addons ===
+  - commit          # clean atomic commits with brief messages, no AI attribution

@@ -74,3 +74,7 @@ skills:
   - scglue-unpaired-multiomics-integration  # scGLUE for unpaired scRNA+scATAC integration
   # Meta — skill authoring
   - skill-creator                       # Meta-skill: create, evaluate, improve Claude Code skills
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution

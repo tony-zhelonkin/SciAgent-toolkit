@@ -57,3 +57,7 @@ skills:
   - scvi-framework                             # scvi-tools shared patterns
   - scvi-peakvi                                # PeakVI ATAC embedding
   - scembed-atac-annotation                    # Transfer learning annotation for scATAC
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution
