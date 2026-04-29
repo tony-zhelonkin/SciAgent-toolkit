@@ -19,7 +19,13 @@ SciAgent-toolkit is a modular infrastructure that orchestrates interactions betw
   - Reads role YAML (e.g., `roles/base.yaml`)
   - Symlinks agents from `agents/` to `.claude/agents/`
   - Symlinks skills from `skills/` to `.claude/skills/`
+  - Symlinks commands from `commands/` to `.claude/commands/`
+  - Symlinks **all** `system-prompts/*.md` into `.claude/output-styles/` and pins the role's `output_style:` in `.claude/settings.json`
   - Suggests appropriate MCP profile
+
+**Scope — one project per invocation.** `activate-role.sh` operates on a single `${PROJECT_DIR}/.claude/` (default: `$PWD`, override with `--project-dir`). It does **not** cascade into submodule or nested-repo `.claude/` directories. For a parent repo that consumes this toolkit *and* has its own sub-repos with independent `.claude/` (e.g. `01_modules/pathway-explorer/`), run `activate-role.sh` once per target. Existing symlinks in the target `.claude/{agents,skills,commands,output-styles}/` are cleared before re-linking, so role switching is clean.
+
+**Git tracking.** Symlinks are written into the consumer's `.claude/` (typically git-ignored in consumer repos). The canonical files live in this toolkit and are tracked here — not in the consumer.
 
 ### 3. Profile Manager (The "Controller")
 - **Script**: `switch-mcp-profile.sh`

@@ -134,9 +134,11 @@ Search PubMed/PMC, access full-text articles, extract findings, and map research
 I plan to implement a **role-based system** to configure agents and skills per project or switch roles at runtime during project analysis:
 
 ```bash
-# Activate a role (symlinks agents/skills to .claude/)
+# Activate a role (symlinks agents/skills/commands/output-styles into .claude/)
 ./scripts/activate-role.sh base --project-dir /path/to/project
 ```
+
+> **Scope:** one `.claude/` per invocation. No cascade into nested repos — re-run with `--project-dir` for each target (e.g. submodules with their own `.claude/`). See [ARCHITECTURE.md §2](docs/ARCHITECTURE.md) for details.
 
 ### Pre-configured Agents (Base Role)
 
