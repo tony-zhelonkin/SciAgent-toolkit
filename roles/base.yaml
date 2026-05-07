@@ -72,6 +72,11 @@ skills:
   - treearches-hierarchy-learning      # treeArches hierarchical cell type learning
   # Multiomics integration
   - scglue-unpaired-multiomics-integration  # scGLUE for unpaired scRNA+scATAC integration
+  # scRNA-seq workflow (project-specific house style + ingestion + hosting + cNMF)
+  - scrna-pipeline-conventions         # House style: numbered scripts, multi-checkpoint, config.py, 03_results/ layout
+  - cellranger-multi-to-anndata        # CellRanger Multi → AnnData with gene-union concat + biomart symbols
+  - scrna-cxg-host                     # CellxGene schema prep + Docker Compose deployment (nginx + htpasswd)
+  - consensus-nmf-multirun             # Multi-run consensus cNMF: full ± QC × subset ± QC, merge, annotate, ANOVA
   # Meta — skill authoring
   - skill-creator                       # Meta-skill: create, evaluate, improve Claude Code skills
 

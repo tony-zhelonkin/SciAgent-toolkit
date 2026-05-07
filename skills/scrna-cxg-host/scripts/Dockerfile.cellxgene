@@ -1,0 +1,40 @@
+# Battle-tested CellxGene image for the scrna-cxg-host skill.
+#
+# Pin both numpy and pandas in the same `pip install` so the wheel resolver
+# picks an ABI-compatible pair. cellxgene 1.2.0's own `requirements.txt` only
+# floor-pins numpy (`numpy>1.22`) and ceiling-pins pandas (`pandas<2.0.0`),
+# which today resolves to numpy 2.x + pandas 1.5.x — those are mutually
+# binary-incompatible (numpy 2.0 grew `PyArray_Descr` from 88 to 96 bytes).
+# Without these explicit pins, `import pandas` raises
+#   ValueError: numpy.dtype size changed, may indicate binary incompatibility.
+#   Expected 96 from C header, got 88 from PyObject
+# at container start, the cellxgene supervisor crash-loops, and nginx returns
+# `502 Bad Gateway`.
+#
+# The trailing `python -c` smoke test imports pandas + cellxgene's CLI module
+# at build time so a future ABI regression fails `docker compose build` with a
+# clear error rather than silently producing a crash-loop image.
+#
+# Verified against cellxgene 1.2.0 + python:3.10-slim on 2026-04-30 by the
+# 14616-DM deploy. If you bump cellxgene to 1.3.0+, drop the numpy/pandas pins
+# (1.3.0 pins `numpy==2.0.1` + `pandas>=2.2.2` upstream).
+
+FROM python:3.10-slim
+
+ENV PIP_NO_CACHE_DIR=1 PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends build-essential curl \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN pip install --no-cache-dir \
+      "numpy==1.23.5" \
+      "pandas==1.5.3" \
+      "cellxgene==1.2.0" \
+ && mkdir -p /data /annotations
+
+RUN python -c "import pandas, numpy; from server.cli.cli import cli; print('cellxgene env OK; numpy', numpy.__version__, 'pandas', pandas.__version__)"
+
+EXPOSE 5005
+ENTRYPOINT ["cellxgene"]
+CMD ["launch", "--host", "0.0.0.0", "--port", "5005"]

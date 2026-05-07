@@ -1,0 +1,45 @@
+# nginx.conf.template — one rendered file per dataset (nginx-<DATASET_KEY>.conf)
+#
+# Substitutions from `.env`:
+#   <<DATASET_KEY>>     — dataset name (e.g., full, t_cells)
+#   <<CXG_PORT>>        — internal cellxgene port (5005, 5006, ...)
+#   <<NGINX_PORT>>      — external listen port (8080, 8081, ...)
+#
+# Why basic-auth + WebSocket headers: cellxgene has no auth; the diff-exp panel
+# uses WebSocket upgrades. See references/nginx-htpasswd.md.
+
+worker_processes  1;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  sendfile on;
+  client_max_body_size 32m;
+
+  upstream cellxgene_upstream {
+    server cellxgene-<<DATASET_KEY>>:<<CXG_PORT>>;
+    keepalive 64;
+  }
+
+  server {
+    listen <<NGINX_PORT>>;
+    server_name _;
+
+    auth_basic            "Restricted";
+    auth_basic_user_file  /etc/nginx/htpasswd;
+
+    location / {
+      proxy_set_header Host                $host;
+      proxy_set_header X-Forwarded-For     $remote_addr;
+      proxy_set_header X-Forwarded-Proto   $scheme;
+
+      proxy_http_version 1.1;
+      proxy_set_header   Upgrade           $http_upgrade;
+      proxy_set_header   Connection        "upgrade";
+
+      proxy_pass http://cellxgene_upstream;
+    }
+  }
+}

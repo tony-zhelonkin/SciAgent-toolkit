@@ -1,0 +1,48 @@
+# docker-compose.yml.template — scrna-cxg-host
+#
+# Render with `render_compose.py` (or by hand). All `<<placeholder>>` markers
+# must be substituted from `.env` before `docker compose up`.
+#
+# Topology: one cellxgene container + one nginx container per dataset.
+# cellxgene listens on the docker-network only (CXG_PORT_*); nginx is the
+# host-facing service (NGINX_PORT_*) and adds basic-auth + WebSocket headers.
+#
+# Resources: 30G memory limit / 8G reservation per cellxgene container.
+# Tune if your dataset is larger than ~200k cells.
+
+services:
+  # ---- per-dataset block, one per --datasets entry ---------------------- #
+  cellxgene-<<DATASET_KEY>>:
+    image: local/cellxgene:latest
+    command: >
+      launch
+      --backed
+      --title "<<PROJECT_NAME>> • <<DATASET_DISPLAY_NAME>>"
+      --annotations-dir /annotations
+      --max-category-items 5000
+      --host 0.0.0.0
+      --port <<CXG_PORT_<DATASET_KEY>>>
+      /data/<<DATASET_FILENAME>>
+    user: "<<UID>>:<<GID>>"
+    volumes:
+      - <<DATA_HOST_PATH>>:/data:ro
+      - <<ANNOTATIONS_HOST_PATH>>/<<DATASET_KEY>>:/annotations
+    deploy:
+      resources:
+        limits:
+          memory: 30G
+        reservations:
+          memory: 8G
+    restart: unless-stopped
+
+  nginx-<<DATASET_KEY>>:
+    image: nginx:alpine
+    depends_on:
+      - cellxgene-<<DATASET_KEY>>
+    ports:
+      - "<<NGINX_PORT_<DATASET_KEY>>>:<<NGINX_PORT_<DATASET_KEY>>>"
+    volumes:
+      - ./nginx/nginx-<<DATASET_KEY>>.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/htpasswd:/etc/nginx/htpasswd:ro
+    restart: unless-stopped
+  # ---- end per-dataset block ------------------------------------------- #

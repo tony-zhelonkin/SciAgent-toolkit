@@ -36,6 +36,7 @@ These skills are prerequisites for all other scverse workflows. Start here if yo
 | `anndata.md` | AnnData structure — the shared data container for all scverse tools |
 | `scanpy.md` | Standard scRNA-seq QC, clustering, visualization, and DE |
 | `single-cell-rna-qc.md` | MAD-based QC filtering — data-driven outlier detection for scRNA-seq |
+| `cellranger-multi-to-anndata` | Build a single pooled AnnData from CellRanger Multi per-sample outputs (gene-union concat + biomart symbols + metadata join) |
 
 **Starting a new scRNA-seq project?**
 ```
@@ -205,8 +206,24 @@ Fate probabilities & terminal states? → CellRank
 
 | Skill | Purpose |
 |-------|---------|
-| `genenmf-metaprogram-discovery.md` | Meta-program discovery via NMF |
+| `genenmf-metaprogram-discovery.md` | Meta-program discovery via NMF (per-sample → cross-donor consensus) |
+| `consensus-nmf-multirun` | Multi-run consensus cNMF on a single dataset (full ± QC × subset ± QC, merge at r > 0.7, g:Profiler annotation, per-celltype ANOVA) |
 | `gatom-metabolomic-predictions.md` | Metabolomics pathway analysis |
+
+---
+
+### scRNA-seq Workflow (project-shared scaffolding)
+
+These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching Anton's `scbio-docker` template (see `docs/ai-generated/workflow-architecture/`).
+
+| Skill | Tier | Purpose |
+|-------|------|---------|
+| `scrna-pipeline-conventions` | simple | House style: numbered scripts (00_build, 01_qc, …), multi-checkpoint, central `config.py` (PATHS / PARAMS), `03_results/{checkpoints,tables,plots,interactive,objects,annotation}/` |
+| `cellranger-multi-to-anndata` | standard | Build pooled AnnData from `cellranger multi` outputs |
+| `scrna-cxg-host` | rich | Two-phase CellxGene hosting: schema prep + Docker Compose deploy (nginx + htpasswd) |
+| `consensus-nmf-multirun` | rich | Multi-run consensus cNMF (run × N variants → K-selection → merge → annotate → ANOVA) |
+
+All four embody the **Decision Pause Contract** (see `docs/ai-generated/workflow-architecture/03-decisions.md` § ADR-013): each judgment moment surfaces as a `### DECISION PAUSE — <topic>` block that the agent stops at, with named defaults a user can clear with one word ("default"). Recorded choices land in `analysis_config.yaml::decisions::<skill>::<key>` for replay on re-run.
 
 ---
 

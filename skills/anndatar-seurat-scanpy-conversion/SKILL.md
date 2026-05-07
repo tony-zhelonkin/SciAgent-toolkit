@@ -8,7 +8,7 @@ description: "Convert between AnnData (.h5ad, Python/scverse) and Seurat (.rds, 
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
+  last-reviewed: 2026-04-30
   category: foundation
   tier: standard
   tags:
@@ -148,6 +148,21 @@ seurat <- adata$as_Seurat(layers_mapping = c("counts", "data"))
 # But check if preserved:
 class(seurat[["RNA"]]$counts)  # dgCMatrix for sparse
 ```
+
+### 6. Ensembl IDs as rownames (var_names round-trip)
+
+`read_h5ad(as = "Seurat")` preserves whatever `var_names` the upstream h5ad has — **including Ensembl IDs** when the producing scanpy pipeline used `var_names_strategy = "ensembl"`. The symptom: `FeaturePlot("Xbp1")` returns "feature not found" because rownames are `ENSMUSG…`. The `var/gene_name` column is in the h5ad but NOT carried into the Seurat assay's `@meta.data`.
+
+**Quick detection:**
+```r
+head(rownames(obj))                   # ENSMUSG... → quirk present
+"Xbp1" %in% rownames(obj)             # FALSE → biologist queries fail
+colnames(obj[["RNA"]]@meta.data)      # only var.features / var.features.rank → no gene_name
+```
+
+**Fix:** read the same h5ad as a `SingleCellExperiment` (which DOES carry `var` into `rowData`), pull `gene_name`, sum-collapse counts on duplicate symbols, re-derive `data` via `NormalizeData()` (do not collapse log-normalized values in place — `log(a+b) ≠ log(a) + log(b)`).
+
+Full recipe — including HVG handling, scale.data + PCA-loading rename, and the reasons not to recompute PCA — at [`references/ensembl-vs-symbol-rownames.md`](references/ensembl-vs-symbol-rownames.md).
 
 ## Inspection
 ```r
