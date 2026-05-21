@@ -66,6 +66,8 @@ Project-local only. No user-global (`~/.claude/`, `~/.agents/`) installation. Th
 
 ## 4. AGENTS.md managed block
 
+> **Note on examples.** The role names (`reviewer`), skill names (`obsidian-vignette`, `simplify`, `cellrank-trajectory`), and command names (`/review`) used in code blocks throughout sections 4–6 are illustrative — substitute real names from `roles/`, `skills/`, and `commands/` when reading these as recipes. The schema and stack semantics are the load-bearing parts; the specific labels are not.
+
 ### Marker convention
 
 ```markdown
