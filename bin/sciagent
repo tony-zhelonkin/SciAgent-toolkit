@@ -53,6 +53,7 @@ case "$verb" in
         . "$LIB/block.sh"
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
+        . "$LIB/stack.sh"
         . "$LIB/activate.sh"
         cmd_activate "$@"
         ;;
@@ -60,6 +61,7 @@ case "$verb" in
         . "$LIB/block.sh"
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
+        . "$LIB/stack.sh"
         . "$LIB/activate.sh"      # deactivate may re-activate solo-base
         . "$LIB/deactivate.sh"
         cmd_deactivate "$@"
@@ -68,6 +70,7 @@ case "$verb" in
         . "$LIB/block.sh"
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
+        . "$LIB/stack.sh"
         . "$LIB/inject.sh"
         cmd_inject "$@"
         ;;
@@ -75,6 +78,7 @@ case "$verb" in
         . "$LIB/block.sh"
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
+        . "$LIB/stack.sh"
         . "$LIB/status.sh"
         cmd_status "$@"
         ;;

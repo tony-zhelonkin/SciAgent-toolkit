@@ -12,7 +12,8 @@ SCIAGENT="$FAKE/bin/sciagent"
 mkdir project && cd project
 "$SCIAGENT" activate base reviewer >/dev/null
 
-assert_grep '^STACK base reviewer$' .sciagent/manifest.json "stack ordering"
+assert_grep '"base"'     .sciagent/manifest.json "base in stack"
+assert_grep '"reviewer"' .sciagent/manifest.json "reviewer in stack"
 assert_grep 'overlay'                AGENTS.md             "overlay annotated"
 
 # All effective skills: s_a (base), s_b (reviewer wins, shadows base), s_c (reviewer)

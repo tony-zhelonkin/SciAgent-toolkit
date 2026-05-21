@@ -1,6 +1,7 @@
 # lib/sciagent/status.sh — sciagent status [--json|--effective|--source <name>]
 # Reports active stack, effective tables, shadow info, block-hash drift,
 # symlink integrity, and harness presence (per architecture §5).
+# Stack-walking is delegated to stack.sh:stack_walk.
 
 # shellcheck shell=bash
 
@@ -51,6 +52,7 @@ cmd_status() {
 #   _BLOCK_HASH_OK              "ok" | "drift" | "missing" | "corrupt"
 #   _SYMLINKS_OK                "ok" | "broken"
 #   SKILL_ORDER[], AGENTS_ORDER[], COMMANDS_ORDER[], INJECTED_LIST[]
+#   INJECTED_OVERLAY[]          parallel array: which overlay each injected skill is in
 #   SKILLS[name]=role, AGENTS_M[name]=role, COMMANDS_M[name]=role
 #   SKILL_SHADOWS[name]=role, AGENT_SHADOWS[name]=role, COMMAND_SHADOWS[name]=role
 #   OUTPUT_STYLE, OUTPUT_STYLE_ROLE
@@ -73,63 +75,57 @@ _status_load_state() {
         _BLOCK_HASH_OK="missing"
     fi
 
-    # Symlink integrity: every manifest SYMLINK should exist and be a symlink.
+    # Symlink integrity: every manifest symlink should exist and be a symlink.
     _SYMLINKS_OK="ok"
-    local kind path
-    while read -r kind path _rest; do
-        [[ "$kind" == "SYMLINK" ]] || continue
+    local path
+    while IFS= read -r path; do
+        [[ -z "$path" ]] && continue
         if [[ ! -L "$path" ]]; then
             _SYMLINKS_OK="broken"
             break
         fi
-    done < "$_MANIFEST_PATH"
+    done < <(manifest_symlinks)
 
-    # Collect injected skill names.
+    # Collect injected skill names and their overlay from the manifest.
     INJECTED_LIST=()
+    INJECTED_OVERLAY=()
     local _ov nm
-    while read -r kind _ov nm; do
-        [[ "$kind" == "INJECTED" ]] || continue
+    while read -r _ov nm; do
+        [[ -n "$_ov" ]] || continue
         INJECTED_LIST+=("$nm")
-    done < "$_MANIFEST_PATH"
+        INJECTED_OVERLAY+=("$_ov")
+    done < <(manifest_injected)
 
-    # Walk role YAMLs to fill effective tables.
+    # Walk role YAMLs via stack_walk to fill effective tables.
     declare -gA SKILLS=() AGENTS_M=() COMMANDS_M=()
     declare -gA SKILL_SHADOWS=() AGENT_SHADOWS=() COMMAND_SHADOWS=()
     SKILL_ORDER=(); AGENTS_ORDER=(); COMMANDS_ORDER=()
     OUTPUT_STYLE=""; OUTPUT_STYLE_ROLE=""
 
-    local role line k2 n2
-    for role in $_STK_BASE ${_STK_OVERLAY:+$_STK_OVERLAY}; do
-        [[ "$role" == "_injected" ]] && continue
-        while IFS= read -r line; do
-            k2="${line%% *}"; n2="${line#* }"
-            case "$k2" in
-                SKILL)
-                    if [[ -n "${SKILLS[$n2]:-}" ]]; then
-                        SKILL_SHADOWS[$n2]="${SKILLS[$n2]}"
-                    else
-                        SKILL_ORDER+=("$n2")
-                    fi
-                    SKILLS[$n2]="$role" ;;
-                AGENT)
-                    if [[ -n "${AGENTS_M[$n2]:-}" ]]; then
-                        AGENT_SHADOWS[$n2]="${AGENTS_M[$n2]}"
-                    else
-                        AGENTS_ORDER+=("$n2")
-                    fi
-                    AGENTS_M[$n2]="$role" ;;
-                COMMAND)
-                    if [[ -n "${COMMANDS_M[$n2]:-}" ]]; then
-                        COMMAND_SHADOWS[$n2]="${COMMANDS_M[$n2]}"
-                    else
-                        COMMANDS_ORDER+=("$n2")
-                    fi
-                    COMMANDS_M[$n2]="$role" ;;
-                OUTPUT_STYLE)
-                    OUTPUT_STYLE="$n2"; OUTPUT_STYLE_ROLE="$role" ;;
-            esac
-        done < <(role_load "$role")
-    done
+    local kind n2 provider shadow
+    while IFS=$'\t' read -r kind n2 provider shadow; do
+        case "$kind" in
+            SKILL)
+                SKILLS[$n2]="$provider"
+                SKILL_SHADOWS[$n2]="$shadow"
+                SKILL_ORDER+=("$n2")
+                ;;
+            AGENT)
+                AGENTS_M[$n2]="$provider"
+                AGENT_SHADOWS[$n2]="$shadow"
+                AGENTS_ORDER+=("$n2")
+                ;;
+            COMMAND)
+                COMMANDS_M[$n2]="$provider"
+                COMMAND_SHADOWS[$n2]="$shadow"
+                COMMANDS_ORDER+=("$n2")
+                ;;
+            STYLE)
+                OUTPUT_STYLE="$n2"
+                OUTPUT_STYLE_ROLE="$provider"
+                ;;
+        esac
+    done < <(stack_walk "$_STK_BASE" "$_STK_OVERLAY")
 }
 
 _status_render_text() {
@@ -225,16 +221,19 @@ _status_render_source() {
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ "$n" == "$q" ]] || continue
         if [[ -n "${SKILL_SHADOWS[$n]:-}" ]]; then
-            # Winner (last-wins) shown first; the shadowed provider in parens.
             echo "${SKILLS[$n]} (shadows ${SKILL_SHADOWS[$n]})"
         else
             echo "${SKILLS[$n]}"
         fi
         return 0
     done
-    for n in "${INJECTED_LIST[@]:-}"; do
-        [[ "$n" == "$q" ]] || continue
-        echo "injected"; return 0
+    # Injected skills: report overlay name for clarity.
+    local i _ninj_list=${#INJECTED_LIST[@]}
+    for (( i=0; i<_ninj_list; i++ )); do
+        [[ "${INJECTED_LIST[$i]}" == "$q" ]] || continue
+        local ov="${INJECTED_OVERLAY[$i]:-_injected}"
+        echo "injected (into $ov)"
+        return 0
     done
     for n in "${AGENTS_ORDER[@]:-}"; do
         [[ "$n" == "$q" ]] || continue
@@ -290,7 +289,9 @@ _status_render_json() {
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","source":"%s"}' "$(_json_esc "$n")" "$(_json_esc "${SKILLS[$n]}")"
     done
-    for n in "${INJECTED_LIST[@]:-}"; do
+    local i _ninj_json=${#INJECTED_LIST[@]}
+    for (( i=0; i<_ninj_json; i++ )); do
+        n="${INJECTED_LIST[$i]}"
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","source":"injected"}' "$(_json_esc "$n")"
@@ -321,16 +322,19 @@ _status_render_json() {
     printf '"shadowed":['
     first=1
     for n in "${!SKILL_SHADOWS[@]}"; do
+        [[ -z "${SKILL_SHADOWS[$n]:-}" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","kind":"skill","hidden":"%s","winner":"%s"}' \
             "$(_json_esc "$n")" "$(_json_esc "${SKILL_SHADOWS[$n]}")" "$(_json_esc "${SKILLS[$n]}")"
     done
     for n in "${!AGENT_SHADOWS[@]}"; do
+        [[ -z "${AGENT_SHADOWS[$n]:-}" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","kind":"agent","hidden":"%s","winner":"%s"}' \
             "$(_json_esc "$n")" "$(_json_esc "${AGENT_SHADOWS[$n]}")" "$(_json_esc "${AGENTS_M[$n]}")"
     done
     for n in "${!COMMAND_SHADOWS[@]}"; do
+        [[ -z "${COMMAND_SHADOWS[$n]:-}" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","kind":"command","hidden":"%s","winner":"%s"}' \
             "$(_json_esc "$n")" "$(_json_esc "${COMMAND_SHADOWS[$n]}")" "$(_json_esc "${COMMANDS_M[$n]}")"

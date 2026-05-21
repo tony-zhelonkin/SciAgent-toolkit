@@ -14,7 +14,12 @@ mkdir project && cd project
 "$SCIAGENT" deactivate reviewer >/dev/null
 
 # Stack should now be just `base`.
-assert_grep '^STACK base$' .sciagent/manifest.json "stack reduced to base"
+assert_grep '"base"' .sciagent/manifest.json "stack reduced to base"
+# Ensure reviewer is NOT in stack after partial deactivate.
+if grep -q '"reviewer"' .sciagent/manifest.json; then
+    echo "FAIL [$_TEST_NAME] reviewer still in manifest after deactivate" >&2
+    exit 1
+fi
 
 # Overlay-only artifacts gone.
 [[ -e .claude/skills/s_c     ]] && { echo "FAIL: s_c (overlay-only) still present"; exit 1; }

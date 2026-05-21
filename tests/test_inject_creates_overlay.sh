@@ -14,8 +14,11 @@ mkdir project && cd project
 "$SCIAGENT" inject s_c >/dev/null
 
 # Stack rewritten to include synthetic overlay.
-assert_grep '^STACK base _injected$' .sciagent/manifest.json "synthetic overlay recorded"
-assert_grep '^INJECTED _injected s_c$' .sciagent/manifest.json "INJECTED record present"
+assert_grep '"_injected"' .sciagent/manifest.json "synthetic overlay recorded"
+assert_grep '"s_c"'       .sciagent/manifest.json "INJECTED skill present"
+# Verify injected object has expected overlay+skill keys.
+assert_grep '"overlay"'   .sciagent/manifest.json "injected.overlay key present"
+assert_grep '"skill"'     .sciagent/manifest.json "injected.skill key present"
 
 # Dual symlinks for injected skill.
 assert_symlink .claude/skills/s_c

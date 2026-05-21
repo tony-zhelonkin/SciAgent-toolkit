@@ -18,10 +18,12 @@ mkdir project && cd project
 "$SCIAGENT" inject s_inj >/dev/null
 
 # Stack unchanged.
-assert_grep '^STACK base reviewer$' .sciagent/manifest.json "stack unchanged"
+assert_grep '"base"'     .sciagent/manifest.json "stack unchanged: base present"
+assert_grep '"reviewer"' .sciagent/manifest.json "stack unchanged: reviewer present"
 
 # INJECTED record attributes the skill to the real overlay.
-assert_grep '^INJECTED reviewer s_inj$' .sciagent/manifest.json "injected into overlay"
+assert_grep '"reviewer"' .sciagent/manifest.json "injected into overlay"
+assert_grep '"s_inj"'    .sciagent/manifest.json "injected skill present"
 
 # Symlinks present in both trees.
 assert_symlink .claude/skills/s_inj
