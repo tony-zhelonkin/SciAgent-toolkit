@@ -20,11 +20,8 @@ cmd_inject() {
         return 1
     fi
 
-    local skill_src="$SCIAGENT_TOOLKIT/skills/$skill"
-    if [[ ! -d "$skill_src" ]]; then
-        echo "skill not found: $skill ($skill_src)" >&2
-        return 1
-    fi
+    local skill_src
+    skill_src=$(resolve_canonical skills "$skill") || return 1
 
     local stack base overlay
     stack=$(manifest_stack)

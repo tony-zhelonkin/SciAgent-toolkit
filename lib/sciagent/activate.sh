@@ -76,19 +76,24 @@ cmd_activate() {
     [[ -n "$overlay" ]] && stack="$base $overlay"
     manifest_begin "$stack"
 
-    # Create symlinks.
-    local n
+    # Create symlinks. Canonical source paths are resolved via
+    # resolve_canonical so that subfolders under agents/ and commands/ are
+    # transparent to the consumer (symlinks stay flat in .claude/ and .agents/).
+    local n src
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
-        symlink_create_dual skills "$n" "$SCIAGENT_TOOLKIT/skills/$n"
+        src=$(resolve_canonical skills "$n") || return 1
+        symlink_create_dual skills "$n" "$src"
     done
     for n in "${AGENT_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
-        symlink_create_dual agents "$n" "$SCIAGENT_TOOLKIT/agents/${n}.md"
+        src=$(resolve_canonical agents "$n") || return 1
+        symlink_create_dual agents "$n" "$src"
     done
     for n in "${COMMAND_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
-        symlink_create_dual commands "$n" "$SCIAGENT_TOOLKIT/commands/${n}.md"
+        src=$(resolve_canonical commands "$n") || return 1
+        symlink_create_dual commands "$n" "$src"
     done
     local STYLE_APPLIED_TAG=""
     if [[ -n "$OUTPUT_STYLE" ]]; then

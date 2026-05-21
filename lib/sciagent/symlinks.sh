@@ -20,6 +20,57 @@
 _MANIFEST_PATH=".sciagent/manifest.json"
 
 # ---------------------------------------------------------------------------
+# resolve_canonical <category> <name>
+# Prints the absolute path to the canonical source for a skill/agent/command.
+# Categories:
+#   skills    — returns $SCIAGENT_TOOLKIT/skills/<name>  (must be a directory
+#               containing SKILL.md; not searched recursively)
+#   agents    — recursive search for <name>.md under $SCIAGENT_TOOLKIT/agents/
+#   commands  — recursive search for <name>.md under $SCIAGENT_TOOLKIT/commands/
+# Fails (rc=1) with a stderr message if zero matches or multiple matches.
+# Uniqueness is enforced by tests/test_no_duplicate_basenames.sh.
+# ---------------------------------------------------------------------------
+resolve_canonical() {
+    local category="$1"
+    local name="$2"
+    local root="$SCIAGENT_TOOLKIT/$category"
+
+    case "$category" in
+        skills)
+            local p="$root/$name"
+            if [[ -d "$p" && -f "$p/SKILL.md" ]]; then
+                printf '%s\n' "$p"
+                return 0
+            fi
+            echo "skill '$name' not found under skills/ ($p)" >&2
+            return 1
+            ;;
+        agents|commands)
+            local -a matches=()
+            local f
+            while IFS= read -r f; do
+                matches+=("$f")
+            done < <(find "$root" -type f -name "${name}.md" -not -path '*/.*' 2>/dev/null)
+            local n=${#matches[@]}
+            if (( n == 0 )); then
+                echo "${category%s} '$name' not found under ${category}/" >&2
+                return 1
+            fi
+            if (( n > 1 )); then
+                echo "duplicate basename '$name' under ${category}/: ${matches[*]}" >&2
+                return 1
+            fi
+            printf '%s\n' "${matches[0]}"
+            return 0
+            ;;
+        *)
+            echo "resolve_canonical: unknown category '$category'" >&2
+            return 1
+            ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
 # JSON helpers
 # ---------------------------------------------------------------------------
 

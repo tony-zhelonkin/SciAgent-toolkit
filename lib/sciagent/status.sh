@@ -392,21 +392,21 @@ _list_skills() {
 }
 
 _list_agents() {
+    # Recursive walk so subfolders under agents/ are transparent to `list`.
     local f name
-    for f in "$SCIAGENT_TOOLKIT"/agents/*.md; do
-        [[ -f "$f" ]] || continue
+    while IFS= read -r f; do
         name=$(basename "$f" .md)
         [[ "$name" == "README" ]] && continue
         printf '  %s\n' "$name"
-    done
+    done < <(find "$SCIAGENT_TOOLKIT/agents" -type f -name '*.md' -not -path '*/.*' 2>/dev/null | sort)
 }
 
 _list_commands() {
+    # Recursive walk so subfolders under commands/ are transparent to `list`.
     local f name
-    for f in "$SCIAGENT_TOOLKIT"/commands/*.md; do
-        [[ -f "$f" ]] || continue
+    while IFS= read -r f; do
         name=$(basename "$f" .md)
         [[ "$name" == "README" ]] && continue
         printf '  /%s\n' "$name"
-    done
+    done < <(find "$SCIAGENT_TOOLKIT/commands" -type f -name '*.md' -not -path '*/.*' 2>/dev/null | sort)
 }
