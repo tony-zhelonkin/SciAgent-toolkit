@@ -214,7 +214,7 @@ Fate probabilities & terminal states? → CellRank
 
 ### scRNA-seq Workflow (project-shared scaffolding)
 
-These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching Anton's `scbio-docker` template (see `docs/ai-generated/workflow-architecture/`).
+These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching the user's `scbio-docker` template (see `docs/ai-generated/workflow-architecture/`).
 
 | Skill | Tier | Purpose |
 |-------|------|---------|

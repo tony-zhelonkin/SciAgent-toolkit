@@ -2,7 +2,7 @@
 doc: harness-MADRs
 date: 2026-04-21
 status: ACCEPTED
-author: user + assistant (shadartist@gmail.com session)
+author: user + assistant
 scope: SciAgent-toolkit/docs/workflows/architect/ + commands/ + skills/architecture-first-dev/
 motivation: Gaps surfaced by the contrast-adapter session under pathway-explorer — non-canonical files appeared (00-chat-decisions.md, proposal.md); scope-approval happened without diagrams; no current-vs-proposed architectural view; verbal binding decisions had no defined home.
 ---

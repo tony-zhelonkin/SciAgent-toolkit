@@ -99,4 +99,4 @@ g:Profiler's category prefixes:
 - `KEGG` — KEGG pathways
 - `REAC` — Reactome pathways
 
-Anton's reference picks these five and excludes WikiPathways, miRBase, Tissues, etc. The skill follows that — adding more sources increases noise without much information gain on already-well-annotated programs.
+the user's reference picks these five and excludes WikiPathways, miRBase, Tissues, etc. The skill follows that — adding more sources increases noise without much information gain on already-well-annotated programs.

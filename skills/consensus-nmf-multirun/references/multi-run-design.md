@@ -14,7 +14,7 @@ The multi-run design addresses all three by running cNMF in *parallel* across or
 For N subsets, the grid expands to 2×(N+1) variants (the +1 is "no subset"). The defaults the user can clear in one back-and-forth:
 
 - 1 subset (none) × 1 QC variant (raw) = **1 run** (whole-dataset only, raw)
-- N subsets × 2 QC variants = **2N runs** (full Anton-style consensus design)
+- N subsets × 2 QC variants = **2N runs** (full the user-style consensus design)
 
 The <ref-scrna> reference uses 6 runs: full ± QC, Th1 ± QC, Th17 ± QC.
 

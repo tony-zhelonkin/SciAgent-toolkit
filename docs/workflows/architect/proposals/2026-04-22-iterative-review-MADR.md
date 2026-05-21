@@ -2,7 +2,7 @@
 doc: iterative-review-MADR
 date: 2026-04-22
 status: ACCEPTED
-author: user + assistant (shadartist@gmail.com session)
+author: user + assistant
 scope: SciAgent-toolkit/commands/{review,synthesize}.md + docs/workflows/architect/*.md + skills/architecture-first-dev/SKILL.md
 motivation: During a `leiden-stability` review the user organically invented a pattern the harness does not name — a second review round where each reviewer saw the other round-1 outputs + the synthesis + the user's locked design direction, to reconcile after round-1 divergence. Today `/review` silently overwrites prior reviews and has no concept of "round" or "cross-informed." Round-1 reviews are deliberately parallel-independent to surface divergence; a second round serves a different purpose (reconcile) and needs a different regime.
 ---
