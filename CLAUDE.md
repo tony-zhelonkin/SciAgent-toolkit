@@ -61,7 +61,7 @@ agents:
   - agent-name
 commands:
   - command-name
-# output_style: cs101_v0.2   # optional, Claude-specific
+# output_style: architect-mentor   # optional, Claude-specific
 ```
 
 Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.

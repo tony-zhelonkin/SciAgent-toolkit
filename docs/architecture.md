@@ -185,7 +185,7 @@ agents:                    # Claude-specific; ignored by Pi until extension exis
 commands:                  # Claude-specific
   - commit
   - review
-output_style: cs101_v0.2   # optional, Claude-specific
+output_style: architect-mentor   # optional, Claude-specific
 ```
 
 No `mcp_profile`. No installer/harness fields. Just content bundles.

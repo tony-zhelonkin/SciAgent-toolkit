@@ -83,7 +83,7 @@ description: TODO — one-line description of $name role
 skills: []
 agents: []
 commands: []
-# output_style: cs101_v0.2   # optional, Claude-specific
+# output_style: architect-mentor   # optional, Claude-specific
 EOF
     echo "wrote: $out"
 }
