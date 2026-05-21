@@ -79,7 +79,7 @@ from build_anndata import build  # from this skill's scripts/
 
 adata = build(
     cellranger_root=Path("00_data/raw/CellRanger"),
-    metadata_tsv=Path("00_data/raw/14616-DM_SamplesMetadata.txt"),  # or None
+    metadata_tsv=Path("00_data/raw/SamplesMetadata.txt"),  # or None
     metadata_join_key="Sample",          # column in metadata_tsv that maps to sample_id
     species="mouse",                     # or "human", or "other" with prefixes={...}
     out_path=Path("03_results/checkpoints/00_raw.h5ad"),
@@ -90,7 +90,7 @@ print(adata.obs["orig_ident"].nunique()) # n_samples
 print(adata.obs["pool_id"].nunique())    # n_pools
 ```
 
-**Predict before running.** What do you expect `adata.shape` to be? For 14616-DM (5 pools × 20 samples, ~10–15k cells/sample post-CellRanger filter), expect 150–250k cells × ~30k genes. For an unfamiliar dataset, predict the cell count from CellRanger's `summary.csv` files and check after concat.
+**Predict before running.** What do you expect `adata.shape` to be? For <ref-multi> (5 pools × 20 samples, ~10–15k cells/sample post-CellRanger filter), expect 150–250k cells × ~30k genes. For an unfamiliar dataset, predict the cell count from CellRanger's `summary.csv` files and check after concat.
 
 **Verify it worked:**
 
@@ -124,11 +124,11 @@ print(f"Found {len(h5s)} matrices")
 Sample-id and pool-id are extracted from the path (regex pinned, not from CellRanger's metadata):
 
 ```python
-sid  = re.search(r"per_sample_outs/([^/]+)/", fp).group(1)   # e.g., 14616-DM-1
-pool = re.search(r"CellRanger/([^/]+)/",     fp).group(1)    # e.g., 14616-DM-P1
+sid  = re.search(r"per_sample_outs/([^/]+)/", fp).group(1)   # e.g., <sample-1>
+pool = re.search(r"CellRanger/([^/]+)/",     fp).group(1)    # e.g., <pool-1>
 ```
 
-The pool regex segment (`CellRanger`) is project-dependent — the 13403-YD reference uses `Counts/`. The skill's `build()` accepts a `pool_pattern` parameter; `references/pool-detection.md` lists the common patterns observed.
+The pool regex segment (`CellRanger`) is project-dependent — the <ref-scrna> reference uses `Counts/`. The skill's `build()` accepts a `pool_pattern` parameter; `references/pool-detection.md` lists the common patterns observed.
 
 **Inspect.** `len(h5s)` should equal `n_pools × samples_per_pool`. If it is off, the glob is wrong before reading anything.
 
@@ -159,7 +159,7 @@ Reference patterns + cache invalidation: `references/biomart-symbols.md`.
 
 This is the first Decision Pause. The skill enumerates candidate metadata files and asks the user to pick. After a file is picked, the columns are shown and the user picks a join key. See "Decision Pauses" below.
 
-For 14616-DM the file is `00_data/raw/14616-DM_SamplesMetadata.txt` (10 columns, tab-separated, `Sample` is the natural join key). Candidate metadata schemas across reference projects: `references/metadata-shapes.md`.
+For <ref-multi> the file is `00_data/raw/SamplesMetadata.txt` (10 columns, tab-separated, `Sample` is the natural join key). Candidate metadata schemas across reference projects: `references/metadata-shapes.md`.
 
 ### Step 6 — Write checkpoint
 
@@ -305,4 +305,4 @@ After running this skill, confirm:
 - 10x CellRanger Multi: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
 - AnnData docs: https://anndata.readthedocs.io
 - Scanpy biomart queries: https://scanpy.readthedocs.io/en/stable/api/scanpy.queries.biomart_annotations.html
-- Reference codebase patterns (read-only, in-repo): `01_modules/.ref/13403-YD-02-analysis/02_Analysis/00_build_anndata.py` and `01_modules/.ref/13403-YD-02-analysis/01_Scripts/Python_scripts/anndata_utils.py`
+- Reference codebase patterns (read-only, in-repo): `01_modules/.ref/<ref-scrna>/02_Analysis/00_build_anndata.py` and `01_modules/.ref/<ref-scrna>/01_Scripts/Python_scripts/anndata_utils.py`

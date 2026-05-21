@@ -41,7 +41,7 @@ Per cluster:
 - **Singleton** (one program in the cluster) → directly inherit top-100 genes; `consensus_score=1.0` for each gene.
 - **Multi-program** (≥ 2 programs) → rank-aggregate top-50 genes per source.
 
-Rank aggregation logic (port of 13403-YD `compute_consensus_genes`):
+Rank aggregation logic (port of <ref-scrna> `compute_consensus_genes`):
 
 ```python
 from collections import defaultdict

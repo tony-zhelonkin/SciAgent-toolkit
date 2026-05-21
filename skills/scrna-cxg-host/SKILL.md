@@ -77,7 +77,7 @@ from prepare_for_cxg import prepare, prepare_subsets
 adata_full = prepare(
     in_path="03_results/checkpoints/07_umap.h5ad",
     out_path="03_results/objects/08_explore_full.h5ad",
-    title="14616-DM • Full Dataset",
+    title="<ref-multi> • Full Dataset",
 )
 
 # Phase A-bis (optional) — re-embed per-celltype
@@ -118,7 +118,7 @@ ls -la 03_results/annotation/full/                  # owned by host UID, writabl
 
 ## Phase A — Schema preparation
 
-The reference helpers live in `scripts/prepare_for_cxg.py` (ported from the 13403-YD `Python_scripts/cxg_utils.py`). Seven steps; run in this order:
+The reference helpers live in `scripts/prepare_for_cxg.py` (ported from the <ref-scrna> `Python_scripts/cxg_utils.py`). Seven steps; run in this order:
 
 ### A.0 — Demote pandas extension dtypes to numpy-native
 
@@ -157,7 +157,7 @@ ensure_unique_barcode_and_index(adata, joiner="_")
 # obs['barcode_raw'] = original; obs['barcode'] = unique; obs.index = obs['barcode'] as string
 ```
 
-The skill detects whether the barcode already contains `sample_id` as prefix (avoids `13403-YD-01_13403-YD-01-AAACGCT...`).
+The skill detects whether the barcode already contains `sample_id` as prefix (avoids `<sample-01>_<sample-01>-AAACGCT...`).
 
 ### A.4 — Realign aligned mappings
 
@@ -224,8 +224,8 @@ Five steps, all driven by `.env`:
 HOSTNAME=cxg.research.example.org
 UID=1000        # run `id -u` to fill
 GID=1000        # run `id -g`
-DATA_HOST_PATH=/scratch/14616-DM/03_results/objects
-ANNOTATIONS_HOST_PATH=/scratch/14616-DM/03_results/annotation
+DATA_HOST_PATH=<project-root>/03_results/objects
+ANNOTATIONS_HOST_PATH=<project-root>/03_results/annotation
 CXG_PORT_FULL=5005          # internal (container-to-container)
 NGINX_PORT_FULL=8080        # external (browser-facing)
 CXG_PORT_T_CELLS=5006
@@ -470,4 +470,4 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 - cellxgene CLI launch flags: https://cellxgene.cziscience.com/docs/02__Annotate%20Data%20%26%20Maintain%20Their%20Versions
 - nginx auth_basic: http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html
 - Docker Compose volume + UID semantics: https://docs.docker.com/storage/volumes/
-- Reference Docker Compose example (anonymised, in-repo): `01_modules/.ref/13403-YD_Christina_explore/cellxgene-deploy/`
+- Reference Docker Compose example (anonymised, in-repo): `01_modules/.ref/<ref-scrna>/cellxgene-deploy/`

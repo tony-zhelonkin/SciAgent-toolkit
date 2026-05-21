@@ -1,6 +1,6 @@
 """build_anndata.py — parameterised CellRanger Multi → AnnData ingestion.
 
-Ported from 13403-YD's 02_Analysis/00_build_anndata.py +
+Ported from <ref-scrna>'s 02_Analysis/00_build_anndata.py +
 01_Scripts/Python_scripts/anndata_utils.py. Decision Pauses (metadata source,
 join key, species) live in the SKILL.md body; this script is the pure
 mechanical part — given resolved parameters, build the .h5ad.
@@ -10,7 +10,7 @@ Usage from a notebook or a numbered script:
     from build_anndata import build
     adata = build(
         cellranger_root=Path("00_data/raw/CellRanger"),
-        metadata_tsv=Path("00_data/raw/14616-DM_SamplesMetadata.txt"),
+        metadata_tsv=Path("00_data/raw/SamplesMetadata.txt"),
         metadata_join_key="Sample",
         species="mouse",
         out_path=Path("03_results/checkpoints/00_raw.h5ad"),
@@ -20,7 +20,7 @@ CLI (for batch / cron use):
 
     python build_anndata.py \\
         --cellranger-root 00_data/raw/CellRanger \\
-        --metadata-tsv 00_data/raw/14616-DM_SamplesMetadata.txt \\
+        --metadata-tsv 00_data/raw/SamplesMetadata.txt \\
         --metadata-join-key Sample \\
         --species mouse \\
         --out 03_results/checkpoints/00_raw.h5ad

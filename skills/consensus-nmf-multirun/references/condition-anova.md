@@ -1,6 +1,6 @@
 # Per-celltype ANOVA against a user-named factor
 
-Stage 7 asks: for each celltype × program, does the program score differ across factor levels? The reference 13403-YD uses `temp` (33/37/39 °C) as the factor; your skill must take an arbitrary `obs` column.
+Stage 7 asks: for each celltype × program, does the program score differ across factor levels? The reference <ref-scrna> uses `temp` (33/37/39 °C) as the factor; your skill must take an arbitrary `obs` column.
 
 ## The factor + celltype contract
 

@@ -16,7 +16,7 @@ For N subsets, the grid expands to 2×(N+1) variants (the +1 is "no subset"). Th
 - 1 subset (none) × 1 QC variant (raw) = **1 run** (whole-dataset only, raw)
 - N subsets × 2 QC variants = **2N runs** (full Anton-style consensus design)
 
-The 13403-YD reference uses 6 runs: full ± QC, Th1 ± QC, Th17 ± QC.
+The <ref-scrna> reference uses 6 runs: full ± QC, Th1 ± QC, Th17 ± QC.
 
 ## Why pair raw + QC
 
@@ -33,7 +33,7 @@ The skill flags such asymmetries; the call is the user's.
 
 A "broad" program from the full run (e.g., "all cycling cells") is often a coarse decomposition that the subset run can refine into "early-S cycling" + "G2-M cycling" within just the celltype of interest. After merging, the full-dataset program clusters with both subset programs and inherits a broader gene list; the subset programs stand alone in their high-confidence tier with focused gene lists.
 
-For a single-celltype project (e.g., the 13403-YD T-cell reference), the full-vs-subset distinction is less important — the "subset" *is* the T cells. For a multicellular project (e.g., spleen), full + per-celltype is informative.
+For a single-celltype project (e.g., the <ref-scrna> T-cell reference), the full-vs-subset distinction is less important — the "subset" *is* the T cells. For a multicellular project (e.g., spleen), full + per-celltype is informative.
 
 ## Compute budget
 

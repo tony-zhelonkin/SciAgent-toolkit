@@ -4,7 +4,7 @@ The reason to subset: when the wet lab opens a CXG instance for "T cells only", 
 
 ## The pipeline
 
-Six substantive steps. Parameters lifted from 13403-YD `02_Analysis/04_subcluster.py`.
+Six substantive steps. Parameters lifted from <ref-scrna> `02_Analysis/04_subcluster.py`.
 
 ```python
 def reembed_subset(adata_sub: AnnData, leiden_resolution: float = 0.8) -> AnnData:

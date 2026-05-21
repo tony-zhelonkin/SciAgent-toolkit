@@ -1,4 +1,4 @@
-"""transfer_programs.py — Stage 3, port of 13403-YD's 06e_transfer_programs.py.
+"""transfer_programs.py — Stage 3, port of <ref-scrna>'s 06e_transfer_programs.py.
 
 Score per-variant cNMF programs onto the full dataset's barcode space and
 compute the cross-source correlation matrix that Stage 5 consumes.

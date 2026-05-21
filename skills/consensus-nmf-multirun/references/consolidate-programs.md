@@ -50,7 +50,7 @@ In Stage 5, programs from different variants are clustered by correlation. The m
 
 - Unique per variant
 - Length-distinguishable (`cNMF_full` ≠ `cNMF_fullQC`)
-- Match the merge step's `SOURCE_PRIORITY` list (sorted by length descending; the prefix-matching bug in 13403-YD's reference)
+- Match the merge step's `SOURCE_PRIORITY` list (sorted by length descending; the prefix-matching bug in <ref-scrna>'s reference)
 
 The shipped `transfer_programs.py` and `merge_programs.py` agree on the prefix scheme; do not edit one without the other.
 

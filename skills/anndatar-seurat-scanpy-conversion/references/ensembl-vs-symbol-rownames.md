@@ -1,6 +1,6 @@
 # Quirk: Ensembl IDs vs Gene Symbols on h5ad → Seurat round-trip
 
-> Discovered during 14616-DM Phase C (2026-04-30). Captured here for the next person who hits a `FeaturePlot("Xbp1")` that returns "feature not found".
+> Discovered during <ref-multi> Phase C (2026-04-30). Captured here for the next person who hits a `FeaturePlot("Xbp1")` that returns "feature not found".
 
 ## TL;DR
 

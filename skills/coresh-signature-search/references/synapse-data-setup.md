@@ -39,7 +39,7 @@ Credentials land in `~/.synapseConfig`.
 ### 5. Download the compendium
 
 ```bash
-cd /workspaces/DC_hum_verse/00_data/external     # or wherever you keep large reference data
+cd <project-root>/00_data/external     # or wherever you keep large reference data
 synapse get -r syn66227307                       # -r = recursive, restore directory tree
 ```
 

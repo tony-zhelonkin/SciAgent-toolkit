@@ -4,13 +4,13 @@ Real-world projects do not have a stable metadata schema. The skill discovers me
 
 ## Observed schemas
 
-### 13403-YD (T-cell polarisation / temperature)
+### <ref-scrna> (T-cell polarisation / temperature)
 
 File: `Counts/manifest.csv` (CSV, 5 columns).
 
 | Column      | Example values                              | Role                |
 |-------------|---------------------------------------------|---------------------|
-| `sample_id` | `13403-YD-01`, `13403-YD-02`, …            | join key            |
+| `sample_id` | `<sample-01>`, `<sample-02>`, …            | join key            |
 | `h5`        | absolute path to `*.h5`                     | source-of-truth path |
 | `celltype`  | `Th1`, `Th17`                               | biological label    |
 | `temp`      | `33`, `37`, `39`                            | experimental factor |
@@ -18,16 +18,16 @@ File: `Counts/manifest.csv` (CSV, 5 columns).
 
 Natural join key: `sample_id`.
 
-### 14616-DM (mouse spleen × aging × treatment)
+### <ref-multi> (mouse spleen × aging × treatment)
 
-File: `00_data/raw/14616-DM_SamplesMetadata.txt` (TSV, 10 columns).
+File: `00_data/raw/SamplesMetadata.txt` (TSV, 10 columns).
 
 | Column            | Example values                                   | Role                     |
 |-------------------|--------------------------------------------------|--------------------------|
-| `Project`         | `14616-DM`                                       | project tag (constant)   |
+| `Project`         | `<ref-multi>`                                       | project tag (constant)   |
 | `Organ`           | `Spleen`                                         | tissue (constant)        |
-| `PoolMultiSample` | `14616-DM-P1`, `14616-DM-P2`, …                 | pool id (matches `pool_id`) |
-| `Sample`          | `14616-DM-1`, `14616-DM-2`, …                   | join key (matches `sample_id`) |
+| `PoolMultiSample` | `<pool-1>`, `<pool-2>`, …                 | pool id (matches `pool_id`) |
+| `Sample`          | `<sample-1>`, `<sample-2>`, …                   | join key (matches `sample_id`) |
 | `Sex`             | `M`, `F`                                         | covariate                |
 | `Age_months`      | `5`, `27`                                        | continuous covariate     |
 | `MouseID`         | `1000`, `977`, …                                 | biological replicate id  |
@@ -91,7 +91,7 @@ adata.obs = obs_with_meta.set_index(adata.obs.index)
 ```yaml
 decisions:
   cellranger-multi-to-anndata:
-    metadata_source: "00_data/raw/14616-DM_SamplesMetadata.txt"
+    metadata_source: "00_data/raw/SamplesMetadata.txt"
     metadata_join_key: "Sample"
     species: "mouse"
 ```

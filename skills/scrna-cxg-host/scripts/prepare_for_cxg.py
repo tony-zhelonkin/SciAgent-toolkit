@@ -1,6 +1,6 @@
 """prepare_for_cxg.py — Phase A (schema prepare) and Phase A-bis (subset re-embed).
 
-Ported from 13403-YD's 01_Scripts/Python_scripts/cxg_utils.py and
+Ported from <ref-scrna>'s 01_Scripts/Python_scripts/cxg_utils.py and
 02_Analysis/04_subcluster.py. The Decision Pauses live in SKILL.md; this
 script is the mechanical part — given resolved options, prepare the .h5ad.
 

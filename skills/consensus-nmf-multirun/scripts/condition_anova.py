@@ -1,6 +1,6 @@
 """condition_anova.py — Stage 7, generic per-celltype ANOVA against any factor.
 
-The reference 13403-YD pipeline hardcoded `temp` (33/37/39) as the factor and
+The reference <ref-scrna> pipeline hardcoded `temp` (33/37/39) as the factor and
 Th1/Th17 as the per-celltype iterator. This generalises: factor is named by
 the user (Decision Pause 5), celltypes are enumerated from a configurable
 column.

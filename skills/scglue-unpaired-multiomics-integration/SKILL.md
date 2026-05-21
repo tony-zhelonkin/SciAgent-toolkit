@@ -583,12 +583,12 @@ nx.write_graphml(grn, "pruned_grn.graphml.gz")  # For Cytoscape/Gephi
 
 ---
 
-## Project-Specific: DC_Dictionary (mm10)
+## Project-Specific: <dc-project> (mm10)
 
 ### Recommended Configuration
 
 ```python
-# For DC_Dictionary integration with ~200k peaks
+# For <dc-project> integration with ~200k peaks
 
 # Preprocessing
 sc.pp.highly_variable_genes(rna, n_top_genes=4000, flavor="seurat_v3")  # More genes

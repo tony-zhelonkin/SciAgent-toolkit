@@ -254,7 +254,7 @@ ENSDB_PKG=EnsDb.Mmusculus.v107
 RNA_ASSAY=RNA
 ATAC_ASSAY=peaks
 DEFAULT_REGION=Spp1
-PROJECT_NAME=14616-DM
+PROJECT_NAME=<ref-multi>
 ```
 
 Every project-specific value lives in `.env`, no host paths in version-controlled YAML.

@@ -242,7 +242,7 @@ After adopting the conventions, confirm:
 ### Pitfall: Hard-coded paths inside numbered scripts
 
 - **Symptom:** Switching from container to host filesystem requires editing five scripts; one gets missed and silently writes to the wrong place.
-- **Cause:** A script wrote `pd.read_csv("/scratch/14616-DM/03_results/tables/x.csv")` directly instead of `pd.read_csv(PATHS.tables / "x.csv")`.
+- **Cause:** A script wrote `pd.read_csv("<project-root>/03_results/tables/x.csv")` directly instead of `pd.read_csv(PATHS.tables / "x.csv")`.
 - **Fix:** `grep -nE "/scratch|/data|03_results/" 02_analysis/*.py` — every match should be inside `config.py` only.
 
 ### Pitfall: Numbered script "00.5"
@@ -260,7 +260,7 @@ After adopting the conventions, confirm:
 ### Pitfall: Capital-R `03_Results/` clashes with new lower-case convention
 
 - **Symptom:** A skill writes to `03_results/` but the project already has `03_Results/` from a prior workflow; outputs land in two places.
-- **Cause:** The 13403-YD reference used capital-R; the new convention is lower-case (per project `CLAUDE.md`).
+- **Cause:** The <ref-scrna> reference used capital-R; the new convention is lower-case (per project `CLAUDE.md`).
 - **Fix:** New projects use lower-case from day one. Existing projects keep their capital-R; do not migrate mid-stream. `PATHS` reads the actual directory name from `analysis_config.yaml::paths::results_dir` so a project can opt into either.
 
 ---

@@ -54,7 +54,7 @@ for program_name, genes in merged_programs.items():
             continue
 ```
 
-The retry is what the 13403-YD reference does. For batch jobs running >100 programs, consider switching to the asynchronous endpoint or self-hosting `gprofiler-official`.
+The retry is what the <ref-scrna> reference does. For batch jobs running >100 programs, consider switching to the asynchronous endpoint or self-hosting `gprofiler-official`.
 
 ## Combined output
 

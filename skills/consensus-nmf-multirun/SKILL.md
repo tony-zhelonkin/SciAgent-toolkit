@@ -38,7 +38,7 @@ metadata:
 
 cNMF (Kotliar et al. 2019) finds gene programs as non-negative matrix factors of single-cell counts. Run once on a single dataset, it is sensitive to: which K you chose, whether QC was strict, which cells you included. The "consensus" pattern in this skill runs cNMF *multiple times* — full dataset ± QC, optionally per-subset ± QC — and consolidates the resulting programs by correlation. Programs that recur across runs (high cross-run correlation, ≥2 source variants) are robust; programs that show up in only one variant are flagged as Low confidence.
 
-This skill is opinionated about three things. First, **K selection is manual**, per variant — the user inspects each `k_selection_plot.png` and picks K, predicting their expected number of programs before seeing the plot. Second, **subsets are user-driven** — the skill never invents a subset axis; whole-dataset is the safe default. Third, **the ANOVA factor is user-named** — the skill enumerates `obs` columns, the user picks one. The 13403-YD reference's `temp` factor and Th1/Th17 subsets are not baked in; they are examples of one project's choices.
+This skill is opinionated about three things. First, **K selection is manual**, per variant — the user inspects each `k_selection_plot.png` and picks K, predicting their expected number of programs before seeing the plot. Second, **subsets are user-driven** — the skill never invents a subset axis; whole-dataset is the safe default. Third, **the ANOVA factor is user-named** — the skill enumerates `obs` columns, the user picks one. The <ref-scrna> reference's `temp` factor and Th1/Th17 subsets are not baked in; they are examples of one project's choices.
 
 **When to use this skill:**
 - One single-cell dataset, one or more factorial conditions
@@ -150,7 +150,7 @@ For each variant the user picks (Decision Pause 1 × Decision Pause 2):
 4. `cnmf_obj.combine()`
 5. `cnmf_obj.k_selection_plot()` — produces `<output_dir>/<name>/<name>.k_selection.png`
 
-Variant defaults from the 13403-YD reference:
+Variant defaults from the <ref-scrna> reference:
 
 | Variant scope | K range | n_iter | Other |
 |---------------|---------|--------|-------|
@@ -189,7 +189,7 @@ usage, spectra_scores, spectra_tpm, top_genes = cnmf_obj.load_results(K=optimal_
 
 For every variant's `usage` matrix, rename columns with the variant's prefix (`cNMF_<variant>_P<i>`), join into the full dataset's `obs` on cell index. Cells absent from a subset get `NaN` for that variant's columns.
 
-The 13403-YD prefixes follow this convention:
+The <ref-scrna> prefixes follow this convention:
 
 | Variant scope | Prefix |
 |---------------|--------|
@@ -442,4 +442,4 @@ For automated verification: `python checks/check_program_redundancy.py <correlat
 - cNMF GitHub: https://github.com/dylkot/cNMF
 - Kotliar et al. 2019: https://doi.org/10.7554/eLife.43803
 - g:Profiler API: https://biit.cs.ut.ee/gprofiler/page/apis
-- Reference codebase patterns (in-repo): `01_modules/.ref/13403-YD-02-analysis/02_Analysis/06*.py`, `07_*.py`, `08_*.py`
+- Reference codebase patterns (in-repo): `01_modules/.ref/<ref-scrna>/02_Analysis/06*.py`, `07_*.py`, `08_*.py`

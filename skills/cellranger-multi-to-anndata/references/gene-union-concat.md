@@ -2,7 +2,7 @@
 
 `anndata.concat(adatas, join='outer', fill_value=0)` does most of what we want — union-of-genes, zero-fill the missing — but it loses gene metadata when a gene is absent from the first input. For multi-pool CellRanger projects where different pools may have been counted against different reference releases, that metadata loss is the failure mode that produces "what is `ENSMUSG00000123456`?" hours later.
 
-The robust pattern (ported from the 13403-YD reference `Python_scripts/anndata_utils.py::robust_concat_with_gene_union`) reconstructs a *union* `var` table first, then re-indexes each input to the full gene set before concat.
+The robust pattern (ported from the <ref-scrna> reference `Python_scripts/anndata_utils.py::robust_concat_with_gene_union`) reconstructs a *union* `var` table first, then re-indexes each input to the full gene set before concat.
 
 ## The four steps
 

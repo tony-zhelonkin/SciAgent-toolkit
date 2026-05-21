@@ -1,4 +1,4 @@
-"""merge_programs.py — Stage 5, port of 13403-YD's 07_merge_programs.py.
+"""merge_programs.py — Stage 5, port of <ref-scrna>'s 07_merge_programs.py.
 
 Hierarchical clustering at r > threshold (default 0.7), rank aggregation of
 top-50 genes per source program -> top-100 consensus, classification by gene

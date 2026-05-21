@@ -1,6 +1,6 @@
 # Subset strategies — Decision Pause 1 worked examples
 
-The five options in Decision Pause 1, with worked examples for projects that do *not* have hardcoded biology like the 13403-YD Th1/Th17 split.
+The five options in Decision Pause 1, with worked examples for projects that do *not* have hardcoded biology like the <ref-scrna> Th1/Th17 split.
 
 ## Option A — Whole dataset only (default)
 

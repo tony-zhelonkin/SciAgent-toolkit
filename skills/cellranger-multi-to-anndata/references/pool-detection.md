@@ -31,8 +31,8 @@ The `<root_segment>` choice depends on the project's directory naming:
 
 | Reference project | Root segment in path | Example pool name |
 |-------------------|----------------------|-------------------|
-| 13403-YD          | `Counts`             | `13403-YD-P1`     |
-| 14616-DM          | `CellRanger`         | `14616-DM-P1`     |
+| <ref-scrna>          | `Counts`             | `<pool-1>`     |
+| <ref-multi>          | `CellRanger`         | `<pool-1>`     |
 
 If the pool segment is not deterministic from the path, the skill's `build()` accepts a `pool_pattern` argument (a regex with one capture group). For projects where pools are flat siblings of `per_sample_outs/`, a simpler `os.path.basename(os.path.dirname(...))` walk is also valid; the regex is preferred because it tolerates extra path depth.
 

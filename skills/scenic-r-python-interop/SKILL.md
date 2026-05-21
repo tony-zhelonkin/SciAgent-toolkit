@@ -80,7 +80,7 @@ cistopic_obj = create_cistopic_object(
     cell_names=cell_names,
     region_names=region_names,
     tag_cells=False,          # Barcodes already formatted
-    project="DC_Dictionary"
+    project="<dc-project>"
 )
 
 # Add cell metadata
@@ -318,7 +318,7 @@ cistopic_obj = create_cistopic_object_from_fragments(
 ```r
 # R side: standardize before export
 meta <- hub_atac@meta.data
-meta$celltype <- meta$r2_refined        # DC_Dictionary uses r2_refined
+meta$celltype <- meta$r2_refined        # <dc-project> uses r2_refined
 meta$condition <- as.character(meta$condition)
 meta$barcode <- rownames(meta)
 
@@ -351,7 +351,7 @@ print(f"ATAC-only: {len(atac_barcodes - rna_barcodes)}")
 
 ---
 
-## DC_Dictionary Quick Reference
+## <dc-project> Quick Reference
 
 | Step | R Script | Python Script |
 |------|----------|---------------|
@@ -379,7 +379,7 @@ print(f"ATAC-only: {len(atac_barcodes - rna_barcodes)}")
 | Barcode mismatch (unpaired) | Expected — use `multi_ome_mode=False` in SCENIC+ |
 | Region names don't match DB | Ensure chr:start-end format (1-based coords from R) |
 | Fragment file missing `.tbi` | Run `tabix -p bed fragments.tsv.gz` |
-| `to_file_safe()` not found | Source `config.R` first (DC_Dictionary-specific) |
+| `to_file_safe()` not found | Source `config.R` first (<dc-project>-specific) |
 | Empty h5ad layers | Check `DefaultAssay()` is set correctly before export |
 | Python can't read R-exported h5ad | Update `anndataR` and `anndata` to latest versions |
 

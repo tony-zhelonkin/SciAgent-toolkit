@@ -53,7 +53,7 @@ Iterative overlap peak merging creates optimal merged peak sets for ATAC-seq exp
 
 ## Local Script Location
 ```bash
-/workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPeakSet.R
+<project-root>/01_scripts/R_scripts/createIterativeOverlapPeakSet.R
 ```
 
 ## Requirements
@@ -170,7 +170,7 @@ CellTypeC_Rep3	CellTypeC
 
 ### Basic Command Structure
 ```bash
-Rscript /workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
+Rscript <project-root>/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
   --metadata /path/to/metadata.txt \
   --macs2dir /path/to/macs2/output/ \
   --outdir /path/to/output/ \
@@ -297,7 +297,7 @@ EOF
 
 ### Run Peak Merging
 ```bash
-Rscript /workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
+Rscript <project-root>/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
   --metadata /data/atac_project/metadata.txt \
   --macs2dir /data/atac_project/macs2_peaks/ \
   --outdir /data/atac_project/merged_peaks/ \
@@ -494,7 +494,7 @@ The output BED file is compatible with:
 
 ### Minimal Command
 ```bash
-Rscript /workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
+Rscript <project-root>/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
   --metadata metadata.txt \
   --macs2dir ./macs2_peaks/ \
   --outdir ./merged_peaks/ \
@@ -505,7 +505,7 @@ Rscript /workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPea
 
 ### Typical Command (with all common options)
 ```bash
-Rscript /workspaces/DC_Dictionary/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
+Rscript <project-root>/01_scripts/R_scripts/createIterativeOverlapPeakSet.R \
   --metadata /path/to/metadata.txt \
   --macs2dir /path/to/macs2/ \
   --outdir /path/to/output/ \

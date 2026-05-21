@@ -1,6 +1,6 @@
 # Phase A — schema preparation reference
 
-CellxGene's schema is strict but mostly undocumented in user-friendly form. Below is the operative version distilled from the reference helpers in `01_Scripts/Python_scripts/cxg_utils.py` of the 13403-YD reference, plus the failure modes each step prevents.
+CellxGene's schema is strict but mostly undocumented in user-friendly form. Below is the operative version distilled from the reference helpers in `01_Scripts/Python_scripts/cxg_utils.py` of the <ref-scrna> reference, plus the failure modes each step prevents.
 
 ## Seven steps, in order
 

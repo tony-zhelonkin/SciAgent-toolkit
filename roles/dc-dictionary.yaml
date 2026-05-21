@@ -1,6 +1,6 @@
-# dc-dictionary.yaml - DC_Dictionary Project Execution Role
+# dc-dictionary.yaml - <dc-project> Project Execution Role
 #
-# Optimized for executing the DC_Dictionary resource paper plan (v9.5+)
+# Optimized for executing the <dc-project> resource paper plan (v9.5+)
 # covering Phases A2-F: Hub mechanism, external validation, human translation.
 #
 # Key workflows supported:
@@ -20,7 +20,7 @@
 # - Heavy ATAC-seq analysis with CRE/motif interpretation
 
 name: dc-dictionary
-description: DC_Dictionary plan execution - Hub mechanism, external validation, human translation
+description: <dc-project> plan execution - Hub mechanism, external validation, human translation
 
 # Agents for plan execution
 agents:

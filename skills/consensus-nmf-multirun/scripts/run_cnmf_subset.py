@@ -1,4 +1,4 @@
-"""run_cnmf_subset.py — Stage 1, parameterised port of 13403-YD's 06_run_cnmf.py family.
+"""run_cnmf_subset.py — Stage 1, parameterised port of <ref-scrna>'s 06_run_cnmf.py family.
 
 One call per (subset × QC) variant. Decision Pauses 1, 2 resolve the variant
 list before this fires; Decision Pause 3 (K) fires after the call returns.

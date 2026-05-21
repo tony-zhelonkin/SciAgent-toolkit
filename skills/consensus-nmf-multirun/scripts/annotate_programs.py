@@ -1,4 +1,4 @@
-"""annotate_programs.py — Stage 6, port of 13403-YD's 07_annotate_programs.py.
+"""annotate_programs.py — Stage 6, port of <ref-scrna>'s 07_annotate_programs.py.
 
 g:Profiler GO/KEGG/Reactome enrichment on top-50 genes per merged program.
 Per-program CSV + combined `program_annotations.csv` (overwrites the merge
