@@ -1,0 +1,1 @@
+These scripts are no longer part of the active toolkit. They install AI agent harnesses (Claude Code, Codex CLI, Gemini CLI). The toolkit is now focused on skills and roles; harness installation is out of scope. Kept here for occasional ad-hoc use.
