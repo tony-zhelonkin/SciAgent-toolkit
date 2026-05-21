@@ -17,7 +17,7 @@ description: |
   user: "I've refactored the analysis module and it's running successfully now."
   assistant: "I'll use code-reviewer to perform a thorough comparison with the original."
   </example>
-tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, AskUserQuestion, mcp__sequential-thinking__sequentialthinking, mcp__context7__resolve-library-id, mcp__context7__get-library-docs, ListMcpResourcesTool, ReadMcpResourceTool
+tools: Bash, Glob, Grep, Read, WebFetch, TodoWrite, WebSearch, BashOutput, KillShell, AskUserQuestion
 model: sonnet
 color: yellow
 ---

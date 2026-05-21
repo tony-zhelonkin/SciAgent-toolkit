@@ -35,8 +35,6 @@ PROJECT_DIR="${1:-$(pwd)}"
 
 # Files that may contain API keys and MUST be gitignored
 FILES_TO_CHECK=(
-    ".mcp.json"
-    ".gemini/settings.json"
     ".claude/settings.local.json"
     ".env"
     ".devcontainer/.env"
@@ -187,9 +185,7 @@ if [ $errors -gt 0 ]; then
     fi
     echo ""
     log_info "To fix gitignore issues, ensure your .gitignore contains:"
-    echo "  # AI CLI configurations (contain API keys)"
-    echo "  .gemini/"
-    echo "  .mcp.json"
+    echo "  # AI CLI configurations (may contain API keys)"
     echo "  .claude/settings.local.json"
     echo "  .env"
     echo "  .devcontainer/.env"
