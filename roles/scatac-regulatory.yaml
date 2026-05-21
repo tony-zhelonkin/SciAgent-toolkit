@@ -1,19 +1,20 @@
-# scatac-regulatory.yaml - scATAC-seq Regulatory Analysis
+# scatac-regulatory.yaml — scATAC-seq regulatory analysis
 #
-# Stack: CREscendo, ChromVAR, TF footprinting, pycisTopic, SCENIC+
-# Tools: chromatin accessibility, TF activity, differential accessibility,
-#        peak-to-gene linkage, motif enrichment
+# Purpose
+#   Chromatin-accessibility-first regulatory analysis: differential
+#   accessibility, TF motif activity, footprinting, peak-to-gene linkage,
+#   motif enrichment, and ATAC-driven GRN inference.
 #
-# Use when:
+# Use when
 #   - scATAC-seq differential accessibility analysis
 #   - TF motif activity scoring (ChromVAR)
 #   - TF footprinting (TOBIAS, HINT-ATAC, Signac)
 #   - Sub-peak CRE analysis (CREscendo)
 #   - Building regulatory networks from ATAC data
 #
-# Excludes:
+# Do NOT use when
 #   - scRNA-seq QC/normalization/clustering (use scrna-atlas)
-#   - Trajectory / velocity
+#   - Trajectory / velocity work
 #   - scGLUE unpaired integration (use multiome-grn)
 
 name: scatac-regulatory

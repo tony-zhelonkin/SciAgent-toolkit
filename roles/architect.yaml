@@ -1,43 +1,32 @@
 # architect.yaml — Architecture-first software development role
 #
-# Naming note: this role is named `architect` (no `-agent` suffix). The
-# `-agent` suffix in some other roles (`pathway-signature-agent`) collides
-# with the term "agent" in "LLM agent" and creates needless ambiguity.
-# Roles live in `roles/` and LLM agents live in `agents/` — different
-# directories, so the shared word `architect` between this role and the
-# `architect` LLM agent (the consistency gate) carries no risk of confusion.
-#
 # Purpose
-#   A composable harness for non-trivial software changes where *design
-#   before code* is the explicit discipline. Pipeline:
-#
-#     /map <feature>                  → docs/{feature}/map.md
-#     /review <feature> --as <csv>    → docs/{feature}/review/<agent>.md
-#     /synthesize <feature>           → docs/{feature}/synthesis.md
-#     /design <feature>               → docs/{feature}/design/*.md + review.md
-#     /plan <feature>                 → docs/{feature}/plan/*.md
-#     /implement <feature> <phase>    → code
-#
-# Every stage is human-gated. Artifacts compound downstream: reviewers read
-# map.md rather than re-exploring the codebase (60–80% of agent tokens
-# otherwise go to orientation, per 2026 subagent-cost literature).
-#
-# Reviewer panel is composable:
-#   /review --as all                       — 6 reviewers in parallel
-#   /review --as all --but stat,divergent  — 4 reviewers (all minus listed)
-#   /review --as bioinf,ml                 — just those two
+#   A composable harness for non-trivial software changes where design before
+#   code is the explicit discipline. Every stage is human-gated and artifacts
+#   compound downstream so reviewers read map.md rather than re-exploring the
+#   codebase.
 #
 # Use when
 #   - Non-trivial feature, refactor, or redesign where upfront design pays off
 #   - Cross-cutting concerns that need multiple expert lenses
-#   - Work where the scientific/biological reasoning matters as much as
-#     software structure (pathway-explorer being the first consumer)
+#   - Work where scientific/biological reasoning matters as much as structure
 #
 # Do NOT use when
 #   - One-line fixes, throwaway scripts, or exploratory data analysis
-#     (use the base or pathway-signature-agent role for those)
-#   - Running a bioinformatics analysis pipeline (this role has no
-#     anndata/scanpy/scvi skills — intentionally minimal)
+#   - Running a bioinformatics analysis pipeline (no anndata/scanpy skills)
+#
+# Pipeline
+#   /map <feature>               → docs/{feature}/map.md
+#   /review <feature> --as <csv> → docs/{feature}/review/<agent>.md
+#   /synthesize <feature>        → docs/{feature}/synthesis.md
+#   /design <feature>            → docs/{feature}/design/*.md + review.md
+#   /plan <feature>              → docs/{feature}/plan/*.md
+#   /implement <feature> <phase> → code
+#   Reviewer panel is composable: --as all | --as all --but X,Y | --as X,Y
+#
+# Composes with
+#   - base — analysis tooling alongside architect work
+#   - pathway-signature — pathway interpretation alongside architect work
 
 name: architect
 description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement

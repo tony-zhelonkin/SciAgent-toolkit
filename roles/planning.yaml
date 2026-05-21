@@ -1,15 +1,19 @@
-# planning.yaml - Planning and architecture role with full research stack
+# planning.yaml — Planning role with full research stack
 #
-# This role provides agents and tools optimized for:
-# - Extensive planning with literature search
-# - Codebase exploration and implementation planning
-# - Biological interpretation of analysis goals
+# Purpose
+#   Lightweight role for the research-and-plan phase: literature lookup,
+#   codebase exploration, biological interpretation, and code review before
+#   any new analysis code lands.
 #
-# Best used when:
-# - Starting new analysis phases requiring literature review
-# - Planning refactoring of existing pipelines
-# - Making architectural decisions needing multi-model input
-# - Heavy research tasks delegated to Gemini via PAL clink
+# Use when
+#   - Starting a new analysis phase that needs literature review
+#   - Planning a refactor of an existing pipeline
+#   - Architectural decisions that benefit from multi-model input
+#   - Heavy research delegated to a research agent
+#
+# Do NOT use when
+#   - Actually executing analysis (use base or a specialized role)
+#   - Design-before-code architecture work (use architect)
 
 name: planning
 description: Planning role — literature review, codebase exploration, architectural decisions

@@ -1,14 +1,19 @@
-# base.yaml - Default bioinformatics analysis role
+# base.yaml — Default bioinformatics analysis role
 #
-# This role provides agents for RNA-seq, single-cell,
-# and general bioinformatics analysis workflows.
+# Purpose
+#   The day-to-day analysis stack: scverse foundation, bulk and single-cell
+#   RNA-seq, scATAC, multiomics integration, GRN inference, and the seven
+#   on-demand helper agents that cover docs lookup, biological interpretation,
+#   data exploration, captions, doc curation, code review, and handoffs.
 #
-# Includes 7 specialized agents covering:
-# - Research & documentation
-# - Data exploration & interpretation
-# - Publication preparation
-# - Code review
-# - Session management
+# Use when
+#   - General RNA-seq or single-cell analysis at the keyboard
+#   - Exploratory work that doesn't warrant the architect pipeline
+#   - Default starting point for new projects
+#
+# Do NOT use when
+#   - Design-before-code work (use architect)
+#   - Pure pathway/TF interpretation (use pathway-signature)
 
 name: base
 description: Default bioinformatics analysis role with full agent suite

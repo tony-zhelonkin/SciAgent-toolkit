@@ -1,23 +1,20 @@
-# dc-dictionary.yaml - <dc-project> Project Execution Role
+# dc-dictionary.yaml — <dc-project> plan execution role
 #
-# Optimized for executing the <dc-project> resource paper plan (v9.5+)
-# covering Phases A2-F: Hub mechanism, external validation, human translation.
+# Purpose
+#   Phase A2–F of the <dc-project> resource paper: Hub mechanism, external
+#   validation, and human translation. Tuned for systematic plan.md execution
+#   with GeneNMF, SCENIC+, scGLUE, and scArches.
 #
-# Key workflows supported:
-# - Phase A2a-c: DE-based module definition + pathway enrichment (ORA, GSEA)
-# - Phase A2d: GeneNMF meta-program discovery (combinatorial programs)
-# - Phase A3: ChromVAR TF activity
-# - Phase B1-B4: DA, motifs, CREscendo, peak→gene (R-based + CREscendo skill)
-# - Phase B5: SCENIC+ via metacells (pycistopic → pycistarget → scenic+)
-# - Phase C1-C4: scGLUE external space + scArches Hub projection
-# - Phase D-E: Module scoring + human translation
+# Use when
+#   - Executing plan.md phases systematically
+#   - GeneNMF combinatorial program discovery (A2d)
+#   - SCENIC+ or scGLUE workflows
+#   - Hub → External projection with scArches
+#   - Heavy ATAC-seq with CRE/motif interpretation
 #
-# Best used when:
-# - Executing plan.md phases systematically
-# - Running GeneNMF for combinatorial program discovery (A2d)
-# - Running SCENIC+ or scGLUE workflows
-# - Performing Hub→External projection with scArches
-# - Heavy ATAC-seq analysis with CRE/motif interpretation
+# Do NOT use when
+#   - General-purpose RNA-seq work (use base)
+#   - Design-before-code architecture work (use architect)
 
 name: dc-dictionary
 description: <dc-project> plan execution - Hub mechanism, external validation, human translation

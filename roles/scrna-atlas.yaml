@@ -1,20 +1,21 @@
-# scrna-atlas.yaml - scRNA-seq Atlas Integration & Annotation
+# scrna-atlas.yaml — scRNA-seq atlas integration & annotation
 #
-# Stack: scRNA-seq integration, annotation, multi-sample DE
-# Tools: scanpy, scVI, scANVI, scArches, MrVI, GeneNMF, CellxGene Census
+# Purpose
+#   Large-atlas scRNA-seq work: scVI/scANVI integration, scArches reference
+#   mapping, MrVI multi-sample DE, GeneNMF meta-program discovery, and
+#   CellxGene Census annotation transfer.
 #
-# Use when:
-#   - Building or analyzing large scRNA-seq atlases (100K+ cells)
+# Use when
+#   - Building or analyzing scRNA-seq atlases (100K+ cells)
 #   - Multi-batch integration with scVI
 #   - Semi-supervised annotation with scANVI + marker rescue
 #   - Multi-sample DE (tumor vs healthy, conditions) via MrVI
 #   - Gene program scoring and meta-program discovery
 #
-# Excludes:
-#   - Trajectory / velocity (no scVelo, CellRank)
-#   - All ATAC-seq skills
+# Do NOT use when
+#   - Trajectory / velocity work (no scVelo, CellRank here)
+#   - ATAC-seq work (use scatac-regulatory or multiome-grn)
 #   - Multiomics / MuData containers
-#   - scVI models: ContrastiveVI, LinearSCVI, LDA, treeArches
 
 name: scrna-atlas
 description: scRNA-seq atlas integration & annotation — scVI/scANVI, multi-sample DE, gene programs
