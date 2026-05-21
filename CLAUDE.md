@@ -106,4 +106,4 @@ If this toolkit is a submodule, re-activate from the parent:
 
 ## Architecture Reference
 
-See `.refactor/architecture.md` for the full design spec (frozen, authoritative).
+See [docs/architecture.md](docs/architecture.md) for the full design spec.

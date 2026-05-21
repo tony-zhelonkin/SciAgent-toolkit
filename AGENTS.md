@@ -78,4 +78,4 @@ bin/sciagent activate base && ls -la .claude/agents/
 
 ## Architecture spec
 
-`.refactor/architecture.md` — authoritative design document, frozen. Read before changing CLI surface or block format.
+`docs/architecture.md` — authoritative design document. Read before changing CLI surface or block format.

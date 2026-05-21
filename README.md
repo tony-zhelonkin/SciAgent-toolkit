@@ -78,4 +78,4 @@ Reads the native discovery directories of Claude Code (`.claude/skills/`, `.clau
 
 ## Architecture
 
-See `.refactor/architecture.md` for the full design spec.
+See [docs/architecture.md](docs/architecture.md) for the full design spec.

@@ -1,0 +1,246 @@
+# sciagent — architecture
+
+This is the canonical design spec for sciagent: a harness-agnostic, per-project context manager that injects curated bundles of skills, sub-agents, and slash commands into AI assistant sessions via role activation.
+
+---
+
+## 1. Goal
+
+One job: **manage AI-harness context per project**. The user wears different hats (bioinformatician, software engineer, architect). Each hat = a *role*. Activating a role injects a curated bundle of skills, sub-agents, and slash commands into the project so the active harness session picks them up natively.
+
+Non-goals: installing harnesses, managing MCPs, managing API keys, multi-provider posture, anything global to the user's home directory.
+
+## 2. Mental model: roles as RPG combo classes
+
+A role is a bundle: `skills + sub-agents + slash-commands + output-style`. A project has at most **two** active roles, stacked in order: `base` (the foundation) and optionally an `overlay` (the specialization). Last-wins on name collisions; the shadowed entry is visible in `sciagent status`.
+
+Two roles, not N, because Claude Code's own three-tier resolution already creates "where did this come from?" debugging pain in practice. Two is enough for "wizard/knight" combos and stays inspectable.
+
+## 3. Directory layout
+
+### In the toolkit (canonical source)
+
+```
+sciagent-toolkit/
+├── bin/sciagent              # CLI dispatcher (bash)
+├── lib/sciagent/             # internal bash modules sourced by bin/sciagent
+│   ├── activate.sh
+│   ├── deactivate.sh
+│   ├── inject.sh
+│   ├── status.sh
+│   ├── new.sh
+│   ├── block.sh              # AGENTS.md managed-block read/write/verify
+│   ├── roles.sh              # role YAML parser
+│   └── symlinks.sh           # dual-track symlink helpers
+├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format)
+├── agents/<name>.md          # canonical sub-agents (Claude format)
+├── commands/<name>.md        # canonical slash commands (Claude format)
+├── output-styles/<name>.md   # canonical output styles
+├── roles/<name>.yaml         # role definitions
+└── templates/                # project scaffolding (new project bootstrap)
+    ├── AGENTS.md.template
+    ├── CLAUDE.md.template    # 1-line shim: @AGENTS.md
+    └── context.md.template
+```
+
+### In an activated project (what `sciagent activate` writes)
+
+```
+project/
+├── AGENTS.md                              # user-owned + managed block
+├── CLAUDE.md                              # 1-line shim: @AGENTS.md (+ overrides)
+├── .claude/                               # Claude harness native
+│   ├── skills/<name> ──▶ toolkit/skills/<name>
+│   ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
+│   ├── commands/<name>.md ──▶ toolkit/commands/<name>.md
+│   └── output-styles/<name>.md ──▶ toolkit/output-styles/<name>.md
+└── .agents/                               # harness-agnostic mirror
+    ├── skills/<name> ──▶ toolkit/skills/<name>
+    ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
+    └── commands/<name>.md ──▶ toolkit/commands/<name>.md
+```
+
+`.agents/` is a deliberate convention not yet adopted by Claude Code or Pi natively. Pi reads `.agents/skills/` walking up the tree — that already works. For sub-agents and commands, a Pi extension reading `.agents/agents/` and `.agents/commands/` is the user's job (out of scope for this toolkit).
+
+Project-local only. No user-global (`~/.claude/`, `~/.agents/`) installation. The whole point is per-project context.
+
+## 4. AGENTS.md managed block
+
+### Marker convention
+
+```markdown
+<!-- BEGIN SCIAGENT:ROLES v1 hash=<sha1-of-block-body> -->
+# Active roles
+
+Stack (in order, last-wins on name collisions):
+1. **base** — `roles/base.yaml` — Default bioinformatics analysis role
+2. **reviewer** — `roles/reviewer.yaml` — Code review overlay  *(overlay)*
+
+## Skills (effective)
+- `obsidian-vignette` — (base) capture session as Obsidian note
+- `simplify` — (reviewer) [shadows base]
+- ...
+
+## Sub-agents (effective, Claude-only)
+- `code-reviewer` — (reviewer)
+- `docs-librarian` — (base)
+- ...
+
+## Slash commands (effective, Claude-only)
+- `/commit` — (base)
+- `/review` — (reviewer) [shadows base]
+- ...
+
+<!-- END SCIAGENT:ROLES -->
+```
+
+### Robustness rules
+
+- **Markers**: HTML comments — invisible in rendered markdown, distinct namespace (`SCIAGENT:ROLES`), versioned (`v1`).
+- **Drift detection**: header includes `hash=<sha1>` of the block body. On every `activate` / `inject` / `deactivate`:
+  1. Read file, locate markers.
+  2. If both markers found: recompute hash of current body. If hash mismatches stored, user has edited inside the block — print a unified diff and require `--force` (or `sciagent role stash` to preserve edits as a side file).
+  3. If only one marker found: abort. Corrupted state. User must fix or pass `--force-reset` to nuke and rewrite.
+  4. If neither marker found: append fresh block at EOF, preceded by one blank line. Never silently rewrite existing content.
+- **Position-shift safe**: search file for markers every run. Never store byte offsets.
+- **Single block, not per-role**: the entire stack is rendered into one block. Multi-block patterns invite drift between blocks.
+- **CLAUDE.md**: a 1-line `@AGENTS.md` import is the default. Claude's native `@file` import means CLAUDE.md inherits AGENTS.md automatically without duplication or generation.
+
+## 5. CLI surface
+
+Binary: `bin/sciagent`. Alias: `si`. Both installable via symlink into PATH.
+
+### Verbs
+
+```
+sciagent activate <base> [overlay]   # activate role(s); replaces current stack
+sciagent deactivate [<role>]         # deactivate stack (or single role)
+sciagent inject <skill>              # add one skill to current overlay
+sciagent status [--json] [--effective] [--source <name>]
+sciagent list [roles|skills|agents|commands]
+sciagent new role|skill|agent <name> # scaffold from templates
+```
+
+### Activation semantics
+
+- `sciagent activate base` — solo role (stack: `[base]`). If different stack was active, auto-deactivate first.
+- `sciagent activate base reviewer` — two roles, ordered. `reviewer` overlays `base`. Last-wins on collisions.
+- Three+ positional args → error: "Maximum stack depth is 2 (base + overlay)."
+- Idempotent: `activate base reviewer` while same stack already active is a no-op (re-verifies symlinks, re-writes block if hash drifted with `--force`).
+- Re-activating with a different stack tears down existing symlinks first (auto-deactivate then activate). One-step UX.
+
+### Inject semantics
+
+- `sciagent inject simplify` — adds the `simplify` skill on top of the current stack.
+- If stack is `[base]` only: inject creates an implicit anonymous overlay named `_injected` that holds added skills. Stack becomes `[base, _injected]`.
+- If stack is `[base, reviewer]` already: skill is added to the overlay (`reviewer`)'s effective skill list (tracked in block under a separate `## Injected (overlay)` subsection so the source is clear).
+- `sciagent deactivate _injected` — removes injected-only overlay. `sciagent deactivate reviewer` — removes named overlay AND any injected-into-it skills.
+- Inject never creates a third tier.
+
+### Status output
+
+Default (TTY, plaintext, no color magic):
+
+```
+Stack:
+  1. base       roles/base.yaml      Default bioinformatics role
+  2. reviewer   roles/reviewer.yaml  Code review overlay     [overlay]
+
+Skills (12 effective):
+  obsidian-vignette        base
+  simplify                 reviewer    (shadows base)
+  ...
+
+Sub-agents (4 effective, Claude-only):
+  code-reviewer            reviewer
+  docs-librarian           base
+  ...
+
+Slash commands (5 effective, Claude-only):
+  /commit                  base
+  /review                  reviewer    (shadows base)
+  ...
+
+Managed block: AGENTS.md  lines 14–58   hash OK
+Symlinks:      .claude/* OK   .agents/* OK
+Harness:       Claude Code detected (.claude/ present)   Pi: not detected (.pi/ absent)
+```
+
+`--json` emits structured stack + effective table + shadow list + drift state.
+`--effective` emits just the merged name list (for piping).
+`--source <name>` resolves a single name to its providing role.
+
+## 6. Role YAML schema
+
+```yaml
+# roles/base.yaml
+name: base
+description: Default bioinformatics analysis role
+skills:
+  - obsidian-vignette
+  - cellrank-trajectory
+agents:                    # Claude-specific; ignored by Pi until extension exists
+  - code-reviewer
+  - docs-librarian
+commands:                  # Claude-specific
+  - commit
+  - review
+output_style: cs101_v0.2   # optional, Claude-specific
+```
+
+No `mcp_profile`. No installer/harness fields. Just content bundles.
+
+A role MAY declare empty arrays. A minimal role is just `name` + `description`.
+
+## 7. Symlink topology
+
+Every `activate` walks the union of declared `skills + agents + commands + output_style` across the stack (last-wins) and creates symlinks in BOTH `.claude/<category>/` AND `.agents/<category>/` (skills, agents, commands — *not* output-styles, which is Claude-only).
+
+- Symlinks are absolute paths back into the toolkit. This survives toolkit being a submodule.
+- Existing symlinks are removed before new ones are created (clean slate per activate).
+- A name appearing in both base and overlay results in one symlink pointing at the overlay's canonical file (last-wins). The shadowed entry is recorded in the managed block, not in symlinks.
+
+## 8. Deactivation
+
+`sciagent deactivate` (no args) — full teardown:
+- Remove the managed block from AGENTS.md (preserve everything outside markers byte-for-byte).
+- Remove `.claude/skills/*`, `.claude/agents/*`, `.claude/commands/*`, `.claude/output-styles/*` symlinks created by sciagent only (track via a sidecar `.sciagent/manifest.json` so we never delete symlinks we didn't create).
+- Remove `.agents/skills/*`, `.agents/agents/*`, `.agents/commands/*` analogously.
+- Remove `.sciagent/manifest.json`.
+
+`sciagent deactivate <name>` — partial: remove just that role from the stack. If it's the base, the overlay also goes (overlay without base is meaningless). If it's the overlay, base remains.
+
+## 9. State files
+
+```
+.sciagent/
+└── manifest.json       # canonical state: stack, created symlinks, block-hash, schema version
+```
+
+- AGENTS.md managed block is the **human-readable** state.
+- `.sciagent/manifest.json` is the **machine-readable** state — used for safe teardown (we only remove symlinks we own) and drift detection.
+- On conflict between block and manifest: print warning, manifest wins for teardown purposes, block is rewritten.
+
+## 10. Idempotency
+
+Every operation is safe to re-run:
+- `activate base` twice → no-op (verifies + repairs).
+- `inject X` twice → first creates symlink, second is no-op.
+- `deactivate` twice → first removes, second is silent no-op (manifest absent).
+
+## 11. New-project scaffolding (`sciagent new`)
+
+Replaces `setup-ai.sh`:
+
+```
+sciagent new project [<dir>]   # bootstrap: copy templates/, do NOT activate
+sciagent new role <name>       # scaffold roles/<name>.yaml from template
+sciagent new skill <name>      # copy skills/_TEMPLATE/ to skills/<name>/
+sciagent new agent <name>      # scaffold agents/<name>.md from template
+```
+
+`sciagent new project` puts AGENTS.md, CLAUDE.md (1-line `@AGENTS.md`), and `context.md` into the target dir. Does NOT activate any role; the user picks one with `sciagent activate`.
+
+---
+
+**Status:** Spec version 1. Implementation tested via `tests/run-all.sh`.
