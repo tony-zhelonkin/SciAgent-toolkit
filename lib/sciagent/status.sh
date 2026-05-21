@@ -225,7 +225,8 @@ _status_render_source() {
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ "$n" == "$q" ]] || continue
         if [[ -n "${SKILL_SHADOWS[$n]:-}" ]]; then
-            echo "${SKILLS[$n]} (shadowed by ${SKILLS[$n]}, also in ${SKILL_SHADOWS[$n]})"
+            # Winner (last-wins) shown first; the shadowed provider in parens.
+            echo "${SKILLS[$n]} (shadows ${SKILL_SHADOWS[$n]})"
         else
             echo "${SKILLS[$n]}"
         fi

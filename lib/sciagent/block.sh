@@ -51,7 +51,10 @@ block_read() {
     return 0
 }
 
-_block_stored_hash() {
+# Public: emit the hash stored in the BEGIN marker (empty if no block).
+# Activate/inject reuse this to populate the manifest's BLOCK_HASH after
+# block_write, so canonicalisation rules live in exactly one place.
+block_stored_hash() {
     local file="$1"
     # Strip prefix and trailing " -->" from the BEGIN line.
     grep -F -- "$_BLOCK_BEGIN_PREFIX" "$file" 2>/dev/null \
@@ -72,7 +75,7 @@ block_hash_check() {
         return 2
     fi
     local stored actual
-    stored=$(_block_stored_hash "$file")
+    stored=$(block_stored_hash "$file")
     actual=$(block_read "$file" | _sha1)
     if [[ "$stored" == "$actual" ]]; then
         return 0
@@ -86,8 +89,9 @@ block_hash_check() {
 block_write() {
     local file="$1"
     local body="$2"
-    # Canonicalise: body always ends with exactly one newline before hashing,
-    # so the stored hash matches block_read's awk-based reconstruction.
+    # INVARIANT: body must be hashed AFTER trailing-newline canonicalisation,
+    # so the stored hash matches block_read's awk-based reconstruction (awk
+    # `print` always emits a trailing \n).
     [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | _sha1)
@@ -95,11 +99,7 @@ block_write() {
     local end="$_BLOCK_END"
 
     if [[ ! -f "$file" ]]; then
-        { printf '%s\n' "$begin"
-          printf '%s' "$body"
-          [[ "${body: -1}" == $'\n' ]] || printf '\n'
-          printf '%s\n' "$end"
-        } > "$file"
+        printf '%s\n%s%s\n' "$begin" "$body" "$end" > "$file"
         return 0
     fi
 
@@ -114,8 +114,7 @@ block_write() {
             BEGIN { state=0 }
             state==0 && index($0, BEG) == 1 {
                 print NEWBEG
-                printf "%s", BODY
-                if (substr(BODY, length(BODY), 1) != "\n") print ""
+                printf "%s", BODY    # BODY already ends with \n (canonicalised)
                 print END_MARK
                 state=1
                 next
@@ -129,22 +128,14 @@ block_write() {
     fi
 
     # No markers — append fresh block, preceded by one blank line.
-    # We want file to end with `...\n\n` before the BEGIN marker.
+    # File must end `...\n\n` before the BEGIN marker.
     if [[ -s "$file" ]]; then
         local last_byte
-        # od strips trailing-newline pitfalls of $(...)
         last_byte=$(tail -c 1 "$file" | od -An -tx1 | tr -d ' \n')
-        if [[ "$last_byte" != "0a" ]]; then
-            printf '\n' >> "$file"
-        fi
+        [[ "$last_byte" == "0a" ]] || printf '\n' >> "$file"
         printf '\n' >> "$file"
     fi
-    {
-        printf '%s\n' "$begin"
-        printf '%s' "$body"
-        [[ "${body: -1}" == $'\n' ]] || printf '\n'
-        printf '%s\n' "$end"
-    } >> "$file"
+    printf '%s\n%s%s\n' "$begin" "$body" "$end" >> "$file"
 }
 
 # block_remove <file>

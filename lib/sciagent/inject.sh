@@ -139,10 +139,9 @@ _inject_rewrite_block() {
     body=$(_render_inject_body "$base" "$overlay" "${INJECTED_NAMES[@]+"${INJECTED_NAMES[@]}"}")
     block_write AGENTS.md "$body"
 
-    # Refresh manifest BLOCK_HASH (match block_write's canonicalisation).
-    [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
+    # Refresh manifest BLOCK_HASH using the hash block_write just stored.
     local hash
-    hash=$(printf '%s' "$body" | sha1sum | awk '{print $1}')
+    hash=$(block_stored_hash AGENTS.md)
     local tmp
     tmp=$(mktemp)
     awk -v h="$hash" '

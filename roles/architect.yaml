@@ -43,8 +43,8 @@ name: architect
 description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement
 
 # Output style (main-agent system prompt) — resolved by `name:` frontmatter
-# in system-prompts/<file>.md. Written into .claude/settings.json by
-# activate-role.sh. Omit this field to leave the existing outputStyle alone.
+# in output-styles/<file>.md. Symlinked by `sciagent activate`. Omit this
+# field to leave the existing outputStyle alone.
 output_style: architect-mentor
 
 # Agents activate into .claude/agents/ via symlink
@@ -74,7 +74,6 @@ skills:
   - architecture-first-dev   # methodology reminder: when to use which stage
 
 # Commands activate into .claude/commands/ via symlink
-# (Requires activate-role.sh with commands support.)
 commands:
   - map
   - review
