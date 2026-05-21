@@ -48,6 +48,24 @@ cmd_activate() {
         esac
     done < <(stack_walk "$base" "$overlay")
 
+    # Resolve output_style → system-prompts/<file>.md by frontmatter name.
+    # Validate before any filesystem mutation so a drifted role spec leaves
+    # the project untouched (no half-state).
+    local STYLE_SRC=""
+    if [[ -n "$OUTPUT_STYLE" ]]; then
+        STYLE_SRC=$(system_prompt_path "$OUTPUT_STYLE") || true
+        if [[ -z "$STYLE_SRC" ]]; then
+            echo "sciagent: role '$OUTPUT_STYLE_ROLE' requests output_style '$OUTPUT_STYLE'," >&2
+            echo "  but no file in system-prompts/ has frontmatter 'name: $OUTPUT_STYLE'." >&2
+            echo "  Available styles (frontmatter name → file):" >&2
+            local pname pfile
+            while IFS=$'\t' read -r pname pfile; do
+                printf '    %s\t(%s)\n' "$pname" "$pfile" >&2
+            done < <(system_prompt_inventory)
+            return 1
+        fi
+    fi
+
     # Start the manifest staging buffer before creating any symlinks.
     local stack="$base"
     [[ -n "$overlay" ]] && stack="$base $overlay"
@@ -68,10 +86,7 @@ cmd_activate() {
         symlink_create_dual commands "$n" "$SCIAGENT_TOOLKIT/commands/${n}.md"
     done
     if [[ -n "$OUTPUT_STYLE" ]]; then
-        local style_src="$SCIAGENT_TOOLKIT/system-prompts/cs101.md"
-        if [[ -f "$style_src" ]]; then
-            symlink_create_dual output-styles "$OUTPUT_STYLE" "$style_src"
-        fi
+        symlink_create_dual output-styles "$OUTPUT_STYLE" "$STYLE_SRC"
     fi
 
     # Render and write the managed block.

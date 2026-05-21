@@ -108,8 +108,16 @@ build_fake_toolkit() {
     echo "cmd c_a"   > "$root/commands/c_a.md"
     echo "cmd c_b"   > "$root/commands/c_b.md"
 
-    # System prompt (used by no test fixture role, but file present)
-    echo "style cs101" > "$root/system-prompts/cs101.md"
+    # System prompt fixture — exercised by tests that use output_style.
+    # Frontmatter `name:` is the logical identifier resolved by
+    # roles.sh system_prompt_path(); filename is incidental.
+    cat > "$root/system-prompts/cs101.md" <<'EOF'
+---
+name: fixture-style
+description: stub style for tests
+---
+fixture body
+EOF
 
     # Roles
     cat > "$root/roles/base.yaml" <<EOF

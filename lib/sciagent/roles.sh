@@ -108,3 +108,68 @@ role_load() {
 role_description() {
     role_scalar "$(role_path "$1")" description
 }
+
+# ---------------------------------------------------------------------------
+# system-prompts resolution
+# ---------------------------------------------------------------------------
+#
+# A role's `output_style: <name>` field is a logical identifier resolved
+# against the frontmatter `name:` field of files in `system-prompts/*.md`.
+# This decouples the role spec from filenames — files can be renamed
+# without breaking roles, and a single style can live in any filename.
+#
+# Validation lives here so that drift between a role's declared style and
+# the canonical source files is caught at activation time, before any
+# symlink or manifest mutation. Otherwise an unresolved style would
+# silently fall back to a hard-coded default and confuse the user.
+
+# _read_frontmatter_name <file>
+# Print the value of the `name:` field inside the leading `---` ... `---`
+# YAML frontmatter block. Empty if none.
+_read_frontmatter_name() {
+    awk '
+        /^---[ \t]*$/ { fm++; if (fm == 2) exit; next }
+        fm == 1 && /^name:[ \t]/ {
+            sub(/^name:[ \t]*/, "")
+            sub(/[ \t]*#.*$/, "")
+            sub(/[ \t]+$/, "")
+            print
+            exit
+        }
+    ' "$1"
+}
+
+# system_prompt_path <name>
+# Resolve a system-prompt source file by frontmatter name. Print the
+# absolute path on stdout. Exit 1 if no file matches.
+system_prompt_path() {
+    local name="$1"
+    local dir
+    dir="$(_roles_toolkit_root)/system-prompts"
+    [[ -d "$dir" ]] || return 1
+    local f n
+    for f in "$dir"/*.md; do
+        [[ -f "$f" ]] || continue
+        n=$(_read_frontmatter_name "$f")
+        if [[ "$n" == "$name" ]]; then
+            printf '%s\n' "$f"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# system_prompt_inventory
+# List every system-prompt source as a `<name>\t<basename>` line. Used by
+# the validation error message and by `sciagent list system-prompts`.
+system_prompt_inventory() {
+    local dir
+    dir="$(_roles_toolkit_root)/system-prompts"
+    [[ -d "$dir" ]] || return 1
+    local f n
+    for f in "$dir"/*.md; do
+        [[ -f "$f" ]] || continue
+        n=$(_read_frontmatter_name "$f")
+        printf '%s\t%s\n' "${n:-<missing-frontmatter-name>}" "${f##*/}"
+    done
+}
