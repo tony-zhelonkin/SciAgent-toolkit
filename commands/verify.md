@@ -101,7 +101,7 @@ Decision tree per phase:
 - **`status: shipped` but `commit:` is empty** (user shipped but hasn't committed yet, or pre-canonical schema) → fall through to Phase 4b mtime path for that phase only.
 - **`status: deferred`** → mark all rows for that phase `⏭ DEFERRED`. No file checks. Note `verification: deferred` rationale in the output.
 - **`status: in-progress` / `not-started` / `blocked`** → for each `files_touched` entry: confirm file exists; if it does, mark `IN PROGRESS`; if not, mark `NOT YET IMPLEMENTED`.
-- **No frontmatter `status:` field at all** (legacy phase docs) → fall through to Phase 4b for that phase. Emit a warning: "phase-NN lacks canonical frontmatter; run `scripts/migrate_phase_frontmatter.py` to fix."
+- **No frontmatter `status:` field at all** (legacy phase docs) → fall through to Phase 4b for that phase. Emit a warning: "phase-NN lacks canonical frontmatter; run `migrate_phase_frontmatter.py` to fix."
 
 Backwards-compat: accept legacy `status: DONE` as `shipped`.
 

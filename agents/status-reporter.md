@@ -63,7 +63,7 @@ Issue these calls. Batch them in the same message where independence allows:
 
    Backwards-compat: accept legacy `status: DONE` as equivalent to `shipped`.
 
-   If a `phase-NN.md` has NO frontmatter `status:` field, count it as "unknown" — phase exists but its ship-state is not machine-readable. This is the signal that the phase predates the canonical schema and should be backfilled (run `scripts/migrate_phase_frontmatter.py` once per portfolio to fix).
+   If a `phase-NN.md` has NO frontmatter `status:` field, count it as "unknown" — phase exists but its ship-state is not machine-readable. This is the signal that the phase predates the canonical schema and should be backfilled (run `migrate_phase_frontmatter.py` once per portfolio to fix).
 
    Emit per-feature: `shipped/total` (e.g. `12/12`, `3/6`). If any phases are `unknown`, append `(N unknown)` — the user should treat those as ambiguous and run `/verify` to confirm.
 
@@ -135,7 +135,7 @@ Legend for "Outstanding":
 - `implement open` — plan APPROVED but `shipped < total` phases (run `/implement` next)
 - `verify INCOMPLETE` — implementation shipped but verify gate failing
 - `NEEDS_ITERATION` — architect verdict requires a design revision
-- `backfill phase frontmatter` — phase docs predate the canonical `status:` schema; run `scripts/migrate_phase_frontmatter.py`
+- `backfill phase frontmatter` — phase docs predate the canonical `status:` schema; run `migrate_phase_frontmatter.py`
 - `—` / `steady-state` — nothing blocked, all phases shipped
 - `?` — cross-feature conflict suspected (see below)
 
@@ -157,7 +157,7 @@ Legend for "Outstanding":
 - "{N} features READY + plans drafted; run `/meta-plan` to sequence the portfolio."
 - "All features READY + plans APPROVED but {M} have shipped < total phases — run `/implement {slug} --auto` for {first slug}."
 - "All features fully shipped (N/N each); proceed to `/verify --all` for a portfolio-wide drift sweep."
-- "{K} features show `(N unknown)` phase counts — phase docs predate the canonical `status:` schema; run `scripts/migrate_phase_frontmatter.py` once to backfill."}
+- "{K} features show `(N unknown)` phase counts — phase docs predate the canonical `status:` schema; run `migrate_phase_frontmatter.py` once to backfill."}
 ```
 
 Omit sections that would be empty (e.g., no plans drafted yet).

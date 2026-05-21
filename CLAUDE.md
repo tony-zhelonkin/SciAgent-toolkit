@@ -6,123 +6,53 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Repository Overview
 
-**SciAgent-toolkit** (v2.0.0) is a modular MCP (Model Context Protocol) infrastructure orchestrator that integrates AI assistants (Claude Code, Gemini CLI, Codex CLI) with specialized scientific research tools. This is an **installation and configuration framework**, not a standalone application.
+**SciAgent-toolkit** is a role-based agent and skills framework for AI-assisted bioinformatics projects.
 
 **Integration:** Used as a submodule in [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker) at `toolkits/SciAgent-toolkit/` and added to new projects at `01_modules/SciAgent-toolkit/`.
-
-### Core Architecture
-
-Four-tier system:
-1. **User Interfaces**: Claude Code CLI, Gemini CLI, Codex CLI (optional)
-2. **Role & Profile System**: Role-based agent/skill activation (8 pre-configured agents), MCP profile switching (7 profiles)
-3. **MCP Server Layer**: PAL (Collaboration/Planning), Sequential Thinking, Context7, ToolUniverse (600+ scientific tools), Serena (code intelligence)
-4. **External Data Sources**: ChEMBL, UniProt, DrugBank, FDA, PubMed, ClinicalTrials.gov, Europe PMC, etc.
 
 ---
 
 ## Key Directories and Files
 
-### Installation Scripts
-- `scripts/setup-ai.sh` - **Primary entry point** for project setup (templates, roles, MCP config)
-- `scripts/setup_mcp_infrastructure.sh` - MCP server installation orchestrator
-- `scripts/switch-mcp-profile.sh` - **Profile switcher** for context management across all CLIs
-- `scripts/activate-role.sh` - **Role activator** for agent/skill symlinks
-- `scripts/install_claude.sh` - Installs Claude Code to `~/.local/bin/claude`
-- `scripts/install_codex.sh` - Installs Codex CLI (optional)
-- `scripts/install_gemini.sh` - Installs Gemini CLI (optional)
-- `scripts/mcp_servers/setup_pal.sh` - Installs PAL MCP (Collaboration & Planning)
-- `scripts/mcp_servers/setup_serena.sh` - Installs Serena MCP (code intelligence, uvx-based)
-- `scripts/mcp_servers/setup_sequential_thinking.sh` - Installs Sequential Thinking MCP (npx-based)
-- `scripts/mcp_servers/setup_tooluniverse.sh` - Installs ToolUniverse MCP (600+ scientific tools)
-- `scripts/configure_mcp_servers.sh` - Legacy MCP configuration generator
-- `scripts/test_installation.sh` - Validates full installation
-
-### Configuration Files
-- `.mcp.json` - **Project-local** MCP server configuration for Claude Code (JSON format)
-- `.gemini/settings.json` - **Project-local** Gemini CLI configuration
-- `~/.codex/config.toml` - **User-global** MCP server configuration for Codex CLI (TOML format)
-- `.claude/settings.local.json` - Claude Code settings (pre-approved commands, enabled MCP servers)
-- `.env` - **API keys** (git-ignored, created from `templates/.env.template`)
+### Scripts
+- `scripts/setup-ai.sh` — **Primary entry point** for project setup (templates + role activation)
+- `scripts/activate-role.sh` — **Role activator** for agent/skill symlinks
 
 ### Role System
-- `roles/` - Role definitions (YAML files)
-- `roles/base.yaml` - Default bioinformatics analysis role
-- `agents/` - Canonical location for custom Claude agents (flat `.md` files)
-- `skills/` - Canonical location for custom Claude skills (directory format)
-  - `skills/<name>/SKILL.md` - canonical entry point for each skill
-  - `skills/<name>/{references,scripts,checks,assets}/` - optional supporting dirs
-  - `skills/_TEMPLATE/` - starter template (copy to author new skills)
-  - `skills/skill-creator/` - reference Rich-tier implementation
-- `.claude/agents/` - Symlinked agents (populated by `activate-role.sh`)
-- `.claude/skills/` - Symlinked skills (populated by `activate-role.sh`)
+- `roles/` — Role definitions (YAML files)
+- `roles/base.yaml` — Default bioinformatics analysis role
+- `agents/` — Canonical location for custom Claude agents (flat `.md` files)
+- `skills/` — Canonical location for custom Claude skills (directory format)
+  - `skills/<name>/SKILL.md` — canonical entry point for each skill
+  - `skills/<name>/{references,scripts,checks,assets}/` — optional supporting dirs
+  - `skills/_TEMPLATE/` — starter template (copy to author new skills)
+  - `skills/skill-creator/` — reference Rich-tier implementation
+- `.claude/agents/` — Symlinked agents (populated by `activate-role.sh`)
+- `.claude/skills/` — Symlinked skills (populated by `activate-role.sh`)
   - Directory-format skills are symlinked as directories (preserves supporting dirs)
   - Legacy flat-format skills are still supported; see `skills/README.md` for the format guide
 
 ### Template System
-- `templates/vendor/` - AI context templates installed by `setup-ai.sh`
-  - `CLAUDE.md.template` - Claude Code project instructions
-  - `GEMINI.md.template` - Gemini CLI project instructions
-  - `AGENTS.md.template` - Universal AI rules for all agents
-  - `context.md.template` - Scientific project context
-  - `analysis_config.yaml.template` - Analysis parameters for `02_analysis/config/`
-- `templates/mcp-profiles/` - MCP profile templates (minimal, coding, research-lite, etc.)
-- `templates/gemini-profiles/` - Gemini-specific profile mappings
-- `templates/.env.template` - API key template
-
-### Virtual Environments
-- `tooluniverse-env/` - Python virtual environment for ToolUniverse (managed by uv)
-- `scripts/tooluniverse-env/` - Alternative location in scripts directory
-
-### Agents (Pre-configured - 8 total)
-
-**Research & Documentation:**
-- `agents/bioinf-librarian.md` - Find bioinformatics tools, docs, databases, resources via authoritative sources
-- `agents/bio-research-visualizer.md` - Deep research into biological mechanisms + visualization recommendations
-
-**Data Exploration & Analysis:**
-- `agents/rnaseq-insight-explorer.md` - Explore RNAseq data with scientific skepticism; validates claims against actual data
-
-**Publication & Documentation:**
-- `agents/rnaseq-methods-writer.md` - Auto-generate publication Methods sections from RNA-seq code
-- `agents/figure-caption-generator.md` - Publication-quality scientific figure captions (fire-and-forget design)
-- `agents/repo-doc-curator.md` - Audit and consolidate repository documentation
-
-**Code Review & Quality:**
-- `agents/refactor-stage-reviewer.md` - Peer review of refactored code vs. originals
-
-**Session Management:**
-- `agents/handoff.md` - Timestamped session handoff documentation for continuity
+- `templates/vendor/` — AI context templates installed by `setup-ai.sh`
+  - `CLAUDE.md.template` — Claude Code project instructions
+  - `AGENTS.md.template` — Universal AI rules for all agents
+  - `context.md.template` — Scientific project context
+  - `analysis_config.yaml.template` — Analysis parameters for `02_analysis/config/`
 
 ### Docker Testing Infrastructure
-- `docker/test/Dockerfile.architecture-test` - **Architecture validation** (roles, templates, profiles)
-- `docker/test/Dockerfile.tooluniverse-test` - Base image with ToolUniverse
-- `docker/test/Dockerfile.claude-test` - Extends base with Claude Code
-- `docker/test/Dockerfile.codex-test` - Extends base with Codex CLI
-- `docker/test/Dockerfile.gemini-test` - Extends base with Gemini CLI
-- `docker/test/test-all.sh` - Full test suite (11 tests including architecture)
-
-**Note:** These Docker images are for **CI/CD testing only**. For production container deployments, use [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker), which integrates this toolkit as a submodule at `toolkits/SciAgent-toolkit/` and delegates AI setup to `setup-ai.sh`.
+- `docker/test/` — CI/CD test Dockerfiles and test suite
 
 ---
 
 ## Common Development Commands
 
-### Installation and Setup
+### Setup
 
 ```bash
-# Full project setup (recommended for new projects)
+# Full project setup (templates + role activation)
 ./scripts/setup-ai.sh
 
-# Minimal setup (skip Serena, Codex, Gemini - faster)
-./scripts/setup-ai.sh --minimal
-
-# Infrastructure-only (MCP servers without templates/roles)
-./scripts/setup_mcp_infrastructure.sh
-
-# Skip specific components
-./scripts/setup_mcp_infrastructure.sh --skip-codex --skip-gemini
-
-# View all options
+# View options
 ./scripts/setup-ai.sh --help
 ```
 
@@ -136,205 +66,39 @@ Four-tier system:
 ls roles/*.yaml
 ```
 
-### Profile Switching
-
-```bash
-# Switch MCP profile (updates .mcp.json, .gemini/settings.json, etc.)
-./scripts/switch-mcp-profile.sh coding           # Lightweight coding
-./scripts/switch-mcp-profile.sh research-lite    # Scientific tools
-./scripts/switch-mcp-profile.sh hybrid-research  # Claude=coding, Gemini=research
-
-# List available profiles
-ls templates/mcp-profiles/
-```
-
-### Configuration Management
-
-```bash
-# Regenerate MCP configurations
-./scripts/configure_mcp_servers.sh --project-dir "$(pwd)"
-
-# Validate existing configuration
-python3 -m json.tool .mcp.json
-
-# List configured MCP servers
-jq '.mcpServers | keys' .mcp.json
-
-# Add MCP server manually (Claude Code)
-claude mcp add server-name --scope local -- command arg1 arg2
-```
-
-### Testing and Verification
-
-```bash
-# Verify Claude Code installation
-claude --version
-claude doctor
-
-# Verify Codex CLI installation (if installed)
-codex --version
-
-# Test ToolUniverse installation
-./scripts/test_tooluniverse.sh
-
-# Test individual MCP server
-npx -y @modelcontextprotocol/server-sequential-thinking --help
-uvx --from git+https://github.com/oraios/serena serena --help
-uv --directory ./tooluniverse-env run tooluniverse-mcp --version
-
-# Comprehensive installation test
-./scripts/test_installation.sh
-```
-
 ### Docker Testing
 
 ```bash
-# Build and test all images (11 tests)
 cd docker/test
 ./test-all.sh
-
-# Test architecture only (roles, templates, profiles)
-docker build -f Dockerfile.architecture-test -t architecture-test:latest ../..
-
-# Build individual images
-docker build -f Dockerfile.tooluniverse-test -t tooluniverse-test:latest ../..
-docker build -f Dockerfile.claude-test -t claude-mcp-test:latest ../..
-docker build -f Dockerfile.codex-test -t codex-mcp-test:latest ../..
-docker build -f Dockerfile.gemini-test -t gemini-mcp-test:latest ../..
-
-# Clean up test images
-docker rmi architecture-test tooluniverse-test claude-mcp-test codex-mcp-test gemini-mcp-test
 ```
 
 ---
 
-## Architecture Deep Dive
-
-### Installation Flow
-
-The main orchestrator (`setup_mcp_infrastructure.sh`) follows this sequence:
-
-1. **Parse command-line arguments** (--skip-*, --*-only flags)
-2. **Install Claude Code** (if not skipped): Downloads from https://claude.ai/install.sh, installs to `~/.local/bin/claude`, updates PATH
-3. **Install Codex CLI** (if not skipped): Attempts npm global install, falls back to Homebrew on macOS
-4. **Install Base MCP Servers**:
-   - **Serena**: Installs uv/uvx, uses `git+https://github.com/oraios/serena` (HTTPS only, no SSH required)
-   - **Sequential Thinking**: Installs Node.js/npm if needed, uses npx with `@modelcontextprotocol/server-sequential-thinking`
-5. **Install Scientific MCP Servers**:
-   - **PubMed**: Provides manual plugin installation instructions (Claude Code marketplace only)
-   - **ToolUniverse**: Installs uv, creates `./tooluniverse-env/`, auto-detects command name (`tooluniverse-mcp` or `tooluniverse-smcp-stdio`)
-6. **Generate Configurations**: Runs `configure_mcp_servers.sh` to create `.mcp.json` and `~/.codex/config.toml`
-7. **Verification**: Checks installed binaries and validates configuration files
-
-### Configuration Generation Strategy
-
-`configure_mcp_servers.sh` implements **runtime detection**:
-
-1. **Detect Sequential Thinking**: Checks for `npx` availability
-2. **Detect ToolUniverse**: Checks for `tooluniverse-env/` directory in both `scripts/` and project root
-3. **Detect Serena**: Checks for `uvx` with 5-second timeout (skips if not pre-cached to avoid 5-15 min build time)
-4. **Generate `.mcp.json`**: Project-local JSON configuration for Claude Code
-5. **Generate `~/.codex/config.toml`**: User-global TOML configuration for Codex CLI
-6. **Validate**: Uses `python3 -m json.tool` to check JSON syntax
-
-**Critical**: MCP configurations MUST use **absolute paths** because Claude Code doesn't guarantee working directory.
-
-**Environment-Specific Configuration**: The `.mcp.json` file is environment-specific and contains absolute paths. It is:
-- **Generated automatically** during installation
-- **Not committed to git** (in `.gitignore`)
-- **Must be regenerated** when moving between environments (Dev containers, different machines)
-
-To regenerate for a new environment:
-```bash
-./scripts/configure_mcp_servers.sh --force
-```
-
-### MCP Server Details
-
-#### PAL MCP
-- **Purpose**: Collaboration, planning, and code analysis
-- **Command**: `uvx --from git+https://github.com/BeehiveInnovations/pal-mcp-server.git pal-mcp-server`
-- **Requirements**: uvx
-- **Features**: Chat, Deep Thinking, Planning, Code Review, Debugging
-
-#### Sequential Thinking MCP
-- **Purpose**: Structured reasoning for complex decisions
-- **Command**: `npx -y @modelcontextprotocol/server-sequential-thinking`
-- **Requirements**: Node.js 18+, npm/npx
-- **Features**: Step-by-step analysis, decision trees, multi-step reasoning chains
-
-#### ToolUniverse MCP
-- **Purpose**: 600+ scientific research tools
-- **Command**: `uv --directory ./scripts/tooluniverse-env run tooluniverse-mcp` (or `tooluniverse-smcp-stdio`)
-- **Requirements**: Python 3.10+, uv package manager
-- **Environment**: Local venv in `./scripts/tooluniverse-env/` or `./tooluniverse-env/`
-- **Tool Categories**: Drug discovery (ChEMBL, DrugBank, FDA), Genomics (UniProt, protein interactions), Literature (PubMed, Europe PMC, Semantic Scholar), Clinical trials (ClinicalTrials.gov)
-- **Important**: Command name varies by version; setup script auto-detects correct name and location
-
-#### Serena MCP
-- **Purpose**: Semantic code search and editing
-- **Command**: `uvx --from git+https://github.com/oraios/serena serena start-mcp-server`
-- **Requirements**: uvx (automatically installed)
-- **Build Time**: 5-15 minutes on first run (one-time Rust compilation), seconds for cached builds
-- **Features**: Symbol-level analysis, cross-reference tracking, intelligent refactoring
-
-#### PubMed Plugin (Claude Code only)
-- **Purpose**: Biomedical literature access (36M+ articles)
-- **Installation**: Manual via Claude Code plugin marketplace
-- **Commands**:
-  ```bash
-  claude
-  /plugin marketplace add anthropics/life-sciences
-  /plugin install pubmed@life-sciences
-  # Restart Claude Code
-  ```
-- **No API Key Required**: Uses public NCBI E-utilities
-
-### Tool Filtering and Advanced Configuration
-
-ToolUniverse provides 600+ tools which can overflow Claude's context window. You can filter tools using:
-- `--include-tools` - Specify specific tools to load
-- `--exclude-tool-types` - Exclude tool categories (e.g., `PackageTool`)
-- Multiple instances - Create specialized configurations for different workflows
-
-**Optional:** Enable Azure OpenAI auto-summarization for long outputs by setting `AZURE_OPENAI_API_KEY` and `AZURE_OPENAI_ENDPOINT` environment variables.
-
-See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for detailed configuration examples.
-
-### Role System
+## Role System
 
 The role system provides a declarative way to configure agents and skills per project.
 
-#### Role Definition (`roles/base.yaml`)
+### Role Definition (`roles/base.yaml`)
 
 ```yaml
 name: base
 description: Default bioinformatics analysis role with full agent suite
-mcp_profile: coding
 
 agents:
-  # Research & Documentation
-  - bioinf-librarian            # Tool/documentation research
-  - bio-research-visualizer     # Biological mechanism research + visualization
-
-  # Data Exploration & Analysis
-  - rnaseq-insight-explorer     # RNAseq data exploration with skepticism
-
-  # Publication & Documentation
-  - rnaseq-methods-writer       # Methods section generation from code
-  - figure-caption-generator    # Publication-quality figure captions
-  - repo-doc-curator            # Repository documentation cleanup
-
-  # Code Review & Quality
-  - refactor-stage-reviewer     # Code refactoring peer review
-
-  # Session Management
-  - handoff                     # Session handoff documentation
+  - bioinf-librarian
+  - bio-research-visualizer
+  - rnaseq-insight-explorer
+  - rnaseq-methods-writer
+  - figure-caption-generator
+  - repo-doc-curator
+  - refactor-stage-reviewer
+  - handoff
 
 skills: []
 ```
 
-#### How Role Activation Works (`activate-role.sh`)
+### How Role Activation Works (`activate-role.sh`)
 
 1. **Read role YAML**: Parses `roles/<role>.yaml`
 2. **Create directories**: `.claude/agents/` and `.claude/skills/`
@@ -343,16 +107,13 @@ skills: []
 5. **Symlink skills** (directory-first, flat fallback):
    - If `skills/<name>/SKILL.md` exists → symlinks the whole directory to `.claude/skills/<name>`
    - Otherwise if `skills/<name>.md` exists → symlinks the file to `.claude/skills/<name>.md`
-   - Logs `(dir)` or `(flat)` per skill to indicate which format resolved
-6. **Suggest MCP profile**: Displays recommended `switch-mcp-profile.sh` command
 
-#### Creating Custom Roles
+### Creating Custom Roles
 
 ```yaml
 # roles/my-custom-role.yaml
 name: my-custom-role
 description: Custom role for specific workflow
-mcp_profile: research-lite
 
 agents:
   - bioinf-librarian
@@ -361,36 +122,6 @@ agents:
 skills:
   - my-custom-skill
 ```
-
-### Profile System (switch-mcp-profile.sh)
-
-The profile system manages MCP server configuration across all AI CLIs simultaneously.
-
-#### Available Profiles
-
-| Profile | MCP Servers | Context | Use Case |
-|---------|-------------|---------|----------|
-| `minimal` | context7, sequential-thinking | ~3k | Fastest startup |
-| `coding` | + pal | ~25k | General coding |
-| `codebase` | + serena | ~75k | Code analysis |
-| `research-lite` | + tooluniverse (6 tools) | ~30k | Targeted research |
-| `research-full` | + tooluniverse (14 tools) | ~50k | Scientific research |
-| `hybrid-research` | Claude=coding, Gemini=research | ~35k | Multi-model workflow |
-| `full` | all servers | ~100k | Maximum capability |
-
-#### API Key Substitution
-
-The profile switcher injects API keys from environment variables:
-- `${GEMINI_API_KEY}` → `.gemini/settings.json`
-- `${OPENAI_API_KEY}` → PAL configuration
-- `${CONTEXT7_API_KEY}` → Context7 configuration
-
-#### Profile Validation
-
-Before switching, `validate_profile()` checks:
-- Required MCP servers are installed
-- Required environment variables are set
-- ToolUniverse environment exists (if needed)
 
 ---
 
@@ -409,274 +140,43 @@ color: "yellow" | "blue" | "green"
 ---
 
 # Agent Identity
-Your agent's role and capabilities...
+...
 
 # Methodology
-How the agent works...
-
-# Examples
-Example use cases...
+...
 ```
 
 ### Creating New Agents
 
 1. Create `agents/new-agent-name.md` following the structure above
-2. Claude Code auto-discovers agents from `agents/` directory
-3. Test agent by referencing it in prompts
+2. Add to relevant role(s) in `roles/*.yaml`
+3. Test activation: `./scripts/activate-role.sh base --project-dir .`
 4. Document in `agents/README.md`
-
-### Existing Agents (8 total)
-
-#### Research & Documentation
-
-**Bioinformatics Research Librarian** (`bioinf-librarian.md`)
-- **Purpose**: Find bioinformatics tools, documentation, databases, resources
-- **Methodology**: Prioritizes GitHub repos → official docs → peer-reviewed literature
-- **Output**: Structured notes in `web_notes.md`
-
-**Bio-Research Visualizer** (`bio-research-visualizer.md`)
-- **Purpose**: Deep research into biological mechanisms + visualization recommendations
-- **Methodology**: Literature review → pathway analysis → visualization strategy
-- **Output**: Research summaries with recommended visualization approaches
-
-#### Data Exploration & Analysis
-
-**RNAseq Insight Explorer** (`rnaseq-insight-explorer.md`)
-- **Purpose**: Explore RNAseq results with scientific skepticism
-- **Methodology**: Validates claims against actual data, questions assumptions
-- **Output**: Data-driven insights with supporting evidence
-
-#### Publication & Documentation
-
-**RNA-seq Methods Writer** (`rnaseq-methods-writer.md`)
-- **Purpose**: Auto-generate publication Methods sections from RNA-seq analysis code
-- **Input**: Analysis scripts and notebooks
-- **Output**: Formal scientific writing with statistical models
-
-**Figure Caption Generator** (`figure-caption-generator.md`)
-- **Purpose**: Generate publication-quality figure captions
-- **Design**: Fire-and-forget - works autonomously without follow-up
-- **Output**: Complete, journal-ready figure captions
-
-**Repository Doc Curator** (`repo-doc-curator.md`)
-- **Purpose**: Audit and consolidate repository documentation
-- **Methodology**: Identifies redundancy, outdated info, gaps
-- **Output**: Cleaned-up, consistent documentation
-
-#### Code Review & Quality
-
-**Refactor Stage Reviewer** (`refactor-stage-reviewer.md`)
-- **Purpose**: Peer review refactored code against originals
-- **Methodology**: Compares functionality, identifies regressions
-- **Output**: Detailed review with approval/rejection
-
-#### Session Management
-
-**Handoff** (`handoff.md`)
-- **Purpose**: Create timestamped session handoff documentation
-- **Methodology**: Captures state, progress, next steps
-- **Output**: Handoff notes for session continuity
-
----
-
-## Workflow Patterns
-
-### Literature-Driven Discovery
-```
-PubMed Search → Sequential Thinking (analyze) → ToolUniverse (validate) → Synthesis
-```
-
-**Example**: Search papers on topic → analyze methodologies → check clinical trials → recommend next steps
-
-### Drug Discovery Pipeline
-```
-ChEMBL → FDA Database → ClinicalTrials.gov → PubMed → Sequential Analysis
-```
-
-**Example**: Find similar molecules → check safety profiles → find ongoing trials → review recent literature
-
-### Genomics Research
-```
-UniProt → Protein Interaction DBs → PubMed → Sequential Analysis
-```
-
-**Example**: Get protein info → find interactions → search recent literature → analyze functional implications
-
----
-
-## Troubleshooting
-
-For common installation issues and solutions, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
-
----
-
-## Important Implementation Details
-
-### Idempotent Installation
-- All scripts check for existing installations
-- Safe to run multiple times
-- Incremental updates supported
-- No destructive operations
-
-### Absolute Paths Required
-- **Critical**: `.mcp.json` MUST use absolute paths
-- Reason: Claude Code doesn't guarantee working directory
-- Generated configs automatically use absolute paths
-
-### Version-Dependent Command Names
-- ToolUniverse command name varies: `tooluniverse-mcp` or `tooluniverse-smcp-stdio`
-- Setup script auto-detects and uses correct name
-- Configuration generation handles both variants
-
-### Virtual Environment Management
-- ToolUniverse creates isolated venv in `./tooluniverse-env/`
-- Managed by uv package manager (faster than pip/conda)
-- **Critical**: Create venv BEFORE installing packages (fixed in v1.1.0+)
-
-### PackageTool Exclusion
-- ToolUniverse's PackageTool excluded by default: `--exclude-tool-types PackageTool`
-- Reason: Not useful for research workflows, reduces context usage
-
-### Platform Differences
-- **macOS**: Claude Code installed to `~/.local/bin/claude`, Codex CLI via Homebrew or npm
-- **Linux**: Claude Code installed to `~/.local/bin/claude`, Codex CLI via npm (may require sudo)
-- **Windows**: Use WSL (Windows Subsystem for Linux)
-
----
-
-## File Locations Reference
-
-### System-Level Installations
-```
-~/.local/bin/claude              # Claude Code binary
-~/.cargo/bin/uv                  # UV package manager
-/usr/local/bin/codex             # Codex CLI (Homebrew on macOS)
-~/.npm-global/bin/codex          # Codex CLI (npm)
-```
-
-### Project-Level Files
-```
-SciAgent-toolkit/
-├── .mcp.json                    # Claude Code MCP configuration (project-local)
-├── tooluniverse-env/            # ToolUniverse Python environment
-│   └── .venv/                   # Managed by uv
-├── test_tooluniverse.sh         # Quick test script (auto-generated)
-├── agents/                      # Canonical agent definitions
-├── .claude/
-│   ├── settings.local.json      # Claude Code settings
-│   └── agents/                  # Symlinked to agents/
-└── scripts/
-    ├── .mcp_setup/              # MCP configuration staging
-    └── mcp_servers/             # Individual MCP setup scripts
-```
-
-### User-Level Configurations
-```
-~/.bashrc                        # Updated with PATH additions
-~/.codex/config.toml             # Codex CLI MCP configuration (user-global)
-```
-
----
-
-## Adding New MCP Servers
-
-To add new MCP servers to the toolkit:
-1. Create setup script in `scripts/mcp_servers/setup_newserver.sh`
-2. Add to main orchestrator `scripts/setup_mcp_infrastructure.sh`
-3. Update configuration generator `scripts/configure_mcp_servers.sh`
-4. Update documentation
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on adding new components.
-
----
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines, testing procedures, and commit message format.
 
 ---
 
 ## After Modifying Agents or Roles
 
-**IMPORTANT**: After making ANY changes to files in `agents/`, `skills/`, or `roles/`, you MUST test role activation to ensure changes are not breaking and propagate to dependent projects.
-
-### Mandatory Testing Steps
-
-1. **Test role activation locally** (from toolkit directory):
-   ```bash
-   ./scripts/activate-role.sh base --project-dir .
-   ```
-
-2. **If a parent project uses this toolkit as a submodule**, re-activate the role from the parent directory to propagate changes:
-   ```bash
-   # From the parent project root (e.g., /workspaces/AdaW_eWAT_WL_2025)
-   ./01_modules/SciAgent-toolkit/scripts/activate-role.sh base --project-dir .
-   ```
-
-3. **Verify symlinks were created correctly**:
-   ```bash
-   ls -la .claude/agents/
-   ls -la .claude/skills/
-   ```
-
-### Why This Matters
-
-- Agent/skill files in `agents/` and `skills/` are the **canonical source**
-- Projects using this toolkit have **symlinks** pointing to these files
-- Changes to agent files take effect immediately via symlinks
-- Role activation must succeed to confirm YAML syntax and file references are valid
-- Re-running activation in parent projects ensures their `.claude/` directories stay in sync
-
-### Quick Validation Command
+**IMPORTANT**: After making ANY changes to files in `agents/`, `skills/`, or `roles/`, test role activation:
 
 ```bash
 # One-liner to test from toolkit directory
 ./scripts/activate-role.sh base --project-dir . && echo "Role activation: OK" || echo "Role activation: FAILED"
 ```
 
----
-
-## Quick Reference
-
-### Check Installation Status
+Verify symlinks:
 ```bash
-claude --version                 # Claude Code
-codex --version                  # Codex CLI
-cat .mcp.json                    # MCP configuration
-claude doctor                    # Diagnostics
+ls -la .claude/agents/
+ls -la .claude/skills/
 ```
 
-### Rebuild Configuration
+If a parent project uses this toolkit as a submodule, re-activate from the parent directory:
 ```bash
-./scripts/configure_mcp_servers.sh --project-dir "$(pwd)"
-```
-
-### Test MCP Servers
-```bash
-./scripts/test_tooluniverse.sh
-./scripts/test_installation.sh
-```
-
-### Launch Interfaces
-```bash
-claude                           # Start Claude Code
-codex                            # Start Codex CLI
-```
-
-### Common Claude Code Commands
-```bash
-/mcp                             # List MCP servers
-/plugin marketplace list         # List available plugins
-/plugin list                     # List installed plugins
+./01_modules/SciAgent-toolkit/scripts/activate-role.sh base --project-dir .
 ```
 
 ---
 
-## Resources
+## Guidelines Reference
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [MCP Protocol](https://modelcontextprotocol.io/)
-- [ToolUniverse GitHub](https://github.com/greedyai/tool-universe)
-- [Serena GitHub](https://github.com/oraios/serena)
-- [Sequential Thinking MCP](https://github.com/modelcontextprotocol/servers/tree/main/src/sequentialthinking)
-- [PubMed E-utilities](https://www.ncbi.nlm.nih.gov/books/NBK25501/)
+The `docs/guidelines/` directory contains modular methodology documentation for bioinformatics projects.

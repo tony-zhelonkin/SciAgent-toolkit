@@ -86,7 +86,7 @@ commands:   # 10 command files symlinked into .claude/commands/
   - meta-plan
 ```
 
-Metadata fields: `name`, `description`, `mcp_profile: pal-only`.
+Metadata fields: `name`, `description`.
 
 ---
 
@@ -190,8 +190,7 @@ it:
 4. For each `agent:` in YAML → `ln -sf toolkit/agents/<name>.md .claude/agents/<name>.md`
 5. For each `skill:` → `ln -sfn toolkit/skills/<name>/ .claude/skills/<name>` (dir form) or `ln -sf` file form
 6. For each `command:` → `ln -sf toolkit/commands/<name>.md .claude/commands/<name>.md`
-7. Applies the role's MCP profile (via `switch-mcp-profile.sh`)
-8. Runs security validation
+7. Runs security validation
 
 The `commands:` handling was added to the script as part of this role — previous roles (base, pathway-signature-agent) omit a `commands:` list, and the script silently no-ops for them. Backward compatible.
 

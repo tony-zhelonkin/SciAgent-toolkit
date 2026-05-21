@@ -228,47 +228,16 @@ Reference agents in prompts:
 
 ---
 
-## 8. MCP Tools
+## 8. Workflow Checklist
 
-### 8.1 PAL (Collaboration & Planning)
-
-| Tool | Use Case |
-|------|----------|
-| `chat` | Brainstorm, validate approaches |
-| `thinkdeep` | Extended reasoning for complex problems |
-| `planner` | Break down projects into actionable plans |
-| `consensus` | Get opinions from multiple AI models |
-| `debug` | Systematic root cause analysis |
-| `codereview` | Professional code reviews |
-
-### 8.2 Context7 (Documentation Lookup)
-
-For API/library documentation:
-```
-"Look up the latest clusterProfiler documentation"
-"Find fgsea usage examples"
-```
-
-### 8.3 ToolUniverse (Scientific Tools)
-
-600+ scientific research tools including:
-- ChEMBL, DrugBank, FDA (drug discovery)
-- UniProt, protein databases (genomics)
-- PubMed, Europe PMC (literature)
-- ClinicalTrials.gov (clinical)
-
----
-
-## 9. Workflow Checklist
-
-### 9.1 Starting a New Analysis
+### 8.1 Starting a New Analysis
 
 - [ ] Read `context.md` for biological question
 - [ ] Check `02_analysis/config/analysis_config.yaml` for project parameters
 - [ ] Look for existing checkpoints before recomputing
 - [ ] Follow phase-based execution model
 
-### 9.2 Writing Code
+### 8.2 Writing Code
 
 - [ ] Source `config.R` at script start
 - [ ] Use `load_or_compute()` for expensive operations
@@ -276,14 +245,14 @@ For API/library documentation:
 - [ ] Add progress messages with `message()`
 - [ ] Document outputs in README
 
-### 9.3 Creating Visualizations
+### 8.3 Creating Visualizations
 
 - [ ] Read from master tables or checkpoints (never recompute)
 - [ ] Use colorblind-safe palettes from config
 - [ ] Save both PDF and PNG formats
 - [ ] Create README with figure legends
 
-### 9.4 Completing Tasks
+### 8.4 Completing Tasks
 
 - [ ] Update checkpoints if data changed
 - [ ] Regenerate master tables if needed
@@ -292,7 +261,7 @@ For API/library documentation:
 
 ---
 
-## 10. Quick Reference
+## 9. Quick Reference
 
 ### Common Commands
 

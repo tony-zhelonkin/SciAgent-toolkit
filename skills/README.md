@@ -21,7 +21,7 @@ The role activator (`scripts/activate-role.sh`) resolves skills in this order:
 
 Both coexist during migration. Authoring new skills uses the directory format only.
 
-See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full reference implementation. The complete format spec is at `docs/skills_organisation/design/SKILLS_FORMAT_v3.md`.
+See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full reference implementation.
 
 ---
 

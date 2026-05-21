@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **MCP addon tool permissions**: `manage-addon.sh` now reads `tool_permissions` from addon templates and merges them into `settings.local.json` `permissions.allow`. Previously, addon tools were denied in subagents (Task tool) because subagents can't prompt interactively for permission.
+### Changed
+- Removed MCP infrastructure (ToolUniverse, Serena, PAL, Sequential Thinking, Context7), profile switcher, and harness installers (Claude Code, Gemini CLI, Codex CLI). Toolkit now covers roles, agents, and skills only.
+- Deleted obsolete docs: `docs/MCP-CONTEXT-MANAGEMENT.md`, `docs/INSTALLATION.md`, `docs/CONFIGURATION.md`, `docs/FAQ.md`, `docs/QUICKSTART.md`, `docs/ARCHITECTURE.md`, `docs/ARCHITECTURE_REVIEW.md`, `docs/CLI_IMPROVEMENT_PLAN.md`, `docs/ISSUES.md`.
+- Stripped MCP/harness/profile sections from `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `agents/README.md`, `templates/vendor/CLAUDE.md.template`, `templates/vendor/AGENTS.md.template`, `commands/verify.md`, `docs/workflows/architect/`.
+
+### Fixed (historical — MCP addon tool permissions)
+- `manage-addon.sh` now reads `tool_permissions` from addon templates and merges them into `settings.local.json` `permissions.allow`. Previously, addon tools were denied in subagents (Task tool) because subagents can't prompt interactively for permission.
   - `manage-addon.sh`: `update_settings_local()` strips stale `mcp__*` entries and rebuilds from enabled addons
   - `switch-mcp-profile.sh`: Settings generation includes addon tool permissions (survives profile switches)
   - `notebook-tools.addon.json`: Added `tool_permissions` array with all 11 tool names

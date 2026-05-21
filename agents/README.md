@@ -22,7 +22,7 @@ Pre-configured Claude agents for bioinformatics and scientific research workflow
 │  Find DOCUMENTATION for tools/packages                          │
 │  Input: Tool/package name                                        │
 │  Output: web_notes.md with docs, parameters, best practices     │
-│  Tools: Context7, WebSearch, WebFetch                           │
+│  Tools: WebSearch, WebFetch                                     │
 └─────────────────────────────────────────────────────────────────┘
                               ↓ user has findings
 ┌─────────────────────────────────────────────────────────────────┐
@@ -62,7 +62,6 @@ ls roles/*.yaml
 ```yaml
 name: base
 description: Default bioinformatics analysis role
-mcp_profile: hybrid-research
 
 agents:
   # Research & Documentation
@@ -87,7 +86,7 @@ skills:
 ### docs-librarian
 **Purpose:** Find documentation for bioinformatics tools, libraries, packages, workflows.
 
-**Tools:** Context7 (for packages), WebSearch, WebFetch
+**Tools:** WebSearch, WebFetch
 
 **Use when:**
 - Need current parameters for a tool

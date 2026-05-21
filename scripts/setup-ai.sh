@@ -222,7 +222,7 @@ if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
         log_warn "Security issues detected!"
         log_warn "Review the warnings above and fix .gitignore before committing."
         echo ""
-        log_info "For more information, see: docs/SECURITY.md"
+        log_info "Ensure sensitive files (.env, .claude/) are in .gitignore"
     fi
 else
     log_warn "validate-secrets.sh not found - skipping security validation"

@@ -27,35 +27,6 @@ Thank you for your interest in contributing! Contributions are welcome! .
 - Test scripts on multiple platforms (macOS, Linux)
 - Update documentation for new features
 
-#### Adding New MCP Servers
-1. Create setup script in `scripts/mcp_servers/setup_newserver.sh`
-2. Follow the existing script structure (error handling, logging, verification)
-3. Add to main orchestrator in `scripts/setup_mcp_infrastructure.sh`
-4. Document in `docs/INSTALLATION.md`
-
-Example script structure:
-```bash
-#!/usr/bin/env bash
-#
-# Script Name: setup_newserver.sh
-# Description: Install and configure NewServer MCP
-# Author: Your Name
-# Version: 1.0
-#
-
-set -e  # Exit on error
-
-echo "Installing NewServer MCP..."
-
-# Installation logic here
-# - Check prerequisites
-# - Install dependencies
-# - Configure server
-# - Test installation
-
-echo "NewServer MCP installed successfully"
-```
-
 #### Adding New Agents
 1. Create agent definition in `agents/your-agent-name.md`
 2. Follow the existing agent format
@@ -107,34 +78,17 @@ Example use cases...
 # Clone and test
 git clone [repository-url]
 cd SciAgent-toolkit
-./scripts/setup_mcp_infrastructure.sh --help
+./scripts/activate-role.sh base --project-dir .
 ```
 
 ## Testing Your Changes
 
-### Test Installation Scripts
+### Test Role Activation
 
 ```bash
-# Test individual components
-./scripts/install_claude.sh
-./scripts/mcp_servers/setup_serena.sh
-
-# Test full installation
-./scripts/setup_mcp_infrastructure.sh
-```
-
-### Test Configuration Changes
-
-```bash
-# Validate JSON
-python3 -m json.tool .mcp.json
-
-# Test in Claude Code
-claude
-/mcp
-
-# Run diagnostics
-claude doctor
+./scripts/activate-role.sh base --project-dir .
+ls -la .claude/agents/
+ls -la .claude/skills/
 ```
 
 ### Test Documentation
@@ -144,64 +98,15 @@ claude doctor
 - Test example commands
 - Ensure consistency across docs
 
-## Contributing Examples
-
-Example workflows are an AI-generated draft right now, but take a look at  `examples/`, they might bey valuable! I plan on adding my own examples of how I work with agents.  When adding examples:
-
-1. Create a markdown file in `examples/`
-2. Include:
-   - Use case description
-   - Step-by-step instructions
-   - Expected outputs
-   - Common variations
-3. Test the workflow thoroughly
-4. Update `examples/README.md`
-
-Example structure:
-```markdown
-# Workflow Title
-
-## Overview
-What this workflow accomplishes...
-
-## Prerequisites
-- Required tools
-- API keys needed
-- Knowledge assumed
-
-## Steps
-
-### Step 1: [Action]
-```
-Query or command here
-```
-
-Expected output:
-```
-Output example
-```
-
-### Step 2: [Action]
-...
-
-## Common Variations
-- Alternative approaches
-- Different use cases
-
-## Troubleshooting
-- Common issues
-- Solutions
-```
-
 ## Commit Message Guidelines
 
 Use clear, descriptive commit messages:
 
 ```bash
 # Good examples
-git commit -m "Add support for custom ToolUniverse filters"
-git commit -m "Fix PATH configuration in install_claude.sh"
-git commit -m "Update INSTALLATION.md with macOS M1 instructions"
+git commit -m "Add new reviewer agent for security threat modelling"
+git commit -m "Fix role activation when skills directory is missing"
+git commit -m "Update agents/README.md with new agent descriptions"
 
 # Bad examples
 git commit -m "Fix bug"
@@ -263,7 +168,6 @@ echo "✓ Prerequisites met"
 ## Questions?
 
 - Open a discussion on GitHub
-- Check the [FAQ](docs/FAQ.md)
 - Review [existing issues](link-to-issues)
 
 ## Recognition

@@ -50,17 +50,6 @@ Skills are in `.claude/skills/`:
 
 ---
 
-## MCP Servers
-
-Check available MCP servers: `/mcp` inside Claude Code
-
-Key tools:
-- **PAL**: `chat`, `thinkdeep`, `planner`, `consensus`, `debug`, `codereview`
-- **Context7**: Library documentation lookup
-- **ToolUniverse**: 600+ scientific research tools
-
----
-
 ## Project Configuration
 
 **Import from:** `02_analysis/config/analysis_config.yaml`

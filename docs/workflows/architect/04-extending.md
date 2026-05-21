@@ -106,7 +106,6 @@ Architect-agent is focused on software changes. You might want a role for produc
 ```yaml
 name: archdoc-agent
 description: Architecture documentation writer — map-only workflow, no implementation
-mcp_profile: pal-only
 
 agents:
   - mapper             # reuse
@@ -258,4 +257,4 @@ There is no unit-test infrastructure for the role system yet. Verification is ma
 3. Run each slash command once with a trivial feature slug
 4. Check that the expected artifact is produced at the expected path
 
-For comprehensive testing, see `docs/TESTING.md` (SciAgent-toolkit's test doc).
+For CI/CD testing, see `docker/test/test-all.sh`.
