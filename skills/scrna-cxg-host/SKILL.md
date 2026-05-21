@@ -118,7 +118,17 @@ ls -la 03_results/annotation/full/                  # owned by host UID, writabl
 
 ## Phase A — Schema preparation
 
-The reference helpers live in `scripts/prepare_for_cxg.py` (ported from the 13403-YD `Python_scripts/cxg_utils.py`). Six steps; run in this order:
+The reference helpers live in `scripts/prepare_for_cxg.py` (ported from the 13403-YD `Python_scripts/cxg_utils.py`). Seven steps; run in this order:
+
+### A.0 — Demote pandas extension dtypes to numpy-native
+
+```python
+enforce_cxg_dtypes(adata, sanitize_column_names=True)
+# Int64 / UInt64 / Float64 / boolean / string  ->  float64 / bool / object
+# Applied to obs, var, AND raw.var.  Also renames columns containing '.' -> '_'.
+```
+
+CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the pinned Dockerfile) and **cannot decode pandas-nullable extension arrays at load time**. A single `Int64` column with `pd.NA` survives the .h5ad write through anndata's MaskedArray codec and crashes the cellxgene server with `TypeError: did not understand one of the types; 'None' not accepted`. The most common source is Seurat→AnnData conversion via `anndataR` (integer columns with NA → `Int64`), but pandas ≥ 1.0 will also produce these from any read with nullable inference. This step must run **before** every other Phase A step because some helpers (e.g. `final_checks`) themselves choke on `pd.NA`.
 
 ### A.1 — Convert obsm DataFrames to numpy arrays
 
@@ -347,6 +357,26 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 ---
 
 ## Common Pitfalls
+
+### Pitfall: pandas extension dtypes survive into the deployed .h5ad
+
+- **Symptom:** cellxgene container starts, then immediately crashes during data-load with:
+  ```
+  TypeError: did not understand one of the types; 'None' not accepted
+  ```
+  nginx returns `502`. Five rounds of "replace NaN with placeholders" do not help — because the issue is at the **dtype** level, not the value level.
+- **Cause:** `obs` or `var` (or `raw.var`) carries pandas extension dtypes — most commonly `Int64`, `boolean`, or `string` — with `pd.NA` values. anndata serialises these via the MaskedArray codec; the cellxgene 1.2.0 reader (pandas 1.5.3 + numpy 1.23.5) hits `np.dtype(None)` while parsing the column header. `printf` of the column shows nothing wrong because `pd.NA` displays as `<NA>` and the values look clean — only `.dtype` reveals it.
+  Common provenance: anndataR Seurat→AnnData conversion (any integer column with NAs becomes `Int64`); pyarrow-backed reads; pandas ≥ 1.0 nullable inference. Dotted column names (`var.features.rank`, `vf_vst_counts_variance.expected`) are a co-occurring smell from R-origin objects.
+- **Fix:** Run Phase A.0 (`enforce_cxg_dtypes`). The shipped helper demotes every extension dtype to numpy-native (`Int64` → `float64` with `NaN`, `boolean` → `bool` with `False`-fill, `string` → `object` with `""`-fill), reaches into `.raw.var` the same way `ensure_unique_varnames` does, and sanitises dotted column names by default. The `validate_cxg_h5ad.py` check now flags this BEFORE deploy. Quick triage on a suspect file:
+  ```python
+  import anndata as ad
+  a = ad.read_h5ad("<path>.h5ad")
+  for label, df in (("obs", a.obs), ("var", a.var)):
+      ext = [(c, df[c].dtype) for c in df.columns
+             if str(df[c].dtype) in {"Int64","boolean","string","Float64"}]
+      if ext: print(label, ext)
+  ```
+  If you wrote a custom prepare path that bypasses `prepare()`, call `enforce_cxg_dtypes(adata)` first — every other step assumes numpy-native dtypes.
 
 ### Pitfall: numpy/pandas binary incompatibility on cellxgene 1.2.0
 

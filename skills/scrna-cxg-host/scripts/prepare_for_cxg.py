@@ -32,8 +32,106 @@ from scipy import sparse
 
 
 # --------------------------------------------------------------------------- #
-# Phase A — six steps
+# Phase A — seven steps (A.0 + A.1..A.6)
 # --------------------------------------------------------------------------- #
+
+# pandas extension dtype name -> numpy-native target dtype
+# CellxGene 1.2.0 (pandas 1.5.3 + numpy 1.23.5) cannot decode pandas-nullable
+# extension arrays at load time. Anything left as Int64/boolean/string survives
+# the .h5ad write through the MaskedArray codec and crashes the cellxgene
+# server with `TypeError: did not understand one of the types; 'None' not
+# accepted`. The mapping below promotes/demotes each extension dtype to the
+# closest numpy-native dtype that the older stack can read.
+_EXT_DTYPE_TO_NUMPY = {
+    "Int8": "float32", "Int16": "float32", "Int32": "float64", "Int64": "float64",
+    "UInt8": "float32", "UInt16": "float32", "UInt32": "float64", "UInt64": "float64",
+    "Float32": "float32", "Float64": "float64",
+    "boolean": "bool",
+    "string": "object",
+}
+
+
+def _demote_extension_columns(df: pd.DataFrame, label: str, verbose: bool) -> int:
+    """Demote pandas extension dtypes in `df` in place. Returns count of changes."""
+    n = 0
+    for c in list(df.columns):
+        dt = str(df[c].dtype)
+        target = _EXT_DTYPE_TO_NUMPY.get(dt)
+        if target is None:
+            continue
+        s = df[c]
+        if target == "bool":
+            df[c] = s.fillna(False).astype(bool)
+        elif target == "object":
+            df[c] = s.fillna("").astype(object)
+        else:  # float32/float64 — pd.NA round-trips to NaN
+            df[c] = s.astype(target)
+        n += 1
+        if verbose:
+            print(f"  {label}[{c!r}]: {dt} -> {target}")
+    return n
+
+
+def _sanitize_dot_columns(df: pd.DataFrame, label: str, verbose: bool) -> int:
+    """Replace `.` with `_` in column names of `df` in place. Returns count."""
+    renames = {c: c.replace(".", "_") for c in df.columns if "." in c}
+    if not renames:
+        return 0
+    df.rename(columns=renames, inplace=True)
+    if verbose:
+        print(f"  {label} columns renamed (dots): {renames}")
+    return len(renames)
+
+
+def enforce_cxg_dtypes(
+    adata: ad.AnnData,
+    sanitize_column_names: bool = True,
+    verbose: bool = True,
+) -> None:
+    """A.0 — Demote pandas extension dtypes in obs/var (and raw.var) to numpy-native.
+
+    CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the skill's
+    pinned Dockerfile). That stack cannot decode pandas-nullable extension
+    arrays — `Int64`, `boolean`, `string` — that anndata serialises with the
+    MaskedArray codec. The cellxgene loader hits `np.dtype(None)` while
+    parsing the column header and the container crash-loops with::
+
+        TypeError: did not understand one of the types; 'None' not accepted
+
+    This step catches the failure mode BEFORE write. It must run before any
+    other Phase A step because some downstream helpers (e.g. `final_checks`)
+    will themselves choke on `pd.NA`.
+
+    Sources of extension dtypes in the wild:
+    - `anndataR` Seurat→AnnData conversion (integer columns with NA → Int64)
+    - pandas >= 1.0 default for nullable string columns (`StringDtype`)
+    - pyarrow-backed reads from `.parquet` / `.feather` provenance
+
+    Also (when `sanitize_column_names`): replaces `.` with `_` in column
+    names. Dotted column names (e.g. `var.features.rank`) have triggered
+    cellxgene category-lookup edge cases on older versions.
+    """
+    n_changes = _demote_extension_columns(adata.obs, "obs", verbose)
+    n_changes += _demote_extension_columns(adata.var, "var", verbose)
+
+    if adata.raw is not None:
+        raw = adata.raw.to_adata()
+        n_raw = _demote_extension_columns(raw.var, "raw.var", verbose)
+        if n_raw:
+            adata.raw = raw
+            n_changes += n_raw
+
+    if sanitize_column_names:
+        n_changes += _sanitize_dot_columns(adata.obs, "obs", verbose)
+        n_changes += _sanitize_dot_columns(adata.var, "var", verbose)
+        if adata.raw is not None:
+            raw = adata.raw.to_adata()
+            if _sanitize_dot_columns(raw.var, "raw.var", verbose):
+                adata.raw = raw
+
+    if verbose:
+        print(f"  enforce_cxg_dtypes: {n_changes} column(s) modified")
+
 
 def make_unique(values: Iterable) -> pd.Index:
     """Add __N suffix to duplicates, preserving order."""
@@ -215,6 +313,7 @@ def prepare(
     print(f"BEFORE PREPARE: n_obs={adata.n_obs}, n_vars={adata.n_vars}, "
           f"index_unique={adata.obs_names.is_unique}")
 
+    enforce_cxg_dtypes(adata)
     convert_obsm_to_arrays(adata)
     ensure_unique_varnames(adata)
     ensure_unique_barcode_and_index(adata, joiner="_", debug=debug)
@@ -320,6 +419,7 @@ def prepare_subsets(
         adata_sub = reembed_subset(adata_sub, leiden_resolution=leiden_resolution)
 
         # Run Phase A on the subset
+        enforce_cxg_dtypes(adata_sub)
         convert_obsm_to_arrays(adata_sub)
         ensure_unique_varnames(adata_sub)
         ensure_unique_barcode_and_index(adata_sub, joiner="_")

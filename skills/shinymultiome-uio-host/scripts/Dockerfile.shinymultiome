@@ -1,0 +1,102 @@
+# Dockerfile.shinymultiome — R + Bioconductor + Seurat + Signac + ShinyMultiome.UiO
+#
+# Built once per (genome, R/Bioc version) combination. The first build pulls
+# ~2.0–2.5 GB of system libs + Bioconductor packages (30–60 min); subsequent
+# rebuilds reuse cached layers and finish in <2 min.
+#
+# Image layout:
+#   /srv/shiny-server/app/      — vendored upstream ShinyMultiomeUiO source
+#                                 + skill's global.R overlay
+#   /data/rds/<file>.rds        — bind-mounted at runtime
+#   /data/fragments/            — bind-mounted at runtime
+#
+# The base image bundles R 4.4 + Bioconductor 3.19 + Seurat dependencies
+# (Matrix, irlba, etc). Building on python:3.10-slim or rocker/r-ver would
+# work but doubles the install time because Bioc deps must be compiled fresh.
+
+FROM bioconductor/bioconductor_docker:RELEASE_3_19
+
+LABEL maintainer="SciAgent-toolkit shinymultiome-uio-host"
+
+# Build-time arguments — passed via `docker compose build --build-arg` or set
+# as ENV in compose. Default values mirror the .env defaults so a bare
+# `docker build .` produces a working hg38 image (matching upstream).
+ARG BSGENOME_PKG=BSgenome.Hsapiens.UCSC.hg38
+ARG ENSDB_PKG=EnsDb.Hsapiens.v86
+ARG SHINYMULTIOME_PIN=main
+
+ENV BSGENOME_PKG=${BSGENOME_PKG} \
+    ENSDB_PKG=${ENSDB_PKG} \
+    DEBIAN_FRONTEND=noninteractive
+
+# System deps for tabix (fragment file random access) + image tools used by
+# Shiny's plot downloads. Bioconductor base already has libssl/libxml/libcurl.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        tabix samtools \
+        libgdal-dev libudunits2-dev \
+        libmagick++-dev \
+        gosu \
+    && rm -rf /var/lib/apt/lists/*
+
+# R packages — installed in two layers so a BSGENOME_PKG bump invalidates only
+# the second layer. Pin Signac/Seurat to compatible majors at the time of
+# review (Signac 1.13+ supports Seurat v5 ChromatinAssay layout).
+#
+# CRAN packages first (cached on BSGENOME_PKG change):
+RUN R --no-save -e "install.packages(c( \
+        'remotes', 'BiocManager', \
+        'shiny', 'shinybusy', 'shinyBS', \
+        'Seurat', 'patchwork', 'ggplot2', 'viridis', 'magick', 'hexbin', \
+        'gridExtra', 'shinycssloaders', 'data.table' \
+    ), repos = 'https://cloud.r-project.org')"
+
+RUN R --no-save -e "BiocManager::install(c( \
+        'Signac', \
+        'GenomicRanges', 'GenomicFeatures', 'Biostrings', 'Rsamtools', \
+        'rtracklayer', 'BSgenome', 'AnnotationDbi' \
+    ), update = FALSE, ask = FALSE)"
+
+# Genome-specific packages — invalidates on BSGENOME_PKG / ENSDB_PKG change.
+RUN R --no-save -e " \
+        BiocManager::install(c(Sys.getenv('BSGENOME_PKG'), Sys.getenv('ENSDB_PKG')), \
+                             update = FALSE, ask = FALSE); \
+        stopifnot(requireNamespace(Sys.getenv('BSGENOME_PKG'), quietly = TRUE)); \
+        stopifnot(requireNamespace(Sys.getenv('ENSDB_PKG'),    quietly = TRUE)); \
+        cat('Genome OK:', Sys.getenv('BSGENOME_PKG'), '+', Sys.getenv('ENSDB_PKG'), '\n')"
+
+# Pull upstream ShinyMultiomeUiO at a pinned commit. The skill replaces the
+# upstream global.R with its own template (see overlay/) so changes to genome,
+# RDS path, fragments path, and assay names come from environment variables
+# rather than being hard-coded in the file. server.R + ui.R are kept verbatim.
+RUN git clone --depth 1 --branch "${SHINYMULTIOME_PIN}" \
+        https://github.com/EskelandLab/ShinyMultiomeUiO.git /tmp/shinymultiome \
+ && mkdir -p /srv/shiny-server/app \
+ && cp /tmp/shinymultiome/server.R /srv/shiny-server/app/server.R \
+ && cp /tmp/shinymultiome/ui.R     /srv/shiny-server/app/ui.R \
+ && cp /tmp/shinymultiome/app.R    /srv/shiny-server/app/app.R \
+ && cp -r /tmp/shinymultiome/WWW   /srv/shiny-server/app/WWW 2>/dev/null || true \
+ && rm -rf /tmp/shinymultiome
+
+# Skill overlay — replaces upstream global.R with an env-driven version.
+COPY overlay/global.R /srv/shiny-server/app/global.R
+
+# Build-time smoke test — fail the build, not the runtime, on missing genome
+# packages or version drift.
+RUN R --no-save -e " \
+        suppressPackageStartupMessages({ \
+          library(shiny); library(Seurat); library(Signac); \
+          library(get(Sys.getenv('BSGENOME_PKG')), character.only = TRUE); \
+        }); \
+        cat('shinymultiome image OK; Signac', as.character(packageVersion('Signac')), \
+            '/ Seurat', as.character(packageVersion('Seurat')), '\n')"
+
+EXPOSE 3838
+
+# Run as non-root (set via compose user: directive at runtime). Default to a
+# fixed UID for the build; compose overrides at run time.
+RUN useradd --create-home --uid 1000 shinyuser && \
+    chown -R shinyuser:shinyuser /srv/shiny-server
+
+WORKDIR /srv/shiny-server/app
+
+CMD ["R", "-e", "shiny::runApp('/srv/shiny-server/app', host='0.0.0.0', port=3838)"]

@@ -2,7 +2,23 @@
 
 CellxGene's schema is strict but mostly undocumented in user-friendly form. Below is the operative version distilled from the reference helpers in `01_Scripts/Python_scripts/cxg_utils.py` of the 13403-YD reference, plus the failure modes each step prevents.
 
-## Six steps, in order
+## Seven steps, in order
+
+### A.0 — `enforce_cxg_dtypes(adata, sanitize_column_names=True)`
+
+For each column in `adata.obs`, `adata.var`, and `adata.raw.var` (when `.raw` is set), demote pandas-nullable extension dtypes to numpy-native:
+
+| Extension dtype | Target | NA handling |
+|---|---|---|
+| `Int8/16/32/64`, `UInt8/16/32/64`, `Float32/64` | `float64` (or `float32` for narrow types) | `pd.NA` → `NaN` |
+| `boolean` | `bool` | `pd.NA` → `False` |
+| `string` | `object` | `pd.NA` → `""` |
+
+Why this is A.0: cellxgene 1.2.0 (pandas 1.5.3 + numpy 1.23.5) cannot decode anndata's MaskedArray codec — a single `Int64` survival crashes the server with `TypeError: did not understand one of the types; 'None' not accepted`. Several downstream helpers (`final_checks`, the `astype(str)` calls in `ensure_unique_barcode_and_index`, even `df.copy()` in `realign_aligned_mappings`) themselves stumble on `pd.NA`, so dtype demotion **must happen first**. Sources of these dtypes in the wild: anndataR Seurat→AnnData conversion (most common), pyarrow-backed reads, pandas ≥ 1.0 nullable inference.
+
+When `sanitize_column_names=True` (default), columns containing `.` are renamed `var.features.rank` → `var_features_rank`. Dotted names have triggered cellxgene category-lookup edge cases on older versions; the sanitisation is cheap and idempotent.
+
+`adata.raw` is read-only, so the helper rebuilds it via `adata.raw.to_adata()` → modify → reassign — same pattern as `ensure_unique_varnames`.
 
 ### A.1 — `convert_obsm_to_arrays(adata)`
 

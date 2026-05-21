@@ -127,6 +127,39 @@ def validate(h5ad_path: Path) -> int:
         f"drift in: {drift_keys}" if drift_keys else "",
     ))
 
+    # 9. no pandas extension dtypes in obs / var (cellxgene 1.2.0 cannot decode pd.NA)
+    _EXT = {
+        "Int8", "Int16", "Int32", "Int64",
+        "UInt8", "UInt16", "UInt32", "UInt64",
+        "Float32", "Float64", "boolean", "string",
+    }
+    ext_cols = []
+    for label, df in (("obs", adata.obs), ("var", adata.var)):
+        for c in df.columns:
+            if str(df[c].dtype) in _EXT:
+                ext_cols.append(f"{label}[{c!r}]={df[c].dtype}")
+    if adata.raw is not None:
+        for c in adata.raw.var.columns:
+            if str(adata.raw.var[c].dtype) in _EXT:
+                ext_cols.append(f"raw.var[{c!r}]={adata.raw.var[c].dtype}")
+    results.append(_check(
+        "no pandas extension dtypes in obs/var (Int64/boolean/string)",
+        not ext_cols,
+        f"extension dtypes: {ext_cols}" if ext_cols else "",
+    ))
+
+    # 10. no dot-containing column names in obs / var
+    dot_cols = []
+    for label, df in (("obs", adata.obs), ("var", adata.var)):
+        for c in df.columns:
+            if "." in c:
+                dot_cols.append(f"{label}[{c!r}]")
+    results.append(_check(
+        "no dot-containing column names in obs/var",
+        not dot_cols,
+        f"dotted columns: {dot_cols}" if dot_cols else "",
+    ))
+
     n_pass = sum(results)
     n_total = len(results)
     print(f"\n  {n_pass}/{n_total} checks passed")

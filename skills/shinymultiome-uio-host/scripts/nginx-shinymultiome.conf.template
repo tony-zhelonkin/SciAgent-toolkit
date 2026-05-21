@@ -1,0 +1,69 @@
+# nginx-shinymultiome.conf.template — Shiny-aware reverse proxy
+#
+# Substitutions from `.env`:
+#   <<SHINY_PORT>>                — internal Shiny port (3838 by default)
+#   <<NGINX_PORT_SHINYMULTIOME>>  — external listen port (8090 by default)
+#
+# Three load-bearing differences vs the cellxgene-side nginx config:
+#   1. proxy_read_timeout / proxy_send_timeout bumped to 300s — long
+#      CoveragePlot redraws on multi-cell-type group.by exceed nginx's
+#      default 60s and trip 504s.
+#   2. WebSocket upgrade headers — Shiny uses websocket reactivity for slider
+#      and dropdown updates; without these the UI shows "Disconnected from
+#      the server" within ~30s and falls back to polling (slow).
+#   3. proxy_buffering off — Shiny streams plot redraws and console messages;
+#      buffering delays them by chunks until they fill up.
+
+worker_processes  1;
+
+events {
+  worker_connections 1024;
+}
+
+http {
+  sendfile on;
+  client_max_body_size 32m;
+
+  upstream shinymultiome_upstream {
+    server shinymultiome:<<SHINY_PORT>>;
+    keepalive 64;
+  }
+
+  # Map for WebSocket Connection header — Shiny needs this for reactive updates.
+  map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+  }
+
+  server {
+    listen <<NGINX_PORT_SHINYMULTIOME>>;
+    server_name _;
+
+    auth_basic            "Restricted";
+    auth_basic_user_file  /etc/nginx/htpasswd;
+
+    # Long-running redraws (CoveragePlot on 30+ cell types over 100kb regions)
+    # routinely take 60-120s. Default nginx proxy timeouts are 60s — bump to 5 min.
+    proxy_read_timeout    300s;
+    proxy_send_timeout    300s;
+    proxy_connect_timeout 60s;
+
+    # Shiny streams events; do not buffer.
+    proxy_buffering        off;
+    proxy_request_buffering off;
+
+    location / {
+      proxy_set_header Host                $host;
+      proxy_set_header X-Forwarded-For     $remote_addr;
+      proxy_set_header X-Forwarded-Proto   $scheme;
+      proxy_set_header X-Real-IP           $remote_addr;
+
+      # WebSocket upgrade — load-bearing for Shiny reactivity.
+      proxy_http_version 1.1;
+      proxy_set_header   Upgrade           $http_upgrade;
+      proxy_set_header   Connection        $connection_upgrade;
+
+      proxy_pass http://shinymultiome_upstream;
+    }
+  }
+}

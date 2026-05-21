@@ -1,0 +1,53 @@
+# docker-compose.shinymultiome.yml.template — shinymultiome-uio-host
+#
+# Render with `render_compose.py` (or by hand). All `<<placeholder>>` markers
+# must be substituted from `.env` before `docker compose up`.
+#
+# Topology: one shinymultiome container + one nginx container, designed to run
+# alongside the scrna-cxg-host stack (different compose file, shared host).
+#
+# Resources: 32G memory limit by default. Tune via .env::SHINYMULTIOME_MEM_*
+# for objects larger than ~80k cells. Reference: shiny-memory-and-timeouts.md.
+
+services:
+  shinymultiome:
+    image: local/shinymultiome-uio:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.shinymultiome
+      args:
+        BSGENOME_PKG: <<BSGENOME_PKG>>
+        ENSDB_PKG: <<ENSDB_PKG>>
+        SHINYMULTIOME_PIN: main
+    environment:
+      RDS_PATH: /data/rds/<<RDS_FILENAME>>
+      FRAGMENTS_DIR: /data/fragments
+      BSGENOME_PKG: <<BSGENOME_PKG>>
+      ATAC_ASSAY: <<ATAC_ASSAY>>
+      RNA_ASSAY: <<RNA_ASSAY>>
+      DEFAULT_REGION: <<DEFAULT_REGION>>
+      GROUP_BY_COLUMNS: <<GROUP_BY_COLUMNS>>
+    user: "<<UID>>:<<GID>>"
+    volumes:
+      - <<RDS_HOST_PATH>>:/data/rds:ro
+      - <<FRAGMENTS_HOST_PATH>>:/data/fragments:ro
+    expose:
+      - "<<SHINY_PORT>>"
+    deploy:
+      resources:
+        limits:
+          memory: <<SHINYMULTIOME_MEM_LIMIT>>
+        reservations:
+          memory: <<SHINYMULTIOME_MEM_RESERVATION>>
+    restart: unless-stopped
+
+  nginx-shinymultiome:
+    image: nginx:alpine
+    depends_on:
+      - shinymultiome
+    ports:
+      - "<<NGINX_PORT_SHINYMULTIOME>>:<<NGINX_PORT_SHINYMULTIOME>>"
+    volumes:
+      - ./nginx-shinymultiome.conf:/etc/nginx/nginx.conf:ro
+      - <<ANNOTATIONS_HOST_PATH>>/htpasswd:/etc/nginx/htpasswd:ro
+    restart: unless-stopped
