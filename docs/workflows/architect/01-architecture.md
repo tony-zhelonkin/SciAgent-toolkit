@@ -192,7 +192,7 @@ it:
 6. For each `command:` → `ln -sf toolkit/commands/<name>.md .claude/commands/<name>.md`
 7. Runs security validation
 
-The `commands:` handling was added to the script as part of this role — previous roles (base, pathway-signature-agent) omit a `commands:` list, and the script silently no-ops for them. Backward compatible.
+The `commands:` handling was added to the script as part of this role — previous roles (base, pathway-signature) omit a `commands:` list, and the script silently no-ops for them. Backward compatible.
 
 ---
 
@@ -242,7 +242,7 @@ Editing a file in the toolkit immediately updates the active role — symlinks m
 
 - **No `/scope` command** — scope is a subset of map.md's "Blast radius" section. Separate command would duplicate exploration (violates the token-efficiency contract). One artifact, one producer.
 - **No architecture baseline bootstrap** — deferred. If needed, run `/map _project` once to produce `docs/_project/map.md`; feature maps can reference it as baseline.
-- **No bioinformatics skills in the role** — intentionally minimal. Architecture work is decoupled from analysis work. Activate a second role (e.g., `pathway-signature-agent`) in the same project if both are needed; activation is idempotent per role.
+- **No bioinformatics skills in the role** — intentionally minimal. Architecture work is decoupled from analysis work. Activate a second role (e.g., `pathway-signature`) in the same project if both are needed; activation is idempotent per role.
 - **No automatic progression** — every stage is human-gated. There is no "run the whole pipeline" macro. This is the feature.
 
 ---

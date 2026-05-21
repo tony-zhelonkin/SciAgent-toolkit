@@ -147,7 +147,7 @@ A role could be a Python class, a JSON manifest, a set of environment variables,
 `roles/<name>.yaml` with three lists: `agents`, `skills`, `commands`. Activation script symlinks by name.
 
 ### Trade-offs
-- **Gains:** Declarative, inspectable, git-diffable. Easy to write by hand. No language runtime needed. Consistent with existing roles in the toolkit (`base.yaml`, `pathway-signature-agent.yaml`).
+- **Gains:** Declarative, inspectable, git-diffable. Easy to write by hand. No language runtime needed. Consistent with existing roles in the toolkit (`base.yaml`, `pathway-signature.yaml`).
 - **Costs:** No schema validation beyond what the activation script does (warn on missing files). No cross-role inheritance.
 
 ### Backward compatibility

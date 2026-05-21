@@ -80,7 +80,7 @@ Each command stops at a human gate. Review the artifact, redirect if needed, adv
 
 - **Not for one-line fixes** — use the generic Claude Code flow
 - **Not for throwaway scripts** — the gate overhead dominates small work
-- **Not a bioinformatics role** — intentionally minimal; use `base` or `pathway-signature-agent` alongside if you need anndata/scanpy/scvi skills
+- **Not a bioinformatics role** — intentionally minimal; use `base` or `pathway-signature` alongside if you need anndata/scanpy/scvi skills
 
 ---
 
