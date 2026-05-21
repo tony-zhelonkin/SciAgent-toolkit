@@ -25,6 +25,48 @@ See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full referen
 
 ---
 
+## Taxonomy: Scope Classes & `requires:` Inheritance
+
+Every skill's `metadata.scope:` field declares which of three classes it belongs to. The activator (`sciagent activate`) treats them identically — the distinction is purely curatorial, intended to keep individual SKILL.md files focused.
+
+| Scope class | Line cap (target) | Role | Example |
+|---|---|---|---|
+| `atomic` | ~300 LOC | One tool, one workflow stage. No nested dependencies. | `harmonypy-batch-integration`, `pygenometracks-coverage-plots` |
+| `foundation` | ~600 LOC | Shared container / methodology referenced by many other skills. | `anndata`, `scanpy`, `scvi-framework`, `multimodal-anndata-mudata` |
+| `orchestrator` | ~250 LOC | Entry point that routes between leaves; contains decision tree + cross-cutting pitfalls but **no per-tool tutorial content** — that lives in the leaves. | `muon-multimodal-analysis`, `seurat-multimodal-analysis`, `scvi-hub-models` |
+
+### `requires:` mechanism (added in ADR-0002)
+
+A skill may declare other skills it transitively depends on via `metadata.requires:`. When a role activates a skill, the resolver walks its `requires:` graph (post-order DFS) and symlinks every transitive dependency into `.claude/skills/` and `.agents/skills/`. Inherited entries appear in the `AGENTS.md` block under a dedicated subsection:
+
+```markdown
+## Skills (inherited via requires:)
+- `snapatac2-atac-preprocessing` — (via `muon-multimodal-analysis`)
+- `harmonypy-batch-integration`   — (via `muon-multimodal-analysis`)
+- ...
+```
+
+**Worked example** — adding `muon-multimodal-analysis` to a role pulls in:
+
+```yaml
+# skills/muon-multimodal-analysis/SKILL.md
+metadata:
+  scope: orchestrator
+  requires:
+    - multimodal-anndata-mudata
+    - scanpy
+    - snapatac2-atac-preprocessing
+    - harmonypy-batch-integration
+    - atac-differential-accessibility
+    - pyranges-peak-gene-linkage
+    - pygenometracks-coverage-plots
+    - scvi-multivi
+```
+
+→ the role YAML stays terse; activating muon brings the whole multimodal leaf set with it. Cyclic and missing dependencies are caught **before** any filesystem mutation (the previous active stack is left intact on resolver failure).
+
+---
+
 ## Skill Categories
 
 ### scverse Foundation (Core Data Structures & QC)
@@ -114,13 +156,36 @@ scRNA-seq → ──────────────────────
 
 ### Multimodal Analysis (Paired & Unpaired Data)
 
+The two monolith multimodal skills were dissected in ADR-0002 into orchestrator + leaf form. The orchestrators stay as the entry points; the leaves are pulled in automatically via `requires:`.
+
+#### Orchestrators
+
 | Skill | Purpose | Key Feature |
 |-------|---------|-------------|
-| `multimodal-anndata-mudata.md` | **R→Python conversion** for multi-assay Seurat → MuData | Unpaired/paired container patterns |
-| `seurat-multimodal-analysis.md` | **R/Seurat** - CITE-seq, 10x Multiome, WNN, Signac, ChromVAR, unpaired anchor imputation | Full R ecosystem |
-| `muon-multimodal-analysis.md` | **Python** - muon, SnapATAC2, Harmony, scanpy for multiome | Full Python ecosystem |
-| `scglue-unpaired-multiomics-integration.md` | Unpaired integration + enhancer-gene inference | Guidance graph |
-| `treearches-hierarchy-learning.md` | Reference mapping with hierarchy | Tree-structured latent |
+| `multimodal-anndata-mudata` | **R→Python conversion** for multi-assay Seurat → MuData | Foundation container skill |
+| `seurat-multimodal-analysis` | **R/Seurat orchestrator** — chains 4 leaves for CITE-seq, multiome, bridge, unpaired | Decision tree + cross-cutting pitfalls |
+| `muon-multimodal-analysis`   | **Python orchestrator** — chains 5 leaves for muon/SnapATAC2/Harmony/DA/peak-gene/coverage | Decision tree + workflow choreography |
+| `scglue-unpaired-multiomics-integration` | Unpaired integration + enhancer-gene inference | Guidance graph |
+| `treearches-hierarchy-learning` | Reference mapping with hierarchy | Tree-structured latent |
+
+#### Leaves (Python / scverse — pulled in by `muon-multimodal-analysis`)
+
+| Leaf | Purpose |
+|---|---|
+| `snapatac2-atac-preprocessing` | Fragment import, QC, TF-IDF+LSI, spectral embedding, peak calling, gene activity |
+| `harmonypy-batch-integration`  | Multi-sample batch correction on PCA / LSI / spectral embeddings |
+| `atac-differential-accessibility` | Marker peaks via scanpy / SnapATAC2 and pseudobulk DA via pyDESeq2 |
+| `pyranges-peak-gene-linkage`   | Peak-to-gene cis-regulatory correlations with configurable windows |
+| `pygenometracks-coverage-plots`| INI-driven genome-browser figure panels from bigWig / BED / GTF |
+
+#### Leaves (R / Seurat — pulled in by `seurat-multimodal-analysis`)
+
+| Leaf | Purpose |
+|---|---|
+| `seurat-citeseq-wnn`            | Multi-assay RNA + ADT, CLR + SCTransform, WNN joint embedding |
+| `signac-chromatin-analysis`     | 10x Multiome RNA+ATAC, TF-IDF+LSI, gene activity, ChromVAR, LinkPeaks, CoveragePlot |
+| `seurat-bridge-integration`     | Azimuth + bridge-integration label transfer (ATAC query → RNA reference) |
+| `seurat-unpaired-cross-modality`| CCA anchoring on gene activity for unpaired RNA+ATAC; label transfer + expression imputation |
 
 **Multiome Decision Tree:**
 ```
