@@ -22,7 +22,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 | `agents/` | Canonical sub-agent definitions (`.md` files) |
 | `skills/` | Canonical skill definitions (`<name>/SKILL.md` format) |
 | `commands/` | Canonical slash command definitions (`.md` files) |
-| `output-styles/` | Output style definitions (`.md` files) |
+| `system-prompts/` | System-prompt / output-style definitions (`.md` files; Claude Code consumer mounts into `.claude/output-styles/`) |
 | `templates/` | Project scaffolding templates (`AGENTS.md.template`, `CLAUDE.md.template`, `context.md.template`) |
 | `tests/` | Bash test suite (`run-all.sh`, 13 tests) |
 | `docker/test/` | CI/CD architecture validation |

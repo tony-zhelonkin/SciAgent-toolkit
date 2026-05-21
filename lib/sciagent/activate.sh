@@ -68,7 +68,7 @@ cmd_activate() {
         symlink_create_dual commands "$n" "$SCIAGENT_TOOLKIT/commands/${n}.md"
     done
     if [[ -n "$OUTPUT_STYLE" ]]; then
-        local style_src="$SCIAGENT_TOOLKIT/output-styles/cs101.md"
+        local style_src="$SCIAGENT_TOOLKIT/system-prompts/cs101.md"
         if [[ -f "$style_src" ]]; then
             symlink_create_dual output-styles "$OUTPUT_STYLE" "$style_src"
         fi

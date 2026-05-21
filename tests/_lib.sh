@@ -93,7 +93,7 @@ pass() {
 #   alpha      — skills: s_a       (used in idempotent / max-stack tests)
 build_fake_toolkit() {
     local root="$1"
-    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,output-styles,lib,bin}
+    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,system-prompts,lib,bin}
 
     # Skills (directory format)
     echo "skill s_a"  > "$root/skills/s_a/SKILL.md"
@@ -108,8 +108,8 @@ build_fake_toolkit() {
     echo "cmd c_a"   > "$root/commands/c_a.md"
     echo "cmd c_b"   > "$root/commands/c_b.md"
 
-    # Output style (used by no test fixture role, but file present)
-    echo "style cs101" > "$root/output-styles/cs101.md"
+    # System prompt (used by no test fixture role, but file present)
+    echo "style cs101" > "$root/system-prompts/cs101.md"
 
     # Roles
     cat > "$root/roles/base.yaml" <<EOF

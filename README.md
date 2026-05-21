@@ -60,7 +60,7 @@ project/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   └── output-styles/<name>.md  →  toolkit/output-styles/<name>.md
+│   └── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
 ├── .agents/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
