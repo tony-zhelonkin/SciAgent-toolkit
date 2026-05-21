@@ -1,0 +1,7 @@
+# min.yaml - Minimal role definition
+#
+# Lean role with no bloated skills, no MCP profiles, no extra agents.
+# Just the bare essentials.
+
+name: min
+description: Minimal role — no extra skills, agents, or MCP servers.
