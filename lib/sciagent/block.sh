@@ -86,6 +86,9 @@ block_hash_check() {
 block_write() {
     local file="$1"
     local body="$2"
+    # Canonicalise: body always ends with exactly one newline before hashing,
+    # so the stored hash matches block_read's awk-based reconstruction.
+    [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | _sha1)
     local begin="${_BLOCK_BEGIN_PREFIX}${hash} -->"

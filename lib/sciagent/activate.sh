@@ -119,6 +119,8 @@ cmd_activate() {
     body=$(_render_block_body "$base" "$overlay")
 
     block_write AGENTS.md "$body"
+    # Match block_write's canonicalisation (trailing \n).
+    [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | sha1sum | awk '{print $1}')
     manifest_finalize "$hash"
