@@ -127,23 +127,10 @@ DepthCor(seurat_obj)
 
 ## Part 4 — WNN integration (RNA + ATAC)
 
-```r
-seurat_obj <- FindMultiModalNeighbors(
-  seurat_obj,
-  reduction.list       = list("pca", "lsi"),
-  dims.list            = list(1:50, 2:40),  # skip LSI 1 if depth-correlated
-  modality.weight.name = "RNA.weight",
-)
+The WNN chassis (`FindMultiModalNeighbors` → `RunUMAP(nn.name="weighted.nn")` → `FindClusters(graph.name="wsnn", algorithm=3)`) is identical to the CITE-seq workflow — see `seurat-citeseq-wnn` for the full pattern. ATAC-specific tweaks:
 
-seurat_obj <- RunUMAP(seurat_obj, nn.name = "weighted.nn",
-                     reduction.name = "wnn.umap",
-                     reduction.key  = "wnnUMAP_")
-
-seurat_obj <- FindClusters(seurat_obj, graph.name = "wsnn",
-                          algorithm = 3, resolution = 0.5)
-
-DimPlot(seurat_obj, reduction = "wnn.umap", label = TRUE)
-```
+- `reduction.list = list("pca", "lsi")` (LSI replaces APCA)
+- `dims.list = list(1:50, 2:40)` — skip LSI 1 if `DepthCor()` shows it correlates with sequencing depth
 
 ---
 
