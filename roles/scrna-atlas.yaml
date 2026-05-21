@@ -18,7 +18,6 @@
 
 name: scrna-atlas
 description: scRNA-seq atlas integration & annotation — scVI/scANVI, multi-sample DE, gene programs
-mcp_profile: hybrid-research
 
 agents:
   # Research & Documentation

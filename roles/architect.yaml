@@ -41,7 +41,6 @@
 
 name: architect
 description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement
-mcp_profile: pal-only
 
 # Output style (main-agent system prompt) — resolved by `name:` frontmatter
 # in system-prompts/<file>.md. Written into .claude/settings.json by

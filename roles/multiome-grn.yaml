@@ -18,7 +18,6 @@
 
 name: multiome-grn
 description: Multiome GRN inference — SCENIC+, scGLUE, CREscendo, pycisTopic, scVI/scANVI
-mcp_profile: hybrid-research
 
 agents:
   # Research & Documentation

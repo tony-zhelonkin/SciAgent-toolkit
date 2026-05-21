@@ -35,7 +35,6 @@ COPY . /opt/sciagent/
 
 # Make scripts executable
 RUN chmod +x /opt/sciagent/scripts/*.sh 2>/dev/null || true
-RUN chmod +x /opt/sciagent/scripts/mcp_servers/*.sh 2>/dev/null || true
 
 # Create test project directory
 RUN mkdir -p /workspace/test-project/02_analysis/config
@@ -80,33 +79,8 @@ RUN echo "=== Test 4b: YAML Comment Parsing ===" && \
     ! echo "$output" | grep -q "Agent not found: Tool" && echo "  [OK] No spurious 'Tool' agent warnings" && \
     ! echo "$output" | grep -q "Agent not found: research" && echo "  [OK] No spurious 'research' agent warnings"
 
-# Test 5: Verify switch-mcp-profile.sh has API key substitution code
-RUN echo "=== Test 5: Profile Switcher API Key Support ===" && \
-    grep -q "GEMINI_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] GEMINI_API_KEY substitution present" && \
-    grep -q "OPENAI_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] OPENAI_API_KEY substitution present" && \
-    grep -q "CONTEXT7_API_KEY" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] CONTEXT7_API_KEY substitution present" && \
-    grep -q "validate_profile" /opt/sciagent/scripts/switch-mcp-profile.sh && echo "  [OK] validate_profile function present"
-
-# Test 6: Test profile switching (minimal profile - no external deps)
-RUN echo "=== Test 6: Profile Switching ===" && \
-    cd /workspace/test-project && \
-    export GEMINI_API_KEY="test-gemini-key-12345" && \
-    bash /opt/sciagent/scripts/switch-mcp-profile.sh minimal --project-dir /workspace/test-project && \
-    test -f /workspace/test-project/.mcp.json && echo "  [OK] .mcp.json created" && \
-    python3 -m json.tool /workspace/test-project/.mcp.json > /dev/null && echo "  [OK] .mcp.json is valid JSON"
-
-# Test 7: Verify research-full.mcp.json has --include-tools
-RUN echo "=== Test 7: Research Profile Tool Limits ===" && \
-    grep -q "include-tools" /opt/sciagent/templates/mcp-profiles/research-full.mcp.json && echo "  [OK] research-full.mcp.json has --include-tools"
-
-# Test 7b: Verify coding profile uses direct uvx for PAL (ISSUE-001/012 fix)
-RUN echo "=== Test 7b: PAL Direct uvx Configuration ===" && \
-    grep -q '"command": "uvx"' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json uses uvx for PAL" && \
-    grep -q 'pal-mcp-server' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json references pal-mcp-server" && \
-    ! grep -q 'start-pal.py' /opt/sciagent/templates/mcp-profiles/coding.mcp.json && echo "  [OK] coding.mcp.json does NOT use wrapper script"
-
-# Test 8: Verify setup-ai.sh has template installation code
-RUN echo "=== Test 8: setup-ai.sh Template Support ===" && \
+# Test 5: Verify setup-ai.sh has template installation code
+RUN echo "=== Test 5: setup-ai.sh Template Support ===" && \
     grep -q "substitute_template" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] substitute_template function present" && \
     grep -q "activate-role.sh" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] activate-role.sh call present" && \
     grep -q "CLAUDE.md" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] CLAUDE.md template handling present" && \

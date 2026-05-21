@@ -17,7 +17,6 @@
 
 name: pathway-signature-agent
 description: Pathway/TF/signature functional interpretation — GSEA + decoupleR + CoReSh + pathway-explorer
-mcp_profile: pal-only
 
 agents:
   # Research & Documentation

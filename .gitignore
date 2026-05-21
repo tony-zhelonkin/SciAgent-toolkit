@@ -9,10 +9,6 @@
 !.env.template
 
 # Auto-generated files
-.mcp.json
-test_tooluniverse.sh
-tooluniverse-env/
-scripts/.mcp_setup/
 .claude/settings.local.json
 
 # Python

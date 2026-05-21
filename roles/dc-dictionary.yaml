@@ -12,11 +12,6 @@
 # - Phase C1-C4: scGLUE external space + scArches Hub projection
 # - Phase D-E: Module scoring + human translation
 #
-# MCP Profile: hybrid-research
-#   - Claude: coding profile (fast, focused)
-#   - Gemini: research profile (literature, tool lookup via ToolUniverse)
-#   - PAL: Cross-model collaboration when needed
-#
 # Best used when:
 # - Executing plan.md phases systematically
 # - Running GeneNMF for combinatorial program discovery (A2d)
@@ -26,7 +21,6 @@
 
 name: dc-dictionary
 description: DC_Dictionary plan execution - Hub mechanism, external validation, human translation
-mcp_profile: hybrid-research
 
 # Agents for plan execution
 agents:

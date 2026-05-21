@@ -1,35 +1,24 @@
 #!/usr/bin/env bash
 #
-# setup-ai.sh - Runtime AI tools installer for scbio-docker
+# setup-ai.sh - AI context and role setup for scbio-docker projects
 #
-# Run this script inside the container to set up AI tools (Claude Code, MCP servers).
-# First run takes 5-15 minutes due to Serena compilation. Subsequent runs are fast.
+# Run this script inside the container to set up AI context files and activate roles.
 #
 # Usage:
 #   ./setup-ai.sh [OPTIONS]
 #
 # Options:
-#   --minimal         Fast setup: Skip Serena and Codex (2-3 min instead of 15 min)
-#   --skip-serena     Skip Serena MCP server (saves 5-15 min on first run)
-#   --skip-codex      Skip Codex CLI installation
-#   --skip-gemini     Skip Gemini CLI installation
 #   --force           Force reinstall even if already configured
 #   --help            Show this help message
 #
 # Creates:
-#   - .mcp.json in current directory (Claude Code MCP configuration)
-#   - tooluniverse-env/ in current directory (ToolUniverse Python environment)
 #   - ~/.local/bin/claude (Claude Code CLI, if not present)
 #   - CLAUDE.md, GEMINI.md, AGENTS.md, context.md (AI context files)
 #   - .claude/agents/, .claude/skills/ (populated by role activation)
 #   - 02_analysis/config/analysis_config.yaml (project parameters)
 #
 # Example:
-#   # Full setup (5-15 minutes first time)
 #   ./setup-ai.sh
-#
-#   # Fast setup (2-3 minutes)
-#   ./setup-ai.sh --minimal
 #
 
 set -euo pipefail
@@ -52,33 +41,10 @@ PROJECT_DIR="$(pwd)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCIAGENT_SCRIPTS="${SCRIPT_DIR}"
 FORCE=false
-MINIMAL=false
-SKIP_SERENA=false
-SKIP_CODEX=false
-SKIP_GEMINI=false
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
-        --minimal)
-            MINIMAL=true
-            SKIP_SERENA=true
-            SKIP_CODEX=true
-            SKIP_GEMINI=true
-            shift
-            ;;
-        --skip-serena)
-            SKIP_SERENA=true
-            shift
-            ;;
-        --skip-codex)
-            SKIP_CODEX=true
-            shift
-            ;;
-        --skip-gemini)
-            SKIP_GEMINI=true
-            shift
-            ;;
         --force)
             FORCE=true
             shift
@@ -109,54 +75,24 @@ if [ ! -d "$SCIAGENT_SCRIPTS" ]; then
 fi
 
 # Check if already configured
-if [ -f "${PROJECT_DIR}/.mcp.json" ] && [ "$FORCE" = false ]; then
-    log_ok "AI tools already configured (.mcp.json exists)"
+if [ -f "${PROJECT_DIR}/CLAUDE.md" ] && [ "$FORCE" = false ]; then
+    log_ok "AI tools already configured (CLAUDE.md exists)"
     log_info "Run with --force to reinstall"
 
     # Quick status check
     if command -v claude &> /dev/null; then
         log_ok "Claude Code: $(claude --version 2>/dev/null || echo 'installed')"
-    else
-        log_warn "Claude Code not found in PATH"
-    fi
-
-    if [ -d "${PROJECT_DIR}/tooluniverse-env" ]; then
-        log_ok "ToolUniverse: installed"
     fi
 
     echo ""
     log_info "To start Claude Code: claude"
-    log_info "To check MCP servers: /mcp (inside claude)"
     exit 0
 fi
 
-# Build setup arguments
-SETUP_ARGS=""
-if [ "$SKIP_CODEX" = true ]; then
-    SETUP_ARGS="$SETUP_ARGS --skip-codex"
-fi
-if [ "$SKIP_GEMINI" = true ]; then
-    SETUP_ARGS="$SETUP_ARGS --skip-gemini"
-fi
-
-# Timing information
-if [ "$MINIMAL" = true ]; then
-    log_info "Running minimal setup (skipping Serena, Codex, Gemini)"
-    log_info "Estimated time: 2-3 minutes"
-else
-    log_info "Running full setup"
-    if [ "$SKIP_SERENA" = true ]; then
-        log_info "Estimated time: 3-5 minutes (Serena skipped)"
-    else
-        log_info "Estimated time: 5-15 minutes (includes Serena compilation)"
-    fi
-fi
 echo ""
 
-# ... (after sourcing dependencies)
-
 # Step 0: Environment Setup
-log_info "Step 0/3: Checking environment configuration..."
+log_info "Step 0/2: Checking environment configuration..."
 if [ ! -f "${PROJECT_DIR}/.env" ]; then
     if [ -f "${SCIAGENT_SCRIPTS}/../templates/.env.template" ]; then
         log_info "Creating .env from template..."
@@ -171,26 +107,11 @@ else
     log_info "Found existing .env file."
 fi
 
-# Step 1: Run the main setup script
-log_info "Step 1/3: Installing and configuring AI tools..."
-
-# Ensure PATH includes potential install locations for re-runs
+# Ensure PATH includes potential install locations
 export PATH="$HOME/.local/bin:$HOME/.npm-global/bin:$PATH"
 
-# The setup script needs to know where to create tooluniverse-env
-# We run it from the project directory so paths are relative to project
-if [ -f "${SCIAGENT_SCRIPTS}/setup_mcp_infrastructure.sh" ]; then
-    bash "${SCIAGENT_SCRIPTS}/setup_mcp_infrastructure.sh" $SETUP_ARGS || {
-        log_error "Setup failed. Check the output above for errors."
-        exit 1
-    }
-else
-    log_error "setup_mcp_infrastructure.sh not found"
-    exit 1
-fi
-
-# Step 2: Create AI context files
-log_info "Step 2/3: Creating AI context files..."
+# Step 1: Create AI context files
+log_info "Step 1/2: Creating AI context files..."
 
 VENDOR_TEMPLATES="${SCIAGENT_SCRIPTS}/../templates/vendor"
 PROJECT_NAME=$(basename "$PROJECT_DIR")
@@ -248,8 +169,8 @@ if [ -d "${PROJECT_DIR}/02_analysis/config" ]; then
     fi
 fi
 
-# Step 3: Activate base role (populate .claude/agents/, .claude/skills/)
-log_info "Step 3/3: Activating base role..."
+# Step 2: Activate base role (populate .claude/agents/, .claude/skills/)
+log_info "Step 2/2: Activating base role..."
 
 if [ -f "${SCIAGENT_SCRIPTS}/activate-role.sh" ]; then
     bash "${SCIAGENT_SCRIPTS}/activate-role.sh" base --project-dir "${PROJECT_DIR}" || {
@@ -268,12 +189,6 @@ echo ""
 
 # Summary
 log_info "Files created:"
-if [ -f "${PROJECT_DIR}/.mcp.json" ]; then
-    log_ok "  .mcp.json (MCP server configuration)"
-fi
-if [ -d "${PROJECT_DIR}/tooluniverse-env" ]; then
-    log_ok "  tooluniverse-env/ (ToolUniverse Python environment)"
-fi
 if [ -f "${PROJECT_DIR}/CLAUDE.md" ]; then
     log_ok "  CLAUDE.md, GEMINI.md, AGENTS.md (AI context files)"
 fi
@@ -287,19 +202,12 @@ fi
 echo ""
 log_info "To start using AI tools:"
 echo "  1. Run: claude"
-echo "  2. Inside claude, check MCP servers: /mcp"
 echo ""
 
 log_info "Don't forget to customize:"
 echo "  - context.md: Add your scientific question and hypotheses"
 echo "  - 02_analysis/config/analysis_config.yaml: Project parameters (if exists)"
 echo ""
-
-if [ "$SKIP_SERENA" = true ]; then
-    log_warn "Serena was skipped. To add it later, run:"
-    echo "  uvx --from git+https://github.com/oraios/serena serena start-mcp-server --help"
-    echo "  # Then re-run: ./setup-ai.sh --force"
-fi
 
 # --------------------------
 # Security Validation
@@ -318,7 +226,7 @@ if [ -f "${VALIDATE_SCRIPT}" ] && [ -x "${VALIDATE_SCRIPT}" ]; then
     fi
 else
     log_warn "validate-secrets.sh not found - skipping security validation"
-    log_info "Ensure sensitive files (.mcp.json, .gemini/, .env) are in .gitignore"
+    log_info "Ensure sensitive files (.env, .claude/) are in .gitignore"
 fi
 
 echo ""

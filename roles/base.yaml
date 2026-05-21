@@ -12,7 +12,6 @@
 
 name: base
 description: Default bioinformatics analysis role with full agent suite
-mcp_profile: hybrid-research
 
 # Agents to activate (reference by filename without .md)
 # These will be symlinked from agents/ to .claude/agents/
