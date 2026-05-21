@@ -42,3 +42,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# refactor scratch (private paths)
+.refactor/
