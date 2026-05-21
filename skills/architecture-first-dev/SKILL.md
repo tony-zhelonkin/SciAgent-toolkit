@@ -2,7 +2,7 @@
 name: architecture-first-dev
 description: Architecture-first software development methodology. Use when planning non-trivial features, refactors, or redesigns where upfront design pays off. Encodes the 6-stage per-feature pipeline (map → review → synthesize → design → plan → implement) plus the optional 3-command meta-layer (meta-map → meta-design → meta-plan) for cross-feature work. Primes the assistant to stop at each gate, surface per-stage tips, and navigate the user from any state. Defer to docs/workflows/architect/00-quickstart.md as the cadence source of truth.
 metadata:
-  scope: atomic
+  scope: foundation
   requires: []
 ---
 

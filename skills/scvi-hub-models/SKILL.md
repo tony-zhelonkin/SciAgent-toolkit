@@ -3,7 +3,7 @@ name: scvi-hub-models
 description: "Browses and loads pretrained scvi-tools models (scVI, scANVI, totalVI, MultiVI, MrVI, PeakVI, contrastiveVI) from the Hugging Face scvi-hub, and selects which scvi variant fits a given modality (RNA, CITE-seq, multiome, ATAC, perturbation, multi-sample). Use when choosing between scvi models, loading a HubModel, fetching a reference atlas checkpoint, or saving/sharing a minified model. Unlike scvi-scarches-reference-mapping, this skill does NOT perform architectural surgery or fine-tune a query model; once the reference is loaded, hand off to scvi-scarches-reference-mapping for the mapping procedure. For hierarchical label transfer use treearches-hierarchy-learning; for Census-backed models use cellxgene-census-annotation."
 license: MIT
 metadata:
-  scope: atomic
+  scope: orchestrator
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14

@@ -7,7 +7,7 @@ description: "AnnData data structure \u2014 foundation for the entire scverse ec
   \ use cellxgene-census."
 license: MIT
 metadata:
-  scope: atomic
+  scope: foundation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
