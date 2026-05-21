@@ -173,6 +173,21 @@ render_block_body() {
             printf '\n'
         fi
 
+        # Inherited via `requires:` — populated by activate.sh via the
+        # SCIAGENT_INHERITED env var ("<skill>=<parent>;..." pairs).
+        if [[ -n "${SCIAGENT_INHERITED:-}" ]]; then
+            printf '## Skills (inherited via requires:)\n'
+            local pair sk parent
+            IFS=';' read -ra _rb_inh <<< "$SCIAGENT_INHERITED"
+            for pair in "${_rb_inh[@]+"${_rb_inh[@]}"}"; do
+                [[ -z "$pair" ]] && continue
+                sk="${pair%%=*}"
+                parent="${pair#*=}"
+                printf -- '- `%s` — (via `%s`)\n' "$sk" "$parent"
+            done
+            printf '\n'
+        fi
+
         if [[ ${#_rb_agent_order[@]} -gt 0 ]]; then
             printf '## Sub-agents (effective, Claude-only)\n'
             for n in "${_rb_agent_order[@]}"; do

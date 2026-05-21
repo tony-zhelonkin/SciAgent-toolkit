@@ -27,18 +27,9 @@ cmd_activate() {
         return 1
     fi
 
-    # Auto-deactivate if a stack is already active. claude_settings_teardown
-    # must run BEFORE symlink_teardown_all rmdirs .sciagent (the state file
-    # lives there) and BEFORE the new symlinks/block land so that the
-    # settings.local.json revert is observable for the duration of the
-    # re-activation rather than racing against the new apply.
-    if manifest_exists; then
-        claude_settings_teardown
-        symlink_teardown_all
-        block_remove AGENTS.md 2>/dev/null || true
-    fi
-
-    # Gather resolved entries via stack_walk, preserving insertion order.
+    # Phase A: gather direct entries via stack_walk, preserving insertion order.
+    # No mutation yet — all validation/resolution must succeed before we touch
+    # the filesystem (per ADR-0002 §4.6).
     local -a SKILL_ORDER=() AGENT_ORDER=() COMMAND_ORDER=()
     declare -A SKILLS=() AGENTS_M=() COMMANDS_M=()
     local OUTPUT_STYLE="" OUTPUT_STYLE_ROLE=""
@@ -52,6 +43,34 @@ cmd_activate() {
             STYLE)   OUTPUT_STYLE="$name"; OUTPUT_STYLE_ROLE="$provider" ;;
         esac
     done < <(stack_walk "$base" "$overlay")
+
+    # Phase B: transitive `requires:` resolution. For each direct skill, fold
+    # its closure into SKILL_ORDER; new entries get provider=":requires:<parent>"
+    # so the manifest is self-describing (per ADR-0002 Decision 1).
+    # Resolver failures (cycles, missing targets) abort before any mutation.
+    local direct
+    for direct in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
+        # Skip skills with no SKILL.md frontmatter (e.g. test fixtures).
+        if ! skill_frontmatter_path "$direct" >/dev/null 2>&1; then
+            continue
+        fi
+        # Capture closure via command-substitution so the resolver's exit
+        # status propagates (process substitution + `done` would swallow it).
+        local closure_out
+        if ! closure_out=$(skill_resolve_transitive "$direct"); then
+            echo "sciagent: aborting activation; requires resolution failed for '$direct'" >&2
+            return 1
+        fi
+        local dep
+        while IFS= read -r dep; do
+            [[ -z "$dep" ]] && continue
+            # Skip self and skills already in the effective set.
+            [[ "$dep" == "$direct" ]] && continue
+            [[ -n "${SKILLS[$dep]:-}" ]] && continue
+            SKILLS[$dep]=":requires:$direct"
+            SKILL_ORDER+=("$dep")
+        done <<< "$closure_out"
+    done
 
     # Resolve output_style → system-prompts/<file>.md by frontmatter name.
     # Validate before any filesystem mutation so a drifted role spec leaves
@@ -69,6 +88,19 @@ cmd_activate() {
             done < <(system_prompt_inventory)
             return 1
         fi
+    fi
+
+    # Auto-deactivate if a stack is already active. claude_settings_teardown
+    # must run BEFORE symlink_teardown_all rmdirs .sciagent (the state file
+    # lives there) and BEFORE the new symlinks/block land so that the
+    # settings.local.json revert is observable for the duration of the
+    # re-activation rather than racing against the new apply.
+    # Deferred until AFTER skill_resolve_transitive succeeds, so a failed
+    # resolution leaves the previous stack intact.
+    if manifest_exists; then
+        claude_settings_teardown
+        symlink_teardown_all
+        block_remove AGENTS.md 2>/dev/null || true
     fi
 
     # Start the manifest staging buffer before creating any symlinks.
@@ -104,9 +136,20 @@ cmd_activate() {
         STYLE_APPLIED_TAG=$(claude_settings_apply "$OUTPUT_STYLE")
     fi
 
-    # Render and write the managed block.
+    # Render and write the managed block. Inherited (`:requires:`) skills are
+    # passed via the SCIAGENT_INHERITED env var so render_block_body can put
+    # them under a dedicated subsection (per ADR-0002 §4.4).
+    local SCIAGENT_INHERITED=""
+    local sk
+    for sk in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
+        if [[ "${SKILLS[$sk]:-}" == :requires:* ]]; then
+            SCIAGENT_INHERITED+="${sk}=${SKILLS[$sk]#:requires:};"
+        fi
+    done
+    export SCIAGENT_INHERITED
     local body
     body=$(render_block_body "$base" "$overlay")
+    unset SCIAGENT_INHERITED
     block_write AGENTS.md "$body"
     manifest_finalize "$(block_stored_hash AGENTS.md)"
 
