@@ -1,0 +1,59 @@
+# multiome-analysis.yaml — Paired RNA+ATAC preprocessing, integration, DA
+#
+# Purpose
+#   Paired RNA+ATAC ingestion, preprocessing, integration, and differential
+#   analysis. Covers 10x Multiome FASTQs through QC, batch correction,
+#   joint embeddings, and differential accessibility — but stops short of
+#   regulatory-network inference.
+#
+# Use when
+#   - Starting from 10x Multiome FASTQs or pre-processed paired data
+#   - Need to QC, integrate (MultiVI / WNN / Harmony), or run differential
+#     accessibility before downstream methodology
+#   - Seurat-first or scverse-first paired multimodal projects (R or Python)
+#
+# Do NOT use when
+#   - GRN inference is the goal — compose with multiome-grn instead
+#   - Pure scRNA-seq work (use scrna-atlas or base)
+#   - Unpaired RNA+ATAC integration only (use multiome-grn / scGLUE)
+#
+# Composes with
+#   - multiome-grn — when enhancer-driven GRN inference is the next step
+#     after preprocessing / integration done here.
+
+name: multiome-analysis
+description: Paired RNA+ATAC preprocessing, integration, and differential analysis (preprocessing-only; compose with multiome-grn for GRN inference)
+
+agents:
+  # Research & Documentation
+  - docs-librarian
+  - bio-interpreter
+  # Data Exploration & Analysis
+  - insight-explorer
+  # Publication & Documentation
+  - captions
+  - doc-curator
+  # Code Review & Quality
+  - code-reviewer
+  # Session Management
+  - handoff
+
+skills:
+  # === Foundation ===
+  - anndata                                    # AnnData I/O, subsetting
+  - anndatar-seurat-scanpy-conversion          # Seurat <-> h5ad conversion
+  - multimodal-anndata-mudata                  # Multi-assay Seurat -> MuData container semantics
+  - cellranger-arc-multiome                    # 10x Multiome FASTQ -> filtered RNA+ATAC matrices
+  - muon-multimodal-analysis                   # scverse Python: muon/SnapATAC2 preprocessing, Harmony, DA
+  - seurat-multimodal-analysis                 # R/Seurat+Signac: WNN, ChromVAR, peak-gene links
+
+  # === Integration models ===
+  - scvi-multivi                               # Joint RNA+ATAC with MultiVI
+  - scvi-peakvi                                # ATAC embedding (fallback if ChromVAR fails)
+
+  # === Motif / accessibility ===
+  - chromvar-motif-accessibility               # TF motif activity from chromatin accessibility
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution
