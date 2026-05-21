@@ -84,3 +84,64 @@ cleanup_tmpdir() {
 pass() {
     echo "PASS [$_TEST_NAME]"
 }
+
+# build_fake_toolkit <dir>
+# Create a minimal toolkit layout with fixture roles, skills, agents, commands.
+# Roles defined:
+#   base       — skills: s_a, s_b; agents: ag_a; commands: c_a
+#   reviewer   — skills: s_b, s_c; agents: ag_b; commands: c_b (overlay)
+#   alpha      — skills: s_a       (used in idempotent / max-stack tests)
+build_fake_toolkit() {
+    local root="$1"
+    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,output-styles,lib,bin}
+
+    # Skills (directory format)
+    echo "skill s_a"  > "$root/skills/s_a/SKILL.md"
+    echo "skill s_b"  > "$root/skills/s_b/SKILL.md"
+    echo "skill s_c"  > "$root/skills/s_c/SKILL.md"
+
+    # Agents
+    echo "agent ag_a" > "$root/agents/ag_a.md"
+    echo "agent ag_b" > "$root/agents/ag_b.md"
+
+    # Commands
+    echo "cmd c_a"   > "$root/commands/c_a.md"
+    echo "cmd c_b"   > "$root/commands/c_b.md"
+
+    # Output style (used by no test fixture role, but file present)
+    echo "style cs101" > "$root/output-styles/cs101.md"
+
+    # Roles
+    cat > "$root/roles/base.yaml" <<EOF
+name: base
+description: fixture base role
+skills:
+  - s_a
+  - s_b
+agents:
+  - ag_a
+commands:
+  - c_a
+EOF
+    cat > "$root/roles/reviewer.yaml" <<EOF
+name: reviewer
+description: fixture overlay
+skills:
+  - s_b
+  - s_c
+agents:
+  - ag_b
+commands:
+  - c_b
+EOF
+    cat > "$root/roles/alpha.yaml" <<EOF
+name: alpha
+description: fixture alpha
+skills:
+  - s_a
+EOF
+
+    # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
+    ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
+    ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
+}

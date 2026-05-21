@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# sciagent — per-project AI-harness context manager.
+# Resolves library path relative to this script's real location.
+
+set -u
+
+# Resolve real path (follow symlinks).
+_self="${BASH_SOURCE[0]}"
+while [[ -L "$_self" ]]; do
+    _link=$(readlink "$_self")
+    [[ "$_link" == /* ]] && _self="$_link" || _self="$(dirname "$_self")/$_link"
+done
+SCIAGENT_BIN="$(cd "$(dirname "$_self")" && pwd)"
+if [[ -z "${SCIAGENT_TOOLKIT:-}" ]]; then
+    SCIAGENT_TOOLKIT="$(cd "$SCIAGENT_BIN/.." && pwd)"
+fi
+export SCIAGENT_TOOLKIT
+
+LIB="$SCIAGENT_TOOLKIT/lib/sciagent"
+
+usage() {
+    cat <<EOF
+sciagent — per-project AI-harness context manager
+
+Usage:
+  sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
+  sciagent deactivate [<role>]         Tear down the stack (or one role)
+  sciagent inject <skill>              [not yet implemented]
+  sciagent status [--json]             [not yet implemented]
+  sciagent list [roles|skills|...]     [not yet implemented]
+  sciagent new <kind> <name>           [not yet implemented]
+  sciagent --help                      This message
+
+Toolkit: $SCIAGENT_TOOLKIT
+EOF
+}
+
+if [[ $# -eq 0 ]]; then
+    usage
+    exit 1
+fi
+
+verb="$1"; shift
+
+case "$verb" in
+    -h|--help|help)
+        usage; exit 0 ;;
+    activate)
+        # shellcheck source=/dev/null
+        . "$LIB/block.sh"
+        . "$LIB/symlinks.sh"
+        . "$LIB/roles.sh"
+        . "$LIB/activate.sh"
+        cmd_activate "$@"
+        ;;
+    deactivate)
+        . "$LIB/block.sh"
+        . "$LIB/symlinks.sh"
+        . "$LIB/roles.sh"
+        . "$LIB/activate.sh"      # deactivate may re-activate solo-base
+        . "$LIB/deactivate.sh"
+        cmd_deactivate "$@"
+        ;;
+    inject|status|list|new)
+        echo "sciagent $verb: not yet implemented in this commit; Agent 9b will add" >&2
+        exit 2
+        ;;
+    *)
+        echo "sciagent: unknown verb '$verb'" >&2
+        usage
+        exit 1
+        ;;
+esac
