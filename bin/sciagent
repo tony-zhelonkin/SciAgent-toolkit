@@ -30,6 +30,8 @@ Usage:
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
                                        List available content
+  sciagent list deps <skill>           Transitive requires closure (leaves first)
+  sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
   sciagent --help                      This message
@@ -90,6 +92,7 @@ case "$verb" in
         ;;
     list)
         . "$LIB/roles.sh"
+        . "$LIB/skill_deps.sh"
         . "$LIB/status.sh"
         cmd_list "$@"
         ;;

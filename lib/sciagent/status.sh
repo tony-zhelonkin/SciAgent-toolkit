@@ -351,7 +351,7 @@ _status_render_json() {
     printf '}\n'
 }
 
-# cmd_list [roles|skills|agents|commands]
+# cmd_list [roles|skills|agents|commands|deps <skill>|dependents <skill>]
 cmd_list() {
     local what="${1:-all}"
     case "$what" in
@@ -359,6 +359,22 @@ cmd_list() {
         skills)   _list_skills ;;
         agents)   _list_agents ;;
         commands) _list_commands ;;
+        deps)
+            shift || true
+            if [[ -z "${1:-}" ]]; then
+                echo "sciagent list deps: missing <skill> argument" >&2
+                return 1
+            fi
+            _list_deps "$1"
+            ;;
+        dependents)
+            shift || true
+            if [[ -z "${1:-}" ]]; then
+                echo "sciagent list dependents: missing <skill> argument" >&2
+                return 1
+            fi
+            _list_dependents "$1"
+            ;;
         all)
             printf 'Roles:\n';    _list_roles
             printf '\nSkills:\n';   _list_skills
@@ -366,9 +382,40 @@ cmd_list() {
             printf '\nCommands:\n'; _list_commands
             ;;
         *)
-            echo "sciagent list: unknown category '$what' (use: roles|skills|agents|commands)" >&2
+            echo "sciagent list: unknown category '$what' (use: roles|skills|agents|commands|deps <skill>|dependents <skill>)" >&2
             return 1 ;;
     esac
+}
+
+# _list_deps <skill> — print transitive requires-closure, topo-sorted (leaves first).
+# Excludes the input skill itself from output.
+_list_deps() {
+    local target="$1"
+    # skill_resolve_transitive emits post-order: deps before dependants.
+    # We exclude the root (target) from output — caller asked for its deps.
+    local n
+    while IFS= read -r n; do
+        [[ "$n" == "$target" ]] && continue
+        printf '%s\n' "$n"
+    done < <(skill_resolve_transitive "$target")
+}
+
+# _list_dependents <skill> — print direct (one-level) dependents: skills whose
+# `metadata.requires:` includes the input skill. One name per line, sorted.
+_list_dependents() {
+    local target="$1"
+    local d name
+    local -a results=()
+    for d in "$SCIAGENT_TOOLKIT"/skills/*/; do
+        [[ -f "$d/SKILL.md" ]] || continue
+        name=$(basename "$d")
+        [[ "$name" == "_TEMPLATE" ]] && continue
+        [[ "$name" == "$target" ]] && continue
+        if skill_read_requires "$name" 2>/dev/null | grep -Fxq "$target"; then
+            results+=("$name")
+        fi
+    done
+    printf '%s\n' "${results[@]+"${results[@]}"}" | sort -u | grep -v '^$' || true
 }
 
 _list_roles() {
