@@ -132,8 +132,7 @@ project-root/
 │   │   └── GSEA/               # Pathway visualizations
 │   └── interactive/            # HTML dashboards
 │
-├── CLAUDE.md                   # AI assistant context (thin wrapper)
-├── GEMINI.md                   # Gemini context (thin wrapper)
+├── CLAUDE.md                   # 1-line @AGENTS.md shim
 ├── analysis_config.yaml        # Project-specific values
 ├── PROJECT_CONTEXT.md          # Biological question, datasets
 ├── plan.md                     # Analysis strategy

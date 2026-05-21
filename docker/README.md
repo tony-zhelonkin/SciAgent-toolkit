@@ -8,7 +8,7 @@ role/skill/template architecture.
 Only one test image is currently maintained:
 
 - **architecture-test** (`docker/test/Dockerfile.architecture-test`) — validates
-  that the role system, templates, and `activate-role.sh` work end-to-end in a
+  that the role system, templates, and `sciagent activate` work end-to-end in a
   clean Ubuntu container.
 
 The previous suite (`tooluniverse-test`, `claude-mcp-test`, `codex-mcp-test`,
@@ -32,10 +32,10 @@ of the log.
 2. Vendor template files exist (`CLAUDE.md.template`, `AGENTS.md.template`,
    `context.md.template`, `analysis_config.yaml.template`).
 3. Templates reference `01_modules` (the canonical submodule path).
-4. `activate-role.sh base` populates `.claude/agents/` and `.claude/skills/`
+4. `sciagent activate base` populates `.claude/agents/` and `.claude/skills/`
    with symlinks.
 5. Role activation does not emit spurious warnings from YAML comment parsing.
-6. `setup-ai.sh` contains the expected template-installation hooks.
+6. Template files (`AGENTS.md.template`, `CLAUDE.md.template`, `context.md.template`) are present and substitutable.
 
 ## Cleanup
 

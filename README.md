@@ -1,84 +1,81 @@
-# SciAgent Toolkit
+# sciagent
 
-A modular framework for building AI-powered scientific research agents. Provides a role-based system for configuring agents and skills per project, with a curated library of bioinformatics agents and single-cell analysis skills.
+Per-project context manager for AI coding harnesses. Activates a role — a bundle of skills, sub-agents, and slash commands — for a session.
 
-## Features
+## Why
 
-- **Role-Based Configuration** via declarative YAML role definitions
-- **Agent Library** — pre-configured Claude agents for bioinformatics workflows
-- **Skills Library** — 50+ single-cell and multi-omics analysis skills
-- **Template System** for consistent AI context files across projects
+Different work modes need different context. Reviewing code and running bioinformatics analysis call for different agents, different skills, different commands. Roles let you swap that context in one command. Everything is per-project — nothing touches your home directory.
 
-## Quick Start
+## Quick start
 
 ```bash
-# Clone the repository
-git clone https://github.com/tony-zhelonkin/SciAgent-toolkit
-cd SciAgent-toolkit
-
-# Setup project (installs templates, activates base role)
+# Bootstrap a new project directory with AGENTS.md, CLAUDE.md, context.md
 sciagent new project
 
-# Or just activate a role directly
+# Activate a role — symlinks agents, skills, commands into .claude/ and .agents/
 sciagent activate base
+
+# Add one skill on top of the current stack
+sciagent inject simplify
+
+# Show the active stack, effective tables, and block/symlink health
+sciagent status
+
+# Tear down: remove symlinks and the managed block from AGENTS.md
+sciagent deactivate
 ```
 
-## Role System & Custom Agents
+## The RPG model
+
+A project has at most two active roles: a `base` (the foundation) and an optional `overlay` (the specialization). Last-wins on name collisions; `sciagent status` shows what got shadowed.
 
 ```bash
-# Activate a role (symlinks agents/skills into .claude/)
-sciagent activate base
-
-# List available roles
-ls roles/*.yaml
+sciagent activate base reviewer
 ```
 
-> **Scope:** one `.claude/` per invocation. No cascade into nested repos — re-run with `--project-dir` for each target. See `docs/workflows/architect/01-architecture.md` for details.
+`base` provides bioinformatics context; `reviewer` overlays code-review agents and commands. Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier resolution already makes "where did this come from?" painful enough.
 
-### Pre-configured Agents (Base Role)
+## Verbs
 
-**Research & Documentation**
-- **Bioinformatics Research Librarian** — Find tools, docs, and resources via web research
-- **Bio-Research Visualizer** — Deep biological mechanism research + visualization recommendations
+| Verb | Description |
+|------|-------------|
+| `activate <base> [overlay]` | Activate role(s); replaces current stack |
+| `deactivate [<role>]` | Tear down the stack or remove one role |
+| `inject <skill>` | Add one skill to the current overlay |
+| `status [--json\|--effective\|--source <name>]` | Report active stack and effective tables |
+| `list [roles\|skills\|agents\|commands]` | List available content in the toolkit |
+| `new project\|role\|skill\|agent [args]` | Scaffold from templates |
 
-**Data Exploration & Analysis**
-- **RNA-seq Insight Explorer** — Explore RNAseq results with scientific skepticism
+Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
 
-**Publication & Documentation**
-- **RNA-seq Methods Writer** — Auto-generate publication methods sections from code
-- **Figure Caption Generator** — Publication-quality captions for figures and tables (fire-and-forget)
-- **Repo Doc Curator** — Audit and consolidate repository documentation
+## What it writes
 
-**Code Review & Quality**
-- **Refactor Stage Reviewer** — Peer review of refactored analysis stages
+`sciagent activate` creates symlinks and a managed block in `AGENTS.md`:
 
-**Session Management**
-- **Handoff** — Timestamped session handoff documentation
-
-### Creating Custom Roles
-
-Create `roles/my-role.yaml`:
-```yaml
-name: my-role
-description: Custom workflow role
-agents:
-  - bioinf-librarian
-  - my-custom-agent
-skills: []
+```
+project/
+├── AGENTS.md                         # your file; sciagent appends a managed block
+├── CLAUDE.md                         # 1-line @AGENTS.md shim (from template)
+├── .claude/
+│   ├── skills/<name>  →  toolkit/skills/<name>
+│   ├── agents/<name>.md  →  toolkit/agents/<name>.md
+│   ├── commands/<name>.md  →  toolkit/commands/<name>.md
+│   └── output-styles/<name>.md  →  toolkit/output-styles/<name>.md
+├── .agents/
+│   ├── skills/<name>  →  toolkit/skills/<name>
+│   ├── agents/<name>.md  →  toolkit/agents/<name>.md
+│   └── commands/<name>.md  →  toolkit/commands/<name>.md
+└── .sciagent/manifest.json           # machine-readable state for safe teardown
 ```
 
-See [agents/README.md](agents/README.md) for details.
+The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown. On each run, sciagent recomputes the hash and warns if you've edited inside the block.
 
-## Docker/Container Deployment
+`deactivate` removes the block and removes only symlinks it owns (tracked via `manifest.json`).
 
-The Docker test images in `docker/test/` are for CI/CD validation only.
+## Harness support
 
-For production containerized deployments, use [scbio-docker](https://github.com/tony-zhelonkin/scbio-docker).
+Reads the native discovery directories of Claude Code (`.claude/skills/`, `.claude/agents/`, `.claude/commands/`) and Pi (`.agents/skills/`). Sub-agents and slash commands are Claude-specific today. Pi extension for `.agents/agents/` and `.agents/commands/` is the user's job — symlinks are already there.
 
-## License
+## Architecture
 
-MIT License — see [LICENSE](LICENSE) for details.
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See `.refactor/architecture.md` for the full design spec.

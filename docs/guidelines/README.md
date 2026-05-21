@@ -10,7 +10,7 @@
 
 This directory contains **universal, vendor-agnostic** methodology guidelines that ANY AI agent (Claude, Gemini, Codex, or future models) should follow when performing RNA-seq analysis.
 
-These guidelines are the **single source of truth** for analysis patterns, coding conventions, and workflow standards. Vendor-specific context files (`CLAUDE.md`, `GEMINI.md`) should reference these guidelines rather than duplicate content.
+These guidelines are the **single source of truth** for analysis patterns, coding conventions, and workflow standards. `CLAUDE.md` (via `@AGENTS.md`) references these guidelines rather than duplicating content.
 
 ---
 
@@ -95,7 +95,7 @@ To customize for a specific project, create a `PROJECT_CONTEXT.md` file with pro
 | File | Location | Purpose |
 |------|----------|---------|
 | `AGENTS.md` | Toolkit root | Master agent instructions (single source of truth) |
-| `templates/vendor/*.template` | Toolkit templates | Thin wrappers for vendor-specific files |
+| `templates/*.template` | Toolkit templates | Project scaffolding templates |
 | `agents/*.md` | Toolkit agents | Specialized agent definitions |
 
 ---
