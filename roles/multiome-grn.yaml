@@ -1,8 +1,10 @@
 # multiome-grn.yaml — Multiome Gene Regulatory Network inference
 #
 # Purpose
-#   Build enhancer-driven GRNs from paired or unpaired RNA+ATAC using SCENIC+,
-#   scGLUE, CREscendo, pycisTopic, and scVI/scANVI.
+#   Enhancer-driven GRN inference from paired or unpaired RNA+ATAC data
+#   (SCENIC+, scGLUE, CREscendo, pycisTopic, scVI/scANVI). Assumes inputs
+#   are already preprocessed and integrated — for upstream QC / preprocessing
+#   compose with multiome-analysis.
 #
 # Use when
 #   - Enhancer-driven GRNs from paired or unpaired RNA+ATAC
@@ -42,7 +44,6 @@ skills:
   - anndata                                    # AnnData I/O, subsetting
   - anndatar-seurat-scanpy-conversion          # Seurat <-> h5ad conversion
   - multimodal-anndata-mudata                  # Multi-assay Seurat -> MuData for unpaired RNA+ATAC
-  - muon-multimodal-analysis                      # 10x ATAC preprocessing -> MuData + differential accessibility (Python)
   - scvi-framework                             # scvi-tools shared patterns
 
   # === Module Definition & DE ===
