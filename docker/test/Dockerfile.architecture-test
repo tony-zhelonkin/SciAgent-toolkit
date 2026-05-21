@@ -3,91 +3,33 @@ FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/Chicago LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 
-# Install prerequisites
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    wget \
-    git \
-    build-essential \
-    python3.10 \
-    python3.10-dev \
-    python3-pip \
-    ca-certificates \
-    locales \
-    jq \
+    bash coreutils findutils grep gawk sed diffutils \
+    ca-certificates locales \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv package manager
-RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
-
-# Install Node.js 20+ (for npx commands)
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
-    apt-get install -y nodejs && \
-    rm -rf /var/lib/apt/lists/*
-
-# Create installation directory
 WORKDIR /opt/sciagent
-
-# Copy entire SciAgent-toolkit
 COPY . /opt/sciagent/
+RUN ln -sf /opt/sciagent/bin/sciagent /usr/local/bin/sciagent
 
-# Make scripts executable
-RUN chmod +x /opt/sciagent/scripts/*.sh 2>/dev/null || true
+# Round-trip: activate → assert artefacts → deactivate → assert clean.
+RUN set -eu && \
+    mkdir -p /workspace/proj && cd /workspace/proj && \
+    sciagent activate base >/dev/null && \
+    test -L .claude/agents/code-reviewer.md && echo "  [OK] .claude/agents symlink" && \
+    test -L .agents/agents/code-reviewer.md  && echo "  [OK] .agents/agents symlink" && \
+    test -f .sciagent/manifest.json          && echo "  [OK] manifest written" && \
+    grep -qF "<!-- BEGIN SCIAGENT:ROLES" AGENTS.md && echo "  [OK] managed block present" && \
+    sciagent deactivate >/dev/null && \
+    test ! -e .sciagent && echo "  [OK] manifest removed" && \
+    test ! -L .claude/agents/code-reviewer.md && echo "  [OK] symlink removed" && \
+    ! grep -qF "<!-- BEGIN SCIAGENT:ROLES" AGENTS.md 2>/dev/null && echo "  [OK] block removed from AGENTS.md (or file gone)"
 
-# Create test project directory
-RUN mkdir -p /workspace/test-project/02_analysis/config
+# Full test suite gates the image build.
+RUN bash /opt/sciagent/tests/run-all.sh
 
-# Test 1: Verify role system files exist
-RUN echo "=== Test 1: Role System Files ===" && \
-    test -f /opt/sciagent/roles/base.yaml && echo "  [OK] roles/base.yaml exists" && \
-    test -f /opt/sciagent/scripts/activate-role.sh && echo "  [OK] activate-role.sh exists" && \
-    test -d /opt/sciagent/agents && echo "  [OK] agents/ directory exists" && \
-    test -d /opt/sciagent/skills && echo "  [OK] skills/ directory exists"
-
-# Test 2: Verify template files exist
-RUN echo "=== Test 2: Template Files ===" && \
-    test -f /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template exists" && \
-    test -f /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template exists" && \
-    test -f /opt/sciagent/templates/vendor/context.md.template && echo "  [OK] context.md.template exists" && \
-    test -f /opt/sciagent/templates/vendor/analysis_config.yaml.template && echo "  [OK] analysis_config.yaml.template exists"
-
-# Test 3: Verify templates reference 01_modules (not 01_scripts)
-# Note: CLAUDE.md.template is a thin wrapper that delegates to AGENTS.md, so it doesn't need 01_modules directly
-RUN echo "=== Test 3: Template Path References ===" && \
-    grep -q "01_modules" /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template references 01_modules" && \
-    grep -q "AGENTS.md" /opt/sciagent/templates/vendor/CLAUDE.md.template && echo "  [OK] CLAUDE.md.template references AGENTS.md" && \
-    ! grep -q "01_scripts" /opt/sciagent/templates/vendor/AGENTS.md.template && echo "  [OK] AGENTS.md.template does NOT reference 01_scripts"
-
-# Test 4: Test activate-role.sh with base role
-# Symlinked agent names track the current base.yaml roster.
-RUN echo "=== Test 4: Role Activation ===" && \
-    cd /workspace/test-project && \
-    bash /opt/sciagent/scripts/activate-role.sh base --project-dir /workspace/test-project && \
-    test -d /workspace/test-project/.claude/agents && echo "  [OK] .claude/agents/ created" && \
-    test -d /workspace/test-project/.claude/skills && echo "  [OK] .claude/skills/ created" && \
-    test -L /workspace/test-project/.claude/agents/docs-librarian.md && echo "  [OK] docs-librarian.md symlinked" && \
-    test -L /workspace/test-project/.claude/agents/code-reviewer.md && echo "  [OK] code-reviewer.md symlinked"
-
-# Test 4b: Verify no spurious warnings from YAML comment parsing (ISSUE-011 fix)
-RUN echo "=== Test 4b: YAML Comment Parsing ===" && \
-    cd /workspace/test-project && \
-    output=$(bash /opt/sciagent/scripts/activate-role.sh base --project-dir /workspace/test-project 2>&1) && \
-    ! echo "$output" | grep -q "Agent not found: #" && echo "  [OK] No spurious '#' agent warnings" && \
-    ! echo "$output" | grep -q "Agent not found: Tool" && echo "  [OK] No spurious 'Tool' agent warnings" && \
-    ! echo "$output" | grep -q "Agent not found: research" && echo "  [OK] No spurious 'research' agent warnings"
-
-# Test 5: Verify setup-ai.sh has template installation code
-RUN echo "=== Test 5: setup-ai.sh Template Support ===" && \
-    grep -q "substitute_template" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] substitute_template function present" && \
-    grep -q "activate-role.sh" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] activate-role.sh call present" && \
-    grep -q "CLAUDE.md" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] CLAUDE.md template handling present" && \
-    grep -q "context.md" /opt/sciagent/scripts/setup-ai.sh && echo "  [OK] context.md template handling present"
-
-# Create test success marker
-RUN echo "=== All Architecture Tests Passed ===" && \
-    echo "Architecture Docker test passed" > /tmp/test-success.txt
+RUN echo "=== Architecture tests passed ===" > /tmp/test-success.txt
 
 WORKDIR /workspace
 CMD ["/bin/bash"]

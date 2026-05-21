@@ -45,7 +45,7 @@ Body must state:
 
 **Step 4** — re-activate the role:
 ```bash
-scripts/activate-role.sh architect --project-dir /path/to/project
+sciagent activate architect
 ```
 
 The script clears old symlinks and creates new ones — the new agent is live.
@@ -127,7 +127,7 @@ commands:
 
 **Step 2** — activate the new role:
 ```bash
-scripts/activate-role.sh archdoc-agent --project-dir /path/to/docs-project
+sciagent activate archdoc-agent
 ```
 
 The activation script is idempotent — you can activate multiple roles in sequence in the same project, but only the last activation's agent/skill/command set will be linked (the symlinks get cleared each time). To compose roles, you'd need a multi-role activation script — not currently implemented.
@@ -235,7 +235,7 @@ Symptoms and fixes:
 
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
-| `/map` says "Command not found" | Role not activated in this project | `scripts/activate-role.sh architect --project-dir .` |
+| `/map` says "Command not found" | Role not activated in this project | `sciagent activate architect` |
 | `/review` dispatches but no files appear | Reviewer agents are writing outside expected paths, or sandboxed | Check reviewer's output message for the actual path; check `.claude/agents/<name>.md` symlink points to a real file |
 | `/synthesize` silently does nothing | <2 files in `docs/{feature}/review/` | That's correct behavior — synth is conditional |
 | `architect` returns `NEEDS ITERATION` repeatedly | Design docs have persistent consistency gaps | Read `design/review.md` carefully; the Verdict section lists specific items. Fix those, re-run. |

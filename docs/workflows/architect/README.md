@@ -47,7 +47,7 @@ You're building a non-trivial feature. You want to think about structure, behavi
 From the toolkit root:
 
 ```bash
-scripts/activate-role.sh architect --project-dir /path/to/your/project
+sciagent activate architect
 ```
 
 This symlinks 10 agents, 1 skill, and 9 commands into `.claude/` of the target project. Reload Claude Code to pick them up.
@@ -95,7 +95,7 @@ Each command stops at a human gate. Review the artifact, redirect if needed, adv
 | Per-feature commands | `commands/{map,review,synthesize,design,plan,implement}.md` | The 6 per-feature slash-command templates |
 | Meta commands | `commands/{meta-map,meta-design,meta-plan}.md` | The 3 cross-feature slash-command templates |
 | Skill | `skills/architecture-first-dev/SKILL.md` | Methodology reminder loaded with the role |
-| Activation | `scripts/activate-role.sh` (extended) | Now symlinks `commands:` list in addition to agents/skills |
+| Activation | `sciagent activate` (extended) | Now symlinks `commands:` list in addition to agents/skills |
 | Runtime per-feature artifacts | `docs/{feature}/{map,review,synthesis,design,plan}/` | Where the pipeline writes per feature |
 | Runtime meta artifacts | `docs/_meta/{map,design,plan,deferred}.md` | Where the meta-layer writes (sibling of per-feature dirs) |
 

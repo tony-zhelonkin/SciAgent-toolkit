@@ -113,7 +113,7 @@ color: "yellow" | "blue" | "green"
 
 1. Create `agents/new-agent-name.md` following the structure above
 2. Add to relevant role(s) in `roles/*.yaml`
-3. Test by activating the role: `./scripts/activate-role.sh <role>`
+3. Test by activating the role: `sciagent activate <role>`
 4. Document in `agents/README.md`
 
 ### Adding a New Role
@@ -129,7 +129,7 @@ color: "yellow" | "blue" | "green"
 
    skills: []
    ```
-2. Test activation: `./scripts/activate-role.sh new-role`
+2. Test activation: `sciagent activate new-role`
 
 ---
 

@@ -78,7 +78,7 @@ Example use cases...
 # Clone and test
 git clone [repository-url]
 cd SciAgent-toolkit
-./scripts/activate-role.sh base --project-dir .
+sciagent activate base
 ```
 
 ## Testing Your Changes
@@ -86,7 +86,7 @@ cd SciAgent-toolkit
 ### Test Role Activation
 
 ```bash
-./scripts/activate-role.sh base --project-dir .
+sciagent activate base
 ls -la .claude/agents/
 ls -la .claude/skills/
 ```

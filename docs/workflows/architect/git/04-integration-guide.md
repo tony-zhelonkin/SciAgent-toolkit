@@ -41,7 +41,7 @@ v2 decisions are accepted.
 | `commands/meta-apply.md` | + 3-line trigger (single atomic commit — see ADR-014) |
 | `commands/meta-plan.md` | + 3-line trigger |
 | `commands/status.md` | + one-line note: "This command does not commit." |
-| `scripts/activate-role.sh` | + `--with-git` flag (~6 lines) |
+| `sciagent activate` | + `--with-git` flag (~6 lines) |
 | `docs/workflows/architect/README.md` | + link to `git/README.md` in document index |
 
 Total docs/script delta from v1: **~325 lines fewer in command files**

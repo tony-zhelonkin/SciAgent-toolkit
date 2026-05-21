@@ -16,7 +16,7 @@ graph TD
     subgraph "SciAgent-toolkit/ (source)"
         ROLE[roles/architect.yaml]
         SKILL[skills/architecture-first-dev/SKILL.md]
-        SCRIPT[scripts/activate-role.sh]
+        SCRIPT[sciagent activate]
 
         subgraph "agents/"
             A_REV[bioinf.md<br/>wetlab.md<br/>graphic.md<br/>stat.md<br/>divergent.md<br/>ml.md]
@@ -176,10 +176,10 @@ The skill is short (~100 lines) by design — it's a reminder, not a tutorial.
 
 ## Activation script — the binding mechanism
 
-`scripts/activate-role.sh` is the only script that touches the role system. When invoked:
+`sciagent activate` is the only script that touches the role system. When invoked:
 
 ```bash
-scripts/activate-role.sh architect --project-dir <target>
+sciagent activate architect<target>
 ```
 
 it:
@@ -204,7 +204,7 @@ SciAgent-toolkit/                              (source — edit here)
 ├── agents/{bioinf,wetlab,graphic,stat,divergent,ml,mapper,architect,synth,meta-architect,feature-reviser}.md
 ├── commands/{map,review,synthesize,design,plan,implement,meta-map,meta-design,meta-apply,meta-plan}.md
 ├── skills/architecture-first-dev/SKILL.md
-├── scripts/activate-role.sh                   (extended for commands)
+├── sciagent activate                   (extended for commands)
 └── docs/workflows/architect/                  (this directory)
     ├── README.md
     ├── 01-architecture.md

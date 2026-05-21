@@ -51,7 +51,7 @@ Agents are activated via the role system:
 
 ```bash
 # Activate base role (includes all 7 agents)
-./scripts/activate-role.sh base --project-dir /path/to/project
+sciagent activate base
 
 # View available roles
 ls roles/*.yaml
@@ -208,7 +208,7 @@ agents/
 
 3. Activate role:
    ```bash
-   ./scripts/activate-role.sh base --project-dir /path/to/project
+   sciagent activate base
    ```
 
 ## Contributing

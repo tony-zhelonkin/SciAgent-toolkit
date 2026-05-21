@@ -17,17 +17,17 @@ git clone https://github.com/tony-zhelonkin/SciAgent-toolkit
 cd SciAgent-toolkit
 
 # Setup project (installs templates, activates base role)
-./scripts/setup-ai.sh
+sciagent new project
 
 # Or just activate a role directly
-./scripts/activate-role.sh base --project-dir /path/to/project
+sciagent activate base
 ```
 
 ## Role System & Custom Agents
 
 ```bash
 # Activate a role (symlinks agents/skills into .claude/)
-./scripts/activate-role.sh base --project-dir /path/to/project
+sciagent activate base
 
 # List available roles
 ls roles/*.yaml

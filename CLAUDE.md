@@ -15,8 +15,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Key Directories and Files
 
 ### Scripts
-- `scripts/setup-ai.sh` — **Primary entry point** for project setup (templates + role activation)
-- `scripts/activate-role.sh` — **Role activator** for agent/skill symlinks
+- `sciagent new project` — **Primary entry point** for project setup (templates + role activation)
+- `sciagent activate` — **Role activator** for agent/skill symlinks
 
 ### Role System
 - `roles/` — Role definitions (YAML files)
@@ -50,17 +50,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ```bash
 # Full project setup (templates + role activation)
-./scripts/setup-ai.sh
+sciagent new project
 
 # View options
-./scripts/setup-ai.sh --help
+sciagent new --help
 ```
 
 ### Role Activation
 
 ```bash
 # Activate base role (default for bioinformatics)
-./scripts/activate-role.sh base --project-dir /path/to/project
+sciagent activate base
 
 # List available roles
 ls roles/*.yaml
@@ -150,7 +150,7 @@ color: "yellow" | "blue" | "green"
 
 1. Create `agents/new-agent-name.md` following the structure above
 2. Add to relevant role(s) in `roles/*.yaml`
-3. Test activation: `./scripts/activate-role.sh base --project-dir .`
+3. Test activation: `sciagent activate base`
 4. Document in `agents/README.md`
 
 ---
@@ -161,7 +161,7 @@ color: "yellow" | "blue" | "green"
 
 ```bash
 # One-liner to test from toolkit directory
-./scripts/activate-role.sh base --project-dir . && echo "Role activation: OK" || echo "Role activation: FAILED"
+sciagent activate base && echo "Role activation: OK" || echo "Role activation: FAILED"
 ```
 
 Verify symlinks:
@@ -172,7 +172,7 @@ ls -la .claude/skills/
 
 If a parent project uses this toolkit as a submodule, re-activate from the parent directory:
 ```bash
-./01_modules/SciAgent-toolkit/scripts/activate-role.sh base --project-dir .
+./01_modules/SciAgent-toolkit/bin/sciagent activate base
 ```
 
 ---

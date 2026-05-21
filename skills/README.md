@@ -15,7 +15,7 @@ skills/<skill-name>/
 └── assets/               # Templates, configs, example data
 ```
 
-The role activator (`scripts/activate-role.sh`) resolves skills in this order:
+The role activator (`sciagent activate`) resolves skills in this order:
 1. **Directory format** (canonical): `skills/<name>/SKILL.md` → symlinks the directory
 2. **Flat format** (legacy): `skills/<name>.md` → symlinks the single file
 
@@ -428,7 +428,7 @@ SKILL.md should stay under ~400 lines. If a section grows beyond ~300 lines, mov
 Add the skill name (without `.md`) to the role YAML (`roles/base.yaml` or a new role), then:
 
 ```bash
-./scripts/activate-role.sh base --project-dir /path/to/project
+sciagent activate base
 ls -la /path/to/project/.claude/skills/<your-skill-name>
 # Should be a symlink pointing to 01_modules/SciAgent-toolkit/skills/<your-skill-name>
 ```

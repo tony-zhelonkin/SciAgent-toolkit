@@ -27,7 +27,7 @@ of the log.
 
 ## What It Tests
 
-1. Role-system files exist (`roles/base.yaml`, `scripts/activate-role.sh`,
+1. Role-system files exist (`roles/base.yaml`, `sciagent activate`,
    `agents/`, `skills/`).
 2. Vendor template files exist (`CLAUDE.md.template`, `AGENTS.md.template`,
    `context.md.template`, `analysis_config.yaml.template`).
