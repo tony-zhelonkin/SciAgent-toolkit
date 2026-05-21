@@ -8,6 +8,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- Reorganized `commands/` and `agents/` into role-family subfolders. The resolver in `lib/sciagent/symlinks.sh` (`resolve_canonical`) walks these subtrees recursively so symlinks under `.claude/` and `.agents/` remain flat — consumers see no shape change. Basename uniqueness is enforced by `tests/test_no_duplicate_basenames.sh`.
+  - `agents/architect/` — 12 architect-pipeline agents
+  - `agents/analysis-base/` — 7 base-role helper agents
+  - `commands/architect/` — 14 architect commands; `commands/commit.md` stays top-level
+- Renamed role `pathway-signature-agent` → `pathway-signature` to drop the misleading `-agent` suffix (roles live in `roles/`, LLM agents live in `agents/`). Fixed phantom skill references in this role's skills list — replaced 7 deleted skills with the consolidated triad `bulk-rnaseq-gsea`, `bulk-rnaseq-activity-inference`, `bulk-rnaseq-pathway-explorer`.
+- Added `python-multimodal-10x` to `roles/multiome-grn.yaml` to fill the Python-side 10x ATAC preprocessing / MuData / differential accessibility gap.
+- Canonicalised all role-file docstrings (Purpose / Use when / Do NOT use when / optional Composes-with / optional Pipeline) for consistency and brevity.
+
+### Removed
+- `roles/min.yaml` — unused minimal role.
+- `docker/` — CI test scaffolding that was no longer wired into the test suite.
+
+### Migration
+After upgrade, projects that have an active sciagent stack must re-activate to refresh symlinks against the new source layout:
+
+```
+sciagent deactivate
+sciagent activate <base> [overlay]
+```
+
+### Changed (prior)
 - Removed MCP infrastructure (ToolUniverse, Serena, PAL, Sequential Thinking, Context7), profile switcher, and harness installers (Claude Code, Gemini CLI, Codex CLI). Toolkit now covers roles, agents, and skills only.
 - Deleted obsolete docs: `docs/MCP-CONTEXT-MANAGEMENT.md`, `docs/INSTALLATION.md`, `docs/CONFIGURATION.md`, `docs/FAQ.md`, `docs/QUICKSTART.md`, `docs/ARCHITECTURE.md`, `docs/ARCHITECTURE_REVIEW.md`, `docs/CLI_IMPROVEMENT_PLAN.md`, `docs/ISSUES.md`.
 - Stripped MCP/harness/profile sections from `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `agents/README.md`, `templates/vendor/CLAUDE.md.template`, `templates/vendor/AGENTS.md.template`, `commands/verify.md`, `docs/workflows/architect/`.
