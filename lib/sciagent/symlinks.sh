@@ -239,17 +239,29 @@ manifest_symlinks() {
     if command -v jq >/dev/null 2>&1; then
         jq -r '.symlinks[]' "$_MANIFEST_PATH"
     else
-        # Fallback: each symlink is on its own line as  "path"  (or  "path",)
-        # We're inside the "symlinks": [...] block. Extract quoted strings.
+        # Fallback: the writer formats the array as
+        #     "symlinks": ["first",
+        #                  "second",
+        #                  ...
+        #                  "last"],
+        # so the first symlink shares a line with the `"symlinks":` key and the
+        # last symlink shares a line with the `]` closer. An earlier version of
+        # this awk used `next` on those framing lines and silently dropped both
+        # the first and last symlink, leaving them un-tracked for teardown
+        # (caused test_deactivate_full.sh to leave a `.claude/skills/s_a`
+        # behind). Now we extract every quoted string on lines inside the
+        # `"symlinks": [ ... ]` block — including the opener and closer.
         awk '
-            /"symlinks"/ { in_s=1; next }
-            in_s && /\]/ { in_s=0; next }
+            /"symlinks"/ { in_s=1 }
             in_s {
-                # strip leading/trailing whitespace, quotes, trailing comma
-                s = $0
-                gsub(/^[[:space:]"]+|[[:space:]",]+$/, "", s)
-                if (s != "") print s
+                line = $0
+                while (match(line, /"[^"]+"/)) {
+                    v = substr(line, RSTART+1, RLENGTH-2)
+                    if (v != "symlinks") print v
+                    line = substr(line, RSTART+RLENGTH)
+                }
             }
+            in_s && /\]/ { in_s=0 }
         ' "$_MANIFEST_PATH"
     fi
 }
