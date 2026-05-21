@@ -1,6 +1,6 @@
 ---
 name: cellranger-multi-to-anndata
-description: "cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use python-multimodal-10x; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in."
+description: "cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use muon-multimodal-analysis; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in."
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
@@ -26,7 +26,7 @@ metadata:
     - scvi-basic
     - scrna-pipeline-conventions
   contraindications:
-    - "Do not use for 10x Multiome (RNA + ATAC paired) data. Use python-multimodal-10x instead."
+    - "Do not use for 10x Multiome (RNA + ATAC paired) data. Use muon-multimodal-analysis instead."
     - "Do not use for STARsolo intron-aware or spliced/unspliced counts. Use starsolo-spliced-unspliced instead."
     - "Do not use on an already-built .h5ad. Use anndata directly for I/O on existing objects."
     - "Do not use on cellranger count (single-sample) output. Read the single .h5 with scanpy.read_10x_h5 directly."
@@ -46,7 +46,7 @@ This skill encapsulates the robust pattern: per-sample read with column-name det
 - The next step is QC (`single-cell-rna-qc`) and integration (`scvi-basic` / `scvi-scanvi`)
 
 **When NOT to use this skill:**
-- 10x Multiome (RNA + ATAC paired) → use `python-multimodal-10x`
+- 10x Multiome (RNA + ATAC paired) → use `muon-multimodal-analysis`
 - STARsolo intronic / spliced+unspliced quantification → use `starsolo-spliced-unspliced`
 - One sample, one matrix, no pool structure → `sc.read_10x_h5(path)` is enough
 - Already have an `.h5ad` → use `anndata` for I/O / subsetting
@@ -60,7 +60,7 @@ Faced with raw 10x output?
 │
 ├─ Multi-pool cellranger multi run            →  THIS SKILL
 ├─ Single-sample cellranger count             →  sc.read_10x_h5 directly
-├─ 10x Multiome (RNA + ATAC paired)            →  python-multimodal-10x
+├─ 10x Multiome (RNA + ATAC paired)            →  muon-multimodal-analysis
 ├─ STARsolo (intronic, spliced/unspliced)     →  starsolo-spliced-unspliced
 └─ Already have an .h5ad                       →  anndata (I/O on existing object)
 ```
@@ -295,7 +295,7 @@ After running this skill, confirm:
 | Run MAD-based QC on the produced `.h5ad` | `single-cell-rna-qc` | Next step (Stage 1) |
 | Integrate batches and learn a latent space | `scvi-basic` | Downstream (Stage 2) |
 | House style for the project this lands in | `scrna-pipeline-conventions` | Convention; references `03_results/checkpoints/` layout |
-| Multiome RNA + ATAC paired ingestion | `python-multimodal-10x` | Alternative (different modality) |
+| Multiome RNA + ATAC paired ingestion | `muon-multimodal-analysis` | Alternative (different modality) |
 | Spliced/unspliced or intronic counting | `starsolo-spliced-unspliced` | Alternative (different counting strategy) |
 
 ---

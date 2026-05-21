@@ -1,6 +1,6 @@
 ---
 name: seurat-multimodal-analysis
-description: End-to-end multimodal single-cell analysis in R using Seurat and Signac — CITE-seq (RNA+ADT), 10x Multiome (RNA+ATAC), Weighted Nearest Neighbors integration, chromatin accessibility, ChromVAR motif enrichment, peak-gene linkages, and Azimuth reference mapping. Use when the project is R-based and analyses need to stay in Seurat. For the Python scverse equivalent use python-multimodal-10x; for exporting Seurat multi-assay objects to AnnData/MuData use multimodal-anndata-mudata.
+description: End-to-end multimodal single-cell analysis in R using Seurat and Signac — CITE-seq (RNA+ADT), 10x Multiome (RNA+ATAC), Weighted Nearest Neighbors integration, chromatin accessibility, ChromVAR motif enrichment, peak-gene linkages, and Azimuth reference mapping. Use when the project is R-based and analyses need to stay in Seurat. For the Python scverse equivalent use muon-multimodal-analysis; for exporting Seurat multi-assay objects to AnnData/MuData use multimodal-anndata-mudata.
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
@@ -22,11 +22,11 @@ metadata:
     - r
   complementary-skills:
     - multimodal-anndata-mudata
-    - python-multimodal-10x
+    - muon-multimodal-analysis
     - anndatar-seurat-scanpy-conversion
     - louper-seurat-conversion
   contraindications:
-    - "Do not use for Python/scverse workflows. Use python-multimodal-10x instead."
+    - "Do not use for Python/scverse workflows. Use muon-multimodal-analysis instead."
     - "Do not use to convert Seurat objects to AnnData/MuData. Use multimodal-anndata-mudata."
 ---
 

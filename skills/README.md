@@ -118,7 +118,7 @@ scRNA-seq → ──────────────────────
 |-------|---------|-------------|
 | `multimodal-anndata-mudata.md` | **R→Python conversion** for multi-assay Seurat → MuData | Unpaired/paired container patterns |
 | `seurat-multimodal-analysis.md` | **R/Seurat** - CITE-seq, 10x Multiome, WNN, Signac, ChromVAR, unpaired anchor imputation | Full R ecosystem |
-| `python-multimodal-10x.md` | **Python** - muon, SnapATAC2, Harmony, scanpy for multiome | Full Python ecosystem |
+| `muon-multimodal-analysis.md` | **Python** - muon, SnapATAC2, Harmony, scanpy for multiome | Full Python ecosystem |
 | `scglue-unpaired-multiomics-integration.md` | Unpaired integration + enhancer-gene inference | Guidance graph |
 | `treearches-hierarchy-learning.md` | Reference mapping with hierarchy | Tree-structured latent |
 
@@ -126,12 +126,12 @@ scRNA-seq → ──────────────────────
 ```
 10x Multiome (RNA+ATAC paired)?
 ├─ R ecosystem preferred? → seurat-multimodal-analysis.md (WNN, Signac)
-├─ Python preferred? → python-multimodal-10x.md (muon, SnapATAC2)
+├─ Python preferred? → muon-multimodal-analysis.md (muon, SnapATAC2)
 └─ Deep learning integration? → scvi-multivi.md
 
 CITE-seq (RNA+Protein)?
 ├─ R/Seurat → seurat-multimodal-analysis.md (WNN for ADT)
-└─ Python → python-multimodal-10x.md (muon)
+└─ Python → muon-multimodal-analysis.md (muon)
 
 Unpaired modalities (separate experiments)?
 ├─ Need to convert Seurat→Python? → multimodal-anndata-mudata.md (conversion recipes)

@@ -1,6 +1,6 @@
 ---
 name: multimodal-anndata-mudata
-description: "Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see python-multimodal-10x."
+description: "Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see muon-multimodal-analysis."
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
@@ -20,11 +20,11 @@ metadata:
     - scverse-interop
   complementary-skills:
     - anndatar-seurat-scanpy-conversion
-    - python-multimodal-10x
+    - muon-multimodal-analysis
     - seurat-multimodal-analysis
   contraindications:
     - "Do not use for single-assay Seurat conversion. Use anndatar-seurat-scanpy-conversion instead."
-    - "Do not use for downstream multimodal analysis in Python. Use python-multimodal-10x."
+    - "Do not use for downstream multimodal analysis in Python. Use muon-multimodal-analysis."
 ---
 
 # Multimodal AnnData/MuData: Seurat → Python Conversion for Multi-Omics
@@ -37,7 +37,7 @@ Convert multi-assay R Seurat objects to Python AnnData/MuData for downstream mul
 
 **Prerequisites:**
 - [anndataR skill](anndatar-seurat-scanpy-conversion.md) for basic Seurat ↔ h5ad conversion
-- [Python multimodal skill](python-multimodal-10x.md) for MuData basics
+- [Python multimodal skill](muon-multimodal-analysis.md) for MuData basics
 - [Seurat multimodal skill](seurat-multimodal-analysis.md) for R-side analysis
 
 ---
@@ -396,7 +396,7 @@ Which tool?
 ## Cross-References
 
 - **Basic Seurat ↔ h5ad:** [anndataR skill](anndatar-seurat-scanpy-conversion.md)
-- **Python MuData ecosystem:** [Python multimodal skill](python-multimodal-10x.md)
+- **Python MuData ecosystem:** [Python multimodal skill](muon-multimodal-analysis.md)
 - **R multimodal (Seurat/Signac):** [Seurat multimodal skill](seurat-multimodal-analysis.md)
 - **Unpaired integration (scGLUE):** [scGLUE skill](scglue-unpaired-multiomics-integration.md)
 - **GRN inference (SCENIC+):** [SCENIC+ skill](scenic-grn-inference.md)

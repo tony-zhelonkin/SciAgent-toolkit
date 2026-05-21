@@ -42,7 +42,7 @@ skills:
   - anndata                                    # AnnData I/O, subsetting
   - anndatar-seurat-scanpy-conversion          # Seurat <-> h5ad conversion
   - multimodal-anndata-mudata                  # Multi-assay Seurat -> MuData for unpaired RNA+ATAC
-  - python-multimodal-10x                      # 10x ATAC preprocessing -> MuData + differential accessibility (Python)
+  - muon-multimodal-analysis                      # 10x ATAC preprocessing -> MuData + differential accessibility (Python)
   - scvi-framework                             # scvi-tools shared patterns
 
   # === Module Definition & DE ===

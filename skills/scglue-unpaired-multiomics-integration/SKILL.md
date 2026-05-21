@@ -1,6 +1,6 @@
 ---
 name: scglue-unpaired-multiomics-integration
-description: Integrates unpaired single-cell multi-omics (scRNA-seq + scATAC-seq, with no shared barcodes) using a prior-knowledge guidance graph linking genes to regulatory regions. Use when aligning separately-assayed RNA and ATAC experiments, inferring cis-regulatory links, or constructing TF-target networks across modalities. For paired 10x Multiome data use scvi-multivi or python-multimodal-10x; for reference-mapped annotation use treearches-hierarchy-learning.
+description: Integrates unpaired single-cell multi-omics (scRNA-seq + scATAC-seq, with no shared barcodes) using a prior-knowledge guidance graph linking genes to regulatory regions. Use when aligning separately-assayed RNA and ATAC experiments, inferring cis-regulatory links, or constructing TF-target networks across modalities. For paired 10x Multiome data use scvi-multivi or muon-multimodal-analysis; for reference-mapped annotation use treearches-hierarchy-learning.
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
@@ -21,10 +21,10 @@ metadata:
     - tf-target
   complementary-skills:
     - scvi-multivi
-    - python-multimodal-10x
+    - muon-multimodal-analysis
     - scenic-grn-inference
   contraindications:
-    - "Do not use for paired 10x Multiome (shared barcodes). Use scvi-multivi or python-multimodal-10x instead."
+    - "Do not use for paired 10x Multiome (shared barcodes). Use scvi-multivi or muon-multimodal-analysis instead."
     - "Do not install via conda — use a dedicated venv to avoid dependency conflicts."
 ---
 

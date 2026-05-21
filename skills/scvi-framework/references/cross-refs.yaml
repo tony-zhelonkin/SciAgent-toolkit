@@ -44,7 +44,7 @@ scvi-mrvi:
 scvi-multivi:
   - scvi-framework
   - scvi-peakvi
-  - python-multimodal-10x
+  - muon-multimodal-analysis
   - scglue-unpaired-multiomics-integration
 
 scvi-peakvi:
