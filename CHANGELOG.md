@@ -13,8 +13,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `agents/analysis-base/` — 7 base-role helper agents
   - `commands/architect/` — 14 architect commands; `commands/commit.md` stays top-level
 - Renamed role `pathway-signature-agent` → `pathway-signature` to drop the misleading `-agent` suffix (roles live in `roles/`, LLM agents live in `agents/`). Fixed phantom skill references in this role's skills list — replaced 7 deleted skills with the consolidated triad `bulk-rnaseq-gsea`, `bulk-rnaseq-activity-inference`, `bulk-rnaseq-pathway-explorer`.
-- Added `python-multimodal-10x` to `roles/multiome-grn.yaml` to fill the Python-side 10x ATAC preprocessing / MuData / differential accessibility gap.
+- Added `muon-multimodal-analysis` (originally added under its old name) to `roles/multiome-grn.yaml` to fill the Python-side 10x ATAC preprocessing / MuData / differential accessibility gap. Subsequently reverted; see below.
 - Canonicalised all role-file docstrings (Purpose / Use when / Do NOT use when / optional Composes-with / optional Pipeline) for consistency and brevity.
+
+### Added
+- New role `multiome-analysis` (`roles/multiome-analysis.yaml`) for paired RNA+ATAC ingestion, preprocessing, integration, and differential accessibility — without GRN inference. Composes with `multiome-grn` for the downstream regulatory step.
+
+### Changed
+- Renamed skill `python-multimodal-10x` → `muon-multimodal-analysis`. The previous name conflated language with purpose; the new name aligns with the audit's namespace convention (defining library = muon/MuData). Directory, frontmatter `name:`, and all cross-references updated; history preserved via `git mv`.
+
+### Reverted
+- Dropped `muon-multimodal-analysis` (formerly `python-multimodal-10x`) from `roles/multiome-grn.yaml`. The skill belongs in the new `multiome-analysis` role; `multiome-grn` reverts to its original GRN-inference-only scope. Compose with `multiome-analysis` for preprocessing.
+
+### Deferred (ADR-0002 placeholder)
+- Skill-content dissection for the monolithic multimodal skills (`muon-multimodal-analysis`, `seurat-multimodal-analysis`, `multimodal-anndata-mudata`, `cellranger-arc-multiome`) is deferred to ADR-0002. The current role topology bundles these as-is; future work may split each skill into focused sub-skills (e.g. ATAC preprocessing vs. WNN integration vs. peak-gene linkage) without further role changes.
 
 ### Removed
 - `roles/min.yaml` — unused minimal role.
