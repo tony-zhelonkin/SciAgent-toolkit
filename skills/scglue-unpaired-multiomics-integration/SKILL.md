@@ -3,6 +3,8 @@ name: scglue-unpaired-multiomics-integration
 description: Integrates unpaired single-cell multi-omics (scRNA-seq + scATAC-seq, with no shared barcodes) using a prior-knowledge guidance graph linking genes to regulatory regions. Use when aligning separately-assayed RNA and ATAC experiments, inferring cis-regulatory links, or constructing TF-target networks across modalities. For paired 10x Multiome data use scvi-multivi or muon-multimodal-analysis; for reference-mapped annotation use treearches-hierarchy-learning.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

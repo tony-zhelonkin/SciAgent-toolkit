@@ -3,6 +3,8 @@ name: scvi-peakvi
 description: "PeakVI is a deep generative model in scvi-tools for scATAC-seq that produces batch-corrected latent embeddings and region-level differential accessibility. Use for standard scATAC clustering, batch correction across experiments, and scaling to more than one million cells. For paired RNA+ATAC multiome use scvi-multivi; for quantitative fragment-level analysis use PoissonVI; for TF-activity inference use chromvar-motif-accessibility."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

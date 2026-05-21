@@ -6,6 +6,8 @@ description: "scANVI \u2014 semi-supervised deep generative model for scRNA-seq 
   \ from a trained scVI model. For unsupervised integration use scvi-basic."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: annotation

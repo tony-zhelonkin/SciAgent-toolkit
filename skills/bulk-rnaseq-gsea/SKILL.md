@@ -3,6 +3,8 @@ name: bulk-rnaseq-gsea
 description: "Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

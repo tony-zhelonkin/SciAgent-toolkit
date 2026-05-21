@@ -3,6 +3,8 @@ name: tf-footprint-differential-analysis
 description: "Detects physical TF OCCUPANCY from Tn5 insertion/protection patterns on bulk or pseudobulked ATAC-seq BAMs, and computes differential TF binding between conditions (e.g., WT vs KO, treated vs control) using TOBIAS ATACorrect/ScoreBigwig/BINDetect, HINT-ATAC (rgt-hint), or Signac's Footprint() for visualization. Use when validating chromVAR accessibility hits with occupancy evidence, identifying condition-specific TF regulators from pseudobulk scATAC, or producing footprint bigwigs and BINDetect volcano plots. Unlike chromvar-motif-accessibility (per-cell accessibility potential at motif sites), footprinting measures actual binding from DNA protection and requires pseudobulked BAMs, not a peaks x cells matrix. Unlike pycistarget-motif-enrichment, it scores occupancy per TF per site, not enrichment over a region set. For per-cell TF activity use chromvar-motif-accessibility; for region-set motif enrichment use pycistarget-motif-enrichment."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

@@ -3,6 +3,8 @@ name: crescendo-scatac-cre-analysis
 description: "CREscendo detects differential cis-regulatory element (CRE) usage within individual scATAC peaks by projecting ENCODE SCREEN cCREs onto peaks and testing Tn5 cleavage counts per sub-element via chi-square. Use when peak-level DA is weak or ambiguous and you suspect within-peak regulatory shifts (e.g., different enhancers driving same gene in cDC1A vs cDC1B). For peak-level differential accessibility use Signac/ArchR FindMarkers; for motif-level activity use chromvar-motif-accessibility."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

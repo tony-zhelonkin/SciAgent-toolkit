@@ -3,6 +3,8 @@ name: scvi-mrvi
 description: "MrVI from scvi-tools — multi-resolution variational inference for multi-donor / multi-sample scRNA-seq studies, modeling sample identity as biological (not nuisance) variation. Use for cohort studies (COVID severity, aging, treatment response) where you need cell-type-specific sample-to-sample distances, covariate-linked differential expression, and single-cell-resolution alternatives to pseudobulk. Uses sample_key (biological) distinct from batch_key (technical). For pure batch correction use scvi-basic; for label transfer use scvi-scanvi."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: integration

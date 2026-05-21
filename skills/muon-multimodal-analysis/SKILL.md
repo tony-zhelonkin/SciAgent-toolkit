@@ -3,6 +3,8 @@ name: muon-multimodal-analysis
 description: End-to-end multimodal scRNA-seq/scATAC-seq analysis in the Python scverse (muon, SnapATAC2, scanpy) for 10x Multiome and CITE-seq. Use for ATAC preprocessing (TF-IDF/LSI), Harmony batch correction, differential accessibility, and joint RNA+ATAC visualization via MuData. For R/Seurat use seurat-multimodal-analysis; for Seurat-to-MuData conversion use multimodal-anndata-mudata; for unpaired modalities use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

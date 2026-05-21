@@ -3,6 +3,8 @@ name: bulk-rnaseq-pathway-explorer
 description: "pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db. For building the master tables this skill consumes, use bulk-rnaseq-gsea-master-tables. For static publication figures (dotplot, barplot, running-sum PDFs) use bulk-rnaseq-gsea-visualization."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 0.1.0

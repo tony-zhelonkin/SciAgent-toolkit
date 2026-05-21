@@ -3,6 +3,8 @@ name: scvi-scarches-reference-mapping
 description: "Performs scArches architectural surgery to map a query dataset onto an existing scvi-tools or scArches reference model (scVI, scANVI, totalVI, MultiVI, trVAE). Covers prepare_query_anndata for gene padding, load_query_data to add adapter layers, fine-tuning with a frozen encoder (weight_decay=0), scANVI or weighted-KNN label transfer, novel-cell-state detection from low confidence, and the required reference-training flags use_layer_norm=both, use_batch_norm=none, encode_covariates=True. Use when the reference already exists and you want to project query cells without retraining from scratch. Unlike scvi-hub-models, which only browses and loads pretrained models, this skill owns the actual surgery and fine-tuning workflow. For hierarchical ontology transfer use treearches-hierarchy-learning; for de novo integration without a reference use scvi-basic."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

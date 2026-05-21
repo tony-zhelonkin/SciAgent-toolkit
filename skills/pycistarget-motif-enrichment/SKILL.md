@@ -3,6 +3,8 @@ name: pycistarget-motif-enrichment
 description: "Runs TF motif ENRICHMENT on scATAC-seq region SETS (topics, DARs, peak clusters) using pycistarget's cisTarget (NES recovery curves) and DEM (Wilcoxon differential enrichment), and extracts cistromes (TF-to-region sets) for SCENIC+. Use when annotating pycisTopic topics or DAR sets with enriched TF motifs, building the cistrome input to SCENIC+ GRN inference, or querying pre-computed Aertslab rankings/scores feather databases. Unlike chromvar-motif-accessibility (per-cell deviation scores over the full peaks x cells matrix), this skill aggregates over a region set and returns per-TF enrichment, with no per-cell output. Unlike tf-footprint-differential-analysis, it uses motif-match evidence only, not Tn5 occupancy. For per-cell TF activity use chromvar-motif-accessibility; for footprint occupancy use tf-footprint-differential-analysis; for upstream topic discovery use pycistopic-atac-topic-modeling."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

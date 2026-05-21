@@ -3,6 +3,8 @@ name: single-cell-vector-search
 description: Searches large scRNA-seq atlases (SCimilarity 23M+, CELLxGENE Census 100M+) by embedding similarity to find matching cell states across diseases, tissues, and studies. Use for phenotype discovery, gene-signature derivation from centroid queries, or cross-study cohort assembly. Covers SCimilarity vs Census tool selection (human/10x/64GB+ vs cross-species cloud). For straightforward label transfer only, use cellxgene-census-annotation.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

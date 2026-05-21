@@ -3,6 +3,8 @@ name: gatom-metabolomic-predictions
 description: Finds maximally-regulated metabolic subnetworks from differential expression using atom-transition graphs and BUM-scored SGMWCS. Use when interpreting transcriptomic or metabolomic DE through KEGG/Rhea pathway structure, predicting active metabolic modules, or linking enzyme expression to metabolite flow. R-based (GATOM); requires raw p-values and linear baseMean. Not a GSEA replacement — use fgsea for pathway-level enrichment tests.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

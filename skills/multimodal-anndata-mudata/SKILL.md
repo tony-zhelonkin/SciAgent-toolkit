@@ -3,6 +3,8 @@ name: multimodal-anndata-mudata
 description: "Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see muon-multimodal-analysis."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

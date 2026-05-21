@@ -3,6 +3,8 @@ name: treearches-hierarchy-learning
 description: Learns unified hierarchical cell-type trees across multiple scRNA-seq reference atlases using scArches + scHPL on scVI/scANVI latent spaces. Use when harmonizing conflicting cell-type nomenclatures across references, extending a hierarchy with new labeled datasets, or detecting novel cell types absent from existing references. For single-reference label transfer only, use scvi-scanvi or cellxgene-census-annotation.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

@@ -3,6 +3,8 @@ name: scvi-multivi
 description: "MultiVI jointly integrates paired and unpaired single-cell RNA and ATAC data using scvi-tools, producing a shared latent embedding with cross-modality imputation. Use when combining 10x Multiome with RNA-only or ATAC-only datasets, when running differential expression plus differential accessibility on joint embeddings, or for multiome batch correction. For ATAC-only analysis use scvi-peakvi; for regulatory TF-to-gene inference on unpaired data use scglue-unpaired-multiomics-integration."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

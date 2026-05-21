@@ -3,6 +3,8 @@ name: scenic-grn-inference
 description: "SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons linking TF to region to gene) from paired scRNA-seq and scATAC-seq by integrating motif enrichment with expression correlation. Use when you need mechanistic TF-to-enhancer-to-target gene edges and have multiome or matched RNA+ATAC data with pycisTopic + pycistarget outputs ready. For scRNA-only regulon inference use classic pySCENIC; for unpaired RNA/ATAC integration use scglue-unpaired-multiomics-integration."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

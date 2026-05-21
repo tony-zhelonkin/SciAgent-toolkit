@@ -3,6 +3,8 @@ name: cellxgene-census-annotation
 description: Transfers cell-type annotations from the CELLxGENE Census (33M+ cells, pre-computed scVI/Geneformer embeddings) to query scRNA-seq via cloud API, without downloading full datasets. Use for label transfer, tissue-specific reference lookup, or nearest-neighbor majority-vote annotation with TileDB value filters. For cross-atlas vector search use single-cell-vector-search; for hierarchical multi-reference learning use treearches-hierarchy-learning.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

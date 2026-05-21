@@ -3,6 +3,8 @@ name: seurat-multimodal-analysis
 description: End-to-end multimodal single-cell analysis in R using Seurat and Signac — CITE-seq (RNA+ADT), 10x Multiome (RNA+ATAC), Weighted Nearest Neighbors integration, chromatin accessibility, ChromVAR motif enrichment, peak-gene linkages, and Azimuth reference mapping. Use when the project is R-based and analyses need to stay in Seurat. For the Python scverse equivalent use muon-multimodal-analysis; for exporting Seurat multi-assay objects to AnnData/MuData use multimodal-anndata-mudata.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

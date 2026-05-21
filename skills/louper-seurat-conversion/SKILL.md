@@ -7,6 +7,8 @@ description: "Convert AnnData (.h5ad) to 10x Loupe Browser (.cloupe) via Seurat,
   \ use anndatar-seurat-scanpy-conversion."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: foundation

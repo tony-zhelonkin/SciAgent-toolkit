@@ -3,6 +3,8 @@ name: annotate-te-rnaseq-data
 description: Annotates bulk RNA-seq count matrices with gene symbols (via Ensembl/biomaRt) and parses transposable element identifiers into subfamily/family/class, then combines gene + TE counts into a unified DGEList for downstream differential expression. Use when preparing featureCounts outputs (genes + TEs) for edgeR/limma analysis. R-based; enforces the rule "annotate before filtering." For single-cell count matrices use single-cell-rna-qc instead.
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

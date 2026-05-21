@@ -3,6 +3,8 @@ name: scrna-cxg-host
 description: "scrna-cxg-host — two-phase skill for hosting AnnData on CellxGene over an internal network. Phase A: schema preparation (convert obsm DataFrames to np.float32 arrays, unique cell_id/var_names with __N suffix, set uns[title], realign aligned mappings, ensure X_umap, optionally re-embed per-celltype subsets with their own HVG/PCA/UMAP/leiden). Phase B: Docker Compose deployment (N cellxgene containers with --backed --annotations-dir for autosave + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe). Use when standing up wet-lab–facing interactive single-cell exploration (one full + N celltype-specific instances) on a university intranet. For one-off local exploration of one .h5ad use cellxgene CLI directly. For cell-type annotation transfer use cellxgene-census-annotation. For schema-prep on an already-built file use anndata + this skill's Phase A only."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
   category: workflow

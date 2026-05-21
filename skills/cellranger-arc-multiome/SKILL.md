@@ -3,6 +3,8 @@ name: cellranger-arc-multiome
 description: "Cell Ranger ARC processes 10x Chromium Single Cell Multiome ATAC+GEX data via mkfastq, count, aggr, and reanalyze to produce paired ATAC fragments and gene expression matrices from the same cells. Use for primary processing of multiome FASTQs, including the tricky single-indexed ATAC library demultiplexing and libraries CSV configuration. For scRNA-only use Cell Ranger (not ARC); for downstream multiome integration use cellranger-arc output with scvi-multivi or scglue."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

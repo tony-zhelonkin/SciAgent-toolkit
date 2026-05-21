@@ -3,6 +3,8 @@ name: shinymultiome-uio-host
 description: "shinymultiome-uio-host — two-phase skill for hosting a Signac-based 10x Multiome Seurat object on the Eskeland lab ShinyMultiome.UiO web app over an internal network. Phase A: object preflight on the .rds (verify/repair ChromatinAssay Annotation seqlevels, rewrite Fragments paths to container mounts, normalise assay names to peaks/RNA/SCT, optionally compute LinkPeaks and motif footprints, validate group.by columns). Phase B: Docker Compose deployment (R+Bioconductor Shiny container with parameterised global.R + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe, websocket-aware proxy with extended timeouts for long CoveragePlot redraws). Use when standing up wet-lab–facing chromatin track viewing for an annotated multiome .rds alongside an existing CellxGene RNA instance (the H2 path of multiome-deploy). For RNA-only CXG hosting use scrna-cxg-host. For ATAC-only ArchR-backed Shiny deployment use ShinyArchRUiO directly. For an interactive multi-panel VIP-style RNA+ATAC viewer use cellxgene-VIP."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-07
   category: workflow

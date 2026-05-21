@@ -7,6 +7,8 @@ description: "scVI \u2014 probabilistic deep generative model for scRNA-seq inte
   \ multiome use scvi-multivi."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: integration

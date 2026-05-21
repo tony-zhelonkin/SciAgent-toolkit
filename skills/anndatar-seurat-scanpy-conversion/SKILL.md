@@ -7,6 +7,8 @@ description: "Convert between AnnData (.h5ad, Python/scverse) and Seurat (.rds, 
   Loupe use louper-seurat-conversion."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-30
   category: foundation

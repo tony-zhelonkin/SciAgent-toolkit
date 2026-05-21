@@ -3,6 +3,8 @@ name: consensus-nmf-multirun
 description: "consensus-nmf-multirun — multi-run consensus cNMF for robust gene-program discovery on a single scRNA-seq dataset. Runs cNMF in parallel on the full dataset and user-defined obs subsets, each raw and optionally QC-filtered, produces k_selection_plot per variant for manual K-choice, scores all programs onto the full barcode space, hierarchically merges at r above a user-set threshold (default 0.7) with rank-aggregation of top-100 genes, classifies as Biological/Technical/CellCycle/Ribosomal/Mitochondrial/ImmediateEarly, annotates via g:Profiler GO/KEGG/Reactome, and runs per-celltype ANOVA against a user-named factor with eta-squared and BH-FDR. Use when a single dataset has factorial conditions and you want programs that survive QC variation and subset focus. For per-sample NMF + cross-donor consensus use genenmf-metaprogram-discovery; for AmortizedLDA topics use scvi-lda; for linear scVI loadings use scvi-linearscvi."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
   category: analysis

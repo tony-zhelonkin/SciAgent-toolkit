@@ -3,6 +3,8 @@ name: coresh-signature-search
 description: "CORESH -- rank ~80,000 public GEO datasets by how strongly a user-supplied gene signature is co-regulated in each, returning a PCA-inspired pctVar score and optional GESECA p-value for hypothesis generation and interpretation. Use when you have a short gene signature (10-200 genes: top DE hits, cluster markers, leading edge of a pathway) and want to find public datasets where those genes move together -- to connect a signature to biological context (cell types, perturbations, diseases), find perturbation analogs for wet-lab follow-up, or derive novel coregulation-based gene sets for downstream GSEA. For canonical-pathway interpretation of a signature or running GSEA on CORESH-derived gene sets use bulk-rnaseq-gsea; for metadata-based GEO search (keyword, organism) use the GEO web interface or RummaGEO."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 0.1.0

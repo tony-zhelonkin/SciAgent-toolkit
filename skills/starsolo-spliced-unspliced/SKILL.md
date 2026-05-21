@@ -3,6 +3,8 @@ name: starsolo-spliced-unspliced
 description: "Quantifies spliced, unspliced, and ambiguous count matrices from 10x FASTQs using STARsolo's Velocyto mode — a faster drop-in replacement for velocyto.py plus CellRanger. Use when preparing upstream inputs for RNA velocity (scVelo, CellRank, VeloVI) from raw reads, or needing CellRanger-compatible output with intron layers in one pass. For downstream velocity modeling on the resulting layers, use rna-velocity-trajectory."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

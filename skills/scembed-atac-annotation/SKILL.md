@@ -3,6 +3,8 @@ name: scembed-atac-annotation
 description: "scEmbed transfers cell-type labels to scATAC-seq queries using pre-trained region2vec embeddings and KNN search in a vector database (Qdrant/ChromaDB/FAISS), with no model retraining. Use for fast scATAC annotation when a matching HuggingFace databio reference model exists (e.g., luecken2021, craft100k) and you want EV-projection to place query cells in the reference UMAP. For scRNA-informed ATAC annotation use scvi-multivi; for scvi-based reference mapping use scvi-scarches-reference-mapping."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

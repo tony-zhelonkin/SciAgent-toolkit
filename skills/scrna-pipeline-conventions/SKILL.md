@@ -3,6 +3,8 @@ name: scrna-pipeline-conventions
 description: "scrna-pipeline-conventions — house style for scRNA-seq analysis projects: numbered analysis scripts (00_build, 01_qc, 02_annotation, ...), multi-checkpoint discipline within long-running scripts, central config.py with PATHS and PARAMS dataclasses sourced from analysis_config.yaml, output-directory layout 03_results/[checkpoints,tables,plots,interactive,objects,annotation]/, and per-utility custom modules (anndata_utils, cxg_utils, geneset_utils). Use when starting a new scRNA-seq project that should match the established workflow shared by cellranger-multi-to-anndata, scrna-cxg-host, and consensus-nmf-multirun, or when retrofitting an existing project to the convention. Practice-tier skill — no executable code; documents the style other skills reference. For software-design discipline (ADRs, design reviews) use architecture-first-dev. For MAD-based QC filtering use single-cell-rna-qc."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
   category: practice

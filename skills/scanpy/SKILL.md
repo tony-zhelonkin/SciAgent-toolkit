@@ -3,6 +3,8 @@ name: scanpy
 description: "Standard scanpy scRNA-seq analysis pipeline: normalization, HVG selection, PCA/UMAP/t-SNE, Leiden/Louvain clustering, rank_genes_groups marker identification, score_genes gene-set scoring, and scverse-style plots (dotplot, heatmap, violin, UMAP). Use for exploratory single-cell analysis and standard scverse workflows once cells have been QC'd. Unlike single-cell-rna-qc (dedicated MAD-based outlier detection and doublet-aware filtering following sc-best-practices), this skill only offers basic fixed-threshold QC — for data-driven QC or doublet detection use single-cell-rna-qc instead. For multi-sample probabilistic batch correction use scvi-basic; for semi-supervised label transfer use scvi-scanvi; for RNA velocity / trajectory direction use rna-velocity-trajectory; for multi-assay containers use multimodal-anndata-mudata; for AnnData-only format operations use anndata."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: analysis

@@ -3,6 +3,8 @@ name: rna-velocity-trajectory
 description: "Infers directional cellular trajectories from scRNA-seq using spliced/unspliced RNA ratios. Use when predicting cell fates, differentiation endpoints, or driver genes from a single snapshot — covers scVelo (steady-state/dynamical), VeloVI (uncertainty-aware), Chronocell (explicit topology), and CellRank integration. Requires intron-aware quantification (velocyto, kb lamanno). For upstream spliced/unspliced counting from FASTQs, see starsolo-spliced-unspliced."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0

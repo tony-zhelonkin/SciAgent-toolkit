@@ -3,6 +3,8 @@ name: cellranger-multi-to-anndata
 description: "cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use muon-multimodal-analysis; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in."
 license: MIT
 metadata:
+  scope: atomic
+  requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
   category: foundation
