@@ -54,6 +54,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/stack.sh"
+        . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"
         cmd_activate "$@"
         ;;
@@ -62,6 +63,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/stack.sh"
+        . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"      # deactivate may re-activate solo-base
         . "$LIB/deactivate.sh"
         cmd_deactivate "$@"

@@ -9,6 +9,7 @@ cmd_deactivate() {
             echo "no active stack"
             return 0
         fi
+        claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
         echo "deactivated"
@@ -34,6 +35,7 @@ cmd_deactivate() {
 
     if [[ "$target" == "$base" ]]; then
         # Removing the base implies removing the overlay too.
+        claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
         echo "deactivated (removed base implies overlay too)"

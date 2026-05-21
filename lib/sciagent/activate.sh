@@ -27,8 +27,13 @@ cmd_activate() {
         return 1
     fi
 
-    # Auto-deactivate if a stack is already active.
+    # Auto-deactivate if a stack is already active. claude_settings_teardown
+    # must run BEFORE symlink_teardown_all rmdirs .sciagent (the state file
+    # lives there) and BEFORE the new symlinks/block land so that the
+    # settings.local.json revert is observable for the duration of the
+    # re-activation rather than racing against the new apply.
     if manifest_exists; then
+        claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
     fi
@@ -85,8 +90,13 @@ cmd_activate() {
         [[ -z "$n" ]] && continue
         symlink_create_dual commands "$n" "$SCIAGENT_TOOLKIT/commands/${n}.md"
     done
+    local STYLE_APPLIED_TAG=""
     if [[ -n "$OUTPUT_STYLE" ]]; then
         symlink_create_dual output-styles "$OUTPUT_STYLE" "$STYLE_SRC"
+        # Make the style Claude's active one by setting outputStyle in
+        # .claude/settings.local.json. Symlinking alone makes the file
+        # visible but does not select it as the active style.
+        STYLE_APPLIED_TAG=$(claude_settings_apply "$OUTPUT_STYLE")
     fi
 
     # Render and write the managed block.
@@ -101,6 +111,6 @@ cmd_activate() {
     echo "  agents:   ${#AGENT_ORDER[@]}"
     echo "  commands: ${#COMMAND_ORDER[@]}"
     if [[ -n "$OUTPUT_STYLE" ]]; then
-        echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_ROLE)"
+        echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_ROLE) [settings.local.json: $STYLE_APPLIED_TAG]"
     fi
 }
