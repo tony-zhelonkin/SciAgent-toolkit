@@ -28,8 +28,7 @@ SciAgent-toolkit/
 │                             #   source dir; Claude Code consumer mounts into
 │                             #   .claude/output-styles/<name>.md)
 ├── templates/                # Project scaffolding (new project bootstrap)
-├── tests/                    # Bash test suite (13 tests, run-all.sh)
-├── docker/test/              # CI/CD architecture validation Dockerfiles
+├── tests/                    # Bash test suite (run-all.sh)
 ├── deprecated/               # Parked harness installers (do not modify)
 └── .refactor/                # Design audit trail (frozen, do not modify)
 ```

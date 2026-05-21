@@ -256,5 +256,3 @@ There is no unit-test infrastructure for the role system yet. Verification is ma
 2. Check that `.claude/agents/`, `.claude/commands/`, `.claude/skills/` contain the expected symlinks
 3. Run each slash command once with a trivial feature slug
 4. Check that the expected artifact is produced at the expected path
-
-For CI/CD testing, see `docker/test/test-all.sh`.
