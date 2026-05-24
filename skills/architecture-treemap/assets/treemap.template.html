@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         font-size: 13px; background: #111; color: #ddd; height: 100vh;
+         display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Header ── */
+  #header { background: #1a1a1a; border-bottom: 1px solid #333; padding: 8px 16px;
+            flex-shrink: 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #header h1 { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; }
+  #header .frame { font-size: 11px; color: #fc0; font-weight: 500;
+                   border: 1px solid #fc0; border-radius: 3px; padding: 1px 6px; }
+  #header .counts { font-size: 11px; color: #888; }
+  #header .stamp  { font-size: 10px; color: #444; margin-left: auto; font-family: monospace; }
+  #toggles { display: flex; gap: 6px; margin-left: 12px; }
+  #toggles button { background: #2a2a2a; border: 1px solid #444; color: #bbb;
+                    padding: 3px 12px; border-radius: 3px; cursor: pointer;
+                    font-size: 12px; transition: all 0.15s; }
+  #toggles button.active { background: #3a3a3a; border-color: #888; color: #fff; font-weight: 600; }
+  #toggles button:hover:not(.active) { border-color: #666; color: #ccc; }
+
+  /* Show-all-edges toggle */
+  #edge-toggle-wrap { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+  #edge-toggle-wrap input { cursor: pointer; }
+
+  /* ── Body layout ── */
+  #body { display: flex; flex: 1; overflow: hidden; }
+  #treemap-area { flex: 1; position: relative; overflow: hidden; }
+  svg#treemap { width: 100%; height: 100%; display: block; }
+
+  /* ── Treemap cells ── */
+  .node rect { stroke: #111; stroke-width: 1px; cursor: pointer; transition: opacity 0.1s; }
+  .node rect:hover { stroke: #fff; stroke-width: 1.5px; }
+  .node text { pointer-events: none; fill: #fff; font-size: 11px; font-weight: 500;
+               text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  .node text.sub { font-size: 9px; font-weight: 400; fill: rgba(255,255,255,0.65); }
+  .node .badge-stripe { pointer-events: none; }
+  .node .metric-badge { pointer-events: none; }
+
+  /* Graph nodes */
+  .gnode { cursor: pointer; }
+  .gnode circle { transition: opacity 0.1s; }
+  .gnode:hover circle { opacity: 0.85; }
+
+  /* ── Side panel ── */
+  #panel { width: 340px; flex-shrink: 0; background: #161616; border-left: 1px solid #333;
+           display: flex; flex-direction: column; overflow: hidden; }
+  #panel-header { padding: 10px 12px 8px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+  #panel-header h2 { font-size: 13px; font-weight: 600; color: #fff; }
+  #panel-header .badge { display: inline-block; font-size: 10px; padding: 1px 7px;
+                          border-radius: 10px; margin-top: 4px; font-weight: 600; }
+  .badge.core      { background: #1a3d1a; color: #5cd65c; border: 1px solid #2a5a2a; }
+  .badge.seam      { background: #3d2e00; color: #ffb300; border: 1px solid #5a4400; }
+  .badge.removable { background: #3d1a1a; color: #ff6b6b; border: 1px solid #5a2a2a; }
+  #panel-body { flex: 1; overflow-y: auto; padding: 10px 12px; }
+  #panel-body::-webkit-scrollbar { width: 4px; }
+  #panel-body::-webkit-scrollbar-track { background: #1a1a1a; }
+  #panel-body::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .panel-section { margin-bottom: 14px; }
+  .panel-section h3 { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: 0.08em; color: #666; margin-bottom: 6px; }
+  .panel-section p  { color: #bbb; line-height: 1.5; font-size: 12px; }
+  .file-row { display: flex; justify-content: space-between; padding: 3px 0;
+              border-bottom: 1px solid #1e1e1e; font-size: 11px; }
+  .file-row .fp { color: #7ab8e0; font-family: monospace; flex: 1; min-width: 0;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-row .lr { color: #666; flex-shrink: 0; margin-left: 6px; }
+  .finding-pill { display: inline-block; background: #1e2a1e; color: #5cd65c;
+                  border: 1px solid #2a4a2a; border-radius: 3px; padding: 1px 6px;
+                  margin: 2px; font-size: 10px; font-family: monospace; }
+  .slice-pill { display: inline-block; background: #1e1e30; color: #7ab; border: 1px solid #2a2a50;
+                border-radius: 3px; padding: 1px 6px; margin: 2px; font-size: 10px; }
+  .edge-row { padding: 5px 7px; border-radius: 3px; margin-bottom: 4px; font-size: 11px;
+              border-left: 3px solid; }
+  .edge-row.direct-call           { background: #1a1a1a; border-left-color: #555; }
+  .edge-row.shared-state          { background: #0e1a24; border-left-color: #3a86c0; }
+  .edge-row.background-knowledge  { background: #180d24; border-left-color: #8a5cb0; }
+  .edge-row .peer  { font-weight: 600; color: #ddd; }
+  .edge-row .etype { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: 0.06em; margin-left: 4px; }
+  .edge-row.direct-call .etype          { color: #666; }
+  .edge-row.shared-state .etype         { color: #3a86c0; }
+  .edge-row.background-knowledge .etype { color: #8a5cb0; }
+  .edge-row .smell { font-size: 10px; color: #c06040; margin-top: 2px;
+                     font-style: italic; line-height: 1.3; }
+  .edge-row .evidence { font-size: 10px; color: #555; margin-top: 2px;
+                        font-family: monospace; line-height: 1.3; word-break: break-all; }
+  .prune-box { background: #1c0f0f; border: 1px solid #5a2a2a; border-radius: 4px;
+               padding: 8px; }
+  .prune-box .loc       { font-size: 18px; font-weight: 700; color: #ff6b6b; }
+  .prune-box .loc-label { font-size: 10px; color: #888; }
+  .prune-box .unblocks  { margin-top: 6px; font-size: 11px; color: #bbb; }
+  .prune-box .unblocks li { margin-left: 14px; margin-top: 2px; }
+  .prune-box .bug { margin-top: 6px; font-size: 11px; color: #c06040; }
+  .empty-state { color: #444; font-size: 12px; padding: 20px; text-align: center; }
+  .owners-list { display: flex; flex-wrap: wrap; gap: 3px; }
+  .owner-pill { font-size: 10px; font-family: monospace; padding: 1px 6px; border-radius: 3px; }
+  .owner-pill.core      { background: #1a3d1a; color: #5cd65c; }
+  .owner-pill.seam      { background: #3d2e00; color: #ffb300; }
+  .owner-pill.removable { background: #3d1a1a; color: #ff6b6b; }
+
+  /* ── Legend ── */
+  #legend { position: absolute; top: 10px; right: 10px; background: rgba(22,22,22,0.95);
+            border: 1px solid #333; border-radius: 4px; padding: 8px 10px;
+            font-size: 10px; min-width: 180px; z-index: 10; max-height: calc(100vh - 100px);
+            overflow-y: auto; }
+  #legend h4 { color: #888; font-size: 9px; text-transform: uppercase;
+               letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 8px; }
+  #legend h4:first-child { margin-top: 0; }
+  .leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .leg-info { cursor: help; color: #888; font-size: 9px; margin-left: auto; }
+  .leg-info:hover { color: #bbb; }
+
+  /* How-to-read collapsible */
+  #how-to-read-header { display: flex; align-items: center; gap: 4px; cursor: pointer;
+                         margin-top: 8px; border-top: 1px solid #2a2a2a; padding-top: 6px; }
+  #how-to-read-header span { color: #666; font-size: 9px; text-transform: uppercase;
+                              letter-spacing: 0.08em; }
+  #how-to-read-toggle { color: #888; font-size: 10px; flex-shrink: 0; }
+  #how-to-read-panel { font-size: 10px; color: #888; line-height: 1.5;
+                        padding-top: 6px; }
+  #how-to-read-panel p { margin-bottom: 5px; }
+  #how-to-read-panel strong { color: #aaa; }
+  #how-to-read-example { margin-top: 6px; font-style: italic; color: #666; }
+
+  /* Evidence class key */
+  .leg-dash-example { display: inline-block; width: 20px; height: 1px; background: #888;
+                       vertical-align: middle; margin-right: 3px; }
+
+  /* ── Tooltip ── */
+  #tooltip { position: fixed; pointer-events: none; background: rgba(18,18,18,0.95);
+             border: 1px solid #444; border-radius: 4px; padding: 6px 9px;
+             font-size: 11px; max-width: 260px; z-index: 100; display: none; }
+  #tooltip strong { color: #fff; display: block; margin-bottom: 2px; }
+  #tooltip .tt-cls  { font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  #tooltip .tt-size { color: #888; font-size: 10px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>{{PROJECT_NAME}}</h1>
+    <div style="display:flex; gap:8px; margin-top:4px; align-items:center; flex-wrap:wrap;">
+      {{FRAME_BADGE}}
+      <span class="counts">{{COUNTS}}</span>
+    </div>
+  </div>
+  <div id="toggles">
+    <button id="btn-logical"  class="active" onclick="setView('logical')">Logical</button>
+    <button id="btn-physical" onclick="setView('physical')">Physical</button>
+    <button id="btn-graph"    onclick="setView('graph')">Graph</button>
+  </div>
+  <label id="edge-toggle-wrap">
+    <input type="checkbox" id="show-all-edges" onchange="toggleAllEdges(this.checked)">
+    Show all edges (faint)
+  </label>
+  <span class="stamp">{{STAMP}}</span>
+</div>
+
+<div id="body">
+  <div id="treemap-area">
+    <svg id="treemap"></svg>
+    <div id="legend">
+      <h4>Classification</h4>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#2a7a2a"></div>
+        <span>Core</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#c87800"></div>
+        <span>Seam</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#a02020"></div>
+        <span>Removable</span>
+      </div>
+
+      <h4>Edge types</h4>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#888"></div>
+        <span>direct-call</span>
+        <span class="leg-info" data-etype="direct-call"
+              title="One component calls another by name. Connascence of Name — weakest form. Necessary and normal. Only a problem when the callee is itself removable.">(i)</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#3a86c0"></div>
+        <span>shared-state ⚠</span>
+        <span class="leg-info" data-etype="shared-state"
+              title="Two components both read/write the same data structure. Connascence of Identity/Value. Tolerable small-scale; corrosive as the structure grows. Removable when one writer can be eliminated.">(i)</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-swatch" style="background:#8a5cb0"></div>
+        <span>background-knowledge ★</span>
+        <span class="leg-info" data-etype="background-knowledge"
+              title="One component depends on another's invariant that no code, type, or test enforces. Connascence of Convention — always a smell. Always removable: pruning the carrying component deletes the implicit invariant.">(i)</span>
+      </div>
+
+      <h4>Evidence class</h4>
+      <div class="leg-row">
+        <svg width="20" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke="#888" stroke-width="1.5"/></svg>
+        <span>static (AST-detected)</span>
+      </div>
+      <div class="leg-row">
+        <svg width="20" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke="#888" stroke-width="1.5" stroke-dasharray="4 4"/></svg>
+        <span>audit-asserted</span>
+      </div>
+      <div style="margin-top:4px;font-size:9px;color:#555">
+        Direction: outgoing = full colour; incoming = lighter + lower opacity
+      </div>
+
+      <!-- Tier-2: How to read this -->
+      <div id="how-to-read-header">
+        <span>How to read this</span>
+        <span id="how-to-read-toggle">▾</span>
+      </div>
+      <div id="how-to-read-panel">
+        <p><strong>Direct call</strong> is fine and necessary. It only becomes a problem when the callee is removable.</p>
+        <p><strong>Shared state</strong> is OK at small scale. Becomes corrosive as the state structure grows: any shape change forces coordinated edits, and out-of-order writes produce silent bugs.</p>
+        <p><strong>Background knowledge</strong> is always a smell — the compiler, the type checker, and the test suite cannot catch a violation. The architectural prize for pruning a removable component with background-knowledge edges is that those implicit invariants disappear entirely.</p>
+        <div id="how-to-read-example"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="panel-header">
+      <h2 id="panel-title">Click a cell to inspect</h2>
+    </div>
+    <div id="panel-body">
+      <p class="empty-state">Select a component from the treemap to see its details, files, and edges.</p>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<script>
+// Injected data — validated components manifest
+const COMPONENTS_DATA = {{COMPONENTS_JSON}};
+</script>
+<script>
+// Vendored D3 v7 (self-contained, no CDN fetch)
+{{D3_BUNDLE}}
+</script>
+<script>
+// architecture-treemap renderer
+{{TREEMAP_BUNDLE}}
+</script>
+</body>
+</html>
