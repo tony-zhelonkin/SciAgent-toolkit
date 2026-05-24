@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciagent.dev/schemas/components.schema.json",
+  "title": "Architecture audit components manifest",
+  "description": "Wire-format for an architecture-audit snapshot. The DETERMINISTIC substrate (physical_components, static direct-call edges, per-component metrics, git_sha) is produced by /components-extract; the JUDGMENT layer (classifications, smells, background-knowledge edges, prune verdicts, core_boundary) is produced by /audit-slice + /synthesize-audit. The treemap renderer is a pure function of this file.",
+  "type": "object",
+  "required": ["schema_version", "logical_components", "physical_components", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "audit_date": { "type": "string", "format": "date" },
+    "project": { "type": "string", "description": "Free-form project name for the header." },
+    "frame": { "type": "string", "description": "Optional architectural frame label (e.g. 'prune-modularize-extend'). Omitted -> no frame badge." },
+    "git_sha": { "type": "string", "description": "Commit SHA the snapshot was extracted at. Immutability stamp: a re-run produces a NEW snapshot, never updates an old one." },
+    "snapshot_id": { "type": "string", "description": "Optional human label for this snapshot (date or tag). Defaults to audit_date in the header if absent." },
+    "extractor": {
+      "type": "object",
+      "description": "Provenance of the deterministic substrate. Written by /components-extract; absent when the manifest was authored entirely by hand.",
+      "additionalProperties": true,
+      "properties": {
+        "tool_version": { "type": "string" },
+        "extracted_at": { "type": "string" },
+        "metric_tools": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "logical_components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/logical_component" }
+    },
+    "physical_components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/physical_component" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "prune_candidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/prune_candidate" }
+    },
+    "core_boundary": { "$ref": "#/$defs/core_boundary" },
+    "finding_index": {
+      "type": "object",
+      "description": "Optional lookup: smoke_finding / audit_slice tag -> human-readable record. Absent -> tags render as plain text.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "enum": ["info", "warn", "error"] },
+          "url": { "type": "string", "format": "uri-reference" }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "classification": {
+      "type": "string",
+      "enum": ["core", "seam", "removable"]
+    },
+    "edge_type": {
+      "type": "string",
+      "enum": ["direct-call", "shared-state", "background-knowledge"]
+    },
+    "evidence_class": {
+      "type": "string",
+      "description": "How the edge was established. 'static' = detected by the AST/import-graph extractor (renders SOLID). 'audit-asserted' = drawn by a human/synthesis judgment, not statically detectable (renders DASHED). Absent -> renderer defaults direct-call to its own inference and everything else to 'audit-asserted'.",
+      "enum": ["static", "audit-asserted"]
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Deterministic substrate metrics. All optional; the renderer shows badges only for the metrics present. Produced by /components-extract; absent on hand-authored components.",
+      "additionalProperties": false,
+      "properties": {
+        "loc": { "type": "integer", "minimum": 0 },
+        "fan_in": { "type": "integer", "minimum": 0, "description": "Count of modules that import/call this one." },
+        "fan_out": { "type": "integer", "minimum": 0, "description": "Count of modules this one imports/calls." },
+        "cyclomatic": { "type": "number", "minimum": 0, "description": "Mean (or summed) cyclomatic complexity, e.g. radon cc." },
+        "churn_90d": { "type": "integer", "minimum": 0, "description": "Commits touching this component in the last 90 days." },
+        "test_ratio": { "type": "number", "minimum": 0, "description": "Test LOC / source LOC for this component, where derivable." }
+      }
+    },
+    "physical_file_ref": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "line_range": { "type": "string", "pattern": "^[0-9]+(-[0-9]+)?$" },
+        "ownership": { "enum": ["primary", "partial"] }
+      }
+    },
+    "logical_component": {
+      "type": "object",
+      "required": ["id", "name", "description", "classification", "physical_files", "size_estimate_loc"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "physical_files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/physical_file_ref" }
+        },
+        "classification": { "$ref": "#/$defs/classification" },
+        "smoke_findings": { "type": "array", "items": { "type": "string" } },
+        "audit_slices": { "type": "array", "items": { "type": "string" } },
+        "size_estimate_loc": { "type": "integer", "minimum": 0 },
+        "metrics": { "$ref": "#/$defs/metrics" }
+      }
+    },
+    "physical_component": {
+      "type": "object",
+      "required": ["id", "path", "size_loc", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "path": { "type": "string" },
+        "size_loc": { "type": "integer", "minimum": 0 },
+        "logical_owners": { "type": "array", "items": { "type": "string" } },
+        "kind": { "enum": ["module", "config", "test", "doc", "asset", "other"] },
+        "metrics": { "$ref": "#/$defs/metrics" }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "type": { "$ref": "#/$defs/edge_type" },
+        "evidence_class": { "$ref": "#/$defs/evidence_class" },
+        "evidence": { "type": "string" },
+        "smell": { "type": ["string", "null"] },
+        "smoke_finding": { "type": ["string", "null"] }
+      }
+    },
+    "prune_candidate": {
+      "type": "object",
+      "required": ["logical_component", "bounded", "loc_to_remove"],
+      "additionalProperties": false,
+      "properties": {
+        "logical_component": { "type": "string" },
+        "bounded": { "type": "boolean" },
+        "loc_to_remove": { "type": "integer", "minimum": 0 },
+        "unblocks_simplification_of": { "type": "array", "items": { "type": "string" } },
+        "latent_bug_fixed": { "type": ["string", "null"] }
+      }
+    },
+    "core_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rationale": { "type": "string" },
+        "core": { "type": "array", "items": { "type": "string" } },
+        "seam": { "type": "array", "items": { "type": "string" } },
+        "removable": { "type": "array", "items": { "type": "string" } },
+        "open_questions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

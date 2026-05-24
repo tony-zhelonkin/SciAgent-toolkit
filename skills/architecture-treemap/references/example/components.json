@@ -1,0 +1,137 @@
+{
+  "schema_version": "1.0",
+  "audit_date": "2026-05-24",
+  "project": "example-service (golden fixture)",
+  "frame": "prune-modularize-extend",
+  "git_sha": "0000000000000000000000000000000000000000",
+  "snapshot_id": "golden-fixture",
+  "extractor": {
+    "tool_version": "architecture-treemap 0.1.0",
+    "extracted_at": "2026-05-24",
+    "metric_tools": ["ast+networkx", "radon", "cloc", "git-log"]
+  },
+  "logical_components": [
+    {
+      "id": "api-router",
+      "name": "ApiRouter",
+      "description": "HTTP entrypoint. Parses requests, dispatches to the store, loads plugins. The application's front door.",
+      "physical_files": [
+        {"path": "src/router.py", "line_range": "1-180", "ownership": "primary"}
+      ],
+      "classification": "core",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 180,
+      "metrics": {"loc": 180, "fan_in": 1, "fan_out": 3, "cyclomatic": 7.2, "churn_90d": 9, "test_ratio": 0.8}
+    },
+    {
+      "id": "store",
+      "name": "Store",
+      "description": "In-memory + persisted record store. Read and written by multiple callers; the shared-state hub of the service.",
+      "physical_files": [
+        {"path": "src/store.py", "line_range": "1-240", "ownership": "primary"}
+      ],
+      "classification": "core",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 240,
+      "metrics": {"loc": 240, "fan_in": 3, "fan_out": 0, "cyclomatic": 5.1, "churn_90d": 14, "test_ratio": 1.1}
+    },
+    {
+      "id": "plugin-loader",
+      "name": "PluginLoader",
+      "description": "Discovers and instantiates external plugins against a typed Protocol. The intended extension seam.",
+      "physical_files": [
+        {"path": "src/plugin_loader.py", "line_range": "1-90", "ownership": "primary"}
+      ],
+      "classification": "seam",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 90,
+      "metrics": {"loc": 90, "fan_in": 1, "fan_out": 1, "cyclomatic": 3.0, "churn_90d": 2, "test_ratio": 0.6}
+    },
+    {
+      "id": "legacy-export",
+      "name": "LegacyExport",
+      "description": "Old CSV export path superseded by the plugin system. Still wired into the router but no longer used by any live caller. STRIP candidate.",
+      "physical_files": [
+        {"path": "src/legacy_export.py", "line_range": "1-150", "ownership": "primary"}
+      ],
+      "classification": "removable",
+      "smoke_findings": ["F-EX1"],
+      "audit_slices": [],
+      "size_estimate_loc": 150,
+      "metrics": {"loc": 150, "fan_in": 1, "fan_out": 1, "cyclomatic": 11.4, "churn_90d": 0, "test_ratio": 0.2}
+    }
+  ],
+  "physical_components": [
+    {"id": "router-py", "path": "src/router.py", "size_loc": 180, "logical_owners": ["api-router"], "kind": "module", "metrics": {"loc": 180, "cyclomatic": 7.2}},
+    {"id": "store-py", "path": "src/store.py", "size_loc": 240, "logical_owners": ["store"], "kind": "module", "metrics": {"loc": 240, "cyclomatic": 5.1}},
+    {"id": "plugin-loader-py", "path": "src/plugin_loader.py", "size_loc": 90, "logical_owners": ["plugin-loader"], "kind": "module"},
+    {"id": "legacy-export-py", "path": "src/legacy_export.py", "size_loc": 150, "logical_owners": ["legacy-export"], "kind": "module"},
+    {"id": "config-yaml", "path": "config/app.yaml", "size_loc": 24, "logical_owners": ["api-router"], "kind": "config"}
+  ],
+  "edges": [
+    {
+      "from": "api-router",
+      "to": "plugin-loader",
+      "type": "direct-call",
+      "evidence_class": "static",
+      "evidence": "src/router.py:42 — `from plugin_loader import load_plugins`",
+      "smell": null,
+      "smoke_finding": null
+    },
+    {
+      "from": "api-router",
+      "to": "store",
+      "type": "shared-state",
+      "evidence_class": "audit-asserted",
+      "evidence": "Both router request handlers and the background flush task read/write Store.records without a single-writer contract.",
+      "smell": "multi-writer-shared-record-store",
+      "smoke_finding": null
+    },
+    {
+      "from": "api-router",
+      "to": "legacy-export",
+      "type": "direct-call",
+      "evidence_class": "static",
+      "evidence": "src/router.py:118 — legacy /export route still calls legacy_export.write_csv",
+      "smell": "unidirectional-coupling-to-removable",
+      "smoke_finding": "F-EX1"
+    },
+    {
+      "from": "legacy-export",
+      "to": "store",
+      "type": "background-knowledge",
+      "evidence_class": "audit-asserted",
+      "evidence": "legacy_export assumes Store records are already flushed before it reads them; nothing in code, types, or tests enforces that ordering — the invariant lives only in the original author's head.",
+      "smell": "invariant-in-human-memory",
+      "smoke_finding": "F-EX1"
+    }
+  ],
+  "prune_candidates": [
+    {
+      "logical_component": "legacy-export",
+      "bounded": true,
+      "loc_to_remove": 150,
+      "unblocks_simplification_of": ["api-router /export route", "store flush-ordering invariant"],
+      "latent_bug_fixed": "The background-knowledge flush-ordering invariant disappears once legacy-export is gone — no remaining caller depends on it."
+    }
+  ],
+  "core_boundary": {
+    "rationale": "Core is the request/store path every feature needs. The seam is the plugin loader (weakest connascence: Name + Type via the Protocol). Removable is the legacy export, kept alive only by one router route, with a background-knowledge edge to the store that is the architectural prize for pruning.",
+    "core": ["api-router", "store"],
+    "seam": ["plugin-loader"],
+    "removable": ["legacy-export"],
+    "open_questions": [
+      "store (today core; could become a seam if persistence is made host-injectable)"
+    ]
+  },
+  "finding_index": {
+    "F-EX1": {
+      "title": "Legacy CSV export still routed but unused by live callers",
+      "severity": "warn",
+      "url": ""
+    }
+  }
+}
