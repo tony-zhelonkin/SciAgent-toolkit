@@ -550,11 +550,14 @@ function renderGraph() {
     .domain([0, maxLoc])
     .range([8, 32]);
 
-  // Seed positions by classification zone (deterministic start = same layout per load)
+  // Seed positions by classification zone. The seeded PRNG (from the URL hash)
+  // drives BOTH the base jitter here and the perturbation below, so the layout
+  // is reproducible per seed — same hash gives the same starting positions.
+  const rng = mulberry32(getSeedFromHash());
   const nodes = logicals.map(c => ({
     ...c,
-    x: CLUSTER_X[c.classification] * w + (Math.random() * 60 - 30),
-    y: CLUSTER_Y * h + (Math.random() * 60 - 30),
+    x: CLUSTER_X[c.classification] * w + (rng() * 60 - 30),
+    y: CLUSTER_Y * h + (rng() * 60 - 30),
     r: rScale(c.size_estimate_loc),
   }));
 
@@ -671,11 +674,9 @@ function renderGraph() {
       .text(d.name.substring(0, 12));
   });
 
-  // Force simulation — seeded for reproducibility via URL hash
-  const seed = getSeedFromHash();
-  const rng  = mulberry32(seed);
-
-  // Perturb starting positions with the seeded rng
+  // Force simulation — seeded for reproducibility via URL hash. Reuse the same
+  // seeded rng created for the base positions above so the whole layout is a
+  // pure function of the seed.
   for (const n of nodes) {
     n.x += (rng() - 0.5) * 40;
     n.y += (rng() - 0.5) * 40;
