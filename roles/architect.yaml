@@ -82,7 +82,7 @@ commands:
   - components-extract  # deterministic AST/git/metrics substrate → substrate components.json
   - audit-slice         # dispatch N concern-driven slicers in parallel (user-authored trigger; off-the-autopilot)
   - synthesize-audit    # integrate slices + substrate → full renderable components.json + decision menu
-  - treemap             # render self-contained treemap.html from components.json (deterministic; validates first)
+  - architecture-treemap  # render self-contained treemap.html from components.json (deterministic; validates first)
   # === Meta-layer commands (cross-feature; optional) ===
   - meta-map
   - meta-design
