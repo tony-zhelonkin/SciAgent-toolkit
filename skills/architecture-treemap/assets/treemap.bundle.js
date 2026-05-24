@@ -238,12 +238,21 @@ function drawGroupLabels(svg, groupData) {
   return groupNodes;
 }
 
-// ── SVG edge overlay (used by Logical view) ───────────────────────────────────
+// ── SVG edge overlay (shared by Logical and Physical views) ──────────────────
 
-// nodeRects: Map<id, {cx, cy}> built during render
-let logicalNodeCenters = new Map();
+// Per-view node-centre maps, populated during each render call.
+let logicalNodeCenters  = new Map();
+let physicalNodeCenters = new Map();
 
-function buildEdgeOverlaySvg(viewIds) {
+// Return the node-centre map for the active view.
+function nodeCentersForView(view) {
+  return view === 'physical' ? physicalNodeCenters : logicalNodeCenters;
+}
+
+// Draw (or refresh) the Bezier edge overlay for a treemap view.
+//   viewIds    — array of component ids that exist in this view
+//   nodeCenters — Map<id, {cx, cy}> built during the render pass
+function buildEdgeOverlaySvg(viewIds, nodeCenters) {
   // Remove previous overlay layer
   svg.select('g.edge-overlay').remove();
 
@@ -257,8 +266,8 @@ function buildEdgeOverlaySvg(viewIds) {
   const overlay = svg.append('g').attr('class', 'edge-overlay').attr('pointer-events', 'none');
 
   for (const edge of shownEdges) {
-    const src = logicalNodeCenters.get(edge.from);
-    const snk = logicalNodeCenters.get(edge.to);
+    const src = nodeCenters.get(edge.from);
+    const snk = nodeCenters.get(edge.to);
     if (!src || !snk) continue;
 
     // Direction cue: is this outgoing from a selected node, or incoming?
@@ -303,6 +312,7 @@ function renderLogical() {
   svg.attr('viewBox', `0 0 ${w} ${h}`);
   svg.selectAll('*').remove();
   logicalNodeCenters.clear();
+  physicalNodeCenters.clear();
 
   const logicals = COMPONENTS_DATA.logical_components || [];
 
@@ -360,7 +370,7 @@ function renderLogical() {
         selectedNodeIds = new Set([d.data.id]);
         showPanel(d.data.id, 'logical');
       }
-      buildEdgeOverlaySvg(logicals.map(c => c.id));
+      buildEdgeOverlaySvg(logicals.map(c => c.id), logicalNodeCenters);
     });
 
   // Cell labels and metric badges
@@ -396,7 +406,7 @@ function renderLogical() {
   });
 
   // Draw any pre-existing selection
-  buildEdgeOverlaySvg(logicals.map(c => c.id));
+  buildEdgeOverlaySvg(logicals.map(c => c.id), logicalNodeCenters);
 }
 
 // ── Physical view ─────────────────────────────────────────────────────────────
@@ -405,6 +415,8 @@ function renderPhysical() {
   const { w, h } = getViewportSize();
   svg.attr('viewBox', `0 0 ${w} ${h}`);
   svg.selectAll('*').remove();
+  physicalNodeCenters.clear();
+  logicalNodeCenters.clear();
 
   const physicals = COMPONENTS_DATA.physical_components || [];
   if (physicals.length === 0) {
@@ -431,6 +443,17 @@ function renderPhysical() {
   drawGroupLabels(svg, root.children);
 
   const leaves = root.leaves();
+
+  // Record cell centres for edge overlay (keyed on physical component ids)
+  for (const d of leaves) {
+    physicalNodeCenters.set(d.data.id, {
+      cx: (d.x0 + d.x1) / 2,
+      cy: (d.y0 + d.y1) / 2,
+    });
+  }
+
+  const physicalIds = physicals.map(pc => pc.id);
+
   const g = svg.selectAll('g.node')
     .data(leaves)
     .join('g')
@@ -446,7 +469,13 @@ function renderPhysical() {
     .on('mouseleave', hideTip)
     .on('click', (event, d) => {
       event.stopPropagation();
-      showPanel(d.data.id, 'physical');
+      if (event.shiftKey) {
+        selectedNodeIds.add(d.data.id);
+      } else {
+        selectedNodeIds = new Set([d.data.id]);
+        showPanel(d.data.id, 'physical');
+      }
+      buildEdgeOverlaySvg(physicalIds, physicalNodeCenters);
     });
 
   // Per-cell labels, owner pills, metric badges
@@ -516,6 +545,9 @@ function renderPhysical() {
         .text(d.data.size_loc + ' loc');
     }
   });
+
+  // Draw any pre-existing selection (e.g. after a resize or view switch back)
+  buildEdgeOverlaySvg(physicalIds, physicalNodeCenters);
 }
 
 // ── Graph view ────────────────────────────────────────────────────────────────
@@ -864,14 +896,14 @@ function showLogicalPanel(id) {
   // Edges out
   if (edgesOut.length) {
     html += `<div class="panel-section"><h3>Edges out (${edgesOut.length})</h3>`;
-    edgesOut.forEach(e => { html += edgeRowHtml(e, 'out'); });
+    edgesOut.forEach(e => { html += edgeRowHtml(e, 'out', 'logical'); });
     html += `</div>`;
   }
 
   // Edges in
   if (edgesIn.length) {
     html += `<div class="panel-section"><h3>Edges in (${edgesIn.length})</h3>`;
-    edgesIn.forEach(e => { html += edgeRowHtml(e, 'in'); });
+    edgesIn.forEach(e => { html += edgeRowHtml(e, 'in', 'logical'); });
     html += `</div>`;
   }
 
@@ -914,6 +946,22 @@ function showPhysicalPanel(id) {
     html += `</div></div>`;
   }
 
+  // Edges out / in — resolved against physical component ids
+  const edgesOut = (COMPONENTS_DATA.edges || []).filter(e => e.from === id);
+  const edgesIn  = (COMPONENTS_DATA.edges || []).filter(e => e.to   === id);
+
+  if (edgesOut.length) {
+    html += `<div class="panel-section"><h3>Edges out (${edgesOut.length})</h3>`;
+    edgesOut.forEach(e => { html += edgeRowHtml(e, 'out', 'physical'); });
+    html += `</div>`;
+  }
+
+  if (edgesIn.length) {
+    html += `<div class="panel-section"><h3>Edges in (${edgesIn.length})</h3>`;
+    edgesIn.forEach(e => { html += edgeRowHtml(e, 'in', 'physical'); });
+    html += `</div>`;
+  }
+
   panelBody.innerHTML = html;
 }
 
@@ -936,11 +984,27 @@ function metricsBreakdownHtml(metrics) {
   return `<div class="panel-section"><h3>Metrics</h3>${rows.join('')}</div>`;
 }
 
-function edgeRowHtml(e, dir) {
+// Resolve a display name for an edge peer id, checking physical then logical maps.
+// In physical mode the ids are physical file paths; in logical mode they are logical names.
+function peerDisplayName(peerId, mode) {
+  if (mode === 'physical') {
+    const pc = physicalById.get(peerId);
+    if (pc) return pc.path.split('/').pop();
+  }
+  const lc = logicalById.get(peerId);
+  if (lc) return lc.name;
+  return peerId;
+}
+
+// Render a single edge row for the side panel.
+//   e    — edge object
+//   dir  — 'out' or 'in'
+//   mode — 'logical' or 'physical' (controls id-space for peer name resolution)
+function edgeRowHtml(e, dir, mode) {
   const peer   = dir === 'out' ? e.to : e.from;
-  const peerLc = logicalById.get(peer);
-  const peerNm = peerLc ? peerLc.name : peer;
+  const peerNm = peerDisplayName(peer, mode || 'logical');
   const arrow  = dir === 'out' ? '→' : '←';
+  const panelMode = mode || 'logical';
 
   // Evidence class annotation
   const ecLabel = e.evidence_class
@@ -948,7 +1012,7 @@ function edgeRowHtml(e, dir) {
     : '';
 
   let html = `<div class="edge-row ${e.type}">`;
-  html += `<span class="peer" style="cursor:pointer" onclick="showPanel('${peer}','logical')">${arrow} ${escHtml(peerNm)}</span>`;
+  html += `<span class="peer" style="cursor:pointer" onclick="showPanel('${peer}','${panelMode}')">${arrow} ${escHtml(peerNm)}</span>`;
   html += `<span class="etype" title="${escHtml(EDGE_TYPE_HELP[e.type] || '')}" style="cursor:help">${e.type}</span>`;
   html += ecLabel;
   if (e.smell) {
@@ -1072,7 +1136,10 @@ function toggleAllEdges(checked) {
   showAllEdges = checked;
   if (currentView === 'logical') {
     const viewIds = (COMPONENTS_DATA.logical_components || []).map(c => c.id);
-    buildEdgeOverlaySvg(viewIds);
+    buildEdgeOverlaySvg(viewIds, logicalNodeCenters);
+  } else if (currentView === 'physical') {
+    const viewIds = (COMPONENTS_DATA.physical_components || []).map(c => c.id);
+    buildEdgeOverlaySvg(viewIds, physicalNodeCenters);
   }
 }
 
@@ -1081,7 +1148,9 @@ function toggleAllEdges(checked) {
 document.getElementById('treemap-area').addEventListener('click', () => {
   selectedNodeIds = new Set();
   if (currentView === 'logical') {
-    buildEdgeOverlaySvg((COMPONENTS_DATA.logical_components || []).map(c => c.id));
+    buildEdgeOverlaySvg((COMPONENTS_DATA.logical_components || []).map(c => c.id), logicalNodeCenters);
+  } else if (currentView === 'physical') {
+    buildEdgeOverlaySvg((COMPONENTS_DATA.physical_components || []).map(c => c.id), physicalNodeCenters);
   }
 });
 
