@@ -76,6 +76,13 @@ Produce TWO outputs:
      (core | seam | removable), a description, physical_files refs, size_estimate_loc,
      and SHOULD carry the metrics rolled up from its physical files. Tag each with the
      audit_slices (slice ids) and smoke_findings that bear on it.
+   - Set an optional `epistemic_source` on each classification and judgment edge:
+     `measured` (deterministic), `metric-anchored` (judgment biased by metrics —
+     typical for core), or `requires-your-intent` (extrinsic — typical for seam and
+     removable). A `removable` verdict MUST trace to a slice/finding; never
+     auto-assert removable from structure alone (the renderer marks an ungrounded
+     removable "requires your judgment"). The renderer falls back to a sensible
+     default when the field is absent, so it is optional but recommended.
    - Add the judgment edges the slices found: shared-state and background-knowledge
      edges, each evidence_class:"audit-asserted" (renders dashed), with a `smell` and
      the slice/finding it came from. A direct-call edge an architect ASSERTS (e.g. a

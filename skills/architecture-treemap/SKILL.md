@@ -133,6 +133,8 @@ This is the central trade-off, and the most common misunderstanding. **The deter
 Consequences to internalise:
 - A treemap is only as good as its `/synthesize-audit` run. Garbage judgment in, confident-looking treemap out. The metric badges exist precisely so the reader can sanity-check the judgment against the substrate.
 - A component with no slice and no finding renders a **"judgement only"** pill, not a fabricated confidence score. Do not read more certainty into a tile than its provenance supports.
+- **Structural proposes; you dispose.** Core/seam are rendered as PROVISIONAL, metric-anchored hypotheses that show the metrics driving them; seam is always a *candidate* ("confirm intent"), never an asserted detection. **Removable is never auto-classified** — a structural/LLM pass cannot see the product intent that makes code "unused", so a removable verdict with no grounding slice renders "requires your judgment — run /audit-slice". Every classification and edge carries an `epistemic_source` chip (measured / metric-anchored / requires-your-intent) so you can see how much each claim depends on information not in the code.
+- **An unowned physical file renders NEUTRAL grey, never core.** A file with no `logical_owners` has not been grounded by any synthesis judgment; it is `unclassified`, not load-bearing. (The non-source inventory filter removes most scaffolding so legitimate unowned files stay visible and honest.)
 - Re-running extraction produces a NEW snapshot (git-SHA-stamped, datestamped); it never mutates an old one. The treemap of last quarter's SHA stays valid as a historical record.
 - The treemap is a *communication* artifact, not a *decision* artifact. The decision lives in the `synthesis-vN.md` decision menu; the treemap makes that decision legible to someone who was not in the room.
 
@@ -218,7 +220,8 @@ authoring checklist`.
 ## Resources
 
 - **Schema (the binding data contract):** `skills/architecture-treemap/components.schema.json`
-- **Metric model (single source of truth):** `skills/architecture-treemap/scripts/metric_registry.py` — the descriptor registry the extractor, schema, and renderer all derive from. Add a metric by registering one descriptor here.
+- **Metric model (single source of truth):** `skills/architecture-treemap/scripts/metric_registry.py` — the descriptor registry the extractor, schema, and renderer all derive from. Add a metric by registering one descriptor here. Ships `loc`, `fan_in/out`, `cyclomatic`, `churn_90d`, `test_ratio`, derived `instability` (`fan_out/(fan_in+fan_out)`) and `refactor_pressure` (+ a degraded `refactor_pressure_loc_proxy` when radon is absent).
+- **Pedagogy model (single source of truth):** `skills/architecture-treemap/scripts/pedagogy_registry.py` — the sibling registry for classification / edge-type / evidence-class explainers, the `epistemic_source` legend (measured / metric-anchored / requires-your-intent), the direction encoding, per-metric explainers, and the concept glossary. Serialised into the manifest `pedagogy` block; the renderer draws every `(?)` affordance and the glossary from it. There is NO hardcoded help in the JS or HTML.
 - **Metrics-architecture decision note (ADR):** `skills/architecture-treemap/references/metrics-architecture.md`
 - **Golden fixture:** `skills/architecture-treemap/references/example/components.json`
 - **Edge-type reference:** `skills/architecture-treemap/references/edge-types.md`
