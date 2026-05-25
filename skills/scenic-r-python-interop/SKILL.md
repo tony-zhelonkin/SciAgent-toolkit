@@ -17,7 +17,10 @@ metadata:
   category: interop
   tier: standard
   tags: []
-  complementary-skills: []
+  complementary-skills:
+  - pycistopic-atac-topic-modeling
+  - pycistarget-motif-enrichment
+  - scenic-grn-inference
   contraindications: []
 ---
 
