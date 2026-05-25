@@ -109,6 +109,7 @@ case "$verb" in
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
         . "$LIB/stack.sh"
+        . "$LIB/collisions.sh"
         . "$LIB/status.sh"
         cmd_status "$@"
         ;;

@@ -238,6 +238,105 @@ _status_render_text() {
     if [[ -d .pi ]]; then pi_state="detected (.pi/ present)"
     else pi_state="not detected (.pi/ absent)"; fi
     printf 'Harness:       %s   Pi: %s\n' "$claude_state" "$pi_state"
+
+    # Notes section — emit only when the active stack has at least one
+    # cross-namespace collision actually realised on disk (>=2 kinds of the
+    # same name mounted by this stack). Annotated against the CI allowlist
+    # so the user can tell intentional family overlaps from accidents.
+    _status_render_notes
+}
+
+# _status_render_notes
+# Inspects the active mount set across skills/agents/commands (roles aren't
+# mounted, but a stack-mounted name that also exists as a role still counts
+# as a collision the user should know about). Cross-references each match
+# against the toolkit-wide enumeration; only collisions whose *active mount*
+# spans >=2 kinds are surfaced.
+_status_render_notes() {
+    # Bail silently if the helper is not on the load path. Status is read-only
+    # and must never block on optional surfaces.
+    if ! declare -F collisions_enumerate >/dev/null 2>&1; then
+        return 0
+    fi
+
+    # Build the active mount set: kind -> set of names.
+    declare -A _mounted_skill=() _mounted_agent=() _mounted_command=()
+    local n
+    for n in "${SKILL_ORDER[@]:-}";    do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+    for n in "${MANIFEST_SKILLS[@]:-}"; do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+    for n in "${INJECTED_LIST[@]:-}";  do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+    for n in "${AGENTS_ORDER[@]:-}";   do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
+    for n in "${COMMANDS_ORDER[@]:-}"; do [[ -n "$n" ]] && _mounted_command[$n]=1; done
+
+    # Walk every collision in the toolkit; for each, intersect the recorded
+    # kinds with what this stack actually mounted. A "role" hit doesn't count
+    # toward the >=2 floor (roles aren't symlinks) but is reported alongside
+    # mounted kinds when it co-occurs with a mounted overlap.
+    local -a _active_lines=()
+    local col_name col_kinds
+    while IFS=$'\t' read -r col_name col_kinds; do
+        [[ -z "$col_name" ]] && continue
+        local -a _active_kinds=()
+        case ",$col_kinds," in *,skill,*)
+            [[ -n "${_mounted_skill[$col_name]:-}" ]] && _active_kinds+=("skill") ;;
+        esac
+        case ",$col_kinds," in *,agent,*)
+            [[ -n "${_mounted_agent[$col_name]:-}" ]] && _active_kinds+=("agent") ;;
+        esac
+        case ",$col_kinds," in *,command,*)
+            [[ -n "${_mounted_command[$col_name]:-}" ]] && _active_kinds+=("command") ;;
+        esac
+        (( ${#_active_kinds[@]} >= 2 )) || continue
+        # Render the kinds list as "a and b" / "a, b, and c".
+        local kinds_phrase
+        case ${#_active_kinds[@]} in
+            2) kinds_phrase="${_active_kinds[0]} and ${_active_kinds[1]}" ;;
+            3) kinds_phrase="${_active_kinds[0]}, ${_active_kinds[1]}, and ${_active_kinds[2]}" ;;
+            *) kinds_phrase="${_active_kinds[*]}" ;;
+        esac
+        # Annotate against the allowlist. Status leans on the same file the
+        # CI test reads; format mirrors the line shape there (`<name> <csv>`).
+        local annotation
+        if _status_collision_in_allowlist "$col_name" "$col_kinds"; then
+            annotation="intentional family overlap per tests/collision-allowlist.txt"
+        else
+            annotation="UNEXPECTED — run 'sciagent validate' for details"
+        fi
+        _active_lines+=("  - '$col_name' appears as both $kinds_phrase ($annotation)")
+    done < <(collisions_enumerate)
+
+    if (( ${#_active_lines[@]} == 0 )); then
+        return 0
+    fi
+
+    printf '\nNotes:\n'
+    local line
+    for line in "${_active_lines[@]}"; do
+        printf '%s\n' "$line"
+    done
+}
+
+# _status_collision_in_allowlist <name> <kinds-csv>
+# Returns 0 when the toolkit's allowlist records this exact (name, kinds)
+# pair. Returns 1 when the name is absent OR the kinds csv differs — the
+# CI test treats a kinds-csv drift as a hard-fail, so status mirrors it
+# as "UNEXPECTED" rather than "intentional".
+_status_collision_in_allowlist() {
+    local want_name="$1" want_kinds="$2"
+    local allowlist="${SCIAGENT_TOOLKIT:-}/tests/collision-allowlist.txt"
+    [[ -f "$allowlist" ]] || return 1
+    local line name kinds
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" ]] && continue
+        name="${line%%[[:space:]]*}"
+        kinds="${line#"$name"}"
+        kinds="${kinds#"${kinds%%[![:space:]]*}"}"
+        [[ "$name" == "$want_name" && "$kinds" == "$want_kinds" ]] && return 0
+    done < "$allowlist"
+    return 1
 }
 
 _status_render_effective() {
