@@ -89,8 +89,8 @@ _status_load_state() {
     # Collect injected skill names and their overlay from the manifest.
     INJECTED_LIST=()
     INJECTED_OVERLAY=()
-    local _ov nm
-    while read -r _ov nm; do
+    local _ov nm _via _kind
+    while IFS='|' read -r _ov nm _via _kind; do
         [[ -n "$_ov" ]] || continue
         INJECTED_LIST+=("$nm")
         INJECTED_OVERLAY+=("$_ov")

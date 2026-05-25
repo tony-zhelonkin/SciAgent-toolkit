@@ -74,8 +74,8 @@ _eject_named_skill() {
     # Check: is the skill in injected[]?
     local found_injected=0
     local found_overlay="" found_via=""
-    local inj_ov inj_sk inj_via
-    while read -r inj_ov inj_sk inj_via; do
+    local inj_ov inj_sk inj_via _inj_kind
+    while IFS='|' read -r inj_ov inj_sk inj_via _inj_kind; do
         if [[ "$inj_sk" == "$skill" ]]; then
             found_injected=1
             found_overlay="$inj_ov"
@@ -120,8 +120,8 @@ _eject_by_tag() {
 
     # Collect all injected entries matching this tag.
     local -a to_eject_skills=()
-    local inj_ov inj_sk inj_via
-    while read -r inj_ov inj_sk inj_via; do
+    local inj_ov inj_sk inj_via _inj_kind
+    while IFS='|' read -r inj_ov inj_sk inj_via _inj_kind; do
         if [[ "$inj_via" == "$via_key" ]]; then
             to_eject_skills+=("$inj_sk")
         fi
@@ -209,6 +209,7 @@ _eject_drop_injected_entry() {
     _manifest_injected_overlays=()
     _manifest_injected_skills=()
     _manifest_injected_vias=()
+    _manifest_injected_kinds=()
 
     # Re-read symlinks, dropping the two entries for this skill.
     local p
@@ -222,9 +223,9 @@ _eject_drop_injected_entry() {
     done < <(manifest_symlinks)
 
     # Re-read injected entries, dropping the matched one.
-    local inj_ov inj_sk inj_via
+    local inj_ov inj_sk inj_via inj_kind
     local dropped=0
-    while read -r inj_ov inj_sk inj_via; do
+    while IFS='|' read -r inj_ov inj_sk inj_via inj_kind; do
         [[ -z "$inj_ov" ]] && continue
         # Match: skill name matches AND (via_filter empty OR via matches).
         if [[ "$inj_sk" == "$skill" && "$dropped" -eq 0 ]]; then
@@ -236,6 +237,7 @@ _eject_drop_injected_entry() {
         _manifest_injected_overlays+=("$inj_ov")
         _manifest_injected_skills+=("$inj_sk")
         _manifest_injected_vias+=("${inj_via:-}")
+        _manifest_injected_kinds+=("${inj_kind:-skill}")
     done < <(manifest_injected)
 
     _manifest_staging=$(mktemp)
@@ -257,8 +259,8 @@ _eject_maybe_collapse_injected_overlay() {
     [[ "$overlay" == "_injected" ]] || return 0
 
     # Check if any injected entries still reference _injected.
-    local inj_ov inj_sk _inj_via
-    while read -r inj_ov inj_sk _inj_via; do
+    local inj_ov inj_sk _inj_via _inj_kind
+    while IFS='|' read -r inj_ov inj_sk _inj_via _inj_kind; do
         if [[ "$inj_ov" == "_injected" ]]; then
             return 0  # Still has entries; don't collapse.
         fi
@@ -277,8 +279,8 @@ _eject_rewrite_block() {
 
     # Collect remaining injected skill names from manifest.
     local -a INJECTED_NAMES=()
-    local ov nm _via
-    while read -r ov nm _via; do
+    local ov nm _via _kind
+    while IFS='|' read -r ov nm _via _kind; do
         [[ -n "$ov" ]] && INJECTED_NAMES+=("$nm")
     done < <(manifest_injected)
 
