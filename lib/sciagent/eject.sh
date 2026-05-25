@@ -155,7 +155,10 @@ _skill_is_stack_mounted() {
         local role="$1" sk="$2"
         local role_file="$tk_root/roles/$role.yaml"
         [[ -f "$role_file" ]] || return 1
-        grep -q "^  - $sk$" "$role_file"
+        # Match `  - <sk>` lines with optional trailing whitespace and/or
+        # YAML comment. Real role YAMLs (e.g. roles/base.yaml) use trailing
+        # `# description` comments that the anchored `^  - $sk$` form misses.
+        grep -Eq "^  - $sk([[:space:]]+#.*)?[[:space:]]*$" "$role_file"
     }
 
     if _role_contains_skill "$base" "$skill"; then
