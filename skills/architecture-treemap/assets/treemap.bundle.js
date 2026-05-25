@@ -1878,8 +1878,6 @@ function buildGlossary() {
   host.innerHTML = html;
 }
 
-// ── "How to read this" panel (Tier-2, localStorage state) ────────────────────
-
 // ── Legend toggle (collapsed "?" by default) ─────────────────────────────────
 
 const LEGEND_STORAGE_KEY = 'architecture-treemap-legend-open';
