@@ -41,9 +41,11 @@
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const CLS_BASE = {
-  core:      '#2a7a2a',
-  seam:      '#c87800',
-  removable: '#a02020',
+  core:        '#2a7a2a',
+  seam:        '#c87800',
+  removable:   '#a02020',
+  unclassified:'#555555',  // neutral grey: an unowned physical file inherits NO
+                           // classification. It must NOT masquerade as core.
 };
 
 // Edge type stroke colours.
@@ -91,6 +93,84 @@ function metricBadgeLights(desc, value) {
   return desc.higher_is_better ? (value < desc.badge_threshold) : (value >= desc.badge_threshold);
 }
 
+// ── Pedagogy model (single source of truth, manifest-driven) ──────────────────
+// scripts/pedagogy_registry.py serialises a `pedagogy` block into the manifest:
+// classification / edge-type / evidence-class explainers, the direction
+// encoding, per-metric explainers, the epistemic-source legend, and the
+// glossary. The renderer reads it so every (?) affordance and the glossary are
+// a PURE FUNCTION of the file — the same invariant the metric descriptors hold.
+// This REPLACES the old hardcoded EDGE_TYPE_HELP (JS) and the classification /
+// evidence help that was inlined in the template HTML (the Connascence-of-Value
+// smear the metrics ADR killed for metrics, now killed for pedagogy too).
+//
+// Backward compatibility: pre-pedagogy manifests omit the block; we fall back
+// to a compact built-in default so older manifests still render their (?) help.
+const DEFAULT_PEDAGOGY = {
+  epistemic_sources: {
+    'measured':             { label: 'measured', what: 'Deterministic: an AST/git/tool proved this directly.', color: '#3a7a3a' },
+    'metric-anchored':      { label: 'metric-anchored judgment', what: 'Judgment biased by a metric — the metric points, it does not decide.', color: '#a07020' },
+    'requires-your-intent': { label: 'requires your intent', what: 'Extrinsic: not in the code. Only a human naming a concern can ground it.', color: '#8a4a8a' },
+  },
+  classifications: {
+    core:      { what: 'Load-bearing: the app cannot function without it.', how: 'Proposed from import graph + metrics (high fan-in, central).', teaches: 'Last to refactor. "Essential" is partly a product claim, not pure code.', epistemic_source: 'metric-anchored', color: '#2a7a2a', provisional_label: 'core (structural hypothesis)' },
+    seam:      { what: 'A deliberately thin boundary between two larger parts.', how: 'Weakly detectable: small LOC + fan-in hint at it; deliberateness is not measurable.', teaches: 'Always a candidate — confirm intent. Never an asserted detection.', epistemic_source: 'requires-your-intent', color: '#c87800', provisional_label: 'seam? (confirm intent)' },
+    removable: { what: 'A strip candidate: dead, superseded, or dead-on-arrival.', how: 'NOT in the code. Requires a user-stated concern (/audit-slice).', teaches: 'Meaningless without intent. A structural pass can never assert it.', epistemic_source: 'requires-your-intent', color: '#a02020', provisional_label: 'requires your judgment — run /audit-slice' },
+  },
+  edge_types: {
+    'direct-call':          { what: "One component names another's identifier.", how: 'Detected statically by the AST import graph.', teaches: 'Connascence of Name — weakest, normal. Only a problem when the callee is removable.', epistemic_source: 'measured', color: '#888' },
+    'shared-state':         { what: 'Two components both read/write the same structure.', how: 'Audit-asserted: not statically detectable.', teaches: 'Connascence of Identity/Value. Corrosive as the structure grows.', epistemic_source: 'metric-anchored', color: '#3a86c0' },
+    'background-knowledge': { what: 'An unenforced invariant one assumes about another.', how: 'Requires intent: only a human who knows the contract can name it.', teaches: 'Connascence of Convention — most expensive; no tool can catch a violation.', epistemic_source: 'requires-your-intent', color: '#8a5cb0' },
+  },
+  evidence_classes: {
+    'static':         { what: 'The AST/import graph proved this edge.', how: 'Emitted by the extractor. Renders SOLID.', teaches: 'Solid = provable. Cannot prove runtime/dynamic coupling.', epistemic_source: 'measured' },
+    'audit-asserted': { what: 'A human asserted this edge from a slice.', how: 'Authored during synthesis. Renders DASHED.', teaches: 'Dashed = judgment, as trustworthy as the slice behind it.', epistemic_source: 'metric-anchored' },
+  },
+  direction_encoding: { what: 'Outgoing edges full-colour; incoming lighter.', how: 'A renderer convention, not data.', teaches: 'Direction shows who depends on whom — drives stability.', epistemic_source: 'measured' },
+  metrics: {},
+  glossary: [],
+};
+
+const PEDAGOGY = (COMPONENTS_DATA.pedagogy && Object.keys(COMPONENTS_DATA.pedagogy).length)
+  ? COMPONENTS_DATA.pedagogy
+  : DEFAULT_PEDAGOGY;
+
+// Merge fallbacks so a partial manifest pedagogy still has the sub-blocks.
+for (const key of Object.keys(DEFAULT_PEDAGOGY)) {
+  if (PEDAGOGY[key] === undefined) PEDAGOGY[key] = DEFAULT_PEDAGOGY[key];
+}
+
+// Build a (?) explainer title string from a {what, how, teaches,
+// epistemic_source} entry. The epistemic-source chip prefix is the load-bearing
+// part; the prose is the trimmable a/b/c contract.
+function explainerTitle(entry) {
+  if (!entry) return '';
+  const parts = [];
+  const src = entry.epistemic_source;
+  if (src && PEDAGOGY.epistemic_sources[src]) {
+    parts.push('[' + PEDAGOGY.epistemic_sources[src].label + ']');
+  }
+  if (entry.what) parts.push(entry.what);
+  if (entry.how) parts.push('How: ' + entry.how);
+  if (entry.teaches) parts.push('Teaches: ' + entry.teaches);
+  return parts.join(' — ');
+}
+
+// Small inline (?) affordance as an HTML string. Uniform across metric badges,
+// classifications, edge-types, evidence-classes, and the direction legend.
+function infoIcon(entry) {
+  const title = explainerTitle(entry);
+  if (!title) return '';
+  return `<span class="ped-info" title="${escHtml(title)}">(?)</span>`;
+}
+
+// A small epistemic-source chip (coloured) for a classification/edge panel row.
+function epistemicChip(source) {
+  const meta = PEDAGOGY.epistemic_sources[source];
+  if (!meta) return '';
+  return `<span class="epi-chip" style="border-color:${meta.color};color:${meta.color}"
+            title="${escHtml(meta.what)}">${escHtml(meta.label)}</span>`;
+}
+
 // Force-graph layout zones (logical x-centre targets, normalised 0-1)
 const CLUSTER_X = { core: 0.2, seam: 0.5, removable: 0.8 };
 const CLUSTER_Y = 0.5;
@@ -115,6 +195,11 @@ let selectedNodeIds   = new Set();   // ids of nodes whose edges are shown
 let showAllEdges      = false;       // "Show all edges (faint)" toggle
 let graphSimulation   = null;        // d3 force simulation (Graph view)
 let graphAmbientIds   = new Set();   // cross-cutting sinks in the current graph
+// Session-persistent node positions: populated on drag-end so that re-entering
+// the Graph view restores the user's manual layout instead of re-seeding.
+// Cleared only on page reload; first render (empty map) is byte-identical to
+// the deterministic seeded layout.
+const graphNodePositions = new Map(); // node id → {x, y}
 
 // "Show tests" toggle (Physical view). Tests stay in the manifest (kind:test)
 // but are excluded from the default backbone layout; this reveals them in a
@@ -124,6 +209,49 @@ let showTests = (localStorage.getItem(SHOW_TESTS_STORAGE_KEY) === 'true');
 
 // Backbone kinds shown in the default Physical view (everything but tests).
 const BACKBONE_KINDS = new Set(['module', 'config', 'asset', 'other', 'doc']);
+
+// Physical-view colour mode: 'role' (classification hue, default) or 'pressure'
+// (a single-hue heat ramp keyed to refactor pressure). The toggle TIME-SHARES
+// the colour channel — it never permanently overrides the classification hue —
+// so the user can flip between "what role does this play?" and "where is the
+// pressure?" without the two signals fighting. Persisted like other toggles.
+const COLOR_MODE_STORAGE_KEY = 'architecture-treemap-color-mode';
+let colorMode = (localStorage.getItem(COLOR_MODE_STORAGE_KEY) === 'pressure') ? 'pressure' : 'role';
+
+// The pressure metric key: the genuine refactor_pressure when radon was present,
+// else the degraded LOC proxy (clearly labelled in the UI). Resolved per render.
+function pressureKeyFor(metrics) {
+  if (!metrics) return null;
+  if (metrics.refactor_pressure !== undefined) return 'refactor_pressure';
+  if (metrics.refactor_pressure_loc_proxy !== undefined) return 'refactor_pressure_loc_proxy';
+  return null;
+}
+
+// True when NO component carries a real refactor_pressure AND radon was flagged
+// unavailable — the lens must render GREYED with an install hint, not blank.
+function pressureUnavailable() {
+  const unavail = (COMPONENTS_DATA.extractor && COMPONENTS_DATA.extractor.unavailable_metrics) || [];
+  return unavail.indexOf('refactor_pressure') !== -1;
+}
+
+// Rank physical components by pressure (real or proxy), descending. Returns
+// [{pc, value, key}] for components that HAVE a pressure value.
+function topByPressure(physicals, limit) {
+  const scored = [];
+  for (const pc of physicals) {
+    const key = pressureKeyFor(pc.metrics);
+    if (!key) continue;
+    scored.push({ pc, value: pc.metrics[key], key });
+  }
+  scored.sort((a, b) => b.value - a.value);
+  return limit ? scored.slice(0, limit) : scored;
+}
+
+// Heat colour for a pressure value, interpolated cool→hot over [0, max].
+function pressureColor(value, maxPressure) {
+  const t = maxPressure > 0 ? Math.min(1, value / maxPressure) : 0;
+  return d3.interpolateRgb(d3.color('#26323f'), d3.color('#ff5a36'))(0.15 + 0.85 * t);
+}
 
 // Cross-cutting / ambient sink detection. A node that many things depend on but
 // that depends on nothing is a pure SINK — drawing every edge into it solid
@@ -206,10 +334,15 @@ function clsColor(cls, loc, maxLoc) {
 
 function primaryClassForPhysical(pc) {
   const owners = pc.logical_owners || [];
-  if (owners.length === 0) return 'core';
+  // A physical file with no logical owner is UNCLASSIFIED — it has not been
+  // grounded by any synthesis judgment. It renders neutral grey, never 'core'
+  // (the old bug: unowned files silently inherited core and inflated the
+  // load-bearing class). The non-source filter removes most junk; legit unowned
+  // files (e.g. a freshly-extracted substrate before synthesis) stay honest.
+  if (owners.length === 0) return 'unclassified';
   // Priority: removable > seam > core (most architecturally interesting wins)
   const rank = { removable: 3, seam: 2, core: 1 };
-  let best = 'core', bestRank = 0;
+  let best = 'unclassified', bestRank = 0;
   for (const id of owners) {
     const lc = logicalById.get(id);
     if (!lc) continue;
@@ -219,21 +352,54 @@ function primaryClassForPhysical(pc) {
   return best;
 }
 
+// Approximate glyph width for the tile font (px per char). Used to convert a
+// pixel budget to a character budget consistently across wrap + truncate.
+const PX_PER_CHAR = 6.2;
+
+// Truncate a single token to a character budget, appending an ellipsis when it
+// overflows. The load-bearing fix for the bug where a long single token fell
+// through wrapText untruncated and painted past the tile.
+function truncateToChars(str, maxChars) {
+  if (!str) return '';
+  if (maxChars < 1) return '';
+  if (str.length <= maxChars) return str;
+  if (maxChars <= 1) return '…';
+  return str.substring(0, maxChars - 1) + '…';
+}
+
 function wrapText(str, maxChars) {
   if (!str) return [''];
+  if (maxChars < 1) return [];
   const words = str.replace(/_/g, ' ').split(' ');
   const lines = [];
   let cur = '';
   for (const w of words) {
     if ((cur + ' ' + w).trim().length > maxChars) {
       if (cur) lines.push(cur);
-      cur = w;
+      // A single word longer than the budget is TRUNCATED to the budget with an
+      // ellipsis (was: pushed whole, then painted past the tile — the bug).
+      cur = (w.length > maxChars) ? truncateToChars(w, maxChars) : w;
     } else {
       cur = (cur + ' ' + w).trim();
     }
   }
   if (cur) lines.push(cur);
-  return lines.length ? lines : [str.substring(0, maxChars)];
+  // Fallthrough also truncates rather than emitting an over-budget substring.
+  return lines.length ? lines : [truncateToChars(str, maxChars)];
+}
+
+// Define (idempotently) a per-cell clipPath sized to the tile, and return its
+// url(#id) reference. The LOAD-BEARING overlap fix: clipping a cell's label +
+// badge children to the tile box GUARANTEES no element ever paints onto a
+// neighbour, independent of every wrap/truncate heuristic. Ids are namespaced
+// per view so logical and physical clips never collide.
+function ensureCellClip(defs, idPrefix, id, w, h) {
+  const clipId = `clip-${idPrefix}-${id}`;
+  const cp = defs.append('clipPath').attr('id', clipId);
+  cp.append('rect')
+    .attr('x', 0).attr('y', 0)
+    .attr('width', Math.max(0, w)).attr('height', Math.max(0, h));
+  return `url(#${clipId})`;
 }
 
 // Derive the lit badges for a metrics block from the descriptor registry.
@@ -253,20 +419,26 @@ function badgesForMetrics(metrics) {
 }
 
 // Draw up to 3 metric badges in the top-left of a cell (SVG g element).
+// Returns the Y coordinate BELOW the badge row (the reserved bottom), so the
+// caller can place the label beneath the badges instead of colliding with them.
+// A badge that would overflow the tile width is dropped (not clipped mid-word),
+// and the per-cell clipPath (ensureCellClip) is the backstop either way.
 function drawMetricBadges(gEl, metrics, cellW, cellH) {
-  if (!metrics || cellW < 40 || cellH < 16) return;
-  const badges = badgesForMetrics(metrics);
-  if (badges.length === 0) return;
-
+  const BADGE_TOP = 3;
   const badgeH = 9;
+  if (!metrics || cellW < 40 || cellH < 16) return BADGE_TOP;
+  const badges = badgesForMetrics(metrics);
+  if (badges.length === 0) return BADGE_TOP;
+
   const pad = 2;
   let bx = 3;
-  const by = 3;
+  const by = BADGE_TOP;
+  let drewAny = false;
 
   for (const def of badges) {
     const label = def.label;
     const bw = label.length * 5 + 6;
-    if (bx + bw > cellW - 3) break;
+    if (bx + bw > cellW - 3) break;  // no room for this badge; stop the row.
     gEl.append('rect')
       .attr('class', 'metric-badge')
       .attr('x', bx).attr('y', by)
@@ -281,7 +453,9 @@ function drawMetricBadges(gEl, metrics, cellW, cellH) {
       .attr('fill', '#fff')
       .text(label);
     bx += bw + pad;
+    drewAny = true;
   }
+  return drewAny ? (by + badgeH + 2) : BADGE_TOP;
 }
 
 // Define (once per render) the diagonal-hatch pattern used to mark test tiles
@@ -522,6 +696,9 @@ function renderLogical() {
     });
   }
 
+  // Shared defs for per-cell clip paths (overlap fix).
+  const cellDefs = svg.append('defs').attr('class', 'cell-clip-defs');
+
   const g = svg.selectAll('g.node')
     .data(leaves)
     .join('g')
@@ -550,28 +727,39 @@ function renderLogical() {
   g.each(function(d) {
     const cw = d.x1 - d.x0;
     const ch = d.y1 - d.y0;
-    if (cw < 30 || ch < 14) return;
+    // Raised gate: need width for at least one truncated label + height for a
+    // text row. A 31px tile cannot hold a name; skip it rather than overflow.
+    if (cw < 46 || ch < 14) return;
 
     const gEl = d3.select(this);
     const metrics = d.data.metrics;
 
-    // Metric badges at top-left
-    drawMetricBadges(gEl, metrics, cw, ch);
+    // Clip everything in this cell to its own box (load-bearing overlap fix).
+    const clipUrl = ensureCellClip(cellDefs, 'log', d.data.id, cw, ch);
+    const inner = gEl.append('g').attr('clip-path', clipUrl);
 
-    // Name label — offset down if badges drawn
-    const hasBadges = metrics && badgesForMetrics(metrics).length > 0;
-    const textY0 = hasBadges ? 16 : 13;
+    // Metric badges at top-left; returns the reserved bottom of the badge row.
+    const badgeBottom = drawMetricBadges(inner, metrics, cw, ch);
+    const hasBadges = badgeBottom > 3;
 
-    const lines = wrapText(d.data.name, Math.floor(cw / 6.5));
-    lines.slice(0, 3).forEach((line, i) => {
-      gEl.append('text')
+    // If badges were drawn but the tile is too short to clear them, show badges
+    // only (no name) rather than colliding the name into the badge row.
+    if (hasBadges && ch < 28) return;
+
+    const textY0 = hasBadges ? badgeBottom + 9 : 13;
+    const maxChars = Math.floor((cw - 8) / PX_PER_CHAR);
+    const lines = wrapText(d.data.name, maxChars);
+    // Bound line count to the vertical space remaining below the badge row.
+    const maxLines = Math.max(1, Math.floor((ch - textY0) / 12) + 1);
+    lines.slice(0, Math.min(3, maxLines)).forEach((line, i) => {
+      inner.append('text')
         .attr('x', 4).attr('y', textY0 + i * 12)
         .attr('class', i === 0 ? '' : 'sub')
         .text(line);
     });
 
     if (ch > 32 && cw > 50) {
-      gEl.append('text')
+      inner.append('text')
         .attr('class', 'sub')
         .attr('x', 4).attr('y', ch - 4)
         .text(d.data.size_estimate_loc + ' loc');
@@ -606,7 +794,9 @@ function renderPhysical() {
   const visible = physicals.filter(pc => pc.kind !== 'test' || showTests);
 
   const maxLoc = d3.max(visible, d => d.size_loc) || 1;
-  const groups = ['core', 'seam', 'removable'].map(cls => ({
+  // Group order includes 'unclassified' (neutral grey) so unowned files have a
+  // home that is NOT core.
+  const groups = ['core', 'seam', 'removable', 'unclassified'].map(cls => ({
     id: cls,
     name: cls,
     children: visible
@@ -631,19 +821,42 @@ function renderPhysical() {
 
   const physicalIds = visible.map(pc => pc.id);
 
+  // Pressure-mode colour ramp domain (max pressure across visible tiles).
+  const maxPressure = d3.max(visible, pc => {
+    const k = pressureKeyFor(pc.metrics);
+    return k ? pc.metrics[k] : 0;
+  }) || 0;
+
+  // Fill resolver: role mode = classification hue; pressure mode = heat ramp
+  // (tiles with no pressure value go neutral so they recede). Time-shares the
+  // channel — role hue is never permanently overwritten.
+  function physicalFill(pc, primaryCls) {
+    if (colorMode === 'pressure') {
+      const k = pressureKeyFor(pc.metrics);
+      if (!k) return '#262626';
+      return pressureColor(pc.metrics[k], maxPressure);
+    }
+    return clsColor(primaryCls, pc.size_loc, maxLoc);
+  }
+
   // Hatch pattern for de-emphasised test tiles (muted, striped, subordinate).
   ensureTestHatchPattern();
+
+  // Shared defs for per-cell clip paths (overlap fix).
+  const cellDefs = svg.append('defs').attr('class', 'cell-clip-defs');
 
   const g = svg.selectAll('g.node')
     .data(leaves)
     .join('g')
     .attr('class', 'node')
+    .attr('data-pcid', d => d.data.id)
     .attr('transform', d => `translate(${d.x0},${d.y0})`);
 
   g.append('rect')
+    .attr('class', 'pcell-rect')
     .attr('width',  d => Math.max(0, d.x1 - d.x0))
     .attr('height', d => Math.max(0, d.y1 - d.y0))
-    .attr('fill',   d => clsColor(d.data._primaryCls, d.data.size_loc, maxLoc))
+    .attr('fill',   d => physicalFill(d.data, d.data._primaryCls))
     .attr('rx', 2)
     .attr('opacity', d => d.data.kind === 'test' ? 0.4 : 1)
     .on('mousemove', (event, d) => showTip(event, d.data, 'physical'))
@@ -670,34 +883,59 @@ function renderPhysical() {
     .attr('fill', 'url(#test-hatch)')
     .attr('pointer-events', 'none');
 
-  // Per-cell labels, owner pills, metric badges
+  // Cycle-membership marker: a dashed inner border on any tile in an import
+  // cycle (Acyclic Dependencies Principle). Deterministic — read straight from
+  // the per-component cycle_id/cycle_size the extractor stamped.
+  g.filter(d => d.data.cycle_id)
+    .append('rect')
+    .attr('class', 'cycle-marker')
+    .attr('x', 1.5).attr('y', 1.5)
+    .attr('width',  d => Math.max(0, d.x1 - d.x0 - 3))
+    .attr('height', d => Math.max(0, d.y1 - d.y0 - 3))
+    .attr('rx', 2)
+    .attr('fill', 'none')
+    .attr('stroke', '#e08a3c')
+    .attr('stroke-width', 1.5)
+    .attr('stroke-dasharray', '3 2')
+    .attr('pointer-events', 'none');
+
+  // Per-cell labels, owner pills, metric badges (all clipped to the tile box).
   g.each(function(d) {
     const cw = d.x1 - d.x0;
     const ch = d.y1 - d.y0;
-    if (cw < 30 || ch < 14) return;
+    // Raised gate: a tile narrower than ~46px cannot hold a filename; skip the
+    // label rather than overflow it past the tile edge.
+    if (cw < 46 || ch < 14) return;
 
     const gEl = d3.select(this);
     const metrics = d.data.metrics;
 
-    // Metric badges at top-left
-    drawMetricBadges(gEl, metrics, cw, ch);
+    // Clip everything in this cell to its own box (load-bearing overlap fix).
+    const clipUrl = ensureCellClip(cellDefs, 'phys', d.data.id, cw, ch);
+    const inner = gEl.append('g').attr('clip-path', clipUrl);
 
-    const hasBadges = metrics && badgesForMetrics(metrics).length > 0;
-    const textY0 = hasBadges ? 16 : 13;
+    // Metric badges at top-left; returns the reserved bottom of the badge row.
+    const badgeBottom = drawMetricBadges(inner, metrics, cw, ch);
+    const hasBadges = badgeBottom > 3;
 
+    // Badges drawn but tile too short to clear them: badges only, no name.
+    if (hasBadges && ch < 28) return;
+
+    const textY0 = hasBadges ? badgeBottom + 8 : 13;
     const base = d.data.path.split('/').pop();
-    const lines = wrapText(base, Math.floor(cw / 6.2));
-    lines.slice(0, 2).forEach((line, i) => {
-      gEl.append('text')
+    const maxChars = Math.floor((cw - 8) / PX_PER_CHAR);
+    const lines = wrapText(base, maxChars);
+    const maxLines = Math.max(1, Math.floor((ch - textY0) / 11));
+    lines.slice(0, Math.min(2, maxLines)).forEach((line, i) => {
+      inner.append('text')
         .attr('x', 4).attr('y', textY0 + i * 11)
         .attr('class', i === 0 ? '' : 'sub')
         .text(line);
     });
 
-    // Owner pills at bottom — fix for pill-accumulation bug:
-    // pills are drawn exactly once per g.each iteration (no re-join/re-append
-    // accumulation possible because svg.selectAll('*').remove() wipes the SVG
-    // before each render call).
+    // Owner pills at bottom. Each owner label is truncated to the pill width and
+    // the row is clipped by the cell clipPath, so a long owner name can never
+    // bleed into a neighbour tile.
     if (ch > 36 && d.data.logical_owners && d.data.logical_owners.length > 0) {
       const owners = d.data.logical_owners;
       const pillH = 10;
@@ -708,20 +946,20 @@ function renderPhysical() {
       for (const oid of owners) {
         const lc = logicalById.get(oid);
         if (!lc) continue;
-        const label = lc.name.substring(0, 10);
+        const label = truncateToChars(lc.name, 10);
         const pw = label.length * 5.5 + 6;
-        if (px + pw > cw - 3) break;  // overflow guard
+        if (px + pw > cw - 3) break;  // overflow guard (clip backstops it too)
 
         const pillColor = d3.color(CLS_BASE[lc.classification] || '#444');
         pillColor.opacity = 0.7;
 
-        gEl.append('rect').attr('class', 'badge-stripe')
+        inner.append('rect').attr('class', 'badge-stripe')
           .attr('x', px).attr('y', py)
           .attr('width', pw).attr('height', pillH)
           .attr('rx', 2)
           .attr('fill', pillColor.toString());
 
-        gEl.append('text').attr('class', 'badge-stripe')
+        inner.append('text').attr('class', 'badge-stripe')
           .attr('x', px + 3).attr('y', py + 8)
           .attr('font-size', 7).attr('fill', '#fff')
           .text(label);
@@ -732,14 +970,104 @@ function renderPhysical() {
 
     if (ch > 50 && cw > 50) {
       const offsetFromBottom = (d.data.logical_owners && d.data.logical_owners.length > 0) ? 16 : 4;
-      gEl.append('text').attr('class', 'sub')
+      inner.append('text').attr('class', 'sub')
         .attr('x', 4).attr('y', ch - offsetFromBottom)
         .text(d.data.size_loc + ' loc');
     }
   });
 
+  // The "look here first" refactor-pressure side list (always present in the
+  // Physical view; greyed with an install hint when radon was absent).
+  renderPressureLens(visible, maxPressure);
+
   // Draw any pre-existing selection (e.g. after a resize or view switch back)
   buildEdgeOverlaySvg(physicalIds, physicalNodeCenters);
+}
+
+// ── Refactor-pressure "look here first" lens ──────────────────────────────────
+// An always-on side list ranking the top-N components by refactor pressure (the
+// real metric, or the clearly-labelled LOC proxy when radon was absent). The
+// honesty rule lives in the UI copy: "look here first", never "refactor this".
+// Clicking an item highlights the tile and decomposes the factors.
+function renderPressureLens(visible, maxPressure) {
+  const host = document.getElementById('pressure-lens');
+  if (!host) return;
+
+  const usingProxy = !visible.some(pc => pc.metrics && pc.metrics.refactor_pressure !== undefined)
+    && visible.some(pc => pc.metrics && pc.metrics.refactor_pressure_loc_proxy !== undefined);
+
+  let html = `<div class="lens-head">Look here first
+    <span class="ped-info" title="Ranks ATTENTION, not verdicts. A hot tile is an entrypoint into thousands of lines — it is never an instruction to refactor. Click a row to see WHY it is hot (the factor decomposition) and judge whether the heat is real.">(?)</span>
+    </div>`;
+
+  if (pressureUnavailable() && !usingProxy) {
+    // No pressure at all and radon flagged unavailable: grey the lens with a
+    // reason, never an empty list that reads as "nothing to see".
+    host.classList.add('lens-disabled');
+    html += `<div class="lens-disabled-msg">Install <code>radon</code> to enable
+      complexity &amp; refactor-pressure.<br>
+      (<code>pip install radon</code>, then re-run /components-extract.)</div>`;
+    host.innerHTML = html;
+    return;
+  }
+
+  host.classList.remove('lens-disabled');
+  if (usingProxy) {
+    html += `<div class="lens-proxy-note">Degraded LOC proxy (radon absent):
+      LOC stands in for complexity. Install radon for the true score.</div>`;
+  }
+
+  const ranked = topByPressure(visible, 12);
+  if (ranked.length === 0) {
+    html += `<div class="lens-disabled-msg">No component has a computable
+      refactor pressure (needs churn + complexity/LOC + fan-in).</div>`;
+    host.innerHTML = html;
+    return;
+  }
+
+  for (const item of ranked) {
+    const name = item.pc.path.split('/').pop();
+    const t = maxPressure > 0 ? Math.min(1, item.value / maxPressure) : 0;
+    const barColor = pressureColor(item.value, maxPressure);
+    html += `<div class="lens-row" onclick="highlightPressureTile('${item.pc.id}')" title="Click to highlight + decompose">
+      <div class="lens-row-top">
+        <span class="lens-name">${escHtml(name)}</span>
+        <span class="lens-val">${Math.round(item.value)}</span>
+      </div>
+      <div class="lens-bar"><div class="lens-bar-fill" style="width:${Math.round(t * 100)}%;background:${barColor}"></div></div>
+      <div class="lens-factors" id="lens-factors-${escHtml(item.pc.id)}" style="display:none"></div>
+    </div>`;
+  }
+  host.innerHTML = html;
+}
+
+// Highlight a tile from the pressure list and decompose its pressure factors
+// (churn x complexity x fan_in / test_ratio) so the user sees WHY it is hot.
+function highlightPressureTile(pcid) {
+  // Outline the tile.
+  svg.selectAll('rect.pcell-rect').attr('stroke', null).attr('stroke-width', null);
+  const cell = svg.select(`g.node[data-pcid="${pcid}"] rect.pcell-rect`);
+  if (!cell.empty()) {
+    cell.attr('stroke', '#fff').attr('stroke-width', 2.5);
+  }
+  selectedNodeIds = new Set([pcid]);
+  buildEdgeOverlaySvg((COMPONENTS_DATA.physical_components || []).map(c => c.id), physicalNodeCenters);
+  showPanel(pcid, 'physical');
+
+  // Toggle the inline factor decomposition under the clicked row.
+  const slot = document.getElementById(`lens-factors-${pcid}`);
+  if (!slot) return;
+  const pc = physicalById.get(pcid);
+  const m = (pc && pc.metrics) || {};
+  const usingProxy = m.refactor_pressure === undefined && m.refactor_pressure_loc_proxy !== undefined;
+  const complexity = usingProxy ? `LOC/100 = ${((m.loc || 0) / 100).toFixed(1)} (proxy)` : (m.cyclomatic !== undefined ? m.cyclomatic : 'n/a');
+  const factor = (label, val) => `<div class="lens-factor"><span>${label}</span><span>${val}</span></div>`;
+  slot.innerHTML =
+    factor('churn (90d)', m.churn_90d !== undefined ? m.churn_90d : 'n/a') +
+    factor('complexity', complexity) +
+    factor('fan-in', m.fan_in !== undefined ? m.fan_in : 'n/a') +
+    factor('test ratio', m.test_ratio !== undefined ? m.test_ratio : '0 (untested → amplifies)');
+  slot.style.display = slot.style.display === 'none' ? 'block' : 'none';
 }
 
 // ── Graph view ────────────────────────────────────────────────────────────────
@@ -781,13 +1109,28 @@ function renderGraph() {
   // Seed positions by classification zone. The seeded PRNG (from the URL hash)
   // drives BOTH the base jitter here and the perturbation below, so the layout
   // is reproducible per seed — same hash gives the same starting positions.
+  // Nodes with a stored position (from a prior drag this session) skip the RNG
+  // so the RNG call sequence for unseen nodes is unchanged — determinism is
+  // preserved for any first render where graphNodePositions is empty.
   const rng = mulberry32(getSeedFromHash());
-  const nodes = logicals.map(c => ({
-    ...c,
-    x: CLUSTER_X[c.classification] * w + (rng() * 60 - 30),
-    y: CLUSTER_Y * h + (rng() * 60 - 30),
-    r: rScale(c.size_estimate_loc),
-  }));
+  const nodes = logicals.map(c => {
+    const stored = graphNodePositions.get(c.id);
+    // Consume two RNG values regardless of whether the stored position is used,
+    // so the sequence for later nodes is identical to the no-stored-positions case.
+    const rx = rng() * 60 - 30;
+    const ry = rng() * 60 - 30;
+    const x = stored ? stored.x : CLUSTER_X[c.classification] * w + rx;
+    const y = stored ? stored.y : CLUSTER_Y * h + ry;
+    return {
+      ...c,
+      x,
+      y,
+      // Pin nodes whose positions were restored so the simulation doesn't move them.
+      fx: stored ? stored.x : undefined,
+      fy: stored ? stored.y : undefined,
+      r: rScale(c.size_estimate_loc),
+    };
+  });
 
   const nodeById = new Map(nodes.map(n => [n.id, n]));
 
@@ -852,12 +1195,16 @@ function renderGraph() {
       })
       .on('end', (event, d) => {
         if (!event.active) graphSimulation.alphaTarget(0);
-        // Keep pinned; double-click to unpin
+        // Keep pinned; double-click to unpin. Persist final position so that
+        // re-entering the Graph view restores this arrangement.
+        graphNodePositions.set(d.id, { x: d.fx, y: d.fy });
       })
     )
     .on('dblclick', (event, d) => {
       d.fx = null;
       d.fy = null;
+      // Remove stored position so this node gets seed-layout on next render.
+      graphNodePositions.delete(d.id);
       graphSimulation.alpha(0.3).restart();
     })
     .on('click', (event, d) => {
@@ -901,9 +1248,15 @@ function renderGraph() {
   // Force simulation — seeded for reproducibility via URL hash. Reuse the same
   // seeded rng created for the base positions above so the whole layout is a
   // pure function of the seed.
+  // Nodes with stored (restored) positions are already pinned; consume the RNG
+  // values for them anyway to keep the sequence identical to a fresh render.
   for (const n of nodes) {
-    n.x += (rng() - 0.5) * 40;
-    n.y += (rng() - 0.5) * 40;
+    const px = (rng() - 0.5) * 40;
+    const py = (rng() - 0.5) * 40;
+    if (n.fx === undefined) {
+      n.x += px;
+      n.y += py;
+    }
   }
 
   graphSimulation = d3.forceSimulation(nodes)
@@ -1017,11 +1370,26 @@ function showLogicalPanel(id) {
 
   panelTitle.textContent = lc.name;
 
-  const classHtml = `<span class="badge ${lc.classification}">${lc.classification}</span>`;
+  // Epistemic spine: a structural/LLM pass MUST NOT auto-assert removable. A
+  // removable verdict with no grounding slice/finding/prune renders as a
+  // PROVISIONAL "requires your judgment" marker rather than a confident red
+  // badge — removable is the one verdict meaningless without intent.
+  const clsEntry = (PEDAGOGY.classifications || {})[lc.classification];
+  const provisionalRemovable = (lc.classification === 'removable' && !hasEvidence);
+
+  let classHtml;
+  if (provisionalRemovable) {
+    classHtml = `<span class="badge provisional-removable" title="${escHtml((clsEntry && clsEntry.teaches) || '')}">requires your judgment — run /audit-slice</span>`;
+  } else {
+    classHtml = `<span class="badge ${lc.classification}" title="${escHtml(explainerTitle(clsEntry))}">${lc.classification}</span>`;
+  }
+  // Epistemic-source chip on the classification (manifest value or pedagogy default).
+  const epiSource = lc.epistemic_source || (clsEntry ? clsEntry.epistemic_source : null);
+  const epiHtml = epiSource ? epistemicChip(epiSource) : '';
   const judgementPill = hasEvidence ? '' : '<span class="badge" style="background:#222;color:#888;border-color:#444;margin-left:4px">judgement only</span>';
 
-  document.querySelectorAll('#panel-header .badge').forEach(b => b.remove());
-  panelTitle.insertAdjacentHTML('afterend', classHtml + judgementPill);
+  document.querySelectorAll('#panel-header .badge, #panel-header .epi-chip').forEach(b => b.remove());
+  panelTitle.insertAdjacentHTML('afterend', classHtml + epiHtml + judgementPill);
 
   // View-in-other-mode link
   const otherView = currentView === 'logical' ? 'physical' : 'logical';
@@ -1115,13 +1483,23 @@ function showPhysicalPanel(id) {
   const cls = primaryClassForPhysical(pc);
 
   panelTitle.textContent = pc.path.split('/').pop();
-  const classHtml = `<span class="badge ${cls}">${cls}</span>`;
-  document.querySelectorAll('#panel-header .badge').forEach(b => b.remove());
-  panelTitle.insertAdjacentHTML('afterend', classHtml);
+  const clsEntry = (PEDAGOGY.classifications || {})[cls];
+  const classHtml = `<span class="badge ${cls}" title="${escHtml(explainerTitle(clsEntry))}">${cls}</span>`;
+  const epiHtml = clsEntry ? epistemicChip(clsEntry.epistemic_source) : '';
+  document.querySelectorAll('#panel-header .badge, #panel-header .epi-chip').forEach(b => b.remove());
+  panelTitle.insertAdjacentHTML('afterend', classHtml + epiHtml);
 
   let html = '';
   html += `<div class="panel-section"><h3>Path</h3><p style="font-family:monospace;color:#7ab8e0;word-break:break-all">${escHtml(pc.path)}</p></div>`;
   html += `<div class="panel-section"><h3>Size</h3><p>${pc.size_loc} loc &nbsp;·&nbsp; kind: ${pc.kind}</p></div>`;
+
+  // Import-cycle membership (deterministic, Acyclic Dependencies Principle).
+  if (pc.cycle_id) {
+    html += `<div class="panel-section"><h3>Import cycle</h3>
+      <p style="color:#e08a3c">In a cycle of ${pc.cycle_size} modules
+        <span class="ped-info" title="Detected by Tarjan SCC over the static import graph. Every member can reach every other, so none can be changed in isolation. Acyclic Dependencies Principle: break the cycle by having one member depend on an abstraction instead.">(?)</span>
+      </p></div>`;
+  }
 
   if (pc.metrics && Object.keys(pc.metrics).length) {
     html += metricsBreakdownHtml(pc.metrics);
@@ -1170,13 +1548,15 @@ function showPhysicalPanel(id) {
 function metricsBreakdownHtml(metrics) {
   const rows = [];
   const seen = new Set();
+  const metricExplainers = PEDAGOGY.metrics || {};
   const emit = (field) => {
     if (metrics[field] === undefined || seen.has(field)) return;
     seen.add(field);
     const desc = METRIC_DESCRIPTORS[field];
     const label = desc ? desc.label : field;
     const unit  = desc && desc.unit ? ' ' + desc.unit : '';
-    rows.push(`<div class="file-row"><span style="color:#aaa">${escHtml(label)}</span><span style="color:#ddd">${metrics[field]}${escHtml(unit)}</span></div>`);
+    const help  = infoIcon(metricExplainers[field]);  // (?) on every metric row
+    rows.push(`<div class="file-row"><span style="color:#aaa">${escHtml(label)} ${help}</span><span style="color:#ddd">${metrics[field]}${escHtml(unit)}</span></div>`);
   };
   for (const field of Object.keys(METRIC_DESCRIPTORS)) emit(field);
   for (const field of Object.keys(metrics)) emit(field);  // undescribed metrics
@@ -1211,9 +1591,17 @@ function edgeRowHtml(e, dir, mode) {
     ? `<span style="font-size:9px;color:#555;margin-left:4px">[${e.evidence_class}]</span>`
     : '';
 
+  // Edge-type help comes from the manifest pedagogy block (single source of
+  // truth), NOT a hardcoded JS table. Same for the epistemic-source chip.
+  const etypeEntry = (PEDAGOGY.edge_types || {})[e.type];
+  const epiSource = e.epistemic_source
+    || (etypeEntry ? etypeEntry.epistemic_source : null);
+
   let html = `<div class="edge-row ${e.type}">`;
   html += `<span class="peer" style="cursor:pointer" onclick="showPanel('${peer}','${panelMode}')">${arrow} ${escHtml(peerNm)}</span>`;
-  html += `<span class="etype" title="${escHtml(EDGE_TYPE_HELP[e.type] || '')}" style="cursor:help">${e.type}</span>`;
+  html += `<span class="etype" title="${escHtml(explainerTitle(etypeEntry))}" style="cursor:help">${e.type}</span>`;
+  html += infoIcon(etypeEntry);
+  if (epiSource) html += epistemicChip(epiSource);
   html += ecLabel;
   if (e.smell) {
     html += `<div class="smell">⚠ ${escHtml(e.smell)}</div>`;
@@ -1248,39 +1636,128 @@ function jumpToOtherView(id, targetView) {
   showPanel(id, targetView === 'logical' ? 'logical' : 'physical');
 }
 
-// ── Edge-type pedagogy (Tier-1 popover content) ───────────────────────────────
+// ── Pedagogy-driven legend + glossary (no hardcoded help) ─────────────────────
+//
+// All explainer content is read from the manifest's `pedagogy` block (built by
+// scripts/pedagogy_registry.py). The old hardcoded EDGE_TYPE_HELP table and the
+// classification/evidence help that lived in the template HTML are GONE — that
+// duplication was the Connascence-of-Value smear the metrics ADR killed for
+// metrics; this kills it for pedagogy too.
 
-// This content is sourced from references/edge-types.md and condensed for popovers.
-const EDGE_TYPE_HELP = {
-  'direct-call': [
-    'One component calls another by name. The caller\'s source code contains the callee\'s identifier.',
-    'Connascence of Name — the weakest form of coupling.',
-    'Normal and necessary. Only a problem when the callee is itself removable.',
-    'When removable: only when the callee is classified removable.',
-  ].join(' | '),
-  'shared-state': [
-    'Two components both read and write the same data structure (global, singleton, DOM node).',
-    'Connascence of Identity or Value.',
-    'Tolerable at small scale; corrosive as the structure grows. Out-of-order writes cause silent bugs.',
-    'When removable: when one of the two writers can be eliminated.',
-  ].join(' | '),
-  'background-knowledge': [
-    'Component C depends on an invariant in component D that is not enforced in code, types, or tests.',
-    'Connascence of Convention — the most expensive form.',
-    'Always a smell: the compiler, type checker, and test suite cannot catch a violation.',
-    'When removable: always, by pruning the component that carries the implicit invariant.',
-  ].join(' | '),
-};
-
+// Populate the legend's classification / edge / evidence / direction rows and
+// the glossary entirely from the pedagogy block. The template ships only empty
+// host containers; this fills them so the render stays a pure function of the
+// manifest.
 function buildLegendPopovers() {
-  // Attach popover titles to legend swatches by data-type attribute.
-  // The legend HTML uses data-etype on popover-trigger elements.
-  document.querySelectorAll('[data-etype]').forEach(el => {
-    const etype = el.getAttribute('data-etype');
-    if (EDGE_TYPE_HELP[etype]) {
-      el.setAttribute('title', EDGE_TYPE_HELP[etype]);
+  buildClassificationLegend();
+  buildEdgeTypeLegend();
+  buildEvidenceLegend();
+  buildDirectionLegend();
+  buildEpistemicLegend();
+  buildGlossary();
+}
+
+function legendRow(swatchColor, label, entry, extraMark) {
+  const sw = swatchColor
+    ? `<div class="leg-swatch" style="background:${swatchColor}"></div>`
+    : '';
+  const mark = extraMark ? ` ${extraMark}` : '';
+  return `<div class="leg-row">${sw}<span>${escHtml(label)}${mark}</span>${infoIcon(entry)}</div>`;
+}
+
+function buildClassificationLegend() {
+  const host = document.getElementById('leg-classifications');
+  if (!host) return;
+  const cls = PEDAGOGY.classifications || {};
+  let html = '';
+  for (const key of ['core', 'seam', 'removable']) {
+    const entry = cls[key];
+    const color = (entry && entry.color) || CLS_BASE[key] || '#444';
+    html += legendRow(color, key, entry);
+  }
+  html += legendRow(CLS_BASE.unclassified, 'unclassified',
+    { what: 'A physical file with no logical owner — not grounded by any synthesis judgment.',
+      how: 'Rendered neutral grey; it does NOT inherit core.',
+      teaches: 'Unowned != core. Run /synthesize-audit to classify it.',
+      epistemic_source: 'measured' });
+  host.innerHTML = html;
+}
+
+function buildEdgeTypeLegend() {
+  const host = document.getElementById('leg-edge-types');
+  if (!host) return;
+  const et = PEDAGOGY.edge_types || {};
+  let html = '';
+  const marks = { 'shared-state': '⚠', 'background-knowledge': '★' };
+  for (const key of ['direct-call', 'shared-state', 'background-knowledge']) {
+    const entry = et[key];
+    const color = (entry && entry.color) || ETYPE_COLOR[key] || '#888';
+    html += legendRow(color, key, entry, marks[key] || '');
+  }
+  host.innerHTML = html;
+}
+
+function buildEvidenceLegend() {
+  const host = document.getElementById('leg-evidence');
+  if (!host) return;
+  const ec = PEDAGOGY.evidence_classes || {};
+  const dashRow = (label, dash, entry) =>
+    `<div class="leg-row"><svg width="20" height="10"><line x1="0" y1="5" x2="20" y2="5"
+       stroke="#888" stroke-width="1.5"${dash ? ` stroke-dasharray="${dash}"` : ''}/></svg>
+       <span>${escHtml(label)}</span>${infoIcon(entry)}</div>`;
+  let html = '';
+  html += dashRow('static (AST-detected)', null, ec['static']);
+  html += dashRow('audit-asserted', '4 4', ec['audit-asserted']);
+  host.innerHTML = html;
+}
+
+function buildDirectionLegend() {
+  const host = document.getElementById('leg-direction');
+  if (!host) return;
+  const entry = PEDAGOGY.direction_encoding;
+  host.innerHTML =
+    `<div style="font-size:9px;color:#777">Direction: outgoing = full colour;
+       incoming = lighter + lower opacity ${infoIcon(entry)}</div>`;
+}
+
+function buildEpistemicLegend() {
+  const host = document.getElementById('leg-epistemic');
+  if (!host) return;
+  const sources = PEDAGOGY.epistemic_sources || {};
+  let html = '';
+  for (const key of ['measured', 'metric-anchored', 'requires-your-intent']) {
+    const meta = sources[key];
+    if (!meta) continue;
+    html += `<div class="leg-row">
+      <span class="epi-chip" style="border-color:${meta.color};color:${meta.color}">${escHtml(meta.label)}</span>
+      <span class="leg-info" title="${escHtml(meta.what)}" style="cursor:help">(?)</span>
+    </div>`;
+  }
+  host.innerHTML = html;
+}
+
+// The glossary: each concept tethered to the proxy metric that surfaces it in
+// THIS tool, with the honesty note where the proxy is weak. Content from the
+// pedagogy block, never hardcoded prose.
+function buildGlossary() {
+  const host = document.getElementById('glossary-body');
+  if (!host) return;
+  const glossary = PEDAGOGY.glossary || [];
+  if (glossary.length === 0) { host.innerHTML = '<p style="color:#555">No glossary in this manifest.</p>'; return; }
+  let html = '';
+  for (const g of glossary) {
+    const anchor = g.anchor
+      ? `<span class="gloss-anchor" title="Proxy metric / element in this tool">↳ ${escHtml(g.anchor)}</span>`
+      : '';
+    html += `<div class="gloss-entry">
+      <div class="gloss-term">${escHtml(g.term)} ${anchor}</div>
+      <div class="gloss-def">${escHtml(g.definition || '')}</div>`;
+    if (g.proxy_honesty) {
+      html += `<div class="gloss-honesty">Proxy honesty: ${escHtml(g.proxy_honesty)}</div>`;
     }
-  });
+    html += `</div>`;
+  }
+  host.innerHTML = html;
 }
 
 // ── "How to read this" panel (Tier-2, localStorage state) ────────────────────
@@ -1310,41 +1787,26 @@ function initLegend() {
   if (launcher) launcher.style.display = isOpen ? 'none' : 'flex';
 }
 
-function initHowToReadPanel() {
-  const panel  = document.getElementById('how-to-read-panel');
-  const toggle = document.getElementById('how-to-read-toggle');
-  if (!panel || !toggle) return;
+// Glossary collapsible (replaces the old hardcoded "How to read this" panel;
+// content now comes from the pedagogy block via buildGlossary()).
+function initGlossaryPanel() {
+  const panel  = document.getElementById('glossary-panel');
+  const toggle = document.getElementById('glossary-toggle');
+  const header = document.getElementById('glossary-header');
+  if (!panel || !toggle || !header) return;
 
-  const storageKey = 'architecture-treemap-how-to-read-open';
+  const storageKey = 'architecture-treemap-glossary-open';
   const stored = localStorage.getItem(storageKey);
-  // Closed by default on first visit
-  const isOpen = stored === 'true';
+  const isOpen = stored === 'true';  // closed by default on first visit
   panel.style.display = isOpen ? 'block' : 'none';
   toggle.textContent  = isOpen ? '▾' : '▸';
 
-  toggle.addEventListener('click', () => {
+  header.addEventListener('click', () => {
     const nowOpen = panel.style.display !== 'block';
     panel.style.display = nowOpen ? 'block' : 'none';
     toggle.textContent  = nowOpen ? '▾' : '▸';
     localStorage.setItem(storageKey, String(nowOpen));
   });
-
-  // Populate example from data (background-knowledge edges only)
-  const bgEdges = (COMPONENTS_DATA.edges || []).filter(e => e.type === 'background-knowledge');
-  const exampleSlot = document.getElementById('how-to-read-example');
-  if (exampleSlot) {
-    if (bgEdges.length > 0) {
-      const ex = bgEdges[0];
-      const fromLc = logicalById.get(ex.from);
-      const toLc   = logicalById.get(ex.to);
-      const fromNm = fromLc ? fromLc.name : ex.from;
-      const toNm   = toLc   ? toLc.name   : ex.to;
-      const evText = ex.evidence ? ex.evidence.substring(0, 120) + (ex.evidence.length > 120 ? '…' : '') : '';
-      exampleSlot.innerHTML = `Example: <strong>${escHtml(fromNm)} → ${escHtml(toNm)}</strong>${evText ? ' — ' + escHtml(evText) : ''}`;
-    } else {
-      exampleSlot.style.display = 'none';
-    }
-  }
 }
 
 // ── View toggle ───────────────────────────────────────────────────────────────
@@ -1356,6 +1818,12 @@ function setView(view) {
   document.getElementById('btn-logical').classList.toggle('active', view === 'logical');
   document.getElementById('btn-physical').classList.toggle('active', view === 'physical');
   document.getElementById('btn-graph').classList.toggle('active', view === 'graph');
+
+  // Pressure lens + colour-mode toggle are Physical-view affordances only.
+  const lens = document.getElementById('pressure-lens');
+  const colorToggle = document.getElementById('color-mode-toggle');
+  if (lens) lens.style.display = (view === 'physical') ? 'block' : 'none';
+  if (colorToggle) colorToggle.style.display = (view === 'physical') ? 'flex' : 'none';
 
   // Reset panel
   panelTitle.textContent = 'Click a cell to inspect';
@@ -1385,6 +1853,18 @@ function toggleAllEdges(checked) {
 function toggleTests(checked) {
   showTests = checked;
   localStorage.setItem(SHOW_TESTS_STORAGE_KEY, String(checked));
+  if (currentView === 'physical') renderPhysical();
+}
+
+// ── Physical colour-mode toggle: role | pressure ──────────────────────────────
+// Time-shares the colour channel; never permanently overrides the role hue.
+function setColorMode(mode) {
+  colorMode = (mode === 'pressure') ? 'pressure' : 'role';
+  localStorage.setItem(COLOR_MODE_STORAGE_KEY, colorMode);
+  const roleBtn = document.getElementById('btn-color-role');
+  const pressBtn = document.getElementById('btn-color-pressure');
+  if (roleBtn) roleBtn.classList.toggle('active', colorMode === 'role');
+  if (pressBtn) pressBtn.classList.toggle('active', colorMode === 'pressure');
   if (currentView === 'physical') renderPhysical();
 }
 
@@ -1422,10 +1902,23 @@ window.addEventListener('resize', () => {
 
 buildLegendPopovers();
 initLegend();
-initHowToReadPanel();
+initGlossaryPanel();
 
 // Reflect persisted "Show tests" state into the checkbox on load.
 const _showTestsCheckbox = document.getElementById('show-tests');
 if (_showTestsCheckbox) _showTestsCheckbox.checked = showTests;
+
+// Reflect persisted colour-mode into the toggle buttons (state only; render
+// happens on first setView/renderLogical below — Physical view applies it).
+const _roleBtn = document.getElementById('btn-color-role');
+const _pressBtn = document.getElementById('btn-color-pressure');
+if (_roleBtn) _roleBtn.classList.toggle('active', colorMode === 'role');
+if (_pressBtn) _pressBtn.classList.toggle('active', colorMode === 'pressure');
+
+// Pressure lens + colour toggle start hidden (default view is Logical).
+const _lens = document.getElementById('pressure-lens');
+if (_lens) _lens.style.display = 'none';
+const _colorToggle = document.getElementById('color-mode-toggle');
+if (_colorToggle) _colorToggle.style.display = 'none';
 
 renderLogical();

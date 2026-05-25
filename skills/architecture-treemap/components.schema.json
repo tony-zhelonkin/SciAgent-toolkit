@@ -29,6 +29,24 @@
       "description": "Self-describing metric model: key -> descriptor. The single source of truth (scripts/metric_registry.py) serialised into the manifest so the renderer's badge set, side-panel rows, and good/bad semantics are a pure function of this file. Absent -> the renderer falls back to a built-in default descriptor table for backward compatibility with pre-registry manifests.",
       "additionalProperties": { "$ref": "#/$defs/metric_descriptor" }
     },
+    "pedagogy": {
+      "type": "object",
+      "description": "Self-describing pedagogy block: classification / edge-type / evidence-class explainers, the direction encoding, per-metric explainers, the epistemic-source legend, and the concept glossary. The single source of truth (scripts/pedagogy_registry.py) serialised into the manifest so the renderer draws every (?) affordance and the glossary as a pure function of this file. Open object (additionalProperties allowed) and OPTIONAL: absent -> the renderer falls back to built-in defaults for backward compatibility with pre-pedagogy manifests.",
+      "additionalProperties": true
+    },
+    "cycles": {
+      "type": "array",
+      "description": "Import cycles detected by Tarjan SCC over the static import graph (deterministic). Each is a strongly-connected component of size > 1: its members can all reach each other, so none can be changed in isolation (Acyclic Dependencies Principle). OPTIONAL: absent on hand-authored or pre-cycle-detection manifests.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "members"],
+        "properties": {
+          "id": { "type": "string" },
+          "members": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
     "logical_components": {
       "type": "array",
       "items": { "$ref": "#/$defs/logical_component" }
@@ -74,6 +92,11 @@
       "type": "string",
       "description": "How the edge was established. 'static' = detected by the AST/import-graph extractor (renders SOLID). 'audit-asserted' = drawn by a human/synthesis judgment, not statically detectable (renders DASHED). Absent -> renderer defaults direct-call to its own inference and everything else to 'audit-asserted'.",
       "enum": ["static", "audit-asserted"]
+    },
+    "epistemic_source": {
+      "type": "string",
+      "description": "How much a claim depends on information NOT in the code. 'measured' = deterministic (an AST/git/tool proved it). 'metric-anchored' = judgment biased by a metric (still judgment). 'requires-your-intent' = extrinsic; only a human naming a concern can ground it. The load-bearing provenance channel. OPTIONAL and backward compatible: absent classifications/edges still validate and render (the renderer derives a sensible default from the type/classification).",
+      "enum": ["measured", "metric-anchored", "requires-your-intent"]
     },
     "metrics": {
       "type": "object",
@@ -128,6 +151,7 @@
           "items": { "$ref": "#/$defs/physical_file_ref" }
         },
         "classification": { "$ref": "#/$defs/classification" },
+        "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
         "smoke_findings": { "type": "array", "items": { "type": "string" } },
         "audit_slices": { "type": "array", "items": { "type": "string" } },
         "size_estimate_loc": { "type": "integer", "minimum": 0 },
@@ -144,7 +168,9 @@
         "size_loc": { "type": "integer", "minimum": 0 },
         "logical_owners": { "type": "array", "items": { "type": "string" } },
         "kind": { "enum": ["module", "config", "test", "doc", "asset", "other"] },
-        "metrics": { "$ref": "#/$defs/metrics" }
+        "metrics": { "$ref": "#/$defs/metrics" },
+        "cycle_id": { "type": "string", "description": "Id of the import cycle (cycles[].id) this component belongs to, if any. Stamped by the deterministic Tarjan SCC pass." },
+        "cycle_size": { "type": "integer", "minimum": 2, "description": "Number of components in this component's import cycle (>= 2)." }
       }
     },
     "edge": {
@@ -156,6 +182,7 @@
         "to": { "type": "string" },
         "type": { "$ref": "#/$defs/edge_type" },
         "evidence_class": { "$ref": "#/$defs/evidence_class" },
+        "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
         "evidence": { "type": "string" },
         "smell": { "type": ["string", "null"] },
         "smoke_finding": { "type": ["string", "null"] }

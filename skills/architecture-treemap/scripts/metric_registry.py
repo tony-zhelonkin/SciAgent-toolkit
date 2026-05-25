@@ -98,6 +98,36 @@ class MetricDescriptor:
 # Derived-metric formulas
 # ---------------------------------------------------------------------------
 
+def _instability(metrics: dict):
+    """Instability I = fan_out / (fan_in + fan_out)  (Robert C. Martin).
+
+    A deterministic coupling metric in [0, 1]:
+      * I = 0  — maximally STABLE: many modules depend on this one, it depends
+                 on nothing (a pure sink). Hard/expensive to change.
+      * I = 1  — maximally UNSTABLE: this depends on many, nothing depends on
+                 it (a pure source/leaf). Cheap to change.
+
+    Teaches the Stable-Dependencies Principle: dependencies should point toward
+    MORE-stable (lower-I) modules. Both inputs come from the same AST import
+    graph that produces fan_in / fan_out, so this is pure substrate (no new
+    tool, no judgment).
+
+    Returns None when both fan_in and fan_out are absent OR their sum is zero
+    (an isolated node has no defined instability — guard the div-by-zero rather
+    than fabricate a 0 or 1).
+    """
+    fan_in = metrics.get("fan_in")
+    fan_out = metrics.get("fan_out")
+    if fan_in is None and fan_out is None:
+        return None
+    fan_in = fan_in or 0
+    fan_out = fan_out or 0
+    total = fan_in + fan_out
+    if total == 0:
+        return None  # isolated node: instability is undefined, not 0.
+    return round(fan_out / total, 3)
+
+
 def _refactor_pressure(metrics: dict):
     """refactor-pressure ~= churn * complexity * fan_in / test_ratio.
 
@@ -197,6 +227,19 @@ METRIC_REGISTRY = [
     ),
     # ---- derived ----
     MetricDescriptor(
+        key="instability",
+        label="Instability (I)",
+        short_badge_label=None,  # no badge: neither high nor low I is a smell
+        unit="",
+        value_kind="number",
+        higher_is_better=False,  # nominal; no threshold so semantics are inert
+        kind="derived",
+        render="hidden",
+        badge_threshold=None,
+        formula=_instability,
+        depends_on=("fan_in", "fan_out"),
+    ),
+    MetricDescriptor(
         key="refactor_pressure",
         label="Refactor pressure",
         short_badge_label="hi pressure",
@@ -210,12 +253,54 @@ METRIC_REGISTRY = [
         formula=_refactor_pressure,
         depends_on=("churn_90d", "cyclomatic", "fan_in", "test_ratio"),
     ),
+    MetricDescriptor(
+        key="refactor_pressure_loc_proxy",
+        label="Refactor pressure (LOC proxy — radon absent)",
+        short_badge_label=None,  # degraded proxy: panel/lens only, never a tile badge
+        unit="",
+        value_kind="number",
+        higher_is_better=False,
+        kind="derived",
+        render="hidden",
+        badge_threshold=None,
+        # No formula here: this DEGRADED proxy is computed by the extractor only
+        # when radon is absent (so real cyclomatic is missing), substituting LOC
+        # for complexity. It is emitted with a distinct key and label so the
+        # renderer can show it CLEARLY MARKED as degraded, never conflated with
+        # the real refactor_pressure. compute_derived skips it (no formula).
+        depends_on=("churn_90d", "loc", "fan_in", "test_ratio"),
+    ),
 ]
 
 # Fast lookups
 REGISTRY_BY_KEY = {d.key: d for d in METRIC_REGISTRY}
 BASE_METRICS = [d for d in METRIC_REGISTRY if d.kind == "base"]
 DERIVED_METRICS = [d for d in METRIC_REGISTRY if d.kind == "derived"]
+
+
+def refactor_pressure_loc_proxy(metrics: dict):
+    """DEGRADED refactor-pressure when radon is absent (no cyclomatic).
+
+    Substitutes loc/100 for the missing cyclomatic factor so the "look here
+    first" lens still ranks something instead of going blank. Returns None if
+    the genuine cyclomatic-based pressure is computable (radon present) or if
+    churn is missing. The caller is responsible for emitting this under the
+    distinct `refactor_pressure_loc_proxy` key and labelling it as degraded —
+    it is NOT computed by compute_derived (it has no formula in the registry),
+    so it can never be silently mistaken for the real metric.
+    """
+    if metrics.get("cyclomatic") is not None:
+        return None  # real pressure is computable; do not emit the proxy.
+    churn = metrics.get("churn_90d")
+    fan_in = metrics.get("fan_in")
+    loc = metrics.get("loc")
+    if churn is None or loc is None:
+        return None
+    test_ratio = metrics.get("test_ratio")
+    denom = test_ratio if (test_ratio is not None and test_ratio > 0.05) else 0.05
+    complexity_proxy = loc / 100.0
+    pressure = (churn * complexity_proxy * max(fan_in or 1, 1)) / denom
+    return round(pressure, 2)
 
 
 def compute_derived(metrics: dict) -> dict:

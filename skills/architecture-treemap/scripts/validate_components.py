@@ -34,6 +34,7 @@ _SCHEMA_PATH = Path(__file__).parent.parent / "components.schema.json"
 VALID_CLASSIFICATIONS = {"core", "seam", "removable"}
 VALID_EDGE_TYPES       = {"direct-call", "shared-state", "background-knowledge"}
 VALID_EVIDENCE_CLASSES = {"static", "audit-asserted"}
+VALID_EPISTEMIC_SOURCES = {"measured", "metric-anchored", "requires-your-intent"}
 VALID_KINDS            = {"module", "config", "test", "doc", "asset", "other"}
 VALID_SEVERITIES       = {"info", "warn", "error"}
 VALID_OWNERSHIPS       = {"primary", "partial"}
@@ -111,6 +112,10 @@ def _validate_logical_component(path: str, lc: Any):
     if lc["classification"] not in VALID_CLASSIFICATIONS:
         raise ValidationError(f"{path}.classification", f"must be one of {VALID_CLASSIFICATIONS}")
 
+    if "epistemic_source" in lc and lc["epistemic_source"] is not None:
+        if lc["epistemic_source"] not in VALID_EPISTEMIC_SOURCES:
+            raise ValidationError(f"{path}.epistemic_source", f"must be one of {VALID_EPISTEMIC_SOURCES}")
+
     _require_type(f"{path}.physical_files", lc["physical_files"], list, "array")
     for i, ref in enumerate(lc["physical_files"]):
         _validate_physical_file_ref(f"{path}.physical_files[{i}]", ref)
@@ -156,6 +161,14 @@ def _validate_physical_component(path: str, pc: Any):
         for i, o in enumerate(pc["logical_owners"]):
             _require_type(f"{path}.logical_owners[{i}]", o, str, "string")
 
+    if "cycle_id" in pc:
+        _require_type(f"{path}.cycle_id", pc["cycle_id"], str, "string")
+    if "cycle_size" in pc:
+        if isinstance(pc["cycle_size"], bool) or not isinstance(pc["cycle_size"], int):
+            raise ValidationError(f"{path}.cycle_size", "expected integer")
+        if pc["cycle_size"] < 2:
+            raise ValidationError(f"{path}.cycle_size", "must be >= 2")
+
     if "metrics" in pc:
         _validate_metrics(f"{path}.metrics", pc["metrics"])
 
@@ -174,6 +187,10 @@ def _validate_edge(path: str, e: Any):
     if "evidence_class" in e and e["evidence_class"] is not None:
         if e["evidence_class"] not in VALID_EVIDENCE_CLASSES:
             raise ValidationError(f"{path}.evidence_class", f"must be one of {VALID_EVIDENCE_CLASSES}")
+
+    if "epistemic_source" in e and e["epistemic_source"] is not None:
+        if e["epistemic_source"] not in VALID_EPISTEMIC_SOURCES:
+            raise ValidationError(f"{path}.epistemic_source", f"must be one of {VALID_EPISTEMIC_SOURCES}")
 
     if "evidence" in e and e["evidence"] is not None:
         _require_type(f"{path}.evidence", e["evidence"], str, "string")
@@ -269,6 +286,24 @@ def validate_schema(data: dict) -> list[str]:
             for key, desc in md.items():
                 if not isinstance(desc, dict):
                     errors.append(f"metric_descriptors.{key}: expected object")
+
+    # pedagogy block (self-describing explainers + glossary; optional, open object)
+    if "pedagogy" in data and not isinstance(data["pedagogy"], dict):
+        errors.append("pedagogy: expected object")
+
+    # cycles (Tarjan SCC import cycles; optional)
+    if "cycles" in data:
+        if isinstance(data["cycles"], list):
+            for i, c in enumerate(data["cycles"]):
+                if not isinstance(c, dict):
+                    errors.append(f"cycles[{i}]: expected object")
+                    continue
+                if "id" not in c or not isinstance(c["id"], str):
+                    errors.append(f"cycles[{i}].id: required string")
+                if "members" not in c or not isinstance(c["members"], list):
+                    errors.append(f"cycles[{i}].members: required array")
+        else:
+            errors.append("cycles: expected array")
 
     # logical_components
     if isinstance(data.get("logical_components"), list):
