@@ -10,7 +10,8 @@ metadata:
   version: 1.0.0
   category: analysis
   tier: rich
-  tags: []
+  tags:
+  - trajectory
   complementary-skills:
   - starsolo-spliced-unspliced
   - scanpy
