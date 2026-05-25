@@ -152,8 +152,27 @@
                        vertical-align: middle; margin-right: 3px; }
 
   /* ── Pedagogy affordances (single source of truth: pedagogy block) ── */
-  .ped-info { cursor: help; color: #777; font-size: 9px; margin-left: 3px; }
+  .ped-info { cursor: pointer; color: #777; font-size: 9px; margin-left: 3px; }
   .ped-info:hover { color: #bbb; }
+
+  /* ── Explainer popover (click-toggle floating panel for (?) icons) ── */
+  #ped-popover { position: fixed; z-index: 200; max-width: 320px; min-width: 200px;
+                 background: #1c1c1c; border: 1px solid #555; border-radius: 5px;
+                 padding: 10px 12px; font-size: 11px; line-height: 1.5;
+                 color: #ccc; box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+                 word-wrap: break-word; overflow-wrap: break-word;
+                 max-height: 60vh; overflow-y: auto; display: none; }
+  #ped-popover .pop-section { margin-bottom: 7px; }
+  #ped-popover .pop-section:last-child { margin-bottom: 0; }
+  #ped-popover .pop-label { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.08em; color: #888; margin-bottom: 2px; }
+  #ped-popover .pop-body { color: #ccc; }
+  #ped-popover .pop-epi { display: inline-block; font-size: 8px; padding: 0 5px;
+                           border-radius: 8px; border: 1px solid #555; margin-top: 4px;
+                           text-transform: lowercase; letter-spacing: 0.02em; }
+  #ped-popover .pop-close { float: right; cursor: pointer; color: #666; font-size: 12px;
+                             margin-left: 8px; line-height: 1; }
+  #ped-popover .pop-close:hover { color: #fff; }
   .epi-chip { display: inline-block; font-size: 8px; padding: 0 5px; border-radius: 8px;
               border: 1px solid #555; margin-left: 4px; vertical-align: middle;
               text-transform: lowercase; letter-spacing: 0.02em; }
@@ -182,6 +201,10 @@
                    overflow-y: auto; background: rgba(20,20,20,0.94); border: 1px solid #3a3a3a;
                    border-radius: 4px; padding: 8px 10px; z-index: 12; font-size: 11px; }
   #pressure-lens.lens-disabled { opacity: 0.7; }
+  /* Collapsed state: only the header row shows; the body panel is toggled */
+  #lens-collapse-header { border-radius: 3px; }
+  #lens-collapse-header:hover { background: rgba(255,255,255,0.04); }
+  #lens-body { margin-top: 6px; }
   .lens-head { color: #ddd; font-size: 11px; font-weight: 600; margin-bottom: 6px; }
   .lens-disabled-msg { color: #999; font-size: 10px; line-height: 1.5; }
   .lens-disabled-msg code { color: #d2a; background: #221; padding: 0 3px; border-radius: 2px; }
@@ -287,6 +310,13 @@
 </div>
 
 <div id="tooltip"></div>
+
+<!-- Explainer popover: single reusable floating panel for all (?) affordances.
+     Populated and positioned by openExplainerPopover() in treemap.bundle.js. -->
+<div id="ped-popover" role="dialog" aria-modal="false" aria-label="Explainer">
+  <span class="pop-close" id="ped-popover-close" title="Close">✕</span>
+  <div id="ped-popover-body"></div>
+</div>
 
 <script>
 // Injected data — validated components manifest

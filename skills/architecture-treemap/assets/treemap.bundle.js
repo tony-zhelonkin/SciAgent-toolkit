@@ -157,10 +157,14 @@ function explainerTitle(entry) {
 
 // Small inline (?) affordance as an HTML string. Uniform across metric badges,
 // classifications, edge-types, evidence-classes, and the direction legend.
+// The entry is JSON-serialised into a data attribute so the delegated click
+// handler can reconstruct the structured content for the popover (no id lookup).
 function infoIcon(entry) {
-  const title = explainerTitle(entry);
-  if (!title) return '';
-  return `<span class="ped-info" title="${escHtml(title)}">(?)</span>`;
+  if (!entry) return '';
+  // Fallback title for accessibility / environments where JS events are absent.
+  const fallbackTitle = escHtml(explainerTitle(entry));
+  const encoded = escHtml(JSON.stringify(entry));
+  return `<span class="ped-info" data-ped-entry="${encoded}" title="${fallbackTitle}" tabindex="0" role="button" aria-label="More info">(?)</span>`;
 }
 
 // A small epistemic-source chip (coloured) for a classification/edge panel row.
@@ -169,6 +173,67 @@ function epistemicChip(source) {
   if (!meta) return '';
   return `<span class="epi-chip" style="border-color:${meta.color};color:${meta.color}"
             title="${escHtml(meta.what)}">${escHtml(meta.label)}</span>`;
+}
+
+// ── Explainer popover (click-toggle floating panel for all (?) affordances) ───
+//
+// A single reusable <div id="ped-popover"> is shared by all (?) icons.
+// Each .ped-info span carries its pedagogy entry JSON-encoded in data-ped-entry;
+// openExplainerPopover() decodes it and builds the labelled structured panel.
+// Only one popover is open at a time; click elsewhere or press Esc to dismiss.
+
+function openExplainerPopover(anchorEl, entry) {
+  const pop = document.getElementById('ped-popover');
+  const body = document.getElementById('ped-popover-body');
+  if (!pop || !body) return;
+
+  // Build the structured content — labelled sections, not a mashed string.
+  let html = '';
+
+  const src = entry.epistemic_source;
+  const srcMeta = src && PEDAGOGY.epistemic_sources && PEDAGOGY.epistemic_sources[src];
+  if (srcMeta) {
+    html += `<div class="pop-section">
+      <span class="pop-epi" style="border-color:${srcMeta.color};color:${srcMeta.color}">${escHtml(srcMeta.label)}</span>
+    </div>`;
+  }
+  if (entry.what) {
+    html += `<div class="pop-section"><div class="pop-label">What</div><div class="pop-body">${escHtml(entry.what)}</div></div>`;
+  }
+  if (entry.how) {
+    html += `<div class="pop-section"><div class="pop-label">How it is detected</div><div class="pop-body">${escHtml(entry.how)}</div></div>`;
+  }
+  if (entry.teaches) {
+    html += `<div class="pop-section"><div class="pop-label">Architectural lesson</div><div class="pop-body">${escHtml(entry.teaches)}</div></div>`;
+  }
+
+  body.innerHTML = html || '<span style="color:#555">No detail available.</span>';
+
+  // Position the popover near the anchor element, keeping it within the viewport.
+  const rect = anchorEl.getBoundingClientRect();
+  const popW = 330;  // slightly wider than max-width so the clamp below is the
+                     // effective cap; avoids a race before the element has a real
+                     // offsetWidth from the DOM.
+  const spaceRight = window.innerWidth - rect.right;
+  const left = spaceRight >= popW
+    ? rect.right + 6
+    : Math.max(4, rect.left - popW - 6);
+  const top = Math.min(rect.top, window.innerHeight - 200);
+
+  pop.style.left    = left + 'px';
+  pop.style.top     = top  + 'px';
+  pop.style.display = 'block';
+
+  // Store the triggering element so a second click on the same icon closes it.
+  pop._anchorEl = anchorEl;
+}
+
+function closeExplainerPopover() {
+  const pop = document.getElementById('ped-popover');
+  if (pop) {
+    pop.style.display = 'none';
+    pop._anchorEl = null;
+  }
 }
 
 // Force-graph layout zones (logical x-centre targets, normalised 0-1)
@@ -985,10 +1050,16 @@ function renderPhysical() {
 }
 
 // ── Refactor-pressure "look here first" lens ──────────────────────────────────
-// An always-on side list ranking the top-N components by refactor pressure (the
+// A collapsible side list ranking the top-N components by refactor pressure (the
 // real metric, or the clearly-labelled LOC proxy when radon was absent). The
 // honesty rule lives in the UI copy: "look here first", never "refactor this".
 // Clicking an item highlights the tile and decomposes the factors.
+//
+// Collapse behaviour reuses the header.addEventListener('click') idiom from
+// initGlossaryPanel(). Default: collapsed, so the list does not block tiles on
+// first open. State is persisted in localStorage.
+const LENS_STORAGE_KEY = 'architecture-treemap-lens-open';
+
 function renderPressureLens(visible, maxPressure) {
   const host = document.getElementById('pressure-lens');
   if (!host) return;
@@ -996,9 +1067,24 @@ function renderPressureLens(visible, maxPressure) {
   const usingProxy = !visible.some(pc => pc.metrics && pc.metrics.refactor_pressure !== undefined)
     && visible.some(pc => pc.metrics && pc.metrics.refactor_pressure_loc_proxy !== undefined);
 
-  let html = `<div class="lens-head">Look here first
-    <span class="ped-info" title="Ranks ATTENTION, not verdicts. A hot tile is an entrypoint into thousands of lines — it is never an instruction to refactor. Click a row to see WHY it is hot (the factor decomposition) and judge whether the heat is real.">(?)</span>
-    </div>`;
+  const lensHeadEntry = {
+    what: 'Ranks attention, not verdicts.',
+    how: 'Composite score: churn × complexity × fan-in, penalised by test coverage. High score = dense, volatile, load-bearing file.',
+    teaches: 'A hot tile is an entry-point into investigation, not an instruction to refactor. Click a row to see WHY it is hot (the factor decomposition) and judge whether the heat is real.',
+  };
+
+  // Restore persisted collapse state (default: collapsed so the lens does not
+  // block tiles on first visit).
+  const isOpen = localStorage.getItem(LENS_STORAGE_KEY) === 'true';
+  const toggleGlyph = isOpen ? '▾' : '▸';
+
+  // The header row is always rendered; the body panel is toggled beneath it.
+  let html = `
+    <div id="lens-collapse-header" style="display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none">
+      <span class="lens-head" style="margin-bottom:0;flex:1">Look here first ${infoIcon(lensHeadEntry)}</span>
+      <span id="lens-toggle-glyph" style="color:#888;font-size:10px;flex-shrink:0">${toggleGlyph}</span>
+    </div>
+    <div id="lens-body" style="display:${isOpen ? 'block' : 'none'}">`;
 
   if (pressureUnavailable() && !usingProxy) {
     // No pressure at all and radon flagged unavailable: grey the lens with a
@@ -1007,7 +1093,9 @@ function renderPressureLens(visible, maxPressure) {
     html += `<div class="lens-disabled-msg">Install <code>radon</code> to enable
       complexity &amp; refactor-pressure.<br>
       (<code>pip install radon</code>, then re-run /components-extract.)</div>`;
+    html += '</div>';
     host.innerHTML = html;
+    attachLensCollapseHandler(host);
     return;
   }
 
@@ -1021,7 +1109,9 @@ function renderPressureLens(visible, maxPressure) {
   if (ranked.length === 0) {
     html += `<div class="lens-disabled-msg">No component has a computable
       refactor pressure (needs churn + complexity/LOC + fan-in).</div>`;
+    html += '</div>';
     host.innerHTML = html;
+    attachLensCollapseHandler(host);
     return;
   }
 
@@ -1038,7 +1128,27 @@ function renderPressureLens(visible, maxPressure) {
       <div class="lens-factors" id="lens-factors-${escHtml(item.pc.id)}" style="display:none"></div>
     </div>`;
   }
+
+  html += '</div>';  // close #lens-body
   host.innerHTML = html;
+  attachLensCollapseHandler(host);
+}
+
+// Attach the collapse click handler after the lens HTML has been injected.
+// Called each time renderPressureLens() rebuilds the DOM.
+function attachLensCollapseHandler(host) {
+  const header = host.querySelector('#lens-collapse-header');
+  const body   = host.querySelector('#lens-body');
+  const glyph  = host.querySelector('#lens-toggle-glyph');
+  if (!header || !body) return;
+  header.addEventListener('click', (e) => {
+    // Do not collapse if the click was on a (?) icon — let the popover fire.
+    if (e.target.closest('.ped-info')) return;
+    const nowOpen = body.style.display !== 'block';
+    body.style.display = nowOpen ? 'block' : 'none';
+    if (glyph) glyph.textContent = nowOpen ? '▾' : '▸';
+    localStorage.setItem(LENS_STORAGE_KEY, String(nowOpen));
+  });
 }
 
 // Highlight a tile from the pressure list and decompose its pressure factors
@@ -1495,9 +1605,15 @@ function showPhysicalPanel(id) {
 
   // Import-cycle membership (deterministic, Acyclic Dependencies Principle).
   if (pc.cycle_id) {
+    const cycleEntry = {
+      what: 'This file is in an import cycle.',
+      how: 'Detected by Tarjan SCC over the static import graph.',
+      teaches: 'Every member can reach every other, so none can be changed in isolation. Acyclic Dependencies Principle: break the cycle by having one member depend on an abstraction instead.',
+      epistemic_source: 'measured',
+    };
     html += `<div class="panel-section"><h3>Import cycle</h3>
       <p style="color:#e08a3c">In a cycle of ${pc.cycle_size} modules
-        <span class="ped-info" title="Detected by Tarjan SCC over the static import graph. Every member can reach every other, so none can be changed in isolation. Acyclic Dependencies Principle: break the cycle by having one member depend on an abstraction instead.">(?)</span>
+        ${infoIcon(cycleEntry)}
       </p></div>`;
   }
 
@@ -1728,9 +1844,11 @@ function buildEpistemicLegend() {
   for (const key of ['measured', 'metric-anchored', 'requires-your-intent']) {
     const meta = sources[key];
     if (!meta) continue;
+    // Construct a popover-compatible entry from the epistemic-source descriptor.
+    const popEntry = { what: meta.what, how: meta.how || null, teaches: meta.teaches || null };
     html += `<div class="leg-row">
       <span class="epi-chip" style="border-color:${meta.color};color:${meta.color}">${escHtml(meta.label)}</span>
-      <span class="leg-info" title="${escHtml(meta.what)}" style="cursor:help">(?)</span>
+      ${infoIcon(popEntry)}
     </div>`;
   }
   host.innerHTML = html;
@@ -1877,6 +1995,45 @@ document.getElementById('treemap-area').addEventListener('click', () => {
   } else if (currentView === 'physical') {
     buildEdgeOverlaySvg((COMPONENTS_DATA.physical_components || []).map(c => c.id), physicalNodeCenters);
   }
+});
+
+// ── Explainer popover event wiring ────────────────────────────────────────────
+// Single delegated handler on the document: intercepts clicks on any .ped-info
+// span that carries a data-ped-entry attribute (set by infoIcon()). Only one
+// popover is open at a time; a second click on the same icon closes it.
+
+document.addEventListener('click', function(e) {
+  const icon = e.target.closest('.ped-info[data-ped-entry]');
+  if (icon) {
+    e.stopPropagation();
+    const pop = document.getElementById('ped-popover');
+    // Toggle: if this icon is already the anchor, close; else open with new content.
+    if (pop && pop._anchorEl === icon && pop.style.display === 'block') {
+      closeExplainerPopover();
+    } else {
+      let entry = {};
+      try { entry = JSON.parse(icon.dataset.pedEntry); } catch (_) { /* malformed — show empty */ }
+      openExplainerPopover(icon, entry);
+    }
+    return;
+  }
+
+  // Close button inside the popover.
+  if (e.target.closest('#ped-popover-close')) {
+    closeExplainerPopover();
+    return;
+  }
+
+  // Click anywhere outside the popover closes it.
+  const pop = document.getElementById('ped-popover');
+  if (pop && pop.style.display === 'block' && !e.target.closest('#ped-popover')) {
+    closeExplainerPopover();
+  }
+});
+
+// Keyboard dismiss.
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeExplainerPopover();
 });
 
 // ── Escape-HTML helper ────────────────────────────────────────────────────────
