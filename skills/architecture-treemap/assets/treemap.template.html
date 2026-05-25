@@ -106,10 +106,24 @@
   .owner-pill.removable { background: #3d1a1a; color: #ff6b6b; }
 
   /* ── Legend ── */
-  #legend { position: absolute; top: 10px; right: 10px; background: rgba(22,22,22,0.95);
+  /* #legend-launcher: collapsed "?" button — always visible, never blocks tiles */
+  #legend-launcher { position: absolute; top: 10px; right: 10px; z-index: 20;
+                     width: 24px; height: 24px; border-radius: 50%;
+                     background: rgba(30,30,30,0.92); border: 1px solid #555;
+                     color: #aaa; font-size: 13px; font-weight: 700;
+                     cursor: pointer; display: flex; align-items: center;
+                     justify-content: center; line-height: 1; pointer-events: auto; }
+  #legend-launcher:hover { background: rgba(50,50,50,0.95); color: #fff; border-color: #888; }
+
+  /* #legend: expanded panel — hidden by default; pointer-events:none on container
+     so the collapsed state (display:none) truly cannot intercept clicks */
+  #legend { position: absolute; top: 40px; right: 10px; background: rgba(22,22,22,0.95);
             border: 1px solid #333; border-radius: 4px; padding: 8px 10px;
-            font-size: 10px; min-width: 180px; z-index: 10; max-height: calc(100vh - 100px);
-            overflow-y: auto; }
+            font-size: 10px; min-width: 180px; z-index: 15; max-height: calc(100vh - 120px);
+            overflow-y: auto; display: none; pointer-events: auto; }
+  #legend-close { float: right; cursor: pointer; color: #888; font-size: 12px;
+                  margin-left: 6px; line-height: 1; }
+  #legend-close:hover { color: #fff; }
   #legend h4 { color: #888; font-size: 9px; text-transform: uppercase;
                letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 8px; }
   #legend h4:first-child { margin-top: 0; }
@@ -168,7 +182,11 @@
 <div id="body">
   <div id="treemap-area">
     <svg id="treemap"></svg>
+    <!-- Collapsed "?" launcher — always visible, tiny, does not block tiles -->
+    <button id="legend-launcher" onclick="toggleLegend()" title="Show legend">?</button>
+    <!-- Expanded legend panel — hidden by default -->
     <div id="legend">
+      <span id="legend-close" onclick="toggleLegend()" title="Close legend">✕</span>
       <h4>Classification</h4>
       <div class="leg-row">
         <div class="leg-swatch" style="background:#2a7a2a"></div>

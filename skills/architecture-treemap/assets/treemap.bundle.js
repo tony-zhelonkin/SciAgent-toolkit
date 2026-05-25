@@ -46,11 +46,20 @@ const CLS_BASE = {
   removable: '#a02020',
 };
 
-// Edge type stroke colours
+// Edge type stroke colours.
+// The graph view (dark #111 background) uses ETYPE_COLOR_GRAPH for better legibility;
+// the treemap views (slightly lighter background) use ETYPE_COLOR for the overlay.
 const ETYPE_COLOR = {
   'direct-call':          '#888',
   'shared-state':         '#3a86c0',
   'background-knowledge': '#8a5cb0',
+};
+
+// Lightened palette for the graph view's dark background.
+const ETYPE_COLOR_GRAPH = {
+  'direct-call':          '#aab',
+  'shared-state':         '#60b0e8',
+  'background-knowledge': '#b080d8',
 };
 
 // Metric badge thresholds and labels
@@ -265,6 +274,47 @@ function buildEdgeOverlaySvg(viewIds, nodeCenters) {
 
   const overlay = svg.append('g').attr('class', 'edge-overlay').attr('pointer-events', 'none');
 
+  // Arrowhead markers in <defs>: one per edge-type colour, outgoing and incoming.
+  // Outgoing: solid filled arrowhead on marker-end.
+  // Incoming: open chevron on marker-start (distinguishable hue-shift via separate marker).
+  const defs = overlay.append('defs');
+  const ARROW_TYPES = [
+    { id: 'direct-call',          color: '#888' },
+    { id: 'shared-state',         color: '#3a86c0' },
+    { id: 'background-knowledge', color: '#8a5cb0' },
+  ];
+  for (const t of ARROW_TYPES) {
+    // marker-end arrowhead (outgoing): solid triangle, points along path direction
+    defs.append('marker')
+      .attr('id', `arrow-out-${t.id}`)
+      .attr('viewBox', '0 -4 10 8')
+      .attr('refX', 9)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto')
+      .append('path')
+        .attr('d', 'M0,-4L10,0L0,4Z')
+        .attr('fill', t.color)
+        .attr('opacity', 0.9);
+
+    // marker-start arrowhead (incoming): open chevron, lighter fill
+    const inColor = d3.interpolateRgb(d3.color(t.color), d3.color('#ddd'))(0.45);
+    defs.append('marker')
+      .attr('id', `arrow-in-${t.id}`)
+      .attr('viewBox', '0 -4 10 8')
+      .attr('refX', 1)
+      .attr('refY', 0)
+      .attr('markerWidth', 6)
+      .attr('markerHeight', 6)
+      .attr('orient', 'auto-start-reverse')
+      .append('path')
+        .attr('d', 'M10,-4L0,0L10,4')
+        .attr('fill', 'none')
+        .attr('stroke', inColor)
+        .attr('stroke-width', 1.5);
+  }
+
   for (const edge of shownEdges) {
     const src = nodeCenters.get(edge.from);
     const snk = nodeCenters.get(edge.to);
@@ -284,7 +334,8 @@ function buildEdgeOverlaySvg(viewIds, nodeCenters) {
 
     const pathStr = `M ${src.cx},${src.cy} C ${cp1x},${cp1y} ${cp2x},${cp2y} ${snk.cx},${snk.cy}`;
 
-    const baseColor = ETYPE_COLOR[edge.type] || '#888';
+    const safeType = edge.type || 'direct-call';
+    const baseColor = ETYPE_COLOR[safeType] || '#888';
     // Outgoing: full colour, opacity 0.9. Incoming: lighter + 0.6 opacity.
     const strokeColor = isOutgoing
       ? baseColor
@@ -302,6 +353,18 @@ function buildEdgeOverlaySvg(viewIds, nodeCenters) {
       .attr('stroke-opacity', strokeOpacity);
 
     if (dashArr) path.attr('stroke-dasharray', dashArr);
+
+    // Directional arrowheads: outgoing gets marker-end, incoming gets marker-start.
+    // Applied only on non-faint (selected) edges for clarity.
+    const isFaint = showAllEdges && !selectedNodeIds.has(edge.from) && !selectedNodeIds.has(edge.to);
+    if (!isFaint) {
+      const typeKey = ETYPE_COLOR[safeType] ? safeType : 'direct-call';
+      if (isOutgoing) {
+        path.attr('marker-end', `url(#arrow-out-${typeKey})`);
+      } else {
+        path.attr('marker-start', `url(#arrow-in-${typeKey})`);
+      }
+    }
   }
 }
 
@@ -627,17 +690,18 @@ function renderGraph() {
     .data(edgeLinks)
     .join('line')
     .attr('class', 'graph-edge')
-    .attr('stroke', e => ETYPE_COLOR[e.type] || '#888')
-    .attr('stroke-width', 1.5)
+    .attr('stroke', e => ETYPE_COLOR_GRAPH[e.type] || '#aab')
+    .attr('stroke-width', 2)
     .attr('stroke-opacity', e => {
       if (!showAllEdges && selectedNodeIds.size > 0) {
-        return (selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to)) ? 0.9 : 0.05;
+        return (selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to)) ? 0.9 : 0.15;
       }
-      return showAllEdges ? 0.2 : 0.5;
+      return showAllEdges ? 0.3 : 0.7;
     })
     .each(function(e) {
+      // Widened dash gap so static (solid) vs audit-asserted (dashed) is unmistakable.
       const dashArr = edgeDashArray(e);
-      if (dashArr) d3.select(this).attr('stroke-dasharray', dashArr);
+      if (dashArr) d3.select(this).attr('stroke-dasharray', '5 4');
     });
 
   // Node layer
@@ -735,9 +799,9 @@ function refreshGraphEdges(edgePaths) {
   edgePaths.attr('stroke-opacity', e => {
     if (selectedNodeIds.size > 0) {
       const active = selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to);
-      return active ? 0.9 : 0.05;
+      return active ? 0.9 : 0.15;
     }
-    return showAllEdges ? 0.2 : 0.5;
+    return showAllEdges ? 0.3 : 0.7;
   });
 }
 
@@ -1031,8 +1095,20 @@ function edgeRowHtml(e, dir, mode) {
 }
 
 // Cross-view jump (Q-1.3 cross-link affordance)
+// setView() resets selectedNodeIds; re-select AFTER setView so the target's
+// edges light up immediately on arrival.
 function jumpToOtherView(id, targetView) {
   setView(targetView);
+  // setView cleared selectedNodeIds — re-select the target node now.
+  selectedNodeIds = new Set([id]);
+  // Rebuild the edge overlay for the destination view.
+  if (targetView === 'logical') {
+    const viewIds = (COMPONENTS_DATA.logical_components || []).map(c => c.id);
+    buildEdgeOverlaySvg(viewIds, logicalNodeCenters);
+  } else if (targetView === 'physical') {
+    const viewIds = (COMPONENTS_DATA.physical_components || []).map(c => c.id);
+    buildEdgeOverlaySvg(viewIds, physicalNodeCenters);
+  }
   showPanel(id, targetView === 'logical' ? 'logical' : 'physical');
 }
 
@@ -1073,6 +1149,31 @@ function buildLegendPopovers() {
 
 // ── "How to read this" panel (Tier-2, localStorage state) ────────────────────
 
+// ── Legend toggle (collapsed "?" by default) ─────────────────────────────────
+
+const LEGEND_STORAGE_KEY = 'architecture-treemap-legend-open';
+
+function toggleLegend() {
+  const panel    = document.getElementById('legend');
+  const launcher = document.getElementById('legend-launcher');
+  if (!panel) return;
+  const nowOpen = panel.style.display !== 'block';
+  panel.style.display = nowOpen ? 'block' : 'none';
+  if (launcher) launcher.style.display = nowOpen ? 'none' : 'flex';
+  localStorage.setItem(LEGEND_STORAGE_KEY, String(nowOpen));
+}
+
+function initLegend() {
+  const panel    = document.getElementById('legend');
+  const launcher = document.getElementById('legend-launcher');
+  if (!panel) return;
+  const stored = localStorage.getItem(LEGEND_STORAGE_KEY);
+  // Collapsed by default on first visit (stored === null → false)
+  const isOpen = stored === 'true';
+  panel.style.display   = isOpen ? 'block' : 'none';
+  if (launcher) launcher.style.display = isOpen ? 'none' : 'flex';
+}
+
 function initHowToReadPanel() {
   const panel  = document.getElementById('how-to-read-panel');
   const toggle = document.getElementById('how-to-read-toggle');
@@ -1080,8 +1181,8 @@ function initHowToReadPanel() {
 
   const storageKey = 'architecture-treemap-how-to-read-open';
   const stored = localStorage.getItem(storageKey);
-  // Open by default on first visit
-  const isOpen = stored === null ? true : stored === 'true';
+  // Closed by default on first visit
+  const isOpen = stored === 'true';
   panel.style.display = isOpen ? 'block' : 'none';
   toggle.textContent  = isOpen ? '▾' : '▸';
 
@@ -1176,5 +1277,6 @@ window.addEventListener('resize', () => {
 // ── Initialise ────────────────────────────────────────────────────────────────
 
 buildLegendPopovers();
+initLegend();
 initHowToReadPanel();
 renderLogical();
