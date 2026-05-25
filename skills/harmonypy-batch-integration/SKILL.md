@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://github.com/slowkow/harmonypy
   category: integration
   tier: simple
-  tags: []
+  tags:
+  - integration
   complementary-skills:
   - scanpy
   - snapatac2-atac-preprocessing

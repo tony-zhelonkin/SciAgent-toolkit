@@ -9,7 +9,8 @@ metadata:
   last-reviewed: 2026-04-14
   category: integration
   tier: standard
-  tags: []
+  tags:
+  - integration
   complementary-skills:
   - scvi-framework
   - anndata

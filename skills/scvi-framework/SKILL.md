@@ -9,7 +9,8 @@ metadata:
   last-reviewed: 2026-04-20
   category: foundation
   tier: rich
-  tags: []
+  tags:
+  - integration
   complementary-skills:
   - scvi-basic
   - scvi-scanvi

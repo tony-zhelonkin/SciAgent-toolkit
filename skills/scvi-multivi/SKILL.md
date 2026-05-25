@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html
   category: integration
   tier: simple
-  tags: []
+  tags:
+  - integration
   complementary-skills:
   - scvi-framework
   - scvi-peakvi

@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://scglue.readthedocs.io/
   category: integration
   tier: standard
-  tags: []
+  tags:
+  - integration
   complementary-skills:
   - scvi-multivi
   - muon-multimodal-analysis
