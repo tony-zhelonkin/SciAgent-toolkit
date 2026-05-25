@@ -25,6 +25,7 @@ sciagent — per-project AI-harness context manager
 Usage:
   sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
   sciagent deactivate [<role>]         Tear down the stack (or one role)
+  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
   sciagent inject <skill>              Add one skill to current overlay
   sciagent inject --tag <name>         Add all skills tagged <name>
   sciagent eject <skill>               Remove one previously-injected skill
@@ -33,7 +34,6 @@ Usage:
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
                                        List available content
-  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
   sciagent list deps <skill>           Transitive requires closure (leaves first)
   sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]

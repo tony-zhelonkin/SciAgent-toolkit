@@ -71,6 +71,9 @@ USAGE
     # -----------------------------------------------------------------------
     # Check 3 prep: build known-tag vocabulary from tags.yaml.
     # Parse lines:  `  - name: <value>`
+    # NOTE: tests/test_tags_vocabulary.sh carries a near-identical awk parser
+    # for the same vocabulary. If you change the matching/trimming rules here,
+    # change them there too — the two readers must agree on what counts as a tag.
     # -----------------------------------------------------------------------
     local known_tags=""
     if [[ -f "$tags_file" ]]; then
@@ -102,7 +105,12 @@ USAGE
         [[ -f "$skill_file" ]] || continue
 
         # Check 1+2: transitive requires resolution + cycle detection.
-        # skill_resolve_transitive hard-fails on missing targets and cycles.
+        # skill_resolve_transitive hard-fails on missing targets and cycles
+        # and writes the diagnostic to stderr (which we capture into
+        # resolve_err and re-emit). The kickoff spec asks for "message names
+        # the cycle" — the resolver's "cycle detected in requires graph at
+        # '<name>'" line satisfies that transitively, so we relay it as-is
+        # rather than re-format here.
         local resolve_err
         if ! resolve_err=$(skill_resolve_transitive "$skill_name" 2>&1); then
             failures+=("$skill_name: requires resolution failed — $resolve_err")

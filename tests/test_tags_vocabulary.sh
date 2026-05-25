@@ -20,6 +20,9 @@ fi
 
 # Build the set of known tag names from tags.yaml.
 # Parses lines of the form: `  - name: <value>` under the `tags:` block.
+# NOTE: lib/sciagent/validate.sh carries a near-identical awk parser for the
+# same vocabulary. If you change the matching/trimming rules here, change
+# them there too — the two readers must agree on what counts as a tag.
 known_tags="$(awk '
     /^tags:/ { intags=1; next }
     intags && /^  - name:/ {

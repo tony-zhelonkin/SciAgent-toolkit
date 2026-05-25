@@ -30,24 +30,9 @@ ln -sfn "$FAKE/skills/s_c" .agents/skills/s_c
 old_hash=$(grep '"block_hash"' .sciagent/manifest.json \
     | sed 's/.*"block_hash":[[:space:]]*"\([^"]*\)".*/\1/')
 
-# Build a manifest that looks like pre-PR-3 output: injected entry has no "via".
-cat > .sciagent/manifest.json <<EOF
-{
-  "version": 1,
-  "stack": ["base"],
-  "symlinks": [".claude/skills/s_a",".agents/skills/s_a",
-               ".claude/skills/s_b",".agents/skills/s_b",
-               ".claude/agents/ag_a.md",".agents/agents/ag_a.md",
-               ".claude/commands/c_a.md",".agents/commands/c_a.md",
-               ".claude/skills/s_c",".agents/skills/s_c"],
-  "injected": [
-    {"overlay": "_injected", "skill": "s_c"}
-  ],
-  "block_hash": "$old_hash"
-}
-EOF
-
-# Also update the stack to include _injected (as inject would have done).
+# Build a manifest that looks like pre-PR-3 output: the injected entry has
+# no "via" field, and the stack already includes the synthetic _injected
+# overlay (matching what the old `inject` would have written).
 cat > .sciagent/manifest.json <<EOF
 {
   "version": 1,
