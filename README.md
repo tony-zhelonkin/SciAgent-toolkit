@@ -6,6 +6,23 @@ Per-project context manager for AI coding harnesses. Activates a role — a bund
 
 Different work modes need different context. Reviewing code and running bioinformatics analysis call for different agents, different skills, different commands. Roles let you swap that context in one command. Everything is per-project — nothing touches your home directory.
 
+## Install
+
+The CLI is one bash script at `bin/sciagent`. To call `sciagent` (or its short alias `si`) from anywhere, symlink it into a directory on your `PATH`.
+
+`PATH` is the colon-separated list shell searches when a command is typed — `echo $PATH` prints it. 
+`~/.local/bin` is the conventional spot for user-installed binaries and is already on `PATH` in most modern shells; if it isn't, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc (`~/.bashrc`, `~/.zshrc`). 
+
+```bash
+# Replace /absolute/path/to/SciAgent-toolkit with wherever you cloned (or submoduled) the toolkit
+ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/sciagent
+ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/si
+
+sciagent --help     # verify it resolves
+```
+
+`ln -sf` is idempotent — re-run to repoint at a different checkout. Uninstall with `rm ~/.local/bin/sciagent ~/.local/bin/si`; the toolkit itself is untouched. 
+
 ## Quick start
 
 ```bash
@@ -27,13 +44,15 @@ sciagent deactivate
 
 ## The RPG model
 
-A project has at most two active roles: a `base` (the foundation) and an optional `overlay` (the specialization). Last-wins on name collisions; `sciagent status` shows what got shadowed.
+A project has at most two active roles: a `base` (the foundation) and an optional `overlay` (the specialization). Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
+
+Any role can occupy either slot; there's no enforced base/overlay typing. Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `scrna-atlas` + `planning` to layer a research stack on top of atlas work, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
 
 ```bash
-sciagent activate base reviewer
+sciagent activate base pathway-signature
 ```
 
-`base` provides bioinformatics context; `reviewer` overlays code-review agents and commands. Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier resolution already makes "where did this come from?" painful enough.
+Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier resolution already makes "where did this come from?" painful enough.
 
 ## Verbs
 
