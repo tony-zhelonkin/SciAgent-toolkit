@@ -28,6 +28,9 @@
   /* Show-all-edges toggle */
   #edge-toggle-wrap { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
   #edge-toggle-wrap input { cursor: pointer; }
+  /* Show-tests toggle (Physical view) */
+  #tests-toggle-wrap { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+  #tests-toggle-wrap input { cursor: pointer; }
 
   /* ── Body layout ── */
   #body { display: flex; flex: 1; overflow: hidden; }
@@ -175,6 +178,10 @@
   <label id="edge-toggle-wrap">
     <input type="checkbox" id="show-all-edges" onchange="toggleAllEdges(this.checked)">
     Show all edges (faint)
+  </label>
+  <label id="tests-toggle-wrap">
+    <input type="checkbox" id="show-tests" onchange="toggleTests(this.checked)">
+    Show tests
   </label>
   <span class="stamp">{{STAMP}}</span>
 </div>

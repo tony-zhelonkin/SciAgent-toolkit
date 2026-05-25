@@ -62,13 +62,34 @@ const ETYPE_COLOR_GRAPH = {
   'background-knowledge': '#b080d8',
 };
 
-// Metric badge thresholds and labels
-const METRIC_BADGES = [
-  { field: 'fan_out',    test: v => v >= 5,   label: 'hi fan-out', color: '#6060a0' },
-  { field: 'cyclomatic', test: v => v >= 10,  label: 'hi CC',      color: '#a06020' },
-  { field: 'test_ratio', test: v => v < 0.3,  label: 'low tests',  color: '#a04040' },
-  { field: 'churn_90d',  test: v => v >= 10,  label: 'hi churn',   color: '#405080' },
-];
+// ── Metric model (single source of truth, descriptor-driven) ──────────────────
+// The metric registry (scripts/metric_registry.py) is serialised into the
+// manifest's `metric_descriptors` block. The badge set, side-panel rows, and
+// good/bad semantics are all DERIVED from it here, so the render is a pure
+// function of the file and adding a metric never touches this renderer.
+//
+// Backward compatibility: pre-registry manifests omit the block; we fall back
+// to a built-in default table matching the original six named metrics.
+const DEFAULT_METRIC_DESCRIPTORS = {
+  loc:         { label: 'LOC',        short_badge_label: null,         unit: 'loc',     higher_is_better: false, render: 'hidden', badge_threshold: null, badge_color: '#666' },
+  fan_in:      { label: 'Fan-in',     short_badge_label: null,         unit: '',        higher_is_better: false, render: 'hidden', badge_threshold: null, badge_color: '#666' },
+  fan_out:     { label: 'Fan-out',    short_badge_label: 'hi fan-out', unit: '',        higher_is_better: false, render: 'badge',  badge_threshold: 5,    badge_color: '#6060a0' },
+  cyclomatic:  { label: 'Cyclomatic', short_badge_label: 'hi CC',      unit: '',        higher_is_better: false, render: 'badge',  badge_threshold: 10,   badge_color: '#a06020' },
+  churn_90d:   { label: 'Churn 90d',  short_badge_label: 'hi churn',   unit: 'commits', higher_is_better: false, render: 'badge',  badge_threshold: 10,   badge_color: '#405080' },
+  test_ratio:  { label: 'Test ratio', short_badge_label: 'low tests',  unit: '',        higher_is_better: true,  render: 'badge',  badge_threshold: 0.3,  badge_color: '#a04040' },
+};
+
+const METRIC_DESCRIPTORS = (COMPONENTS_DATA.metric_descriptors && Object.keys(COMPONENTS_DATA.metric_descriptors).length)
+  ? COMPONENTS_DATA.metric_descriptors
+  : DEFAULT_METRIC_DESCRIPTORS;
+
+// A badge lights when a value is on the WORSE side of its threshold:
+// higher_is_better metrics warn BELOW threshold; others warn AT/ABOVE.
+function metricBadgeLights(desc, value) {
+  if (!desc || desc.render !== 'badge' || desc.badge_threshold === null || desc.badge_threshold === undefined) return false;
+  if (value === undefined || value === null) return false;
+  return desc.higher_is_better ? (value < desc.badge_threshold) : (value >= desc.badge_threshold);
+}
 
 // Force-graph layout zones (logical x-centre targets, normalised 0-1)
 const CLUSTER_X = { core: 0.2, seam: 0.5, removable: 0.8 };
@@ -93,6 +114,73 @@ let currentView       = 'logical';
 let selectedNodeIds   = new Set();   // ids of nodes whose edges are shown
 let showAllEdges      = false;       // "Show all edges (faint)" toggle
 let graphSimulation   = null;        // d3 force simulation (Graph view)
+let graphAmbientIds   = new Set();   // cross-cutting sinks in the current graph
+
+// "Show tests" toggle (Physical view). Tests stay in the manifest (kind:test)
+// but are excluded from the default backbone layout; this reveals them in a
+// de-emphasised style. Persisted in localStorage like the other UI toggles.
+const SHOW_TESTS_STORAGE_KEY = 'architecture-treemap-show-tests';
+let showTests = (localStorage.getItem(SHOW_TESTS_STORAGE_KEY) === 'true');
+
+// Backbone kinds shown in the default Physical view (everything but tests).
+const BACKBONE_KINDS = new Set(['module', 'config', 'asset', 'other', 'doc']);
+
+// Cross-cutting / ambient sink detection. A node that many things depend on but
+// that depends on nothing is a pure SINK — drawing every edge into it solid
+// tangles the view into a hairball. When that sink is also cross-cutting
+// (a shared config/kernel/util the whole codebase leans on), its incoming edges
+// are drawn faintly so it reads as "everyone depends on this" without drowning
+// the core/seam/removable structure. Edges still light to full opacity on
+// selection, so the relationship is visible-on-demand, never hidden.
+//
+// Driven entirely by NODE PROPERTIES, never a hardcoded id:
+//   high in-degree  (>= AMBIENT_MIN_FAN_IN, computed from the active view's edges)
+//   + zero out-degree (a pure sink)
+//   + a cross-cutting marker (config-kind file, all-config ownership, or a
+//     config/util id hint — the judgment layer's signal for "shared kernel").
+// In/out degree work in both id-spaces (logical-id and physical-id edges).
+const AMBIENT_MIN_FAN_IN = 5;
+
+function ambientNodeIds(viewIds, edges) {
+  const inDeg = new Map();
+  const outDeg = new Map();
+  for (const id of viewIds) { inDeg.set(id, 0); outDeg.set(id, 0); }
+  for (const e of edges) {
+    if (outDeg.has(e.from)) outDeg.set(e.from, outDeg.get(e.from) + 1);
+    if (inDeg.has(e.to))    inDeg.set(e.to,    inDeg.get(e.to)    + 1);
+  }
+  const ambient = new Set();
+  for (const id of viewIds) {
+    if (inDeg.get(id) >= AMBIENT_MIN_FAN_IN && outDeg.get(id) === 0 && isCrossCuttingNode(id)) {
+      ambient.add(id);
+    }
+  }
+  return ambient;
+}
+
+// True when a node carries a cross-cutting marker. Layered signals, strongest
+// first: a config-kind physical file; a logical node owning only config files;
+// otherwise a config/util id hint (the judgment layer names shared kernels this
+// way). NOTE config-as-code lives in .py files (kind 'module'), so kind alone is
+// insufficient — the id/ownership hint is what catches a config.py sink.
+function isCrossCuttingNode(id) {
+  const pc = physicalById.get(id);
+  if (pc) {
+    if (pc.kind === 'config') return true;
+    return /(^|[-_/])config(\.py)?$/.test(pc.path) || /(^|[-_/])config$/.test(id);
+  }
+  const lc = logicalById.get(id);
+  if (lc) {
+    const files = lc.physical_files || [];
+    const allConfig = files.length > 0 && files.every(f => {
+      const owner = (COMPONENTS_DATA.physical_components || []).find(p => p.path === f.path);
+      return owner && owner.kind === 'config';
+    });
+    if (allConfig) return true;
+    return /(^|-)config$/.test(id) || /(^|-)util(s)?$/.test(id);
+  }
+  return false;
+}
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
 
@@ -148,12 +236,16 @@ function wrapText(str, maxChars) {
   return lines.length ? lines : [str.substring(0, maxChars)];
 }
 
+// Derive the lit badges for a metrics block from the descriptor registry.
+// Returns up to 3 {label, color} chips, iterating descriptors in declared order.
 function badgesForMetrics(metrics) {
   if (!metrics) return [];
   const badges = [];
-  for (const def of METRIC_BADGES) {
-    if (metrics[def.field] !== undefined && def.test(metrics[def.field])) {
-      badges.push(def);
+  for (const field of Object.keys(METRIC_DESCRIPTORS)) {
+    const desc = METRIC_DESCRIPTORS[field];
+    if (!desc.short_badge_label) continue;
+    if (metricBadgeLights(desc, metrics[field])) {
+      badges.push({ label: desc.short_badge_label, color: desc.badge_color });
       if (badges.length >= 3) break;
     }
   }
@@ -190,6 +282,24 @@ function drawMetricBadges(gEl, metrics, cellW, cellH) {
       .text(label);
     bx += bw + pad;
   }
+}
+
+// Define (once per render) the diagonal-hatch pattern used to mark test tiles
+// as visually subordinate. Idempotent: removes any prior copy first.
+function ensureTestHatchPattern() {
+  svg.select('defs.test-hatch-defs').remove();
+  const defs = svg.append('defs').attr('class', 'test-hatch-defs');
+  const pattern = defs.append('pattern')
+    .attr('id', 'test-hatch')
+    .attr('patternUnits', 'userSpaceOnUse')
+    .attr('width', 6).attr('height', 6)
+    .attr('patternTransform', 'rotate(45)');
+  pattern.append('rect')
+    .attr('width', 6).attr('height', 6)
+    .attr('fill', 'none');
+  pattern.append('line')
+    .attr('x1', 0).attr('y1', 0).attr('x2', 0).attr('y2', 6)
+    .attr('stroke', '#000').attr('stroke-width', 2).attr('stroke-opacity', 0.35);
 }
 
 // ── Edge overlay helpers ──────────────────────────────────────────────────────
@@ -491,11 +601,15 @@ function renderPhysical() {
     return;
   }
 
-  const maxLoc = d3.max(physicals, d => d.size_loc) || 1;
+  // Default view shows only backbone components; tests are excluded unless the
+  // "Show tests" toggle is on (they remain in the manifest either way).
+  const visible = physicals.filter(pc => pc.kind !== 'test' || showTests);
+
+  const maxLoc = d3.max(visible, d => d.size_loc) || 1;
   const groups = ['core', 'seam', 'removable'].map(cls => ({
     id: cls,
     name: cls,
-    children: physicals
+    children: visible
       .filter(pc => primaryClassForPhysical(pc) === cls)
       .map(pc => ({ ...pc, value: Math.max(pc.size_loc, 30), _primaryCls: cls })),
   })).filter(g => g.children.length > 0);
@@ -515,7 +629,10 @@ function renderPhysical() {
     });
   }
 
-  const physicalIds = physicals.map(pc => pc.id);
+  const physicalIds = visible.map(pc => pc.id);
+
+  // Hatch pattern for de-emphasised test tiles (muted, striped, subordinate).
+  ensureTestHatchPattern();
 
   const g = svg.selectAll('g.node')
     .data(leaves)
@@ -528,6 +645,7 @@ function renderPhysical() {
     .attr('height', d => Math.max(0, d.y1 - d.y0))
     .attr('fill',   d => clsColor(d.data._primaryCls, d.data.size_loc, maxLoc))
     .attr('rx', 2)
+    .attr('opacity', d => d.data.kind === 'test' ? 0.4 : 1)
     .on('mousemove', (event, d) => showTip(event, d.data, 'physical'))
     .on('mouseleave', hideTip)
     .on('click', (event, d) => {
@@ -540,6 +658,17 @@ function renderPhysical() {
       }
       buildEdgeOverlaySvg(physicalIds, physicalNodeCenters);
     });
+
+  // Hatch overlay on test tiles — drawn on top of the muted fill so tests read
+  // as visually subordinate (striped) without being mistaken for backbone.
+  g.filter(d => d.data.kind === 'test')
+    .append('rect')
+    .attr('class', 'test-hatch-overlay')
+    .attr('width',  d => Math.max(0, d.x1 - d.x0))
+    .attr('height', d => Math.max(0, d.y1 - d.y0))
+    .attr('rx', 2)
+    .attr('fill', 'url(#test-hatch)')
+    .attr('pointer-events', 'none');
 
   // Per-cell labels, owner pills, metric badges
   g.each(function(d) {
@@ -637,6 +766,10 @@ function renderGraph() {
 
   const viewIds = new Set(logicals.map(c => c.id));
   const activeEdges = edgesForView(Array.from(viewIds));
+  // Identify ambient/cross-cutting sinks so their many incoming edges can be
+  // drawn faintly instead of forming a hairball. Stored at module scope so
+  // refreshGraphEdges (on click) reuses the same set.
+  graphAmbientIds = ambientNodeIds(Array.from(viewIds), activeEdges);
 
   const maxLoc = d3.max(logicals, d => d.size_estimate_loc) || 1;
 
@@ -692,12 +825,7 @@ function renderGraph() {
     .attr('class', 'graph-edge')
     .attr('stroke', e => ETYPE_COLOR_GRAPH[e.type] || '#aab')
     .attr('stroke-width', 2)
-    .attr('stroke-opacity', e => {
-      if (!showAllEdges && selectedNodeIds.size > 0) {
-        return (selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to)) ? 0.9 : 0.15;
-      }
-      return showAllEdges ? 0.3 : 0.7;
-    })
+    .attr('stroke-opacity', e => graphEdgeOpacity(e, graphAmbientIds))
     .each(function(e) {
       // Widened dash gap so static (solid) vs audit-asserted (dashed) is unmistakable.
       const dashArr = edgeDashArray(e);
@@ -795,14 +923,21 @@ function renderGraph() {
     });
 }
 
+// Opacity for a graph edge, honouring selection, the show-all toggle, and the
+// ambient-sink damping. An edge into an ambient node is drawn faint by default
+// (it still lights to full opacity when its endpoint is selected), so the
+// cross-cutting relationship is visible-on-demand, not a permanent hairball.
+function graphEdgeOpacity(e, ambientIds) {
+  if (selectedNodeIds.size > 0) {
+    const active = selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to);
+    return active ? 0.9 : 0.15;
+  }
+  if (ambientIds && ambientIds.has(e.to)) return 0.12;  // ambient sink: faint
+  return showAllEdges ? 0.3 : 0.7;
+}
+
 function refreshGraphEdges(edgePaths) {
-  edgePaths.attr('stroke-opacity', e => {
-    if (selectedNodeIds.size > 0) {
-      const active = selectedNodeIds.has(e.from) || selectedNodeIds.has(e.to);
-      return active ? 0.9 : 0.15;
-    }
-    return showAllEdges ? 0.3 : 0.7;
-  });
+  edgePaths.attr('stroke-opacity', e => graphEdgeOpacity(e, graphAmbientIds));
 }
 
 // ── Seeded PRNG (Mulberry32) ──────────────────────────────────────────────────
@@ -1029,21 +1164,22 @@ function showPhysicalPanel(id) {
   panelBody.innerHTML = html;
 }
 
+// Side-panel metric breakdown — descriptor-driven. Shows every metric present,
+// in registry order, labelled and unit-suffixed from the descriptor. Any metric
+// present but not described (forward-compat) is shown with its raw key.
 function metricsBreakdownHtml(metrics) {
   const rows = [];
-  const def = [
-    ['loc',        'LOC'],
-    ['fan_in',     'Fan-in'],
-    ['fan_out',    'Fan-out'],
-    ['cyclomatic', 'Cyclomatic'],
-    ['churn_90d',  'Churn 90d'],
-    ['test_ratio', 'Test ratio'],
-  ];
-  for (const [field, label] of def) {
-    if (metrics[field] !== undefined) {
-      rows.push(`<div class="file-row"><span style="color:#aaa">${label}</span><span style="color:#ddd">${metrics[field]}</span></div>`);
-    }
-  }
+  const seen = new Set();
+  const emit = (field) => {
+    if (metrics[field] === undefined || seen.has(field)) return;
+    seen.add(field);
+    const desc = METRIC_DESCRIPTORS[field];
+    const label = desc ? desc.label : field;
+    const unit  = desc && desc.unit ? ' ' + desc.unit : '';
+    rows.push(`<div class="file-row"><span style="color:#aaa">${escHtml(label)}</span><span style="color:#ddd">${metrics[field]}${escHtml(unit)}</span></div>`);
+  };
+  for (const field of Object.keys(METRIC_DESCRIPTORS)) emit(field);
+  for (const field of Object.keys(metrics)) emit(field);  // undescribed metrics
   if (!rows.length) return '';
   return `<div class="panel-section"><h3>Metrics</h3>${rows.join('')}</div>`;
 }
@@ -1244,6 +1380,14 @@ function toggleAllEdges(checked) {
   }
 }
 
+// ── "Show tests" toggle (Physical view) ───────────────────────────────────────
+
+function toggleTests(checked) {
+  showTests = checked;
+  localStorage.setItem(SHOW_TESTS_STORAGE_KEY, String(checked));
+  if (currentView === 'physical') renderPhysical();
+}
+
 // ── Background click clears edge selection ────────────────────────────────────
 
 document.getElementById('treemap-area').addEventListener('click', () => {
@@ -1279,4 +1423,9 @@ window.addEventListener('resize', () => {
 buildLegendPopovers();
 initLegend();
 initHowToReadPanel();
+
+// Reflect persisted "Show tests" state into the checkbox on load.
+const _showTestsCheckbox = document.getElementById('show-tests');
+if (_showTestsCheckbox) _showTestsCheckbox.checked = showTests;
+
 renderLogical();

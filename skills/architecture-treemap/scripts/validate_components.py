@@ -73,20 +73,27 @@ def _validate_physical_file_ref(path: str, ref: Any):
 
 
 def _validate_metrics(path: str, m: Any):
+    """Validate the OPEN numeric metric map.
+
+    The set of keys is not fixed (the metric registry is the single source of
+    truth for which metrics exist). Every value must be a non-negative number.
+    The historically-integer fields are still type-checked as integers for the
+    extra rigour the substrate guarantees; all other keys are open numerics.
+    """
     _require_type(path, m, dict, "object")
-    int_fields = ["loc", "fan_in", "fan_out", "churn_90d"]
-    num_fields = ["cyclomatic", "test_ratio"]
-    for f in int_fields:
-        if f in m:
-            _require_type(f"{path}.{f}", m[f], int, "integer")
-            if m[f] < 0:
-                raise ValidationError(f"{path}.{f}", "must be >= 0")
-    for f in num_fields:
-        if f in m:
-            if not isinstance(m[f], (int, float)):
-                raise ValidationError(f"{path}.{f}", "expected number")
-            if m[f] < 0:
-                raise ValidationError(f"{path}.{f}", "must be >= 0")
+    int_fields = {"loc", "fan_in", "fan_out", "churn_90d"}
+    for field, value in m.items():
+        if field in int_fields:
+            # bool is a subclass of int; reject it explicitly.
+            if isinstance(value, bool) or not isinstance(value, int):
+                raise ValidationError(f"{path}.{field}", "expected integer")
+            if value < 0:
+                raise ValidationError(f"{path}.{field}", "must be >= 0")
+        else:
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                raise ValidationError(f"{path}.{field}", "expected number")
+            if value < 0:
+                raise ValidationError(f"{path}.{field}", "must be >= 0")
 
 
 def _validate_logical_component(path: str, lc: Any):
@@ -252,6 +259,16 @@ def validate_schema(data: dict) -> list[str]:
         ext = data["extractor"]
         if not isinstance(ext, dict):
             errors.append("extractor: expected object")
+
+    # metric_descriptors block (self-describing metric model; optional)
+    if "metric_descriptors" in data:
+        md = data["metric_descriptors"]
+        if not isinstance(md, dict):
+            errors.append("metric_descriptors: expected object")
+        else:
+            for key, desc in md.items():
+                if not isinstance(desc, dict):
+                    errors.append(f"metric_descriptors.{key}: expected object")
 
     # logical_components
     if isinstance(data.get("logical_components"), list):

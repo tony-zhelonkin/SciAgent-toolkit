@@ -10,6 +10,15 @@
     "extracted_at": "2026-05-24",
     "metric_tools": ["ast+networkx", "radon", "cloc", "git-log"]
   },
+  "metric_descriptors": {
+    "loc":               {"label": "LOC",               "short_badge_label": null,          "unit": "loc",     "value_kind": "int",    "higher_is_better": false, "kind": "base",    "render": "hidden", "badge_threshold": null, "badge_color": "#666"},
+    "fan_in":            {"label": "Fan-in",            "short_badge_label": null,          "unit": "",        "value_kind": "int",    "higher_is_better": false, "kind": "base",    "render": "hidden", "badge_threshold": null, "badge_color": "#666"},
+    "fan_out":           {"label": "Fan-out",           "short_badge_label": "hi fan-out",  "unit": "",        "value_kind": "int",    "higher_is_better": false, "kind": "base",    "render": "badge",  "badge_threshold": 5,    "badge_color": "#6060a0"},
+    "cyclomatic":        {"label": "Cyclomatic",        "short_badge_label": "hi CC",       "unit": "",        "value_kind": "number", "higher_is_better": false, "kind": "base",    "render": "badge",  "badge_threshold": 10,   "badge_color": "#a06020"},
+    "churn_90d":         {"label": "Churn 90d",         "short_badge_label": "hi churn",    "unit": "commits", "value_kind": "int",    "higher_is_better": false, "kind": "base",    "render": "badge",  "badge_threshold": 10,   "badge_color": "#405080"},
+    "test_ratio":        {"label": "Test ratio",        "short_badge_label": "low tests",   "unit": "",        "value_kind": "number", "higher_is_better": true,  "kind": "base",    "render": "badge",  "badge_threshold": 0.3,  "badge_color": "#a04040"},
+    "refactor_pressure": {"label": "Refactor pressure", "short_badge_label": "hi pressure", "unit": "",        "value_kind": "number", "higher_is_better": false, "kind": "derived", "render": "badge",  "badge_threshold": 400,  "badge_color": "#902020"}
+  },
   "logical_components": [
     {
       "id": "api-router",
@@ -35,7 +44,7 @@
       "smoke_findings": [],
       "audit_slices": [],
       "size_estimate_loc": 240,
-      "metrics": {"loc": 240, "fan_in": 3, "fan_out": 0, "cyclomatic": 5.1, "churn_90d": 14, "test_ratio": 1.1}
+      "metrics": {"loc": 240, "fan_in": 3, "fan_out": 0, "cyclomatic": 5.1, "churn_90d": 14, "test_ratio": 1.1, "refactor_pressure": 194.73}
     },
     {
       "id": "plugin-loader",

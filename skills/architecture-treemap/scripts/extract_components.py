@@ -28,6 +28,12 @@ import os
 import subprocess
 import sys
 
+# The metric model is declared once in metric_registry.py (single source of
+# truth). The extractor derives WHAT to compute from it instead of hardcoding
+# a compute-list; see build_physical_components and metric_registry.py.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import metric_registry  # noqa: E402
+
 TOOL_VERSION = "architecture-treemap 0.1.0"
 SCHEMA_VERSION = "1.0"
 
@@ -70,16 +76,24 @@ VENDOR_DIR_NAMES = {
     "site-packages",
 }
 
+# The skill's own output lands under an `architecture-audit` directory. A tool
+# must not render its own output as architecture, so any path with this segment
+# is excluded by default (committed prior snapshots included). The current
+# run's --out directory is excluded the same way (computed in build_manifest).
+# Override with --include-audit-output when auditing the skill repo itself.
+AUDIT_OUTPUT_SEGMENT = "architecture-audit"
+
 
 # ---------------------------------------------------------------------------
 # File discovery
 # ---------------------------------------------------------------------------
 
-def list_repo_files(repo_root):
+def list_repo_files(repo_root, exclude_audit=True, out_dir_rel=None):
     """Return repo-relative paths of tracked + untracked-but-not-ignored files.
 
     Uses `git ls-files` so .gitignore is honored for free. Falls back to a
-    plain walk (skipping vendor dirs) when the tree is not a git repo.
+    plain walk (skipping vendor dirs) when the tree is not a git repo. Audit
+    output (this skill's own snapshots) is excluded unless exclude_audit=False.
     """
     git_files = run_git(
         repo_root,
@@ -87,20 +101,27 @@ def list_repo_files(repo_root):
     )
     if git_files is not None:
         paths = [line for line in git_files.splitlines() if line.strip()]
-        return [p for p in paths if not is_vendored(p)]
-    return walk_files(repo_root)
+        return [
+            p for p in paths
+            if not is_vendored(p)
+            and not (exclude_audit and is_audit_output(p, out_dir_rel))
+        ]
+    return walk_files(repo_root, exclude_audit=exclude_audit, out_dir_rel=out_dir_rel)
 
 
-def walk_files(repo_root):
-    """Non-git fallback: walk the tree, skipping vendored directories."""
+def walk_files(repo_root, exclude_audit=True, out_dir_rel=None):
+    """Non-git fallback: walk the tree, skipping vendored + audit-output dirs."""
     collected = []
     for current_dir, subdirs, filenames in os.walk(repo_root):
         subdirs[:] = [d for d in subdirs if d not in VENDOR_DIR_NAMES]
         for name in filenames:
             absolute = os.path.join(current_dir, name)
             relative = os.path.relpath(absolute, repo_root)
-            if not is_vendored(relative):
-                collected.append(relative)
+            if is_vendored(relative):
+                continue
+            if exclude_audit and is_audit_output(relative, out_dir_rel):
+                continue
+            collected.append(relative)
     return sorted(collected)
 
 
@@ -111,6 +132,26 @@ def is_vendored(relative_path):
         if part in VENDOR_DIR_NAMES:
             return True
         if part.endswith(".egg-info"):
+            return True
+    return False
+
+
+def is_audit_output(relative_path, out_dir_rel=None):
+    """True if the path is one of the skill's own output artifacts.
+
+    Two signals, unioned: (1) any path segment equals AUDIT_OUTPUT_SEGMENT,
+    which catches committed prior snapshots wherever they live; (2) the path
+    sits under the resolved --out directory for this run, which catches the
+    current destination even when redirected elsewhere. A tool must not render
+    its own output as architecture.
+    """
+    normalised = relative_path.replace("\\", "/")
+    parts = normalised.split("/")
+    if AUDIT_OUTPUT_SEGMENT in parts:
+        return True
+    if out_dir_rel:
+        out_norm = out_dir_rel.replace("\\", "/").strip("/")
+        if out_norm and (normalised == out_norm or normalised.startswith(out_norm + "/")):
             return True
     return False
 
@@ -461,21 +502,6 @@ def cyclomatic_for_file(absolute_path, cc_visit):
 # Assembly
 # ---------------------------------------------------------------------------
 
-def compute_repo_test_ratio(physical_records):
-    """Repo-level test LOC / source LOC.
-
-    test_ratio is fundamentally a logical-grouping rollup (the synth step
-    owns it per-component). At the physical level the only honest figure is
-    the whole-repo ratio, which is attached to test files' metrics so the
-    badge still reflects a real number. Source LOC counts module files only.
-    """
-    test_loc = sum(r["size_loc"] for r in physical_records if r["kind"] == "test")
-    source_loc = sum(r["size_loc"] for r in physical_records if r["kind"] == "module")
-    if source_loc == 0:
-        return None
-    return round(test_loc / source_loc, 3)
-
-
 def build_physical_components(
     repo_root,
     repo_files,
@@ -485,6 +511,7 @@ def build_physical_components(
     since_days,
     metric_tools,
     id_map,
+    coverage_by_file,
     include_docs=False,
 ):
     """Assemble physical_components[] with their metrics blocks.
@@ -492,6 +519,11 @@ def build_physical_components(
     Documentation files (kind "doc" — .md/.rst/.txt by extension) are excluded
     by default because they dominate the tile count and obscure architectural
     signal.  Pass include_docs=True to restore them.
+
+    Base metrics are computed here (the extractor owns the AST/git handles
+    those formulas need). Derived metrics (e.g. refactor_pressure) are then
+    layered on via the metric registry — no per-metric branch lives here, so a
+    new derived metric never touches this function.
     """
     records = []
     churn_available = False
@@ -522,6 +554,17 @@ def build_physical_components(
             metrics["churn_90d"] = churn
             churn_available = True
 
+        # Per-module coverage signal, derived from the static test->module
+        # import graph (a module imported by >=1 test file is "covered").
+        # Deterministic; no fragile filename heuristic. test_ratio carries the
+        # magnitude (covered modules get the repo-level ratio; uncovered get 0).
+        if kind == "module" and relative in coverage_by_file:
+            metrics["test_ratio"] = coverage_by_file[relative]
+
+        # Derived metrics (registry-driven). Adds only what the formulas can
+        # honestly compute from the base metrics present.
+        metrics = metric_registry.compute_derived(metrics)
+
         records.append(
             {
                 "id": id_map[relative],
@@ -536,23 +579,61 @@ def build_physical_components(
     if churn_available and "git-log" not in metric_tools:
         metric_tools.append("git-log")
 
-    attach_test_ratio(records)
     return records
 
 
-def attach_test_ratio(records):
-    """Attach the repo-level test/code ratio to each test file's metrics."""
-    ratio = compute_repo_test_ratio(records)
-    if ratio is None:
-        return
-    for record in records:
-        if record["kind"] == "test":
-            record["metrics"]["test_ratio"] = ratio
+def compute_module_coverage(repo_root, repo_files, fan_in):
+    """Per-module test coverage, derived from the static import graph.
+
+    A module is "covered" if at least one test-kind file imports it (a real
+    fan_in edge whose source is a test file) — fully deterministic, no fragile
+    test-filename heuristic. The repo-level test/source LOC ratio supplies the
+    magnitude so the existing `test_ratio` field carries a real number: covered
+    modules get that ratio, uncovered modules get 0.0 so the renderer's "low
+    tests" badge lights honestly on whatever no test touches.
+
+    Returns {repo_relative_path: test_ratio_value} for module files only.
+    """
+    test_paths = {p for p in repo_files if classify_kind(p) == "test"}
+    module_paths = [p for p in repo_files if classify_kind(p) == "module"]
+
+    test_loc = sum(
+        count_loc(os.path.join(repo_root, p), "test") for p in test_paths
+    )
+    source_loc = sum(
+        count_loc(os.path.join(repo_root, p), "module") for p in module_paths
+    )
+    repo_ratio = round(test_loc / source_loc, 3) if source_loc else 0.0
+
+    coverage = {}
+    for module_path in module_paths:
+        importers = fan_in.get(module_path, set())
+        covered = any(imp in test_paths for imp in importers)
+        coverage[module_path] = repo_ratio if covered else 0.0
+    return coverage
+
+
+def relative_out_dir(repo_root, out_path):
+    """Repo-relative directory of the --out target, or None if outside repo."""
+    if not out_path:
+        return None
+    out_dir = os.path.dirname(os.path.abspath(out_path))
+    try:
+        rel = os.path.relpath(out_dir, repo_root)
+    except ValueError:
+        return None
+    if rel.startswith(".."):
+        return None  # output is outside the repo; nothing to exclude
+    return rel
 
 
 def build_manifest(repo_root, args):
     """Produce the full deterministic-substrate manifest dict."""
-    repo_files = list_repo_files(repo_root)
+    exclude_audit = not getattr(args, "include_audit_output", False)
+    out_dir_rel = relative_out_dir(repo_root, getattr(args, "out", None))
+    repo_files = list_repo_files(
+        repo_root, exclude_audit=exclude_audit, out_dir_rel=out_dir_rel
+    )
     python_files = sorted(f for f in repo_files if f.endswith(".py"))
     id_map = build_id_map(repo_files)
 
@@ -568,6 +649,8 @@ def build_manifest(repo_root, args):
         metric_tools.append("radon")
     metric_tools.append("stdlib-loc")
 
+    coverage_by_file = compute_module_coverage(repo_root, repo_files, fan_in)
+
     physical = build_physical_components(
         repo_root,
         repo_files,
@@ -577,6 +660,7 @@ def build_manifest(repo_root, args):
         args.since_days,
         metric_tools,
         id_map,
+        coverage_by_file,
         include_docs=getattr(args, 'include_docs', False),
     )
 
@@ -592,6 +676,9 @@ def build_manifest(repo_root, args):
             "extracted_at": datetime.datetime.now().isoformat(timespec="seconds"),
             "metric_tools": metric_tools,
         },
+        # Self-describing metric model: the renderer derives badges + panel rows
+        # from this block, so the rendered HTML is a pure function of the file.
+        "metric_descriptors": metric_registry.descriptor_manifest_block(),
         "logical_components": [],
         "physical_components": physical,
         "edges": edges,
@@ -664,6 +751,19 @@ def parse_args(argv):
             "Include documentation files (kind 'doc': .md/.rst/.txt) in the "
             "physical_components output.  By default they are excluded because "
             "they typically dominate the tile count and obscure architectural signal."
+        ),
+    )
+    parser.add_argument(
+        "--include-audit-output",
+        action="store_true",
+        default=False,
+        dest="include_audit_output",
+        help=(
+            "Include the skill's own output artifacts (anything under an "
+            "'architecture-audit' directory, and the --out directory) in the "
+            "physical_components output.  By default they are excluded so the "
+            "tool never renders its own prior snapshots as architecture.  Use "
+            "only when auditing the skill repository itself."
         ),
     )
     return parser.parse_args(argv)

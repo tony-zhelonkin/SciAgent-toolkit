@@ -24,6 +24,11 @@
       }
     },
 
+    "metric_descriptors": {
+      "type": "object",
+      "description": "Self-describing metric model: key -> descriptor. The single source of truth (scripts/metric_registry.py) serialised into the manifest so the renderer's badge set, side-panel rows, and good/bad semantics are a pure function of this file. Absent -> the renderer falls back to a built-in default descriptor table for backward compatibility with pre-registry manifests.",
+      "additionalProperties": { "$ref": "#/$defs/metric_descriptor" }
+    },
     "logical_components": {
       "type": "array",
       "items": { "$ref": "#/$defs/logical_component" }
@@ -72,15 +77,32 @@
     },
     "metrics": {
       "type": "object",
-      "description": "Deterministic substrate metrics. All optional; the renderer shows badges only for the metrics present. Produced by /components-extract; absent on hand-authored components.",
-      "additionalProperties": false,
+      "description": "Deterministic substrate metrics, as an OPEN numeric map. Every value is a non-negative number; the set of keys is NOT fixed by this schema. The single source of truth for which metrics exist (their labels, units, badge thresholds, base/derived kind) is the metric registry (scripts/metric_registry.py), serialised into the top-level metric_descriptors block. Adding a metric therefore means registering it once — the schema accepts it here automatically, with no closed property-list to edit. The named entries below are documented for reference only; they are not exhaustive. All optional; the renderer shows badges only for metrics present. Produced by /components-extract; absent on hand-authored components.",
+      "additionalProperties": { "type": "number", "minimum": 0 },
       "properties": {
         "loc": { "type": "integer", "minimum": 0 },
         "fan_in": { "type": "integer", "minimum": 0, "description": "Count of modules that import/call this one." },
         "fan_out": { "type": "integer", "minimum": 0, "description": "Count of modules this one imports/calls." },
         "cyclomatic": { "type": "number", "minimum": 0, "description": "Mean (or summed) cyclomatic complexity, e.g. radon cc." },
         "churn_90d": { "type": "integer", "minimum": 0, "description": "Commits touching this component in the last 90 days." },
-        "test_ratio": { "type": "number", "minimum": 0, "description": "Test LOC / source LOC for this component, where derivable." }
+        "test_ratio": { "type": "number", "minimum": 0, "description": "Test LOC / source LOC for this component, where derivable." },
+        "refactor_pressure": { "type": "number", "minimum": 0, "description": "Derived: churn * cyclomatic * fan_in / test_ratio. Surfaces the highest-leverage refactor targets. Computed by the registry from base metrics." }
+      }
+    },
+    "metric_descriptor": {
+      "type": "object",
+      "description": "One metric's declaration, emitted from the registry. The renderer reads these to draw badges and panel rows; nothing here is required because pre-registry manifests omit the block entirely.",
+      "additionalProperties": true,
+      "properties": {
+        "label": { "type": "string" },
+        "short_badge_label": { "type": ["string", "null"] },
+        "unit": { "type": "string" },
+        "value_kind": { "enum": ["int", "number"] },
+        "higher_is_better": { "type": "boolean" },
+        "kind": { "enum": ["base", "derived"] },
+        "render": { "enum": ["badge", "hidden"] },
+        "badge_threshold": { "type": ["number", "null"] },
+        "badge_color": { "type": "string" }
       }
     },
     "physical_file_ref": {
