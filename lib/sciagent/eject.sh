@@ -147,6 +147,9 @@ _eject_by_tag() {
 
 # _skill_is_stack_mounted <skill> <base> <overlay>
 # Returns 0 if the skill appears in the roles for base or overlay.
+# NOTE: inject.sh carries a mirror of this check (_inject_skill_is_stack_mounted).
+# The two helpers must stay in sync. If you change the regex here, change it
+# there too — see the matching comment in inject.sh.
 _skill_is_stack_mounted() {
     local skill="$1" base="$2" overlay="$3"
     local tk_root="${SCIAGENT_TOOLKIT:-}"

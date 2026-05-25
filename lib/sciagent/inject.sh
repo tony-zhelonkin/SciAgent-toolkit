@@ -73,6 +73,20 @@ _inject_named_skill() {
         target_overlay="$overlay"
     fi
 
+    # Stack-mount guard: if the skill is already mounted via the active
+    # role stack, the desired end-state ("skill X visible on disk") is
+    # already satisfied. Refusing-but-exit-0 keeps `inject` idempotent for
+    # scripts and mirrors `inject --tag` empty-match UX. Without this
+    # guard a duplicate manifest entry slips in (the idempotency check
+    # below keys on _injected overlay, which differs from base), and a
+    # subsequent `eject` would tear down the base symlink.
+    if _inject_skill_is_stack_mounted "$skill" "$base" "$overlay"; then
+        local where="$base"
+        [[ -n "$overlay" && "$overlay" != "_injected" ]] && where="$base/$overlay"
+        echo "already mounted via stack-role '$where': $skill — nothing to inject" >&2
+        return 0
+    fi
+
     # Idempotency: already injected?
     local inj_ov inj_sk _inj_via
     while read -r inj_ov inj_sk _inj_via; do
@@ -201,6 +215,33 @@ _inject_by_tag() {
     done
 
     return 0
+}
+
+# _inject_skill_is_stack_mounted <skill> <base> <overlay>
+# Mirror of eject.sh:_skill_is_stack_mounted (kept here to avoid sourcing
+# eject.sh from the inject dispatch path). Returns 0 if the skill appears
+# in the role YAML for base or overlay. If you change the regex here,
+# change it in eject.sh too.
+_inject_skill_is_stack_mounted() {
+    local skill="$1" base="$2" overlay="$3"
+    local tk_root="${SCIAGENT_TOOLKIT:-}"
+
+    _inject_role_contains_skill() {
+        local role="$1" sk="$2"
+        local role_file="$tk_root/roles/$role.yaml"
+        [[ -f "$role_file" ]] || return 1
+        grep -Eq "^  - $sk([[:space:]]+#.*)?[[:space:]]*$" "$role_file"
+    }
+
+    if _inject_role_contains_skill "$base" "$skill"; then
+        return 0
+    fi
+    # `_injected` is the synthetic overlay name and has no role file; skip.
+    if [[ -n "$overlay" && "$overlay" != "_injected" ]] \
+        && _inject_role_contains_skill "$overlay" "$skill"; then
+        return 0
+    fi
+    return 1
 }
 
 # _inject_rewrite_block — rebuild AGENTS.md block from current manifest + role YAMLs.
