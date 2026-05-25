@@ -6,7 +6,9 @@ metadata:
   requires: []
   complementary-skills: []
   contraindications: []
-  tags: []
+  tags:
+  - report
+  - tooling
 ---
 
 # Skill Creator
