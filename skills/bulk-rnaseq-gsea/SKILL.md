@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
   category: analysis
   tier: standard
-  tags: []
+  tags:
+  - pathway
   complementary-skills:
   - gatom-metabolomic-predictions
   - progeny-pathway-activity

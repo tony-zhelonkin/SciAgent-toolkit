@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://github.com/tony-zhelonkin/pathway-explorer
   category: workflow
   tier: standard
-  tags: []
+  tags:
+  - pathway
+  - viz
   complementary-skills:
   - bulk-rnaseq-gsea-msigdb
   - bulk-rnaseq-gsea-custom-db

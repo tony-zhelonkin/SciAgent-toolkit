@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://alserglab.wustl.edu/coresh/
   category: analysis
   tier: standard
-  tags: []
+  tags:
+  - pathway
   complementary-skills:
   - bulk-rnaseq-gsea
   - bulk-rnaseq-pathway-explorer

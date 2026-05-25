@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://saezlab.github.io/decoupleR/
   category: analysis
   tier: standard
-  tags: []
+  tags:
+  - pathway
   complementary-skills:
   - bulk-rnaseq-gsea
   - bulk-rnaseq-pathway-explorer

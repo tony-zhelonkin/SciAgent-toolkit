@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://artyomovlab.wustl.edu/publications/supp_materials/GATOM/
   category: analysis
   tier: standard
-  tags: []
+  tags:
+  - pathway
   complementary-skills:
   - genenmf-metaprogram-discovery
   contraindications:
