@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://pygenometracks.readthedocs.io/
   category: visualization
   tier: simple
-  tags: []
+  tags:
+  - viz
   complementary-skills:
   - muon-multimodal-analysis
   - snapatac2-atac-preprocessing

@@ -18,7 +18,8 @@ metadata:
   upstream-docs: https://stuartlab.org/signac/articles/footprint
   category: visualization
   tier: simple
-  tags: []
+  tags:
+  - viz
   complementary-skills:
   - tobias-footprint-bindetect
   - hint-atac-differential-footprint
