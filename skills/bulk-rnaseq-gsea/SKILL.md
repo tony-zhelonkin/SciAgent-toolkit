@@ -15,14 +15,12 @@ metadata:
   - pathway
   complementary-skills:
   - gatom-metabolomic-predictions
-  - progeny-pathway-activity
-  - decoupler-tf-activity
+  - bulk-rnaseq-activity-inference
   - coresh-signature-search
   - bulk-rnaseq-pathway-explorer
   contraindications:
   - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
-  - Do not use for TF activity inference. Use decoupler-tf-activity instead.
-  - Do not use for PROGENy pathway activity scores. Use progeny-pathway-activity instead.
+  - Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
   - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
 ---
 
@@ -50,8 +48,7 @@ This skill covers the complete GSEA pipeline for bulk RNA-seq analyses: from lim
 
 **When NOT to use this skill:**
 - Topology-aware metabolic module discovery → use `gatom-metabolomic-predictions`
-- TF activity inference (CollecTRI) → use `decoupler-tf-activity`
-- PROGENy signaling pathway scores → use `progeny-pathway-activity`
+- TF or PROGENy pathway activity inference → use `bulk-rnaseq-activity-inference`
 - Interactive UMAP explorer as a standalone tool → use `bulk-rnaseq-pathway-explorer`
 - Signature-based GEO dataset ranking → use `coresh-signature-search`
 
@@ -209,8 +206,7 @@ For detailed walkthroughs of each pitfall → see the relevant reference documen
 | When you need... | Use skill | Relationship |
 |---|---|---|
 | Topology-aware metabolic module discovery (KEGG/Rhea networks) | `gatom-metabolomic-predictions` | Extension (produces modules → feed to custom-db.md) |
-| TF activity inference (CollecTRI) | `decoupler-tf-activity` | Parallel analysis (results appear in pathway explorer) |
-| PROGENy signaling pathway activities (14 canonical) | `progeny-pathway-activity` | Parallel analysis (results appear in pathway explorer) |
+| TF activity inference (CollecTRI) or PROGENy pathway activities | `bulk-rnaseq-activity-inference` | Parallel analysis (results appear in pathway explorer) |
 | Standalone interactive UMAP pathway explorer | `bulk-rnaseq-pathway-explorer` | Next step (consumes master_gsea_table.csv) |
 | Signature-based GEO dataset ranking and hypothesis generation | `coresh-signature-search` | Alternative question (data-driven, not prior-knowledge) |
 

@@ -1,6 +1,6 @@
 ---
 name: bulk-rnaseq-pathway-explorer
-description: pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db. For building the master tables this skill consumes, use bulk-rnaseq-gsea-master-tables. For static publication figures (dotplot, barplot, running-sum PDFs) use bulk-rnaseq-gsea-visualization.
+description: pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself, building the master tables this skill consumes, or static publication figures (dotplot, barplot, running-sum PDFs), use bulk-rnaseq-gsea (the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization).
 license: MIT
 metadata:
   scope: implementation
@@ -15,15 +15,10 @@ metadata:
   - pathway
   - viz
   complementary-skills:
-  - bulk-rnaseq-gsea-msigdb
-  - bulk-rnaseq-gsea-custom-db
-  - bulk-rnaseq-gsea-master-tables
-  - bulk-rnaseq-gsea-visualization
+  - bulk-rnaseq-gsea
   contraindications:
-  - Do not use for running GSEA itself. Use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db instead.
-  - Do not use for assembling the master tables this skill consumes. Use bulk-rnaseq-gsea-master-tables instead.
-  - Do not use for static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea-visualization instead.
-  - Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea-master-tables.
+  - Do not use for running GSEA itself, assembling the master tables this skill consumes, or static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea instead — the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization.
+  - Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea.
 ---
 
 # Pathway Explorer — Interactive Cross-Entity Pathway Dashboards
@@ -32,7 +27,7 @@ metadata:
 
 `pathway-explorer` is a Python CLI (module `pathway_explorer`, v2.0.0, MIT) that turns unified GSEA / TF / PROGENy / TE result tables into self-contained interactive HTML dashboards. Each dashboard shows all pathways as points on a 2D embedding of their leading-edge gene sets, with database and entity-type filters, FDR/NES sliders, gene-set neighbor edges, a gene table, and per-pathway running-sum plots.
 
-The tool sits downstream of `bulk-rnaseq-gsea-master-tables` (which produces the CSV inputs) and alongside `bulk-rnaseq-gsea-visualization` (which produces static R/ggplot PDFs). It is intentionally decoupled from R: the master CSV schema is the one bridge.
+The tool sits downstream of `bulk-rnaseq-gsea` (which produces the CSV inputs via its master-tables stage) and alongside its static visualization stage (R/ggplot PDFs). It is intentionally decoupled from R: the master CSV schema is the one bridge.
 
 > **Planned change — contrast switcher.** Today the tool emits one HTML per contrast plus an `index.html` landing page. We intend to migrate to a **single HTML that embeds all contrasts and exposes a collapsible toggle** to switch between them in-place, so reviewers can compare contrasts without navigating to a new file. When writing or extending this skill, prefer changes that keep the JSON payload contrast-aware (nested by contrast, not pre-filtered) so the future switcher is a UI-only addition.
 
@@ -43,9 +38,7 @@ The tool sits downstream of `bulk-rnaseq-gsea-master-tables` (which produces the
 - Debugging when a dashboard is empty, mis-colored, or missing a database — nearly always a master-table schema issue.
 
 **When NOT to use this skill:**
-- Running GSEA itself → use `bulk-rnaseq-gsea-msigdb` or `bulk-rnaseq-gsea-custom-db`.
-- Building or appending to `master_*.csv` → use `bulk-rnaseq-gsea-master-tables`.
-- Static publication figures (dotplot, barplot, running-sum PDFs) → use `bulk-rnaseq-gsea-visualization`.
+- Running GSEA itself, building or appending to `master_*.csv`, or static publication figures (dotplot, barplot, running-sum PDFs) → use `bulk-rnaseq-gsea` (the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization).
 - Metabolic network (atom-transition) visualization → use `gatom-metabolomic-predictions`.
 
 ---
@@ -56,7 +49,7 @@ The tool sits downstream of `bulk-rnaseq-gsea-master-tables` (which produces the
 Need an interactive pathway view?
 │
 ├─ Do you already have master_unified.csv (or master_gsea_table.csv)?
-│   ├─ No  → run bulk-rnaseq-gsea-master-tables first, then come back
+│   ├─ No  → run bulk-rnaseq-gsea (master-tables stage) first, then come back
 │   └─ Yes → continue
 │
 ├─ One contrast or many?
@@ -222,14 +215,14 @@ After running this skill, confirm:
 
 - **Symptom:** Crash in `standardize_scores`.
 - **Cause:** Master table uses neither `nes` nor `NES` — usually a toolkit-vs-project naming split. The R side of the RNAseq-toolkit writes `NES`; some project-side normalizers rename to `nes`.
-- **Fix:** Rename in the master-table assembler (see `bulk-rnaseq-gsea-master-tables` pitfalls). Don't monkey-patch `data_loader.py` — the loader accepts either casing, so the real bug is usually a third column name.
+- **Fix:** Rename in the master-table assembler (see `bulk-rnaseq-gsea` master-tables stage pitfalls). Don't monkey-patch `data_loader.py` — the loader accepts either casing, so the real bug is usually a third column name.
 
 ### Pitfall: All points cluster in one blob
 
 - **Symptom:** UMAP scatter is a single tight cluster; no spatial separation by database.
 - **Cause 1:** `core_enrichment` has empty strings → every pathway is an empty set → similarity matrix is all zeros → embedding is meaningless.
 - **Cause 2:** Fell back to `random` embedding because neither UMAP nor sklearn is installed.
-- **Fix 1:** Inspect `master_unified.csv` — `core_enrichment` must be a `/`-joined list of gene symbols. If your upstream step drops this column, see `bulk-rnaseq-gsea-master-tables`.
+- **Fix 1:** Inspect `master_unified.csv` — `core_enrichment` must be a `/`-joined list of gene symbols. If your upstream step drops this column, see the `bulk-rnaseq-gsea` master-tables stage.
 - **Fix 2:** `pip install umap-learn scikit-learn` or install the `[full]` extra.
 
 ### Pitfall: Mitochondria database shows as one color instead of two
@@ -256,10 +249,7 @@ After running this skill, confirm:
 
 | When you need... | Use skill | Relationship |
 |---|---|---|
-| Running GSEA (MSigDB H/C2/C3/C5) | `bulk-rnaseq-gsea-msigdb` | Prerequisite |
-| Running GSEA with custom gene sets (MitoCarta, TransportDB, GATOM) | `bulk-rnaseq-gsea-custom-db` | Prerequisite |
-| Assembling / appending `master_*.csv` tables | `bulk-rnaseq-gsea-master-tables` | Prerequisite — owns the inputs this skill reads |
-| Static publication figures (dotplot, barplot, running-sum PDFs) | `bulk-rnaseq-gsea-visualization` | Alternative — static track of the same data |
+| Running GSEA (MSigDB H/C2/C3/C5), running GSEA with custom gene sets (MitoCarta, TransportDB, GATOM), assembling / appending `master_*.csv` tables, or static publication figures (dotplot, barplot, running-sum PDFs) | `bulk-rnaseq-gsea` | Prerequisite for inputs / alternative for static rendering — the consolidated router covers all four legs |
 | Metabolic network (atom-transition) visualization | `gatom-metabolomic-predictions` | Alternative — different entity model |
 
 ---
@@ -269,5 +259,4 @@ After running this skill, confirm:
 - **Module source:** `01_modules/pathway-explorer/pathway_explorer/` (this project).
 - **Upstream repo:** https://github.com/tony-zhelonkin/pathway-explorer
 - **RNAseq-toolkit workflow docs:** `01_modules/RNAseq-toolkit/docs/WORKFLOWS.md`, `docs/GSEA-workflow/04-output-artifacts-and-visualization.md`.
-- **Sibling visualization skill (R/ggplot2 track):** `bulk-rnaseq-gsea-visualization`.
-- **Master-table schema:** `bulk-rnaseq-gsea-master-tables`.
+- **Sibling visualization skill (R/ggplot2 track) and master-table schema:** `bulk-rnaseq-gsea`.
