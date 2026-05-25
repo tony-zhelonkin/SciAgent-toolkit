@@ -9,7 +9,8 @@ metadata:
   last-reviewed: 2026-04-14
   category: annotation
   tier: standard
-  tags: []
+  tags:
+  - annotation
   complementary-skills:
   - scvi-framework
   - scvi-basic

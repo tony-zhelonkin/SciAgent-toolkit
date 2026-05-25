@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://github.com/databio/geniml
   category: annotation
   tier: simple
-  tags: []
+  tags:
+  - annotation
   complementary-skills:
   - scvi-scarches-reference-mapping
   - scvi-peakvi

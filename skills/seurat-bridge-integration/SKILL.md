@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/articles/seurat5_integration_bridge
   category: integration
   tier: simple
-  tags: []
+  tags:
+  - annotation
+  - integration
   complementary-skills:
   - seurat-unpaired-cross-modality
   - signac-chromatin-analysis

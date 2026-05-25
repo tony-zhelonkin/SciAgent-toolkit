@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/articles/atacseq_integration_vignette
   category: integration
   tier: simple
-  tags: []
+  tags:
+  - annotation
+  - integration
   complementary-skills:
   - signac-chromatin-analysis
   - seurat-bridge-integration

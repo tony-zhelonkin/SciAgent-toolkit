@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://chanzuckerberg.github.io/cellxgene-census/
   category: annotation
   tier: standard
-  tags: []
+  tags:
+  - annotation
   complementary-skills:
   - single-cell-vector-search
   - treearches-hierarchy-learning

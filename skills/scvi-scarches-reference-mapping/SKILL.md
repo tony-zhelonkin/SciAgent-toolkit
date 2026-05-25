@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://docs.scarches.org/en/latest/
   category: annotation
   tier: simple
-  tags: []
+  tags:
+  - annotation
   complementary-skills:
   - scvi-framework
   - scvi-hub-models

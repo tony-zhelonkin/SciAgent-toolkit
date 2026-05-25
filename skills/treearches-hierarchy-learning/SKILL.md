@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://docs.scarches.org/
   category: annotation
   tier: standard
-  tags: []
+  tags:
+  - annotation
   complementary-skills:
   - scvi-scarches-reference-mapping
   - scvi-scanvi
