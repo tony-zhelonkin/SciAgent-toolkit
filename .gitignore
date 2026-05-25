@@ -7,6 +7,7 @@
 .env
 .env.*
 !.env.template
+.ref/
 
 # Auto-generated files
 .claude/settings.local.json
