@@ -26,9 +26,13 @@ Usage:
   sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
   sciagent deactivate [<role>]         Tear down the stack (or one role)
   sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
-  sciagent inject <skill>              Add one skill to current overlay
+  sciagent inject <name>               Add one skill/agent/command (auto-detect)
+  sciagent inject --skill|--agent|--command <name>
+                                       Force resolution to one kind
   sciagent inject --tag <name>         Add all skills tagged <name>
-  sciagent eject <skill>               Remove one previously-injected skill
+  sciagent eject <name>                Remove one previously-injected entry
+  sciagent eject --skill|--agent|--command <name>
+                                       Disambiguate when same name spans kinds
   sciagent eject --tag <name>          Remove all skills injected via tag
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
