@@ -134,6 +134,7 @@ _inject_by_tag() {
             sub(/[ \t]+$/, "")
             gsub(/^["'"'"']|["'"'"']$/, "")
             print
+            next
         }
         intags && /^[^ ]/ { intags=0 }
     ' "$tags_file")"
@@ -165,17 +166,17 @@ _inject_by_tag() {
             !infm { next }
             /^metadata:[ \t]*$/ { inmeta=1; next }
             inmeta && /^  tags:/ { intags=1; next }
-            intags && /^  - / {
+            intags && /^[ \t]+-[ \t]/ {
                 val=$0
-                sub(/^  - /, "", val)
+                sub(/^[ \t]+-[ \t]+/, "", val)
                 sub(/[ \t]*#.*$/, "", val)
                 sub(/[ \t]+$/, "", val)
                 gsub(/^["'"'"']|["'"'"']$/, "", val)
                 print val
                 next
             }
-            intags && /^  [^ ]/ { intags=0 }
-            intags && /^[^ ]/ { intags=0 }
+            intags && /^  [^ \t-]/ { intags=0 }
+            intags && /^[^ \t]/ { intags=0 }
         ' "$skill_file")"
 
         if printf '%s\n' "$skill_tags" | grep -qxF "$tag_name"; then
