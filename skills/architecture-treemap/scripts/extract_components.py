@@ -485,14 +485,25 @@ def build_physical_components(
     since_days,
     metric_tools,
     id_map,
+    include_docs=False,
 ):
-    """Assemble physical_components[] with their metrics blocks."""
+    """Assemble physical_components[] with their metrics blocks.
+
+    Documentation files (kind "doc" — .md/.rst/.txt by extension) are excluded
+    by default because they dominate the tile count and obscure architectural
+    signal.  Pass include_docs=True to restore them.
+    """
     records = []
     churn_available = False
 
     for relative in sorted(repo_files):
         absolute = os.path.join(repo_root, relative)
         kind = classify_kind(relative)
+
+        # Skip doc files unless the caller explicitly opted in.
+        if not include_docs and kind == "doc":
+            continue
+
         loc = count_loc(absolute, kind)
 
         metrics = {"loc": loc}
@@ -566,6 +577,7 @@ def build_manifest(repo_root, args):
         args.since_days,
         metric_tools,
         id_map,
+        include_docs=getattr(args, 'include_docs', False),
     )
 
     today = datetime.date.today().isoformat()
@@ -642,6 +654,17 @@ def parse_args(argv):
         "--lang",
         default="python",
         help="Source language for the import graph (only 'python' is supported).",
+    )
+    parser.add_argument(
+        "--include-docs",
+        action="store_true",
+        default=False,
+        dest="include_docs",
+        help=(
+            "Include documentation files (kind 'doc': .md/.rst/.txt) in the "
+            "physical_components output.  By default they are excluded because "
+            "they typically dominate the tile count and obscure architectural signal."
+        ),
     )
     return parser.parse_args(argv)
 
