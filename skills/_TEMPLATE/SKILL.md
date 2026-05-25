@@ -41,6 +41,45 @@ metadata:
   upstream-docs: https://example.org/docs
 
   # ---- Taxonomy -------------------------------------------------------------
+  scope: implementation
+  # ^ one of:
+  #   concept        — durable orientation / methodology / "step-back" perspective that
+  #                    persists across tooling changes (e.g. architecture-first-dev,
+  #                    tf-footprint-differential-analysis). Cap: ≤500 body lines.
+  #   implementation — practical tool wrapper, concrete swappable kit, specific method
+  #                    skill (e.g. scvi-basic, pycistopic-atac-topic-modeling).
+  #                    Cap: ≤350 body lines.
+  # See ADR-003 in docs/proposals/sciagent-extension-design-spec.md.
+
+  requires: []
+  # ^ Names of other skills that MUST be installed before this one activates.
+  #   Plain skill names only (no version syntax). Example: [scvi-framework, anndata]
+  #   Missing requires hard-fail activation (see ADR-002).
+
+  complementary-skills:
+    - related-skill-a             # Prerequisite: must run before this skill
+    - related-skill-b             # Next step:    runs after this skill's output
+    - related-skill-c             # Alternative:  does the same job differently
+    - related-skill-d             # Extension:    extends this skill's outputs
+  # ^ Skill names WITHOUT `.md`. Keep the list short (3-6 entries). Missing
+  #   complementary-skills trigger a soft warn at activation time (ADR-002).
+  #   The relationship is spelled out in the body's "Complementary Skills" table.
+
+  contraindications:
+    - "Do not use for [case]. Use [other-skill] instead."
+    - "Do not use on [data condition, e.g. log-normalized counts]. [Preferred tool or preprocessing step] is required."
+  # ^ Canonical form: "Do not use for X. Use Y instead." — a single sentence
+  #   stating the anti-case AND the correct alternative. Covers the cases
+  #   where a user MIGHT reach for this skill but shouldn't. 1-4 entries.
+
+  tags:
+    - tag-one
+    - tag-two
+  # ^ Values MUST exist in tags.yaml at the toolkit root (ADR-001 tag vocabulary).
+  #   Use the shortest-unambiguous form: de, qc, viz (not differential-expression).
+  #   Day-one vocabulary: trajectory, integration, annotation, de, pathway, qc,
+  #   viz, report, architecture, tooling. Add new tags via tags.yaml PR first.
+
   category: foundation
   # ^ one of:
   #   foundation   — core data structures, formats, I/O (anndata, scanpy)
@@ -55,29 +94,6 @@ metadata:
   #   simple   — SKILL.md only. One use case, ≲200 lines. Decision tree optional.
   #   standard — SKILL.md + references/. Multiple use cases, progressive depth.
   #   rich     — SKILL.md + references/ + scripts/ + checks/. Executable verification.
-
-  tags:
-    - tag-one
-    - tag-two
-  # ^ kebab-case, lowercase, singular nouns preferred. Include: the tool name,
-  #   the modality (scrna-seq / scatac-seq / multiome), the method family,
-  #   and any high-signal search keywords. 5-10 tags typical.
-
-  complementary-skills:
-    - related-skill-a             # Prerequisite: must run before this skill
-    - related-skill-b             # Next step:    runs after this skill's output
-    - related-skill-c             # Alternative:  does the same job differently
-    - related-skill-d             # Extension:    extends this skill's outputs
-  # ^ Skill names WITHOUT `.md`. Keep the list short (3-6 entries). The
-  #   relationship (Prerequisite / Next step / Alternative / Extension) is
-  #   spelled out in the body's "Complementary Skills" table, not here.
-
-  contraindications:
-    - "Do not use for [case]. Use [other-skill] instead."
-    - "Do not use on [data condition, e.g. log-normalized counts]. [Preferred tool or preprocessing step] is required."
-  # ^ Canonical form: "Do not use for X. Use Y instead." — a single sentence
-  #   stating the anti-case AND the correct alternative. Covers the cases
-  #   where a user MIGHT reach for this skill but shouldn't. 1-4 entries.
 ---
 
 # [Skill Title — Human-Readable, Not Kebab-Case]
