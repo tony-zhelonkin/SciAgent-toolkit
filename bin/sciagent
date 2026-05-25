@@ -64,6 +64,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
         . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
@@ -75,6 +76,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
         . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
@@ -118,6 +120,7 @@ case "$verb" in
         ;;
     validate)
         . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
         . "$LIB/validate.sh"
         cmd_validate "$@"
         ;;

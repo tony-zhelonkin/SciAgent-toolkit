@@ -10,10 +10,17 @@
 #   4. (optional) skills-ref  — if installed, invoke per skill; surface exit
 #                               code as warning, not error; silently skip
 #                               when absent
+#   5. cross-namespace collision — names appearing in >=2 of
+#                               skills/agents/commands/roles. Soft-warn only;
+#                               most overlaps are intentional family overlaps
+#                               (e.g. /architect → @architect → roles/architect).
+#                               tests/collision-allowlist.txt is the CI mirror
+#                               that turns accidental overlaps into a merge gate.
 #
 # Hardness boundary (kickoff.md §9, PR 2 2026-05-24):
 #   Hard-fail (exit 1): cycle or missing requires target; unknown tag.
-#   Soft-warn:          skills-ref findings (when present).
+#   Soft-warn:          skills-ref findings (when present);
+#                       cross-namespace name collisions.
 #
 # Exit code:
 #   0 — all checks pass
@@ -170,6 +177,28 @@ USAGE
             echo "  - $f" >&2
         done
         return 1
+    fi
+
+    # Check 5: cross-namespace collisions (soft-warn).
+    # Buffered then emitted after the "all checks passed" line so a clean
+    # tree still produces zero stderr output. Quiet mode mutes the warnings
+    # for the same reason it mutes the success line — scripted callers want
+    # silent-on-success. Allowlist annotation lives in status.sh; validate
+    # speaks namespace-level (it doesn't know which collisions are "blessed").
+    if [[ "$quiet" -eq 0 ]]; then
+        local -a _collision_warnings=()
+        local _col_name _col_kinds _col_k1 _col_k2
+        while IFS=$'\t' read -r _col_name _col_kinds; do
+            [[ -z "$_col_name" ]] && continue
+            _col_k1="${_col_kinds%%,*}"
+            _col_k2="${_col_kinds#*,}"
+            _col_k2="${_col_k2%%,*}"
+            _collision_warnings+=("validate: warning — name '$_col_name' appears as both $_col_k1 and $_col_k2 (mounting both is supported; ensure the overlap is intentional)")
+        done < <(collisions_enumerate)
+        local w
+        for w in "${_collision_warnings[@]+"${_collision_warnings[@]}"}"; do
+            echo "$w" >&2
+        done
     fi
 
     if [[ "$quiet" -eq 0 ]]; then
