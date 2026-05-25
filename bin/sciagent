@@ -30,6 +30,7 @@ Usage:
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
                                        List available content
+  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
   sciagent list deps <skill>           Transitive requires closure (leaves first)
   sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
@@ -56,6 +57,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"
@@ -66,6 +68,7 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"      # deactivate may re-activate solo-base
@@ -95,6 +98,11 @@ case "$verb" in
         . "$LIB/skill_deps.sh"
         . "$LIB/status.sh"
         cmd_list "$@"
+        ;;
+    validate)
+        . "$LIB/skill_deps.sh"
+        . "$LIB/validate.sh"
+        cmd_validate "$@"
         ;;
     new)
         . "$LIB/new.sh"
