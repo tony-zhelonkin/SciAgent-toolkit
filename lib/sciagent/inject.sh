@@ -37,9 +37,9 @@ cmd_inject() {
     fi
 
     # Idempotency: already injected?
-    local inj_line
-    while IFS=' ' read -r inj_line; do
-        if [[ "$inj_line" == "$target_overlay $skill" ]]; then
+    local inj_ov inj_sk _inj_via
+    while read -r inj_ov inj_sk _inj_via; do
+        if [[ "$inj_ov" == "$target_overlay" && "$inj_sk" == "$skill" ]]; then
             echo "already injected: $skill (into $target_overlay)"
             return 0
         fi
@@ -76,8 +76,8 @@ _inject_rewrite_block() {
 
     # Collect injected skill names from manifest.
     local -a INJECTED_NAMES=()
-    local ov nm
-    while read -r ov nm; do
+    local ov nm _via
+    while read -r ov nm _via; do
         [[ -n "$ov" ]] && INJECTED_NAMES+=("$nm")
     done < <(manifest_injected)
 

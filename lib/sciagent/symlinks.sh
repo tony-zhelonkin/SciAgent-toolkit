@@ -6,9 +6,14 @@
 #     "version": 1,
 #     "stack": ["base", "reviewer"],
 #     "symlinks": ["/abs/or/relative/path"],
-#     "injected": [{"overlay": "_injected", "skill": "obsidian-vignette"}],
+#     "injected": [{"overlay": "_injected", "skill": "obsidian-vignette", "via": "tag:pathway"}],
 #     "block_hash": "abc123..."
 #   }
+#
+# The "via" field was added in PR 3. Named-skill injections carry via:"" (empty
+# string). Tag-driven injections carry via:"tag:<name>". Pre-PR-3 manifest
+# entries with no "via" key are treated as named-skill injections on read
+# (forward-compatible).
 #
 # jq is used when available for reading; when absent, a targeted bash fallback
 # uses grep+sed against this well-known flat structure. The fallback does NOT
@@ -96,6 +101,7 @@ _manifest_stack_val=""
 declare -a _manifest_syms=()
 declare -a _manifest_injected_overlays=()
 declare -a _manifest_injected_skills=()
+declare -a _manifest_injected_vias=()
 
 manifest_begin() {
     local stack="$1"   # space-separated role names
@@ -104,6 +110,7 @@ manifest_begin() {
     _manifest_syms=()
     _manifest_injected_overlays=()
     _manifest_injected_skills=()
+    _manifest_injected_vias=()
 }
 
 _manifest_record_symlink() {
@@ -112,9 +119,10 @@ _manifest_record_symlink() {
 }
 
 _manifest_record_injected() {
-    local overlay="$1" skill="$2"
+    local overlay="$1" skill="$2" via="${3:-}"
     _manifest_injected_overlays+=("$overlay")
     _manifest_injected_skills+=("$skill")
+    _manifest_injected_vias+=("$via")
 }
 
 # _manifest_write_json <block_hash>
@@ -155,9 +163,10 @@ _manifest_write_json() {
             local i
             for (( i=0; i<_ninj; i++ )); do
                 (( first )) && first=0 || printf ','
-                printf '\n    {"overlay": "%s", "skill": "%s"}' \
+                printf '\n    {"overlay": "%s", "skill": "%s", "via": "%s"}' \
                     "$(_json_escape "${_manifest_injected_overlays[$i]}")" \
-                    "$(_json_escape "${_manifest_injected_skills[$i]}")"
+                    "$(_json_escape "${_manifest_injected_skills[$i]}")" \
+                    "$(_json_escape "${_manifest_injected_vias[$i]:-}")"
             done
             printf '\n  '
         fi
@@ -317,19 +326,28 @@ manifest_symlinks() {
     fi
 }
 
-# manifest_injected — print one "overlay skill" pair per line.
+# manifest_injected — print one "overlay skill via" triple per line.
+# Pre-PR-3 entries without a "via" key emit an empty third field (treated as
+# named-skill injection by callers that inspect the via column).
 manifest_injected() {
     [[ -f "$_MANIFEST_PATH" ]] || return 1
     if command -v jq >/dev/null 2>&1; then
-        jq -r '.injected[] | (.overlay + " " + .skill)' "$_MANIFEST_PATH"
+        jq -r '.injected[] | (.overlay + " " + .skill + " " + (.via // ""))' "$_MANIFEST_PATH"
     else
         # Fallback: each injected entry spans one line:
-        #   {"overlay": "X", "skill": "Y"}
+        #   {"overlay": "X", "skill": "Y", "via": "Z"}
+        # Pre-PR-3 entries lack the "via" field; those emit empty third field.
         grep '"overlay"' "$_MANIFEST_PATH" | while IFS= read -r line; do
-            local ov sk
+            local ov sk via
             ov=$(printf '%s' "$line" | sed 's/.*"overlay":[[:space:]]*"\([^"]*\)".*/\1/')
             sk=$(printf '%s' "$line" | sed 's/.*"skill":[[:space:]]*"\([^"]*\)".*/\1/')
-            printf '%s %s\n' "$ov" "$sk"
+            # Extract "via" when present; default to empty string when absent.
+            if printf '%s' "$line" | grep -q '"via"'; then
+                via=$(printf '%s' "$line" | sed 's/.*"via":[[:space:]]*"\([^"]*\)".*/\1/')
+            else
+                via=""
+            fi
+            printf '%s %s %s\n' "$ov" "$sk" "$via"
         done
     fi
 }
@@ -361,15 +379,18 @@ manifest_update_stack() {
     _manifest_syms=()
     _manifest_injected_overlays=()
     _manifest_injected_skills=()
+    _manifest_injected_vias=()
 
     local p
     while IFS= read -r p; do
         [[ -n "$p" ]] && _manifest_syms+=("$p")
     done <<< "$old_syms"
 
-    local ov sk
-    while read -r ov sk; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") && _manifest_injected_skills+=("$sk")
+    local ov sk vi
+    while read -r ov sk vi; do
+        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
+            && _manifest_injected_skills+=("$sk") \
+            && _manifest_injected_vias+=("${vi:-}")
     done <<< "$old_inj"
 
     _manifest_staging=$(mktemp)
@@ -392,15 +413,18 @@ manifest_update_block_hash() {
     _manifest_syms=()
     _manifest_injected_overlays=()
     _manifest_injected_skills=()
+    _manifest_injected_vias=()
 
     local p
     while IFS= read -r p; do
         [[ -n "$p" ]] && _manifest_syms+=("$p")
     done <<< "$old_syms"
 
-    local ov sk
-    while read -r ov sk; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") && _manifest_injected_skills+=("$sk")
+    local ov sk vi
+    while read -r ov sk vi; do
+        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
+            && _manifest_injected_skills+=("$sk") \
+            && _manifest_injected_vias+=("${vi:-}")
     done <<< "$old_inj"
 
     _manifest_staging=$(mktemp)
@@ -411,9 +435,10 @@ manifest_update_block_hash() {
 
 # manifest_append_symlinks_and_injected <sym1> <sym2> ... -- <overlay> <skill>
 # Appends new symlinks and one injected entry to the existing manifest in-place.
-# Call signature: manifest_append_inject <claude_sym> <agents_sym> <overlay> <skill>
+# Call signature: manifest_append_inject <claude_sym> <agents_sym> <overlay> <skill> [via]
+# via: empty string for named-skill injections; "tag:<name>" for tag-driven injections.
 manifest_append_inject() {
-    local claude_sym="$1" agents_sym="$2" target_overlay="$3" skill="$4"
+    local claude_sym="$1" agents_sym="$2" target_overlay="$3" skill="$4" via="${5:-}"
     [[ -f "$_MANIFEST_PATH" ]] || return 1
 
     local old_stack old_hash
@@ -424,21 +449,25 @@ manifest_append_inject() {
     _manifest_syms=()
     _manifest_injected_overlays=()
     _manifest_injected_skills=()
+    _manifest_injected_vias=()
 
     local p
     while IFS= read -r p; do
         [[ -n "$p" ]] && _manifest_syms+=("$p")
     done < <(manifest_symlinks)
 
-    local ov sk
-    while read -r ov sk; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") && _manifest_injected_skills+=("$sk")
+    local ov sk vi
+    while read -r ov sk vi; do
+        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
+            && _manifest_injected_skills+=("$sk") \
+            && _manifest_injected_vias+=("${vi:-}")
     done < <(manifest_injected)
 
     # Append new entries.
     _manifest_syms+=("$claude_sym" "$agents_sym")
     _manifest_injected_overlays+=("$target_overlay")
     _manifest_injected_skills+=("$skill")
+    _manifest_injected_vias+=("$via")
 
     _manifest_staging=$(mktemp)
     _manifest_write_json "$old_hash"
