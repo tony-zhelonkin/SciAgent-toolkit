@@ -9,7 +9,8 @@ metadata:
   last-reviewed: 2026-04-14
   category: foundation
   tier: standard
-  tags: []
+  tags:
+  - qc
   complementary-skills:
   - anndata
   - scanpy
