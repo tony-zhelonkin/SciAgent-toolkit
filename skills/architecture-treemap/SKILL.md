@@ -11,7 +11,9 @@ metadata:
   tier: rich
   status: probationary
   prune-review-at: 2026-11-20
-  tags: []
+  tags:
+  - architecture
+  - viz
   complementary-skills:
   - architecture-first-dev
   contraindications:

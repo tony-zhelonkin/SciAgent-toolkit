@@ -6,7 +6,8 @@ metadata:
   requires: []
   complementary-skills: []
   contraindications: []
-  tags: []
+  tags:
+  - architecture
 ---
 
 # Architecture-First Development
