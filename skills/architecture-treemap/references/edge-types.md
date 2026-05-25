@@ -1,8 +1,9 @@
 # Edge types — pedagogy reference
 
-This file provides the content for the Tier-1 info-icon popovers and the
-Tier-2 "How to read this" collapsible panel rendered by the architecture-treemap
-skill. Impersonal voice throughout.
+This file is the prose reference for the three edge types the architecture-
+treemap skill renders. The renderer's in-app explainers ((?) popovers and the
+glossary panel) are driven from `scripts/pedagogy_registry.py`; this file is
+the long-form companion. Impersonal voice throughout.
 
 ---
 
