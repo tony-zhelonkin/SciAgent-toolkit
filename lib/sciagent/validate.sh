@@ -30,7 +30,26 @@
 
 cmd_validate() {
     local quiet=0
-    [[ "${1:-}" == "--quiet" ]] && quiet=1
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                cat <<'USAGE'
+sciagent validate [--quiet]
+  Check requires graph + tag-vocab compliance over every skill in the
+  toolkit. Exits 0 on success, 1 on any hard-fail (missing requires
+  target, cycle, or unknown tag).
+
+  --quiet   Suppress the "all checks passed" summary on success.
+USAGE
+                return 0 ;;
+            --quiet)
+                quiet=1; shift ;;
+            *)
+                echo "sciagent validate: unknown option '$1'" >&2
+                echo "usage: sciagent validate [--quiet]" >&2
+                return 1 ;;
+        esac
+    done
 
     local fail=0
     local -a failures=()
