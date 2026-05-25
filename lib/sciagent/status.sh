@@ -388,11 +388,20 @@ cmd_list() {
 }
 
 # _list_deps <skill> — print transitive requires-closure, topo-sorted (leaves first).
-# Excludes the input skill itself from output.
+# Excludes the input skill itself from output. Returns 1 with a stderr error
+# if the target skill (or any of its requires) cannot be resolved.
 _list_deps() {
     local target="$1"
-    # skill_resolve_transitive emits post-order: deps before dependants.
-    # We exclude the root (target) from output — caller asked for its deps.
+    # Validate up-front: the resolver writes its own stderr; we just need to
+    # honour its exit code so an unknown skill propagates as exit 1.
+    local resolved
+    if ! resolved=$(skill_resolve_transitive "$target" 2>&1 >/dev/null) \
+        && [[ -n "$resolved" ]]; then
+        # Print the captured stderr stanza and propagate failure.
+        printf '%s\n' "$resolved" >&2
+        return 1
+    fi
+    # Re-run for stdout collection (cheap; the toolkit's skill set is small).
     local n
     while IFS= read -r n; do
         [[ "$n" == "$target" ]] && continue
@@ -402,8 +411,14 @@ _list_deps() {
 
 # _list_dependents <skill> — print direct (one-level) dependents: skills whose
 # `metadata.requires:` includes the input skill. One name per line, sorted.
+# Returns 1 with a stderr error if the target skill itself doesn't exist;
+# an empty dependents set on a known skill still exits 0.
 _list_dependents() {
     local target="$1"
+    if ! skill_frontmatter_path "$target" >/dev/null 2>&1; then
+        echo "sciagent list dependents: skill '$target' not found" >&2
+        return 1
+    fi
     local d name
     local -a results=()
     for d in "$SCIAGENT_TOOLKIT"/skills/*/; do
