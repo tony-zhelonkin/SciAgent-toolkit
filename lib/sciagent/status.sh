@@ -96,6 +96,20 @@ _status_load_state() {
         INJECTED_OVERLAY+=("$_ov")
     done < <(manifest_injected)
 
+    # Collect skill names mounted on disk per manifest (one per `.claude/skills/*`
+    # symlink). Skills can land here via the role yaml, via `inject`, OR via
+    # the `metadata.requires:` transitive closure (activate.sh mounts every
+    # dep). The walker above only sees role-yaml entries — anything mounted
+    # purely via requires-inheritance shows up here and not in SKILL_ORDER.
+    MANIFEST_SKILLS=()
+    local _ms_path _ms_name
+    while IFS= read -r _ms_path; do
+        [[ -z "$_ms_path" ]] && continue
+        [[ "$_ms_path" == .claude/skills/* ]] || continue
+        _ms_name="${_ms_path#.claude/skills/}"
+        MANIFEST_SKILLS+=("$_ms_name")
+    done < <(manifest_symlinks)
+
     # Walk role YAMLs via stack_walk to fill effective tables.
     declare -gA SKILLS=() AGENTS_M=() COMMANDS_M=()
     declare -gA SKILL_SHADOWS=() AGENT_SHADOWS=() COMMAND_SHADOWS=()
@@ -143,8 +157,22 @@ _status_render_text() {
     fi
     printf '\n'
 
-    local n note total
-    total=$(( ${#SKILL_ORDER[@]} + ${#INJECTED_LIST[@]} ))
+    # Compute skills mounted purely via `metadata.requires:` inheritance —
+    # they sit on disk per the manifest but are not in any role yaml or the
+    # injected list. Use a temp associative array as a set.
+    declare -A _declared_set=()
+    local n
+    for n in "${SKILL_ORDER[@]:-}";   do [[ -n "$n" ]] && _declared_set[$n]=1; done
+    for n in "${INJECTED_LIST[@]:-}"; do [[ -n "$n" ]] && _declared_set[$n]=1; done
+    local -a INHERITED_SKILLS=()
+    for n in "${MANIFEST_SKILLS[@]:-}"; do
+        [[ -z "$n" ]] && continue
+        [[ -n "${_declared_set[$n]:-}" ]] && continue
+        INHERITED_SKILLS+=("$n")
+    done
+
+    local note total
+    total=$(( ${#SKILL_ORDER[@]} + ${#INJECTED_LIST[@]} + ${#INHERITED_SKILLS[@]} ))
     printf 'Skills (%d effective):\n' "$total"
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
@@ -155,6 +183,10 @@ _status_render_text() {
     for n in "${INJECTED_LIST[@]:-}"; do
         [[ -z "$n" ]] && continue
         printf '  %-24s %s\n' "$n" "injected"
+    done
+    for n in "${INHERITED_SKILLS[@]:-}"; do
+        [[ -z "$n" ]] && continue
+        printf '  %-24s %s\n' "$n" "inherited via requires:"
     done
     printf '\n'
 
