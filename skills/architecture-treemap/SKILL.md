@@ -189,9 +189,35 @@ For automated verification: `bash skills/architecture-treemap/checks/golden_rend
 
 ---
 
+## Robust authoring checklist (for the judgment layer)
+
+`/synthesize-audit` (and the slicer feeding it) must satisfy these before a
+manifest is done. They fail silently — the manifest still validates and renders
+— so they are guarded by discipline, not by the tooling:
+
+1. **No orphan logical nodes.** Every logical component has an authored edge
+   unless it is a genuine source-only leaf; check each zero-edge node and either
+   author the real edge or justify the leaf.
+2. **Ground every edge in a real citation** (file:line + the exact import/call,
+   aliases included). `evidence_class: static` only for a real detectable
+   import/call; `audit-asserted` for runtime contracts / background knowledge.
+3. **Cross-cutting nodes get represented** — author the fan-in edges into config
+   / shared kernels (the renderer dims high-fan-in sinks automatically); never
+   leave a shared dependency floating.
+4. **The tool must not audit its own output** — generated snapshots under
+   `architecture-audit/` are excluded by the extractor by default.
+5. **Metrics bias attention, never deliver verdicts** — read `refactor_pressure`
+   / churn / fan-in to decide where to look first; never fabricate or override
+   a metric.
+
+The full version lives in `commands/architect/synthesize-audit.md § Robust
+authoring checklist`.
+
 ## Resources
 
 - **Schema (the binding data contract):** `skills/architecture-treemap/components.schema.json`
+- **Metric model (single source of truth):** `skills/architecture-treemap/scripts/metric_registry.py` — the descriptor registry the extractor, schema, and renderer all derive from. Add a metric by registering one descriptor here.
+- **Metrics-architecture decision note (ADR):** `skills/architecture-treemap/references/metrics-architecture.md`
 - **Golden fixture:** `skills/architecture-treemap/references/example/components.json`
 - **Edge-type reference:** `skills/architecture-treemap/references/edge-types.md`
 - **Classification rationale:** `skills/architecture-treemap/references/classification-rationale.md`

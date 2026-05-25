@@ -138,6 +138,37 @@ Recommended next step:
                                   — render the self-contained treemap.html from this model
 ```
 
+## Robust authoring checklist
+
+Hard-won lessons. The synth agent MUST run this checklist before the manifest is
+considered done. These failures are silent — the manifest validates and renders
+even when they are present — so the checklist is the only guard.
+
+1. **No orphan logical nodes.** Every `logical_component` must have at least one
+   authored edge (in or out) UNLESS it is genuinely a source-only leaf. Before
+   finalizing, list each logical id, count its edges, and for every zero-edge
+   node either author the real edge or write a one-line justification for the
+   leaf. (A prior run shipped six edgeless cores purely by omission — the static
+   import graph proved the edges existed; the author just never wrote them.)
+2. **Ground every edge in a real source citation.** Each edge's `evidence`
+   string must quote the import/call as written (file:line + the exact
+   statement, aliases included). Set `evidence_class` honestly: `static` ONLY
+   for a real detectable import/call (verify the line before claiming it);
+   `audit-asserted` for runtime contracts and background-knowledge invariants.
+3. **Cross-cutting nodes need representation.** Config, shared kernels, and util
+   sinks attract high fan-in. Author their incoming edges (the renderer dims a
+   high-fan-in / zero-fan-out / config node automatically so it does not
+   hairball). Do not leave a shared dependency floating because "everyone uses
+   it" — that is exactly the node whose edges must be drawn.
+4. **The tool must not audit its own output.** Generated snapshots and artifacts
+   (anything under `architecture-audit/`) are excluded by the extractor by
+   default; never re-add them as components.
+5. **Metrics are deterministic substrate, never judgment.** Read them to bias
+   attention — high `refactor_pressure` / churn / fan-in = look there first —
+   but never fabricate or override a metric. Metrics bias the audit queue; they
+   do not deliver verdicts. The verdict is the classification, and it traces to
+   a slice finding, not to a number.
+
 ## Rules
 
 1. **Requires ≥1 slice.** Zero slices → route to `/audit-slice`. This step integrates judgment; it does not generate it.

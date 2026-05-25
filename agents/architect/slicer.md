@@ -113,6 +113,9 @@ findings, domain input, or a human verdict on classification (core/seam/removabl
 - **Every smell carries a connascence tag.** An untagged smell is an unfinished finding.
 - **Diagnose, do not redesign.** Decoupling proposals are candidates for the synthesis to weigh, not decisions.
 - **No classification verdict.** You surface evidence; assigning core/seam/removable is `/synthesize-audit`'s judgment, informed by all slices + the extractor substrate.
+- **Faithful citations.** Quote each import/call as written (file:line + the exact statement, aliases included). The synthesis turns your citations into edges with `evidence_class: static`; a paraphrased or unverified citation becomes a false static edge.
+- **Flag cross-cutting dependencies.** When a concern leans on a shared config / kernel / util sink, name it and its importers in the slice — these become the fan-in edges the synthesis must author so the sink does not float edgeless.
+- **Read metrics to prioritise, never to conclude.** High `refactor_pressure` / churn / fan-in tells you where to look first; it is not a verdict. Do not fabricate or override a substrate metric.
 
 ## Model note
 
