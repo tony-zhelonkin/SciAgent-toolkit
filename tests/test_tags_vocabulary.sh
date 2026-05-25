@@ -28,6 +28,7 @@ known_tags="$(awk '
         sub(/[ \t]+$/, "")
         gsub(/^["'"'"']|["'"'"']$/, "")
         print
+        next
     }
     intags && /^[^ ]/ { intags=0 }
 ' "$TAGS_FILE")"
