@@ -40,6 +40,11 @@ cmd_eject() {
             echo "usage: sciagent eject <skill> | --tag <name>" >&2
             return 1
             ;;
+        '')
+            echo "sciagent eject: empty skill name" >&2
+            echo "usage: sciagent eject <skill> | --tag <name>" >&2
+            return 1
+            ;;
         *)
             mode="skill"
             target="$1"
