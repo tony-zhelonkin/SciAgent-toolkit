@@ -2,8 +2,61 @@
 # Computes the effective merged stack (last-wins on name collisions), creates
 # dual symlinks, rewrites the AGENTS.md managed block, writes manifest.
 # Stack-walking and block-body rendering are delegated to stack.sh.
+#
+# Complementary-skills warning surface (kickoff.md §9, PR 2 2026-05-24):
+#   Missing complementary-skills references are soft-warn only. Buffered
+#   during the walk and emitted as one STDERR summary block after the
+#   normal activation output. Exit code remains 0.
 
 # shellcheck shell=bash
+
+# ---------------------------------------------------------------------------
+# _activate_read_complementary <skill-name>
+# Emit complementary-skills entries, one per line, from frontmatter.
+# Handles the same block-list format used by skill_read_requires.
+# ---------------------------------------------------------------------------
+_activate_read_complementary() {
+    local name="$1"
+    local file
+    file=$(skill_frontmatter_path "$name") || return 0   # missing SKILL.md: skip
+    _skill_extract_frontmatter "$file" | awk '
+        BEGIN { in_meta=0; in_comp=0 }
+        /^[A-Za-z_][A-Za-z0-9_-]*:/ {
+            in_meta = ($0 ~ /^metadata:[ \t]*(#.*)?$/)
+            in_comp = 0
+            next
+        }
+        in_meta && /^[ \t]+complementary-skills:/ {
+            line = $0
+            sub(/^[ \t]+complementary-skills:[ \t]*/, "", line)
+            sub(/[ \t]*#.*$/, "", line)
+            sub(/[ \t]+$/, "", line)
+            if (line ~ /^\[.*\]$/) {
+                gsub(/^\[[ \t]*/, "", line)
+                gsub(/[ \t]*\]$/, "", line)
+                n = split(line, parts, /[ \t]*,[ \t]*/)
+                for (i = 1; i <= n; i++) {
+                    item = parts[i]
+                    gsub(/^["'"'"']|["'"'"']$/, "", item)
+                    if (item != "") print item
+                }
+                in_comp = 0
+                next
+            }
+            in_comp = 1
+            next
+        }
+        in_comp && /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*:/ { in_comp=0; next }
+        in_comp && /^[ \t]+-[ \t]+/ {
+            item = $0
+            sub(/^[ \t]+-[ \t]+/, "", item)
+            sub(/[ \t]*#.*$/, "", item)
+            sub(/[ \t]+$/, "", item)
+            gsub(/^["'"'"']|["'"'"']$/, "", item)
+            if (item != "") print item
+        }
+    '
+}
 
 cmd_activate() {
     if [[ $# -lt 1 ]]; then
@@ -24,6 +77,14 @@ cmd_activate() {
     fi
     if [[ -n "$overlay" ]] && ! role_exists "$overlay"; then
         echo "role not found: $overlay ($(role_path "$overlay"))" >&2
+        return 1
+    fi
+
+    # Pre-flight: run tag-vocab + requires-graph checks before any mutation.
+    # validate.sh must be sourced by the caller (bin/sciagent sources it for
+    # the activate verb). Called with --quiet so success produces no output.
+    if ! cmd_validate --quiet; then
+        echo "sciagent: aborting activation; validate checks failed (see above)" >&2
         return 1
     fi
 
@@ -70,6 +131,24 @@ cmd_activate() {
             SKILLS[$dep]=":requires:$direct"
             SKILL_ORDER+=("$dep")
         done <<< "$closure_out"
+    done
+
+    # Phase B.5: scan complementary-skills for unresolvable references.
+    # Per kickoff.md §9 PR 2 hardness boundary: complementary-skills misses
+    # are soft-warn only — buffer here, emit at end-of-activate on STDERR.
+    # Exit code stays 0 regardless of how many warnings accumulate.
+    local -a _comp_warnings=()
+    local sk
+    for sk in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
+        local cs
+        while IFS= read -r cs; do
+            [[ -z "$cs" ]] && continue
+            # A complementary-skill is "missing" when it has no directory
+            # under skills/. Use skill_frontmatter_path as the canonical check.
+            if ! skill_frontmatter_path "$cs" >/dev/null 2>&1; then
+                _comp_warnings+=("$sk references complementary-skill '$cs' — not present in skills/")
+            fi
+        done < <(_activate_read_complementary "$sk")
     done
 
     # Resolve output_style → system-prompts/<file>.md by frontmatter name.
@@ -160,5 +239,24 @@ cmd_activate() {
     echo "  commands: ${#COMMAND_ORDER[@]}"
     if [[ -n "$OUTPUT_STYLE" ]]; then
         echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_ROLE) [settings.local.json: $STYLE_APPLIED_TAG]"
+    fi
+
+    # Emit complementary-skills warning block to STDERR after the activation
+    # summary. One block, one place to look. Exit code stays 0.
+    # Per kickoff.md §9 ADR-002 warning surface + PR 2 hardness boundary.
+    if [[ "${#_comp_warnings[@]}" -gt 0 ]]; then
+        {
+            echo ""
+            echo "sciagent: activation completed with warnings:"
+            echo ""
+            echo "  complementary-skills (not installed):"
+            local w
+            for w in "${_comp_warnings[@]}"; do
+                echo "    - $w"
+            done
+            echo ""
+            echo "  These skills are optional companions. Install them via 'sciagent inject'"
+            echo "  or add them to a role if the gap affects your current work."
+        } >&2
     fi
 }
