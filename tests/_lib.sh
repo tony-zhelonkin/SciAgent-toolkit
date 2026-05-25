@@ -149,6 +149,16 @@ skills:
   - s_a
 EOF
 
+    # Minimal tags.yaml so `sciagent validate` (called internally by activate)
+    # finds the vocabulary file. Tests that need unknown-tag coverage override
+    # this file after calling build_fake_toolkit.
+    cat > "$root/tags.yaml" <<'EOF'
+tags:
+  - name: tooling
+    description: Test fixture tag.
+    since: 2026-05-24
+EOF
+
     # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
     ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
     ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
