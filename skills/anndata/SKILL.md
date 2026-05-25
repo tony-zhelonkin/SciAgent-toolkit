@@ -1,25 +1,15 @@
 ---
 name: anndata
-description: "AnnData data structure \u2014 foundation for the entire scverse ecosystem.\
-  \ Use for format operations (reading .h5ad, writing, subsetting, concatenating),\
-  \ understanding data slots, and debugging shape/index issues. For analysis workflows\
-  \ use scanpy; for probabilistic models use scvi-tools; for population-scale queries\
-  \ use cellxgene-census."
+description: AnnData data structure — foundation for the entire scverse ecosystem. Use for format operations (reading .h5ad, writing, subsetting, concatenating), understanding data slots, and debugging shape/index issues. For analysis workflows use scanpy; for probabilistic models use scvi-tools; for population-scale queries use cellxgene-census.
 license: MIT
 metadata:
-  scope: foundation
+  scope: concept
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: foundation
   tier: standard
-  tags:
-  - anndata
-  - scverse
-  - single-cell
-  - python
-  - data-format
-  - h5ad
+  tags: []
   complementary-skills:
   - scanpy
   - anndatar-seurat-scanpy-conversion

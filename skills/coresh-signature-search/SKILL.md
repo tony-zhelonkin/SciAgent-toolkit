@@ -1,9 +1,9 @@
 ---
 name: coresh-signature-search
-description: "CORESH -- rank ~80,000 public GEO datasets by how strongly a user-supplied gene signature is co-regulated in each, returning a PCA-inspired pctVar score and optional GESECA p-value for hypothesis generation and interpretation. Use when you have a short gene signature (10-200 genes: top DE hits, cluster markers, leading edge of a pathway) and want to find public datasets where those genes move together -- to connect a signature to biological context (cell types, perturbations, diseases), find perturbation analogs for wet-lab follow-up, or derive novel coregulation-based gene sets for downstream GSEA. For canonical-pathway interpretation of a signature or running GSEA on CORESH-derived gene sets use bulk-rnaseq-gsea; for metadata-based GEO search (keyword, organism) use the GEO web interface or RummaGEO."
+description: 'CORESH -- rank ~80,000 public GEO datasets by how strongly a user-supplied gene signature is co-regulated in each, returning a PCA-inspired pctVar score and optional GESECA p-value for hypothesis generation and interpretation. Use when you have a short gene signature (10-200 genes: top DE hits, cluster markers, leading edge of a pathway) and want to find public datasets where those genes move together -- to connect a signature to biological context (cell types, perturbations, diseases), find perturbation analogs for wet-lab follow-up, or derive novel coregulation-based gene sets for downstream GSEA. For canonical-pathway interpretation of a signature or running GSEA on CORESH-derived gene sets use bulk-rnaseq-gsea; for metadata-based GEO search (keyword, organism) use the GEO web interface or RummaGEO.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,26 +11,16 @@ metadata:
   upstream-docs: https://alserglab.wustl.edu/coresh/
   category: analysis
   tier: standard
-  tags:
-    - coresh
-    - geo
-    - signature-search
-    - coregulation
-    - geseca
-    - fgsea
-    - hypothesis-generation
-    - public-data-reuse
-    - gene-set-discovery
-    - synapse
+  tags: []
   complementary-skills:
-    - bulk-rnaseq-gsea
-    - bulk-rnaseq-pathway-explorer
-    - gatom-metabolomic-predictions
+  - bulk-rnaseq-gsea
+  - bulk-rnaseq-pathway-explorer
+  - gatom-metabolomic-predictions
   contraindications:
-    - "Do not use for MSigDB canonical-pathway interpretation of a signature. Use bulk-rnaseq-gsea instead."
-    - "Do not use for metadata-based GEO search (organism, disease keyword, platform). Use the GEO web interface or RummaGEO -- CORESH is data-driven only."
-    - "Do not pass gene symbols. The chunk rownames are integer Entrez IDs and match() silently returns all NAs on character input."
-    - "Do not use human queries against mmu/ chunks (or vice versa). Species mismatch returns near-zero sizes with no error."
+  - Do not use for MSigDB canonical-pathway interpretation of a signature. Use bulk-rnaseq-gsea instead.
+  - Do not use for metadata-based GEO search (organism, disease keyword, platform). Use the GEO web interface or RummaGEO -- CORESH is data-driven only.
+  - Do not pass gene symbols. The chunk rownames are integer Entrez IDs and match() silently returns all NAs on character input.
+  - Do not use human queries against mmu/ chunks (or vice versa). Species mismatch returns near-zero sizes with no error.
 ---
 
 # CORESH -- Gene Signature Search over Public GEO Data

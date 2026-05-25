@@ -1,9 +1,9 @@
 ---
 name: bulk-rnaseq-activity-inference
-description: "DecoupleR activity inference pipeline -- infers transcription factor activities (ULM + CollecTRI regulatory network) and signaling pathway activities (MLM + PROGENy consensus signatures, 14 canonical pathways: JAK-STAT, MAPK, NFkB, PI3K, TGFb, TNFa, EGFR, WNT, p53, Hypoxia, Androgen, Estrogen, Trail, VEGF) from bulk RNA-seq DE results, plus publication-quality visualization. Use when computing TF or pathway activity scores from limma/edgeR DE output, identifying differentially active transcription factors, building master_tf_activities.csv or master_progeny_activities.csv, or generating barplots/volcanos/target-gene scatter plots. Routes to: references/tf-activity.md (DecoupleR ULM + CollecTRI), references/progeny.md (PROGENy MLM), references/visualization.md (barplots, volcanos, scatter). For gene-set enrichment against MSigDB or custom databases use bulk-rnaseq-gsea. For interactive UMAP pathway explorer use bulk-rnaseq-pathway-explorer."
+description: 'DecoupleR activity inference pipeline -- infers transcription factor activities (ULM + CollecTRI regulatory network) and signaling pathway activities (MLM + PROGENy consensus signatures, 14 canonical pathways: JAK-STAT, MAPK, NFkB, PI3K, TGFb, TNFa, EGFR, WNT, p53, Hypoxia, Androgen, Estrogen, Trail, VEGF) from bulk RNA-seq DE results, plus publication-quality visualization. Use when computing TF or pathway activity scores from limma/edgeR DE output, identifying differentially active transcription factors, building master_tf_activities.csv or master_progeny_activities.csv, or generating barplots/volcanos/target-gene scatter plots. Routes to: references/tf-activity.md (DecoupleR ULM + CollecTRI), references/progeny.md (PROGENy MLM), references/visualization.md (barplots, volcanos, scatter). For gene-set enrichment against MSigDB or custom databases use bulk-rnaseq-gsea. For interactive UMAP pathway explorer use bulk-rnaseq-pathway-explorer.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,28 +11,15 @@ metadata:
   upstream-docs: https://saezlab.github.io/decoupleR/
   category: analysis
   tier: standard
-  tags:
-    - decoupler
-    - tf-activity
-    - progeny
-    - ulm
-    - mlm
-    - collectri
-    - signaling-pathways
-    - transcription-factor
-    - activity-inference
-    - bulk-rnaseq
-    - omnipath
-    - jak-stat
-    - mapk
+  tags: []
   complementary-skills:
-    - bulk-rnaseq-gsea
-    - bulk-rnaseq-pathway-explorer
-    - gatom-metabolomic-predictions
+  - bulk-rnaseq-gsea
+  - bulk-rnaseq-pathway-explorer
+  - gatom-metabolomic-predictions
   contraindications:
-    - "Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead."
-    - "Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead."
-    - "Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead."
+  - Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead.
+  - Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead.
+  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
 ---
 
 # Bulk RNA-seq Activity Inference (DecoupleR)

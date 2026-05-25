@@ -1,9 +1,9 @@
 ---
 name: seurat-unpaired-cross-modality
-description: "Seurat unpaired RNA-ATAC integration via gene-activity anchoring — CCA-based FindTransferAnchors, TransferData label transfer, and exploratory RNA expression imputation for ATAC cells. Use when you have separate scRNA-seq and scATAC-seq experiments (NOT true multiome) and no bridge dataset. For paired multiome use signac-chromatin-analysis; for the Python / scGLUE equivalent use scglue-unpaired-multiomics-integration."
+description: Seurat unpaired RNA-ATAC integration via gene-activity anchoring — CCA-based FindTransferAnchors, TransferData label transfer, and exploratory RNA expression imputation for ATAC cells. Use when you have separate scRNA-seq and scATAC-seq experiments (NOT true multiome) and no bridge dataset. For paired multiome use signac-chromatin-analysis; for the Python / scGLUE equivalent use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -11,22 +11,15 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/articles/atacseq_integration_vignette
   category: integration
   tier: simple
-  tags:
-    - seurat
-    - signac
-    - cca
-    - gene-activity
-    - label-transfer
-    - unpaired
-    - r
+  tags: []
   complementary-skills:
-    - signac-chromatin-analysis
-    - seurat-bridge-integration
-    - scglue-unpaired-multiomics-integration
-    - scenic-grn-inference
+  - signac-chromatin-analysis
+  - seurat-bridge-integration
+  - scglue-unpaired-multiomics-integration
+  - scenic-grn-inference
   contraindications:
-    - "Do not use for paired multiome data — use signac-chromatin-analysis."
-    - "Do not use for single-cell-resolution GRN inference — gene-activity smoothing is too coarse; use scenic-grn-inference."
+  - Do not use for paired multiome data — use signac-chromatin-analysis.
+  - Do not use for single-cell-resolution GRN inference — gene-activity smoothing is too coarse; use scenic-grn-inference.
 ---
 
 # Seurat Unpaired Cross-Modality Integration

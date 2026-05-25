@@ -1,9 +1,9 @@
 ---
 name: scembed-atac-annotation
-description: "scEmbed transfers cell-type labels to scATAC-seq queries using pre-trained region2vec embeddings and KNN search in a vector database (Qdrant/ChromaDB/FAISS), with no model retraining. Use for fast scATAC annotation when a matching HuggingFace databio reference model exists (e.g., luecken2021, craft100k) and you want EV-projection to place query cells in the reference UMAP. For scRNA-informed ATAC annotation use scvi-multivi; for scvi-based reference mapping use scvi-scarches-reference-mapping."
+description: scEmbed transfers cell-type labels to scATAC-seq queries using pre-trained region2vec embeddings and KNN search in a vector database (Qdrant/ChromaDB/FAISS), with no model retraining. Use for fast scATAC annotation when a matching HuggingFace databio reference model exists (e.g., luecken2021, craft100k) and you want EV-projection to place query cells in the reference UMAP. For scRNA-informed ATAC annotation use scvi-multivi; for scvi-based reference mapping use scvi-scarches-reference-mapping.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,22 +11,15 @@ metadata:
   upstream-docs: https://github.com/databio/geniml
   category: annotation
   tier: simple
-  tags:
-  - scembed
-  - scatac-seq
-  - cell-annotation
-  - transfer-learning
-  - region2vec
-  - vector-database
-  - huggingface
+  tags: []
   complementary-skills:
   - scvi-scarches-reference-mapping
   - scvi-peakvi
   - iterative-peak-merging
   - single-cell-vector-search
   contraindications:
-  - "Do not mix reference and query embeddings from different pre-trained models — shared embedding space is required or annotations will be garbage."
-  - "Do not use for scRNA-informed annotation of multiome. Use scvi-multivi or label transfer via the RNA modality."
+  - Do not mix reference and query embeddings from different pre-trained models — shared embedding space is required or annotations will be garbage.
+  - Do not use for scRNA-informed annotation of multiome. Use scvi-multivi or label transfer via the RNA modality.
 ---
 
 # scEmbed - Transfer Learning for scATAC-seq Cell-Type Annotation

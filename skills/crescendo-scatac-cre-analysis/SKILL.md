@@ -1,9 +1,9 @@
 ---
 name: crescendo-scatac-cre-analysis
-description: "CREscendo detects differential cis-regulatory element (CRE) usage within individual scATAC peaks by projecting ENCODE SCREEN cCREs onto peaks and testing Tn5 cleavage counts per sub-element via chi-square. Use when peak-level DA is weak or ambiguous and you suspect within-peak regulatory shifts (e.g., different enhancers driving same gene in cDC1A vs cDC1B). For peak-level differential accessibility use Signac/ArchR FindMarkers; for motif-level activity use chromvar-motif-accessibility."
+description: CREscendo detects differential cis-regulatory element (CRE) usage within individual scATAC peaks by projecting ENCODE SCREEN cCREs onto peaks and testing Tn5 cleavage counts per sub-element via chi-square. Use when peak-level DA is weak or ambiguous and you suspect within-peak regulatory shifts (e.g., different enhancers driving same gene in cDC1A vs cDC1B). For peak-level differential accessibility use Signac/ArchR FindMarkers; for motif-level activity use chromvar-motif-accessibility.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://github.com/GreenleafLab/CREscendo
   category: analysis
   tier: simple
-  tags:
-  - crescendo
-  - scatac-seq
-  - cis-regulatory-elements
-  - ccre
-  - encode-screen
-  - sub-peak-analysis
+  tags: []
   complementary-skills:
   - iterative-peak-merging
   - chromvar-motif-accessibility
   - tf-footprint-differential-analysis
   - scvi-peakvi
   contraindications:
-  - "Do not use for standard peak-level differential accessibility. Use Signac/ArchR FindMarkers."
-  - "Do not use on peaks that do not overlap 2+ ENCODE cCREs. CREscendo requires an external CRE catalog for sub-peak segmentation."
+  - Do not use for standard peak-level differential accessibility. Use Signac/ArchR FindMarkers.
+  - Do not use on peaks that do not overlap 2+ ENCODE cCREs. CREscendo requires an external CRE catalog for sub-peak segmentation.
 ---
 
 # CREscendo Skill

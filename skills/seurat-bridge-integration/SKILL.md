@@ -1,9 +1,9 @@
 ---
 name: seurat-bridge-integration
-description: "Seurat bridge integration — map an ATAC-only query onto an RNA-only reference via a multiome bridge dataset, plus Azimuth reference mapping for paired or RNA-only queries. Use when you have an scATAC-seq query that needs cell-type labels transferred from a well-annotated scRNA-seq reference (e.g. Azimuth PBMC). For unpaired RNA+ATAC integration without a bridge, use seurat-unpaired-cross-modality."
+description: Seurat bridge integration — map an ATAC-only query onto an RNA-only reference via a multiome bridge dataset, plus Azimuth reference mapping for paired or RNA-only queries. Use when you have an scATAC-seq query that needs cell-type labels transferred from a well-annotated scRNA-seq reference (e.g. Azimuth PBMC). For unpaired RNA+ATAC integration without a bridge, use seurat-unpaired-cross-modality.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/articles/seurat5_integration_bridge
   category: integration
   tier: simple
-  tags:
-    - seurat
-    - azimuth
-    - bridge-integration
-    - label-transfer
-    - reference-mapping
-    - r
+  tags: []
   complementary-skills:
-    - seurat-unpaired-cross-modality
-    - signac-chromatin-analysis
-    - seurat-multimodal-analysis
-    - treearches-hierarchy-learning
+  - seurat-unpaired-cross-modality
+  - signac-chromatin-analysis
+  - seurat-multimodal-analysis
+  - treearches-hierarchy-learning
   contraindications:
-    - "Do not use without a multiome bridge dataset — see seurat-unpaired-cross-modality."
-    - "Do not use for hierarchical label transfer with deep tree priors — see treearches-hierarchy-learning."
+  - Do not use without a multiome bridge dataset — see seurat-unpaired-cross-modality.
+  - Do not use for hierarchical label transfer with deep tree priors — see treearches-hierarchy-learning.
 ---
 
 # Seurat Bridge Integration & Azimuth Mapping

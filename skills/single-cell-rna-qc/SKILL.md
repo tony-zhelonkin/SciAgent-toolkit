@@ -1,22 +1,15 @@
 ---
 name: single-cell-rna-qc
-description: "Performs scverse/sc-best-practices quality control on single-cell RNA-seq (.h5ad or .h5) using MAD-based (Median Absolute Deviation) adaptive outlier detection on log1p_total_counts, log1p_n_genes_by_counts, and pct_counts_mt — data-driven thresholds that generalize across protocols, tissues, and species where fixed cutoffs fail. Also annotates mitochondrial, ribosomal, and hemoglobin gene sets (species-aware: MT-/RPL/RPS for human, mt-/Rpl/Rps for mouse), produces QC visualizations, and points to scrublet/scDblFinder for the downstream doublet-detection step. Use when running QC from scratch on raw 10x or .h5ad data, filtering low-quality cells, or when a user asks for MAD-based or scverse-style QC. Unlike scanpy's inline fixed-threshold filtering (min_genes, max_pct_mt), this skill provides adaptive thresholds. Do not use on already-QC'd data (check adata.obs for pct_counts_mt), on bulk RNA-seq, or on non-RNA modalities."
+description: 'Performs scverse/sc-best-practices quality control on single-cell RNA-seq (.h5ad or .h5) using MAD-based (Median Absolute Deviation) adaptive outlier detection on log1p_total_counts, log1p_n_genes_by_counts, and pct_counts_mt — data-driven thresholds that generalize across protocols, tissues, and species where fixed cutoffs fail. Also annotates mitochondrial, ribosomal, and hemoglobin gene sets (species-aware: MT-/RPL/RPS for human, mt-/Rpl/Rps for mouse), produces QC visualizations, and points to scrublet/scDblFinder for the downstream doublet-detection step. Use when running QC from scratch on raw 10x or .h5ad data, filtering low-quality cells, or when a user asks for MAD-based or scverse-style QC. Unlike scanpy''s inline fixed-threshold filtering (min_genes, max_pct_mt), this skill provides adaptive thresholds. Do not use on already-QC''d data (check adata.obs for pct_counts_mt), on bulk RNA-seq, or on non-RNA modalities.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: foundation
   tier: standard
-  tags:
-  - qc
-  - quality-control
-  - mad
-  - scrna-seq
-  - scverse
-  - filtering
-  - doublet-detection
+  tags: []
   complementary-skills:
   - anndata
   - scanpy

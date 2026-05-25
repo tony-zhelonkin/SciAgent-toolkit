@@ -1,9 +1,9 @@
 ---
 name: scvi-peakvi
-description: "PeakVI is a deep generative model in scvi-tools for scATAC-seq that produces batch-corrected latent embeddings and region-level differential accessibility. Use for standard scATAC clustering, batch correction across experiments, and scaling to more than one million cells. For paired RNA+ATAC multiome use scvi-multivi; for quantitative fragment-level analysis use PoissonVI; for TF-activity inference use chromvar-motif-accessibility."
+description: PeakVI is a deep generative model in scvi-tools for scATAC-seq that produces batch-corrected latent embeddings and region-level differential accessibility. Use for standard scATAC clustering, batch correction across experiments, and scaling to more than one million cells. For paired RNA+ATAC multiome use scvi-multivi; for quantitative fragment-level analysis use PoissonVI; for TF-activity inference use chromvar-motif-accessibility.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,20 +11,15 @@ metadata:
   upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/peakvi.html
   category: integration
   tier: simple
-  tags:
-  - scvi-tools
-  - peakvi
-  - scatac-seq
-  - batch-correction
-  - differential-accessibility
+  tags: []
   complementary-skills:
   - scvi-framework
   - scvi-multivi
   - chromvar-motif-accessibility
   - iterative-peak-merging
   contraindications:
-  - "Do not use for paired multiome (RNA+ATAC) integration. Use scvi-multivi instead."
-  - "Do not use for TF motif deviation scoring. Use chromvar-motif-accessibility."
+  - Do not use for paired multiome (RNA+ATAC) integration. Use scvi-multivi instead.
+  - Do not use for TF motif deviation scoring. Use chromvar-motif-accessibility.
 ---
 
 # PeakVI: scATAC-seq Analysis

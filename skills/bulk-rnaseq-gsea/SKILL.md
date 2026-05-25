@@ -1,9 +1,9 @@
 ---
 name: bulk-rnaseq-gsea
-description: "Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions."
+description: 'Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,31 +11,18 @@ metadata:
   upstream-docs: https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
   category: analysis
   tier: standard
-  tags:
-    - gsea
-    - msigdb
-    - clusterProfiler
-    - fgsea
-    - bulk-rnaseq
-    - pathway-analysis
-    - limma-voom
-    - gene-set-enrichment
-    - custom-gene-sets
-    - master-table
-    - visualization
-    - dotplot
-    - running-sum
+  tags: []
   complementary-skills:
-    - gatom-metabolomic-predictions
-    - progeny-pathway-activity
-    - decoupler-tf-activity
-    - coresh-signature-search
-    - bulk-rnaseq-pathway-explorer
+  - gatom-metabolomic-predictions
+  - progeny-pathway-activity
+  - decoupler-tf-activity
+  - coresh-signature-search
+  - bulk-rnaseq-pathway-explorer
   contraindications:
-    - "Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead."
-    - "Do not use for TF activity inference. Use decoupler-tf-activity instead."
-    - "Do not use for PROGENy pathway activity scores. Use progeny-pathway-activity instead."
-    - "Do not use for signature-based GEO dataset search. Use coresh-signature-search instead."
+  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
+  - Do not use for TF activity inference. Use decoupler-tf-activity instead.
+  - Do not use for PROGENy pathway activity scores. Use progeny-pathway-activity instead.
+  - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
 ---
 
 # Bulk RNA-seq GSEA Pipeline

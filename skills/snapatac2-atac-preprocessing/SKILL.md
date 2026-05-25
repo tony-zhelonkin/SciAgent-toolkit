@@ -1,34 +1,26 @@
 ---
 name: snapatac2-atac-preprocessing
-description: "SnapATAC2 — fast scATAC-seq preprocessing pipeline (fragment import, QC, feature selection, spectral embedding, peak calling, gene activity). Use when starting from a 10x ATAC fragments.tsv.gz or a binarised peak matrix and you need cells embedded for clustering / multiomic joint analysis. For multi-sample batch correction after spectral, hand off to harmonypy-batch-integration. For differential accessibility on the resulting clusters, use atac-differential-accessibility. For coverage track plots, use pygenometracks-coverage-plots."
+description: SnapATAC2 — fast scATAC-seq preprocessing pipeline (fragment import, QC, feature selection, spectral embedding, peak calling, gene activity). Use when starting from a 10x ATAC fragments.tsv.gz or a binarised peak matrix and you need cells embedded for clustering / multiomic joint analysis. For multi-sample batch correction after spectral, hand off to harmonypy-batch-integration. For differential accessibility on the resulting clusters, use atac-differential-accessibility. For coverage track plots, use pygenometracks-coverage-plots.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires:
-    - multimodal-anndata-mudata
+  - multimodal-anndata-mudata
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
   version: 0.1.0
   upstream-docs: https://kzhang.org/SnapATAC2/
   category: atac-preprocessing
   tier: simple
-  tags:
-    - snapatac2
-    - scatac-seq
-    - tf-idf
-    - lsi
-    - spectral-embedding
-    - peak-calling
-    - gene-activity
-    - python
+  tags: []
   complementary-skills:
-    - muon-multimodal-analysis
-    - harmonypy-batch-integration
-    - atac-differential-accessibility
-    - pygenometracks-coverage-plots
+  - muon-multimodal-analysis
+  - harmonypy-batch-integration
+  - atac-differential-accessibility
+  - pygenometracks-coverage-plots
   contraindications:
-    - "Do not use for R/Signac workflows. Use signac-chromatin-analysis instead."
-    - "Do not use for cisTopic topic modelling on ATAC. Use pycistopic-atac-topic-modeling."
+  - Do not use for R/Signac workflows. Use signac-chromatin-analysis instead.
+  - Do not use for cisTopic topic modelling on ATAC. Use pycistopic-atac-topic-modeling.
 ---
 
 # SnapATAC2 scATAC-seq Preprocessing

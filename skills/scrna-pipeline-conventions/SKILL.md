@@ -1,34 +1,26 @@
 ---
 name: scrna-pipeline-conventions
-description: "scrna-pipeline-conventions — house style for scRNA-seq analysis projects: numbered analysis scripts (00_build, 01_qc, 02_annotation, ...), multi-checkpoint discipline within long-running scripts, central config.py with PATHS and PARAMS dataclasses sourced from analysis_config.yaml, output-directory layout 03_results/[checkpoints,tables,plots,interactive,objects,annotation]/, and per-utility custom modules (anndata_utils, cxg_utils, geneset_utils). Use when starting a new scRNA-seq project that should match the established workflow shared by cellranger-multi-to-anndata, scrna-cxg-host, and consensus-nmf-multirun, or when retrofitting an existing project to the convention. Practice-tier skill — no executable code; documents the style other skills reference. For software-design discipline (ADRs, design reviews) use architecture-first-dev. For MAD-based QC filtering use single-cell-rna-qc."
+description: 'scrna-pipeline-conventions — house style for scRNA-seq analysis projects: numbered analysis scripts (00_build, 01_qc, 02_annotation, ...), multi-checkpoint discipline within long-running scripts, central config.py with PATHS and PARAMS dataclasses sourced from analysis_config.yaml, output-directory layout 03_results/[checkpoints,tables,plots,interactive,objects,annotation]/, and per-utility custom modules (anndata_utils, cxg_utils, geneset_utils). Use when starting a new scRNA-seq project that should match the established workflow shared by cellranger-multi-to-anndata, scrna-cxg-host, and consensus-nmf-multirun, or when retrofitting an existing project to the convention. Practice-tier skill — no executable code; documents the style other skills reference. For software-design discipline (ADRs, design reviews) use architecture-first-dev. For MAD-based QC filtering use single-cell-rna-qc.'
 license: MIT
 metadata:
-  scope: foundation
+  scope: concept
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
   category: practice
   tier: simple
   version: 0.1.0
-  upstream-docs: ""
-  tags:
-    - conventions
-    - project-scaffold
-    - reproducibility
-    - checkpoints
-    - config
-    - scrna-seq
-    - workflow-style
-    - house-style
+  upstream-docs: ''
+  tags: []
   complementary-skills:
-    - cellranger-multi-to-anndata
-    - scrna-cxg-host
-    - consensus-nmf-multirun
-    - architecture-first-dev
+  - cellranger-multi-to-anndata
+  - scrna-cxg-host
+  - consensus-nmf-multirun
+  - architecture-first-dev
   contraindications:
-    - "Do not use for software-design discipline (ADRs, design reviews, refactor planning). Use architecture-first-dev."
-    - "Do not enforce on throwaway exploration notebooks or one-off scratch analyses. The conventions are for production analysis pipelines that will run more than once."
-    - "Do not use as a code-review checklist. The skill documents conventions; lint/style enforcement is out of scope."
+  - Do not use for software-design discipline (ADRs, design reviews, refactor planning). Use architecture-first-dev.
+  - Do not enforce on throwaway exploration notebooks or one-off scratch analyses. The conventions are for production analysis pipelines that will run more than once.
+  - Do not use as a code-review checklist. The skill documents conventions; lint/style enforcement is out of scope.
 ---
 
 # scRNA-seq Pipeline Conventions

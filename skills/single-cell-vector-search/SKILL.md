@@ -3,7 +3,7 @@ name: single-cell-vector-search
 description: Searches large scRNA-seq atlases (SCimilarity 23M+, CELLxGENE Census 100M+) by embedding similarity to find matching cell states across diseases, tissues, and studies. Use for phenotype discovery, gene-signature derivation from centroid queries, or cross-study cohort assembly. Covers SCimilarity vs Census tool selection (human/10x/64GB+ vs cross-species cloud). For straightforward label transfer only, use cellxgene-census-annotation.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,22 +11,14 @@ metadata:
   upstream-docs: https://genentech.github.io/scimilarity/
   category: annotation
   tier: standard
-  tags:
-    - scimilarity
-    - census
-    - vector-search
-    - cell-similarity
-    - knn-search
-    - centroid-query
-    - signature-discovery
-    - cross-study
+  tags: []
   complementary-skills:
-    - cellxgene-census-annotation
-    - scvi-scanvi
-    - treearches-hierarchy-learning
+  - cellxgene-census-annotation
+  - scvi-scanvi
+  - treearches-hierarchy-learning
   contraindications:
-    - "Do not use SCimilarity for mouse or non-10x data — it is human 10x Chromium only."
-    - "Do not skip the required lognorm_counts / align_dataset preprocessing — SCimilarity breaks without training-matched normalization."
+  - Do not use SCimilarity for mouse or non-10x data — it is human 10x Chromium only.
+  - Do not skip the required lognorm_counts / align_dataset preprocessing — SCimilarity breaks without training-matched normalization.
 ---
 
 # Single-Cell Vector Search Skill

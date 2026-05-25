@@ -1,25 +1,15 @@
 ---
 name: scvi-basic
-description: "scVI \u2014 probabilistic deep generative model for scRNA-seq integration\
-  \ and batch correction. Use for unsupervised integration across batches or samples,\
-  \ building a latent space for downstream analysis, or as a preprocessing step before\
-  \ scANVI. Requires raw counts. For semi-supervised annotation use scvi-scanvi; for\
-  \ multiome use scvi-multivi."
+description: scVI — probabilistic deep generative model for scRNA-seq integration and batch correction. Use for unsupervised integration across batches or samples, building a latent space for downstream analysis, or as a preprocessing step before scANVI. Requires raw counts. For semi-supervised annotation use scvi-scanvi; for multiome use scvi-multivi.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: integration
   tier: standard
-  tags:
-  - scvi
-  - scvi-tools
-  - deep-learning
-  - batch-correction
-  - integration
-  - scrna-seq
+  tags: []
   complementary-skills:
   - scvi-framework
   - anndata

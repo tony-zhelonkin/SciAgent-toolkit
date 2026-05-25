@@ -1,27 +1,15 @@
 ---
 name: anndatar-seurat-scanpy-conversion
-description: "Convert between AnnData (.h5ad, Python/scverse) and Seurat (.rds, R/Seurat5)\
-  \ using the modern anndataR API. Use when bridging R and Python workflows, loading\
-  \ .h5ad in R, or exporting a Seurat object to scverse. For multi-assay / multimodal\
-  \ containers (CITE-seq, multiome) use multimodal-anndata-mudata. For Seurat\u2192\
-  Loupe use louper-seurat-conversion."
+description: Convert between AnnData (.h5ad, Python/scverse) and Seurat (.rds, R/Seurat5) using the modern anndataR API. Use when bridging R and Python workflows, loading .h5ad in R, or exporting a Seurat object to scverse. For multi-assay / multimodal containers (CITE-seq, multiome) use multimodal-anndata-mudata. For Seurat→Loupe use louper-seurat-conversion.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-30
   category: foundation
   tier: standard
-  tags:
-  - anndata
-  - seurat
-  - r
-  - python
-  - conversion
-  - h5ad
-  - anndataR
-  - interop
+  tags: []
   complementary-skills:
   - anndata
   - multimodal-anndata-mudata
@@ -29,8 +17,7 @@ metadata:
   contraindications:
   - Do not use for multi-assay Seurat objects (CITE-seq, multiome). Use multimodal-anndata-mudata.
   - Do not use the older SeuratDisk API. This skill uses modern anndataR.
-  - "Do not pass AnnData X layer name when calling as_Seurat \u2014 pass layer NAMES\
-    \ only (e.g., c('counts'))."
+  - Do not pass AnnData X layer name when calling as_Seurat — pass layer NAMES only (e.g., c('counts')).
   version: 1.0.0
   upstream-docs: https://scverse.org/anndataR/
 ---

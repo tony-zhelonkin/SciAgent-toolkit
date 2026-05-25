@@ -1,9 +1,9 @@
 ---
 name: bulk-rnaseq-pathway-explorer
-description: "pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db. For building the master tables this skill consumes, use bulk-rnaseq-gsea-master-tables. For static publication figures (dotplot, barplot, running-sum PDFs) use bulk-rnaseq-gsea-visualization."
+description: pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db. For building the master tables this skill consumes, use bulk-rnaseq-gsea-master-tables. For static publication figures (dotplot, barplot, running-sum PDFs) use bulk-rnaseq-gsea-visualization.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,28 +11,17 @@ metadata:
   upstream-docs: https://github.com/tony-zhelonkin/pathway-explorer
   category: workflow
   tier: standard
-  tags:
-    - gsea
-    - pathway-explorer
-    - interactive-dashboard
-    - html
-    - plotly
-    - umap
-    - jaccard
-    - transcription-factors
-    - progeny
-    - transposable-elements
-    - bulk-rnaseq
+  tags: []
   complementary-skills:
-    - bulk-rnaseq-gsea-msigdb
-    - bulk-rnaseq-gsea-custom-db
-    - bulk-rnaseq-gsea-master-tables
-    - bulk-rnaseq-gsea-visualization
+  - bulk-rnaseq-gsea-msigdb
+  - bulk-rnaseq-gsea-custom-db
+  - bulk-rnaseq-gsea-master-tables
+  - bulk-rnaseq-gsea-visualization
   contraindications:
-    - "Do not use for running GSEA itself. Use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db instead."
-    - "Do not use for assembling the master tables this skill consumes. Use bulk-rnaseq-gsea-master-tables instead."
-    - "Do not use for static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea-visualization instead."
-    - "Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea-master-tables."
+  - Do not use for running GSEA itself. Use bulk-rnaseq-gsea-msigdb or bulk-rnaseq-gsea-custom-db instead.
+  - Do not use for assembling the master tables this skill consumes. Use bulk-rnaseq-gsea-master-tables instead.
+  - Do not use for static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea-visualization instead.
+  - Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea-master-tables.
 ---
 
 # Pathway Explorer — Interactive Cross-Entity Pathway Dashboards

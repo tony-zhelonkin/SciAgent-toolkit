@@ -1,6 +1,6 @@
 ---
 name: architecture-treemap
-description: "architecture-treemap — render a self-contained HTML treemap of a codebase's architectural model (logical components sized by LOC, classified core/seam/removable, with static and audit-asserted coupling edges). Use to VISUALISE the output of an architecture audit: run /components-extract for the deterministic substrate, /audit-slice + /synthesize-audit for the judgment layer, then /architecture-treemap to render. The treemap displays a model; it does not produce one. For per-feature Mermaid diagrams use /diagram; for the design methodology use architecture-first-dev."
+description: 'architecture-treemap — render a self-contained HTML treemap of a codebase''s architectural model (logical components sized by LOC, classified core/seam/removable, with static and audit-asserted coupling edges). Use to VISUALISE the output of an architecture audit: run /components-extract for the deterministic substrate, /audit-slice + /synthesize-audit for the judgment layer, then /architecture-treemap to render. The treemap displays a model; it does not produce one. For per-feature Mermaid diagrams use /diagram; for the design methodology use architecture-first-dev.'
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
@@ -11,21 +11,15 @@ metadata:
   tier: rich
   status: probationary
   prune-review-at: 2026-11-20
-  tags:
-    - architecture
-    - treemap
-    - code-audit
-    - visualization
-    - connascence
-    - d3
-    - components
-    - prune
+  tags: []
   complementary-skills:
-    - architecture-first-dev
+  - architecture-first-dev
   contraindications:
-    - "Do not use to PRODUCE an architectural model. It only renders an existing components.json — run /components-extract then /synthesize-audit first."
-    - "Do not use for per-feature design diagrams. Use /diagram (collects Mermaid from design artifacts) instead."
-    - "Do not use as a routine per-feature tool. A full audit costs roughly 1M tokens; it is a quarterly retrospective instrument, not a per-commit one."
+  - Do not use to PRODUCE an architectural model. It only renders an existing components.json — run /components-extract then /synthesize-audit first.
+  - Do not use for per-feature design diagrams. Use /diagram (collects Mermaid from design artifacts) instead.
+  - Do not use as a routine per-feature tool. A full audit costs roughly 1M tokens; it is a quarterly retrospective instrument, not a per-commit one.
+  scope: implementation
+  requires: []
 ---
 
 # Architecture Treemap

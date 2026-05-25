@@ -1,23 +1,15 @@
 ---
 name: scvi-contrastivevi
-description: "contrastiveVI from scvi-tools — contrastive deep generative model that decomposes scRNA-seq variation into salient (target-specific) and background (shared) latent spaces. Use for Perturb-seq / CRISPR screens, drug-treatment vs control, or disease-vs-healthy comparisons where confounding variation (cell cycle, baseline heterogeneity) masks the effect of interest. Requires a clear target-vs-background cell split and raw counts. For standard integration use scvi-basic; for multi-sample cohort studies use scvi-mrvi."
+description: contrastiveVI from scvi-tools — contrastive deep generative model that decomposes scRNA-seq variation into salient (target-specific) and background (shared) latent spaces. Use for Perturb-seq / CRISPR screens, drug-treatment vs control, or disease-vs-healthy comparisons where confounding variation (cell cycle, baseline heterogeneity) masks the effect of interest. Requires a clear target-vs-background cell split and raw counts. For standard integration use scvi-basic; for multi-sample cohort studies use scvi-mrvi.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: integration
   tier: simple
-  tags:
-  - scvi
-  - scvi-tools
-  - contrastivevi
-  - perturbation
-  - perturb-seq
-  - crispr
-  - contrastive-learning
-  - scrna-seq
+  tags: []
   complementary-skills:
   - scvi-framework
   - scvi-basic

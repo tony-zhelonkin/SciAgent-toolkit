@@ -1,22 +1,15 @@
 ---
 name: scvi-linearscvi
-description: "Trains LinearSCVI (scvi-tools variant with a LINEAR decoder) on raw scRNA-seq counts to produce continuous, signed gene-to-factor LOADINGS via model.get_loadings(), giving interpretable factors that identify which genes drive each latent dimension. Use to extract gene-program signatures as ranked gene lists, find drivers of population structure, or replace PCA-on-logcounts with a count-aware equivalent. Trades model capacity and batch-correction strength for interpretability; does NOT support scArches/transfer learning. Unlike scvi-lda (discrete Dirichlet topics, unsigned topic-gene probabilities), LinearSCVI yields continuous signed loadings closer to PCA. Unlike genenmf-metaprogram-discovery (per-sample NMF + cross-sample consensus meta-programs), LinearSCVI trains one joint model across all cells. For strong batch correction use scvi-basic; for discrete topics use scvi-lda; for multi-sample consensus programs use genenmf-metaprogram-discovery."
+description: Trains LinearSCVI (scvi-tools variant with a LINEAR decoder) on raw scRNA-seq counts to produce continuous, signed gene-to-factor LOADINGS via model.get_loadings(), giving interpretable factors that identify which genes drive each latent dimension. Use to extract gene-program signatures as ranked gene lists, find drivers of population structure, or replace PCA-on-logcounts with a count-aware equivalent. Trades model capacity and batch-correction strength for interpretability; does NOT support scArches/transfer learning. Unlike scvi-lda (discrete Dirichlet topics, unsigned topic-gene probabilities), LinearSCVI yields continuous signed loadings closer to PCA. Unlike genenmf-metaprogram-discovery (per-sample NMF + cross-sample consensus meta-programs), LinearSCVI trains one joint model across all cells. For strong batch correction use scvi-basic; for discrete topics use scvi-lda; for multi-sample consensus programs use genenmf-metaprogram-discovery.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: analysis
   tier: simple
-  tags:
-  - scvi
-  - scvi-tools
-  - linearscvi
-  - factor-analysis
-  - interpretable
-  - gene-loadings
-  - scrna-seq
+  tags: []
   complementary-skills:
   - scvi-framework
   - scvi-basic

@@ -1,25 +1,15 @@
 ---
 name: scvi-scanvi
-description: "scANVI \u2014 semi-supervised deep generative model for scRNA-seq with\
-  \ partial cell type labels. Use when you have seed labels (full or partial) and\
-  \ need label transfer with better bio-conservation than scVI alone. Always initialize\
-  \ from a trained scVI model. For unsupervised integration use scvi-basic."
+description: scANVI — semi-supervised deep generative model for scRNA-seq with partial cell type labels. Use when you have seed labels (full or partial) and need label transfer with better bio-conservation than scVI alone. Always initialize from a trained scVI model. For unsupervised integration use scvi-basic.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   category: annotation
   tier: standard
-  tags:
-  - scvi-tools
-  - scanvi
-  - deep-learning
-  - semi-supervised
-  - label-transfer
-  - annotation
-  - scrna-seq
+  tags: []
   complementary-skills:
   - scvi-framework
   - scvi-basic
@@ -27,8 +17,7 @@ metadata:
   - scvi-scarches-reference-mapping
   - cellxgene-census-annotation
   contraindications:
-  - "Do not use without any labeled cells. scANVI is semi-supervised \u2014 it needs\
-    \ seed labels."
+  - Do not use without any labeled cells. scANVI is semi-supervised — it needs seed labels.
   - Do not use on normalized data. Raw counts required.
   - Do not use without training scVI first. Always initialize scANVI from scVI.
   - Do not use for scATAC-seq or multiome.

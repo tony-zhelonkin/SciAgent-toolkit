@@ -1,32 +1,23 @@
 ---
 name: rna-velocity-trajectory
-description: "Infers directional cellular trajectories from scRNA-seq using spliced/unspliced RNA ratios. Use when predicting cell fates, differentiation endpoints, or driver genes from a single snapshot — covers scVelo (steady-state/dynamical), VeloVI (uncertainty-aware), Chronocell (explicit topology), and CellRank integration. Requires intron-aware quantification (velocyto, kb lamanno). For upstream spliced/unspliced counting from FASTQs, see starsolo-spliced-unspliced."
+description: Infers directional cellular trajectories from scRNA-seq using spliced/unspliced RNA ratios. Use when predicting cell fates, differentiation endpoints, or driver genes from a single snapshot — covers scVelo (steady-state/dynamical), VeloVI (uncertainty-aware), Chronocell (explicit topology), and CellRank integration. Requires intron-aware quantification (velocyto, kb lamanno). For upstream spliced/unspliced counting from FASTQs, see starsolo-spliced-unspliced.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
   version: 1.0.0
   category: analysis
   tier: rich
-  tags:
-    - rna-velocity
-    - trajectory-inference
-    - pseudotime
-    - scvelo
-    - velovi
-    - cellrank
-    - chronocell
-    - cell-fate
-    - splicing-kinetics
+  tags: []
   complementary-skills:
-    - starsolo-spliced-unspliced
-    - scanpy
-    - anndata
+  - starsolo-spliced-unspliced
+  - scanpy
+  - anndata
   contraindications:
-    - "Do not use on steady-state systems (e.g. mature PBMCs) — velocity assumptions fail."
-    - "Do not use without spliced/unspliced layers — requires intron-aware quantification upstream."
+  - Do not use on steady-state systems (e.g. mature PBMCs) — velocity assumptions fail.
+  - Do not use without spliced/unspliced layers — requires intron-aware quantification upstream.
 ---
 
 # RNA Velocity & Trajectory Inference: Cellular Dynamics from Splicing Kinetics

@@ -1,34 +1,29 @@
 ---
 name: tf-footprint-differential-analysis
-description: "Orchestrator for TF footprinting and differential binding from pseudobulk ATAC-seq. Routes to tobias-footprint-bindetect (quantitative pairwise differential), hint-atac-differential-footprint (multi-condition overview), or signac-footprint-visualization (publication figures), and integrates results with chromvar-motif-accessibility via quadrant analysis (accessibility × occupancy). Use as the entry point when you need to validate ChromVAR TF activity with physical occupancy evidence or identify condition-specific TF regulators from pseudobulk scATAC."
+description: Orchestrator for TF footprinting and differential binding from pseudobulk ATAC-seq. Routes to tobias-footprint-bindetect (quantitative pairwise differential), hint-atac-differential-footprint (multi-condition overview), or signac-footprint-visualization (publication figures), and integrates results with chromvar-motif-accessibility via quadrant analysis (accessibility × occupancy). Use as the entry point when you need to validate ChromVAR TF activity with physical occupancy evidence or identify condition-specific TF regulators from pseudobulk scATAC.
 license: MIT
 metadata:
-  scope: orchestrator
+  scope: concept
   requires:
-    - tobias-footprint-bindetect
-    - hint-atac-differential-footprint
-    - signac-footprint-visualization
-    - chromvar-motif-accessibility
+  - tobias-footprint-bindetect
+  - hint-atac-differential-footprint
+  - signac-footprint-visualization
+  - chromvar-motif-accessibility
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
   version: 2.0.0
   upstream-docs: https://github.com/loosolab/TOBIAS
   category: analysis
   tier: orchestrator
-  tags:
-    - tf-footprinting
-    - differential-binding
-    - atac-seq
-    - occupancy
-    - orchestrator
+  tags: []
   complementary-skills:
-    - chromvar-motif-accessibility
-    - pycistarget-motif-enrichment
-    - iterative-peak-merging
-    - scenic-grn-inference
+  - chromvar-motif-accessibility
+  - pycistarget-motif-enrichment
+  - iterative-peak-merging
+  - scenic-grn-inference
   contraindications:
-    - "Do not use for single-cell resolution TF activity — use chromvar-motif-accessibility."
-    - "Do not use for motif enrichment on DARs — use pycistarget-motif-enrichment."
+  - Do not use for single-cell resolution TF activity — use chromvar-motif-accessibility.
+  - Do not use for motif enrichment on DARs — use pycistarget-motif-enrichment.
 ---
 
 # TF Footprint & Differential Footprint Analysis (Orchestrator)

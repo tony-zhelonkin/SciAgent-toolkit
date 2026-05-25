@@ -1,9 +1,9 @@
 ---
 name: chromvar-motif-accessibility
-description: "Computes bias-corrected per-cell motif accessibility deviation Z-scores from a peaks x cells scATAC-seq (or bulk ATAC) count matrix using chromVAR in R/Bioconductor, giving one number per motif per cell. Use for inferring TF activity when only ATAC is available (no RNA needed), ranking motif variability across cells, clustering cells by regulatory programs, or running differential motif accessibility between conditions. Unlike pycistarget-motif-enrichment (which scores motif enrichment over a region SET), this skill scores every individual cell; unlike tf-footprint-differential-analysis (which measures physical TF occupancy from Tn5 protection), chromVAR measures accessibility POTENTIAL at motif sites, not binding. For region-set motif enrichment for SCENIC+ use pycistarget-motif-enrichment; for footprint occupancy from pseudobulk BAMs use tf-footprint-differential-analysis."
+description: Computes bias-corrected per-cell motif accessibility deviation Z-scores from a peaks x cells scATAC-seq (or bulk ATAC) count matrix using chromVAR in R/Bioconductor, giving one number per motif per cell. Use for inferring TF activity when only ATAC is available (no RNA needed), ranking motif variability across cells, clustering cells by regulatory programs, or running differential motif accessibility between conditions. Unlike pycistarget-motif-enrichment (which scores motif enrichment over a region SET), this skill scores every individual cell; unlike tf-footprint-differential-analysis (which measures physical TF occupancy from Tn5 protection), chromVAR measures accessibility POTENTIAL at motif sites, not binding. For region-set motif enrichment for SCENIC+ use pycistarget-motif-enrichment; for footprint occupancy from pseudobulk BAMs use tf-footprint-differential-analysis.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://greenleaflab.github.io/chromVAR/
   category: analysis
   tier: simple
-  tags:
-  - chromvar
-  - motif-accessibility
-  - tf-activity
-  - scatac-seq
-  - bioconductor
-  - r
+  tags: []
   complementary-skills:
   - pycistarget-motif-enrichment
   - tf-footprint-differential-analysis
   - scvi-peakvi
   - iterative-peak-merging
   contraindications:
-  - "Do not use for TF binding occupancy. chromVAR measures accessibility potential, not physical binding — use tf-footprint-differential-analysis for occupancy."
-  - "Do not use for region-set motif enrichment. Use pycistarget-motif-enrichment."
+  - Do not use for TF binding occupancy. chromVAR measures accessibility potential, not physical binding — use tf-footprint-differential-analysis for occupancy.
+  - Do not use for region-set motif enrichment. Use pycistarget-motif-enrichment.
 ---
 
 # chromVAR: Motif Accessibility Variability Analysis

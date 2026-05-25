@@ -1,9 +1,9 @@
 ---
 name: harmonypy-batch-integration
-description: "harmonypy — multi-sample batch correction on PCA / LSI / spectral embeddings via scanpy.external.harmony_integrate. Use when you have a per-cell embedding (X_pca, X_lsi, X_spectral) and need to remove batch / sample effects before clustering or label transfer. For deep-learning-based batch correction use scvi-basic or scvi-scanvi; for cross-modality alignment use scglue-unpaired-multiomics-integration."
+description: harmonypy — multi-sample batch correction on PCA / LSI / spectral embeddings via scanpy.external.harmony_integrate. Use when you have a per-cell embedding (X_pca, X_lsi, X_spectral) and need to remove batch / sample effects before clustering or label transfer. For deep-learning-based batch correction use scvi-basic or scvi-scanvi; for cross-modality alignment use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://github.com/slowkow/harmonypy
   category: integration
   tier: simple
-  tags:
-    - harmony
-    - harmonypy
-    - batch-correction
-    - integration
-    - scanpy
-    - python
+  tags: []
   complementary-skills:
-    - scanpy
-    - snapatac2-atac-preprocessing
-    - muon-multimodal-analysis
-    - seurat-multimodal-analysis
+  - scanpy
+  - snapatac2-atac-preprocessing
+  - muon-multimodal-analysis
+  - seurat-multimodal-analysis
   contraindications:
-    - "Do not use if you need a generative model (use scvi-basic / scvi-scanvi)."
-    - "Do not use for unpaired cross-modality (use scglue-unpaired-multiomics-integration)."
+  - Do not use if you need a generative model (use scvi-basic / scvi-scanvi).
+  - Do not use for unpaired cross-modality (use scglue-unpaired-multiomics-integration).
 ---
 
 # Harmony Batch Integration (Python)
