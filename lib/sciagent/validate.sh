@@ -19,6 +19,10 @@
 #   0 — all checks pass
 #   1 — any hard check fails
 #
+# Output streams:
+#   stdout — "all checks passed" summary line on success (suppressed by --quiet)
+#   stderr — per-failure stanza on hard-fail; skills-ref warnings when present
+#
 # Usage: cmd_validate [--quiet]
 #   --quiet  suppress "all checks passed" summary on success
 
