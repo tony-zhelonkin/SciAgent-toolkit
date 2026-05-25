@@ -5,7 +5,10 @@ metadata:
   scope: concept
   requires: []
   complementary-skills: []
-  contraindications: []
+  contraindications:
+  - Do not use for one-line fixes, typo corrections, or trivial tweaks.
+  - Do not use for throwaway scripts or exploratory data analysis.
+  - Do not use when design is already locked (just implementing an approved spec).
   tags:
   - architecture
 ---
