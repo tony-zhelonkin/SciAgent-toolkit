@@ -128,7 +128,16 @@ _inject_detect_kind() {
         if (( n == 2 )); then
             echo "error: ambiguous — '$name' exists as both $kind1 and $kind2. use --skill <name>, --agent <name>, or --command <name>" >&2
         else
-            echo "error: ambiguous — '$name' exists as ${found_kinds[*]}. use --skill <name>, --agent <name>, or --command <name>" >&2
+            # 3+ namespaces. Render the list as "A, B, and C" rather than the
+            # space-separated "${found_kinds[*]}" — the latter prints as
+            # "skill agent command" and reads as a single garbled noun.
+            local _last_idx=$(( n - 1 ))
+            local _i _joined=""
+            for (( _i=0; _i<_last_idx; _i++ )); do
+                _joined+="${found_kinds[$_i]}, "
+            done
+            _joined+="and ${found_kinds[$_last_idx]}"
+            echo "error: ambiguous — '$name' exists as $_joined. use --skill <name>, --agent <name>, or --command <name>" >&2
         fi
         return 1
     fi
