@@ -266,9 +266,11 @@ let graphAmbientIds   = new Set();   // cross-cutting sinks in the current graph
 // the deterministic seeded layout.
 const graphNodePositions = new Map(); // node id → {x, y}
 
-// "Show tests" toggle (Physical view). Tests stay in the manifest (kind:test)
-// but are excluded from the default backbone layout; this reveals them in a
-// de-emphasised style. Persisted in localStorage like the other UI toggles.
+// "Show tests" toggle. Tests stay in the manifest (kind:test) but are excluded
+// from the default layout of ALL THREE views: kind:test tiles in the Physical
+// view, and the test-suite logical node (one whose files are all kind:test) in
+// the Logical and Graph views. This keeps the connection graph clean — tests
+// fan out to everything they cover. Persisted in localStorage like the others.
 const SHOW_TESTS_STORAGE_KEY = 'architecture-treemap-show-tests';
 let showTests = (localStorage.getItem(SHOW_TESTS_STORAGE_KEY) === 'true');
 
@@ -373,6 +375,27 @@ function isCrossCuttingNode(id) {
     return /(^|-)config$/.test(id) || /(^|-)util(s)?$/.test(id);
   }
   return false;
+}
+
+// A logical component is a "test" node if every physical file it owns is
+// kind:test. The "Show tests" toggle hides such nodes from the Logical and
+// Graph views — the same rule the Physical view applies to kind:test tiles —
+// so the connection graph is not dominated by tests fanning out to everything.
+function isTestLogical(lc) {
+  const files = lc.physical_files || [];
+  if (files.length === 0) return false;
+  return files.every(f => {
+    const pc = (COMPONENTS_DATA.physical_components || []).find(p => p.path === f.path);
+    return pc && pc.kind === 'test';
+  });
+}
+
+// Logical components visible in the current view: tests are dropped unless the
+// "Show tests" toggle is on. Every logical node-set and edge-overlay viewId
+// list is built from this, so a hidden test node carries none of its edges.
+function visibleLogicals() {
+  return (COMPONENTS_DATA.logical_components || [])
+    .filter(lc => showTests || !isTestLogical(lc));
 }
 
 // ── DOM refs ─────────────────────────────────────────────────────────────────
@@ -726,7 +749,7 @@ function renderLogical() {
   logicalNodeCenters.clear();
   physicalNodeCenters.clear();
 
-  const logicals = COMPONENTS_DATA.logical_components || [];
+  const logicals = visibleLogicals();
 
   if (logicals.length === 0) {
     svg.append('text')
@@ -1192,7 +1215,7 @@ function renderGraph() {
     graphSimulation = null;
   }
 
-  const logicals = COMPONENTS_DATA.logical_components || [];
+  const logicals = visibleLogicals();
   if (logicals.length === 0) {
     svg.append('text')
       .attr('x', w / 2).attr('y', h / 2)
@@ -1743,7 +1766,7 @@ function jumpToOtherView(id, targetView) {
   selectedNodeIds = new Set([id]);
   // Rebuild the edge overlay for the destination view.
   if (targetView === 'logical') {
-    const viewIds = (COMPONENTS_DATA.logical_components || []).map(c => c.id);
+    const viewIds = visibleLogicals().map(c => c.id);
     buildEdgeOverlaySvg(viewIds, logicalNodeCenters);
   } else if (targetView === 'physical') {
     const viewIds = (COMPONENTS_DATA.physical_components || []).map(c => c.id);
@@ -1956,7 +1979,7 @@ function setView(view) {
 function toggleAllEdges(checked) {
   showAllEdges = checked;
   if (currentView === 'logical') {
-    const viewIds = (COMPONENTS_DATA.logical_components || []).map(c => c.id);
+    const viewIds = visibleLogicals().map(c => c.id);
     buildEdgeOverlaySvg(viewIds, logicalNodeCenters);
   } else if (currentView === 'physical') {
     const viewIds = (COMPONENTS_DATA.physical_components || []).map(c => c.id);
@@ -1969,7 +1992,10 @@ function toggleAllEdges(checked) {
 function toggleTests(checked) {
   showTests = checked;
   localStorage.setItem(SHOW_TESTS_STORAGE_KEY, String(checked));
-  if (currentView === 'physical') renderPhysical();
+  // Tests are filtered in all three views, so re-render whichever is current.
+  if (currentView === 'physical')      renderPhysical();
+  else if (currentView === 'logical')  renderLogical();
+  else if (currentView === 'graph')    renderGraph();
 }
 
 // ── Physical colour-mode toggle: role | pressure ──────────────────────────────
@@ -1989,7 +2015,7 @@ function setColorMode(mode) {
 document.getElementById('treemap-area').addEventListener('click', () => {
   selectedNodeIds = new Set();
   if (currentView === 'logical') {
-    buildEdgeOverlaySvg((COMPONENTS_DATA.logical_components || []).map(c => c.id), logicalNodeCenters);
+    buildEdgeOverlaySvg(visibleLogicals().map(c => c.id), logicalNodeCenters);
   } else if (currentView === 'physical') {
     buildEdgeOverlaySvg((COMPONENTS_DATA.physical_components || []).map(c => c.id), physicalNodeCenters);
   }
