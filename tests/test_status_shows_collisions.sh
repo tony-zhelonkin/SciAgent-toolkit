@@ -60,9 +60,11 @@ if ! printf '%s\n' "$out" | grep -Eq 'both skill and command'; then
     exit 1
 fi
 
-# Allowlisted: annotation must read "intentional family overlap ...".
-if ! printf '%s\n' "$out" | grep -q 'intentional family overlap per tests/collision-allowlist.txt'; then
-    echo "FAIL [$_TEST_NAME] Notes annotation missing 'intentional family overlap' label" >&2
+# Allowlisted: annotation must read "intentional family overlap ..." and cite
+# the allowlist file in a way that's unambiguous from the user's project dir
+# (status runs there; the allowlist lives in the toolkit submodule).
+if ! printf '%s\n' "$out" | grep -q "intentional family overlap per the toolkit's tests/collision-allowlist.txt"; then
+    echo "FAIL [$_TEST_NAME] Notes annotation missing 'intentional family overlap per the toolkit's ...' label" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi

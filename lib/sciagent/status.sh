@@ -335,7 +335,10 @@ _status_render_notes() {
         # CI test reads; format mirrors the line shape there (`<name> <csv>`).
         local annotation
         if _status_collision_in_allowlist "$col_name" "$col_kinds"; then
-            annotation="intentional family overlap per tests/collision-allowlist.txt"
+            # Qualify the path: status runs in the user's project dir, so a
+            # bare "tests/collision-allowlist.txt" looks like a sibling file
+            # that doesn't exist. The file lives in the toolkit submodule.
+            annotation="intentional family overlap per the toolkit's tests/collision-allowlist.txt"
         else
             annotation="UNEXPECTED — run 'sciagent validate' for details"
         fi
