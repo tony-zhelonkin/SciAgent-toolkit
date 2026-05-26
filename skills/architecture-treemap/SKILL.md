@@ -196,12 +196,17 @@ For automated verification: `bash skills/architecture-treemap/checks/golden_rend
 ## Robust authoring checklist (for the judgment layer)
 
 `/synthesize-audit` (and the slicer feeding it) must satisfy these before a
-manifest is done. They fail silently — the manifest still validates and renders
-— so they are guarded by discipline, not by the tooling:
+manifest is done. Most fail silently — the manifest still validates and renders
+— so they are guarded by discipline, not by the tooling (item 1 is the exception:
+it is enforced by the validator's orphan gate under `--strict`):
 
-1. **No orphan logical nodes.** Every logical component has an authored edge
-   unless it is a genuine source-only leaf; check each zero-edge node and either
-   author the real edge or justify the leaf.
+1. **No orphan logical nodes.** Structural import edges between logical
+   components are derived deterministically by `rollup_logical_edges.py` (run in
+   `/synthesize-audit` Phase 2.6), not hand-authored. The author's job is to add
+   judgment edges (shared-state, background-knowledge, forward contracts) where
+   slices found coupling invisible to static imports, and to justify any node the
+   rollup cannot connect as a leaf (`classification: removable` or `leaf: true`).
+   The validator's non-leaf-orphan check under `--strict` is the enforcing gate.
 2. **Ground every edge in a real citation** (file:line + the exact import/call,
    aliases included). `evidence_class: static` only for a real detectable
    import/call; `audit-asserted` for runtime contracts / background knowledge.

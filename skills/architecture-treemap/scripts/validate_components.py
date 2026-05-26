@@ -112,6 +112,10 @@ def _validate_logical_component(path: str, lc: Any):
     if lc["classification"] not in VALID_CLASSIFICATIONS:
         raise ValidationError(f"{path}.classification", f"must be one of {VALID_CLASSIFICATIONS}")
 
+    if "leaf" in lc and lc["leaf"] is not None:
+        if not isinstance(lc["leaf"], bool):
+            raise ValidationError(f"{path}.leaf", "expected boolean")
+
     if "epistemic_source" in lc and lc["epistemic_source"] is not None:
         if lc["epistemic_source"] not in VALID_EPISTEMIC_SOURCES:
             raise ValidationError(f"{path}.epistemic_source", f"must be one of {VALID_EPISTEMIC_SOURCES}")
@@ -200,6 +204,10 @@ def _validate_edge(path: str, e: Any):
 
     if "smoke_finding" in e and e["smoke_finding"] is not None:
         _require_type(f"{path}.smoke_finding", e["smoke_finding"], str, "string")
+
+    if "derived" in e and e["derived"] is not None:
+        if not isinstance(e["derived"], bool):
+            raise ValidationError(f"{path}.derived", "expected boolean")
 
 
 def _validate_prune_candidate(path: str, p: Any):
@@ -363,7 +371,7 @@ def validate_schema(data: dict) -> list[str]:
     return errors
 
 
-def validate_referential_integrity(data: dict) -> list[str]:
+def validate_referential_integrity(data: dict) -> tuple[list[str], list[str]]:
     """
     Check that edge endpoints and physical_owner references exist within the
     manifest.  The check works across BOTH id-spaces:
@@ -372,9 +380,20 @@ def validate_referential_integrity(data: dict) -> list[str]:
     An edge endpoint is valid if it appears in either space.
     Logical-owner entries in physical_components[] must resolve to logical ids.
 
-    Returns a list of warning strings (may be empty).
+    Also checks for orphan logical nodes: a logical_component that appears in
+    zero logical-id edges (neither from nor to) is an orphan.
+    - A non-leaf orphan is an ERROR under --strict (returned in `issues`).
+    - A logical_component classified 'removable', or carrying `"leaf": true`,
+      is tolerated — emitted as a soft warning regardless of --strict.
+
+    Returns:
+        (issues, soft_warnings)
+        issues       — problems that are fatal under --strict (dangling endpoints,
+                       non-leaf orphan logical nodes)
+        soft_warnings — informational notices that are never fatal (tolerated orphans)
     """
-    warnings: list[str] = []
+    issues: list[str] = []
+    soft_warnings: list[str] = []
 
     logical_ids  = {lc["id"] for lc in data.get("logical_components", []) if "id" in lc}
     physical_ids = {pc["id"] for pc in data.get("physical_components", []) if "id" in pc}
@@ -384,25 +403,73 @@ def validate_referential_integrity(data: dict) -> list[str]:
         frm = edge.get("from", "")
         to  = edge.get("to",   "")
         if frm and frm not in all_ids:
-            warnings.append(f"edges[{i}].from: '{frm}' not found in logical or physical ids")
+            issues.append(f"edges[{i}].from: '{frm}' not found in logical or physical ids")
         if to and to not in all_ids:
-            warnings.append(f"edges[{i}].to: '{to}' not found in logical or physical ids")
+            issues.append(f"edges[{i}].to: '{to}' not found in logical or physical ids")
 
     for i, pc in enumerate(data.get("physical_components", [])):
         for j, owner in enumerate(pc.get("logical_owners") or []):
             if owner not in logical_ids:
-                warnings.append(
+                issues.append(
                     f"physical_components[{i}].logical_owners[{j}]: "
                     f"'{owner}' not found in logical_components ids"
                 )
 
-    return warnings
+    # Orphan check: logical nodes that appear in zero logical-id edges.
+    # A node is connected if it appears as from or to in ANY edge whose endpoint
+    # is a logical id.
+    logical_nodes_with_edges: set[str] = set()
+    for edge in data.get("edges", []):
+        frm = edge.get("from", "")
+        to  = edge.get("to",   "")
+        if frm in logical_ids:
+            logical_nodes_with_edges.add(frm)
+        if to in logical_ids:
+            logical_nodes_with_edges.add(to)
+
+    # Build a quick lookup of logical component attributes for the exemption check.
+    logical_meta: dict[str, dict] = {
+        lc["id"]: lc
+        for lc in data.get("logical_components", [])
+        if "id" in lc
+    }
+
+    for lc_id in sorted(logical_ids):
+        if lc_id in logical_nodes_with_edges:
+            continue
+        lc = logical_meta.get(lc_id, {})
+        is_removable = lc.get("classification") == "removable"
+        is_leaf = bool(lc.get("leaf"))
+        if is_removable or is_leaf:
+            # Tolerated: standalone leaf or removable node — soft warning only.
+            soft_warnings.append(
+                f"logical_components '{lc_id}': no logical-id edges (tolerated: "
+                + ("classification=removable" if is_removable else "leaf=true")
+                + ")"
+            )
+        else:
+            # Non-leaf orphan: an error under --strict.
+            issues.append(
+                f"logical_components '{lc_id}': non-leaf orphan — appears in zero "
+                "logical-id edges; run rollup_logical_edges.py or author a judgment edge"
+            )
+
+    return issues, soft_warnings
 
 
-def run_validation(components_path: Path, strict: bool) -> tuple[list[str], list[str]]:
+def run_validation(
+    components_path: Path, strict: bool
+) -> tuple[list[str], list[str], list[str]]:
     """
     Load and validate a components.json file.
-    Returns (schema_errors, ref_warnings).
+
+    Returns:
+        (schema_errors, ref_issues, soft_warnings)
+        schema_errors — structural schema failures (always fatal)
+        ref_issues    — referential-integrity problems + non-leaf orphans
+                        (fatal under --strict; printed as warnings otherwise)
+        soft_warnings — tolerated soft notices (tolerated orphans; never fatal)
+
     Raises SystemExit on JSON parse failure.
     """
     try:
@@ -413,9 +480,11 @@ def run_validation(components_path: Path, strict: bool) -> tuple[list[str], list
         sys.exit(1)
 
     schema_errors = validate_schema(data)
-    ref_warnings  = validate_referential_integrity(data) if not schema_errors else []
+    if schema_errors:
+        return schema_errors, [], []
 
-    return schema_errors, ref_warnings
+    ref_issues, soft_warnings = validate_referential_integrity(data)
+    return schema_errors, ref_issues, soft_warnings
 
 
 def main():
@@ -436,26 +505,35 @@ def main():
         print(f"ERROR: file not found: {components_path}", file=sys.stderr)
         sys.exit(1)
 
-    schema_errors, ref_warnings = run_validation(components_path, strict=args.strict)
+    schema_errors, ref_issues, soft_warnings = run_validation(
+        components_path, strict=args.strict
+    )
 
     if schema_errors:
         print(f"SCHEMA ERRORS in {components_path}:")
         for err in schema_errors:
             print(f"  ERROR: {err}")
 
-    if ref_warnings:
+    if ref_issues:
         label = "ERROR" if args.strict else "WARNING"
         print(f"\nREFERENTIAL INTEGRITY in {components_path}:")
-        for w in ref_warnings:
+        for w in ref_issues:
             print(f"  {label}: {w}")
 
-    if not schema_errors and not ref_warnings:
+    if soft_warnings:
+        print(f"\nNOTICES in {components_path}:")
+        for w in soft_warnings:
+            print(f"  NOTICE: {w}")
+
+    if not schema_errors and not ref_issues and not soft_warnings:
         print(f"OK: {components_path} is valid.")
+    elif not schema_errors and not ref_issues:
+        print(f"OK: {components_path} is valid (with notices above).")
 
     if schema_errors:
         sys.exit(1)
 
-    if args.strict and ref_warnings:
+    if args.strict and ref_issues:
         sys.exit(1)
 
     sys.exit(0)

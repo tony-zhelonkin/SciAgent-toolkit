@@ -151,6 +151,10 @@
           "items": { "$ref": "#/$defs/physical_file_ref" }
         },
         "classification": { "$ref": "#/$defs/classification" },
+        "leaf": {
+          "type": "boolean",
+          "description": "Orphan-gate exemption marker. True declares this logical component a genuine source-only leaf, so the validator's non-leaf-orphan check (validate_components.py, run under --strict by /synthesize-audit) tolerates it having zero logical-id edges after rollup. A 'removable' classification is exempted automatically; use this only for a non-removable node that is legitimately edgeless. Absent -> the node is treated as non-leaf and must be connected."
+        },
         "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
         "smoke_findings": { "type": "array", "items": { "type": "string" } },
         "audit_slices": { "type": "array", "items": { "type": "string" } },
@@ -185,7 +189,11 @@
         "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
         "evidence": { "type": "string" },
         "smell": { "type": ["string", "null"] },
-        "smoke_finding": { "type": ["string", "null"] }
+        "smoke_finding": { "type": ["string", "null"] },
+        "derived": {
+          "type": "boolean",
+          "description": "Provenance marker. True means this edge was produced deterministically by rollup_logical_edges.py from the physical static import graph. These edges are removed and re-derived on each rollup run (idempotent). Absent on hand-authored and physical static edges."
+        }
       }
     },
     "prune_candidate": {

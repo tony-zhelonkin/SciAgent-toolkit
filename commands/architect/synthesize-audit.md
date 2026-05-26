@@ -12,16 +12,21 @@ This is **distinct from `/synthesize`.** Per-feature `/synthesize` collapses N r
 ## The deterministic-sandwich position
 
 ```
-/components-extract  →  substrate components.json   (DETERMINISTIC: physical files,
-                                                      static edges, metrics, git_sha)
-/audit-slice         →  slices/*.md                 (JUDGMENT: findings, connascence,
-                                                      decoupling proposals)
-/synthesize-audit    →  FULL components.json         (THIS STEP — merges substrate +
-                                                      judgment into a renderable model)
-/architecture-treemap → treemap.html                 (DETERMINISTIC render)
+/components-extract        →  substrate components.json   (DETERMINISTIC: physical files,
+                                                            static edges, metrics, git_sha)
+/audit-slice               →  slices/*.md                 (JUDGMENT: findings, connascence,
+                                                            decoupling proposals)
+/synthesize-audit (Ph 1-2) →  FULL components.json        (THIS STEP — merges substrate +
+                                                            judgment edges into logical model)
+rollup_logical_edges.py    →  components.json (updated)   (DETERMINISTIC: derives logical
+                                                            edges from physical static graph)
+/synthesize-audit (Ph 3)   →  validates manifest          (GATE: --strict orphan check)
+/architecture-treemap      →  treemap.html                 (DETERMINISTIC render)
 ```
 
-The extractor emits ONLY statically-derivable facts. This step adds everything that is NOT statically detectable: it groups physical files into `logical_components`, assigns each a `classification` (core / seam / removable), adds shared-state and background-knowledge edges (tagged `evidence_class: audit-asserted`, rendered dashed), and writes `prune_candidates` + `core_boundary`. The substrate's static direct-call edges (`evidence_class: static`) and per-component metrics are carried through UNCHANGED — never invent or overwrite a static fact.
+**Do not ask the agent for what a function can compute — the agent authors judgment; the tooling derives structure; the validator gates the result.**
+
+The extractor emits ONLY statically-derivable facts. The synth agent adds everything that is NOT statically detectable: it groups physical files into `logical_components`, assigns classifications, and authors judgment edges (shared-state, background-knowledge, forward contracts). Structural import edges between logical components are derived DETERMINISTICALLY by `rollup_logical_edges.py` from the physical static graph — the agent does not author these. The substrate's static direct-call edges (`evidence_class: static`) and per-component metrics are carried through UNCHANGED — never invent or overwrite a static fact.
 
 ## Phase 0: Parse arguments
 
@@ -83,10 +88,15 @@ Produce TWO outputs:
      auto-assert removable from structure alone (the renderer marks an ungrounded
      removable "requires your judgment"). The renderer falls back to a sensible
      default when the field is absent, so it is optional but recommended.
-   - Add the judgment edges the slices found: shared-state and background-knowledge
-     edges, each evidence_class:"audit-asserted" (renders dashed), with a `smell` and
-     the slice/finding it came from. A direct-call edge an architect ASSERTS (e.g. a
-     future edge) is also audit-asserted; a statically detected one stays static.
+   - Add ONLY the judgment edges the slices found: shared-state edges and
+     background-knowledge edges (runtime contracts, invariants, forward contracts),
+     each evidence_class:"audit-asserted" (renders dashed), with a `smell` and the
+     slice/finding it came from. DO NOT author logical↔logical structural import
+     edges — those are derived deterministically by rollup_logical_edges.py (Phase
+     2.6) from the physical static graph. A logical pair may carry BOTH a derived
+     solid edge (a real import was detected) AND an authored dashed edge (a runtime
+     contract or design concern is also asserted) — that is meaningful, not a
+     duplicate; do not try to reconcile them.
    - Write prune_candidates from the slices' decoupling proposals (R-NN): logical_component,
      bounded (true|false), loc_to_remove, unblocks_simplification_of, latent_bug_fixed.
    - Write core_boundary: rationale, core[], seam[], removable[], open_questions[].
@@ -109,16 +119,44 @@ Rules:
   - The components.json MUST validate. After writing, the command validates it (Phase 3).
 ```
 
+## Phase 2.6: Derive logical edges deterministically
+
+After the synth agent writes the manifest (Phase 2) and before validation (Phase 3),
+run the rollup script to derive logical↔logical structural import edges from the
+physical static graph:
+
+```
+python3 skills/architecture-treemap/scripts/rollup_logical_edges.py \
+    docs/_meta/architecture-audit/{date}/components.json
+```
+
+This script is IDEMPOTENT — it removes any previously derived edges (marked
+`derived: true`) and re-derives from scratch, so re-runs accumulate nothing.
+It prints one summary line to stderr: `rollup_logical_edges: derived N logical
+edge(s) from M physical static import(s)`. Surface that line in the Phase-4 output.
+
+The derived edges are tagged `"derived": true`, `evidence_class: "static"`,
+`epistemic_source: "measured"`. They render as solid lines in the logical view —
+the same visual weight as directly-detected physical imports, because that is what
+they are (rolled up).
+
 ## Phase 3: Validate the manifest
 
 Run the renderer's validator on the produced manifest:
 
 ```
-python skills/architecture-treemap/scripts/validate_components.py \
+python3 skills/architecture-treemap/scripts/validate_components.py \
     docs/_meta/architecture-audit/{date}/components.json --strict
 ```
 
-If validation FAILS, surface the errors to the user and re-dispatch synth with the specific schema/referential-integrity errors quoted. Do NOT route to `/architecture-treemap` on a failing manifest — the renderer refuses to render invalid input anyway, and a half-valid manifest wastes the render pass.
+If validation FAILS, surface the errors to the user and re-dispatch synth with the
+specific schema/referential-integrity errors quoted. A non-leaf orphan (a logical
+component with no logical-id edges after rollup) is an ERROR under --strict — it
+means the rollup could not connect the node (no physical imports to roll up) and no
+judgment edge was authored either; the agent must either author a judgment edge or
+justify the node as a leaf (classification: removable, or explicit `"leaf": true`).
+Do NOT route to `/architecture-treemap` on a failing manifest — the renderer refuses
+to render invalid input anyway, and a half-valid manifest wastes the render pass.
 
 ## Phase 4: Surface and route
 
@@ -151,12 +189,15 @@ Hard-won lessons. The synth agent MUST run this checklist before the manifest is
 considered done. These failures are silent — the manifest validates and renders
 even when they are present — so the checklist is the only guard.
 
-1. **No orphan logical nodes.** Every `logical_component` must have at least one
-   authored edge (in or out) UNLESS it is genuinely a source-only leaf. Before
-   finalizing, list each logical id, count its edges, and for every zero-edge
-   node either author the real edge or write a one-line justification for the
-   leaf. (A prior run shipped six edgeless cores purely by omission — the static
-   import graph proved the edges existed; the author just never wrote them.)
+1. **No orphan logical nodes.** Structural import edges between logical components
+   are derived DETERMINISTICALLY by `rollup_logical_edges.py` (Phase 2.6) — the
+   agent is not responsible for hand-authoring them. The agent's responsibility is:
+   (a) author judgment edges (shared-state, background-knowledge, forward contracts)
+   where the slices found runtime coupling not visible in static imports; and
+   (b) for any node that the rollup cannot connect (no physical imports, no judgment
+   edge), justify it as a leaf via `classification: "removable"` or `"leaf": true`.
+   The validator's no-non-leaf-orphan check under `--strict` is the enforcing gate —
+   it fails loudly if any non-leaf logical node ends up edgeless after rollup.
 2. **Ground every edge in a real source citation.** Each edge's `evidence`
    string must quote the import/call as written (file:line + the exact
    statement, aliases included). Set `evidence_class` honestly: `static` ONLY

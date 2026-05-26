@@ -94,7 +94,9 @@ def _build_stamp(data: dict) -> str:
 def render(components_path: Path, output_path: Path) -> None:
     # ── Load and validate ──────────────────────────────────────────────────────
     validator = _load_validator()
-    schema_errors, ref_warnings = validator.run_validation(components_path, strict=False)
+    schema_errors, ref_issues, soft_warnings = validator.run_validation(
+        components_path, strict=False
+    )
 
     if schema_errors:
         print(f"RENDER REFUSED — schema errors in {components_path}:")
@@ -103,10 +105,14 @@ def render(components_path: Path, output_path: Path) -> None:
         print("\nFix the errors above and re-run.")
         sys.exit(1)
 
-    if ref_warnings:
-        print(f"Referential-integrity warnings (rendering anyway — use --strict on validate to error):")
-        for w in ref_warnings:
+    if ref_issues:
+        print("Referential-integrity warnings (rendering anyway — use --strict on validate to error):")
+        for w in ref_issues:
             print(f"  WARNING: {w}")
+
+    if soft_warnings:
+        for w in soft_warnings:
+            print(f"  NOTICE: {w}")
 
     with components_path.open("r", encoding="utf-8") as fh:
         data = json.load(fh)
