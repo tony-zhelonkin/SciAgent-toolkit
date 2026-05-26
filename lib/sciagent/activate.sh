@@ -176,7 +176,29 @@ cmd_activate() {
     # re-activation rather than racing against the new apply.
     # Deferred until AFTER skill_resolve_transitive succeeds, so a failed
     # resolution leaves the previous stack intact.
+    #
+    # Inject lifecycle note: activate is clean-slate w.r.t. injected entries
+    # (see docs/architecture.md §5). The previous manifest's injected rows
+    # are about to be torn down with the rest of the stack. Surface them on
+    # STDERR before teardown so the loss is attributed to this activate, not
+    # buried under the post-activation summary line. Exit code stays 0.
     if manifest_exists; then
+        local -a _dropped_injected=()
+        local _ov _sk _via _kind
+        while IFS='|' read -r _ov _sk _via _kind; do
+            [[ -z "$_sk" ]] && continue
+            _dropped_injected+=("${_kind:-skill} $_sk")
+        done < <(manifest_injected 2>/dev/null || true)
+        if [[ "${#_dropped_injected[@]}" -gt 0 ]]; then
+            {
+                echo "sciagent: warning — activate is a clean-slate operation; dropping injected entries:"
+                local _d
+                for _d in "${_dropped_injected[@]}"; do
+                    echo "  - $_d"
+                done
+                echo "  to preserve, run 'sciagent deactivate' first and re-inject after."
+            } >&2
+        fi
         claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
