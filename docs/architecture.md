@@ -131,8 +131,16 @@ sciagent new role|skill|agent <name>              # scaffold from templates
 - `sciagent activate base` — solo role (stack: `[base]`). If different stack was active, auto-deactivate first.
 - `sciagent activate base reviewer` — two roles, ordered. `reviewer` overlays `base`. Last-wins on collisions.
 - Three+ positional args → error: "Maximum stack depth is 2 (base + overlay)."
-- Idempotent: `activate base reviewer` while same stack already active is a no-op (re-verifies symlinks, re-writes block if hash drifted with `--force`).
+- Idempotent w.r.t. stack roles: `activate base reviewer` while the same stack is active re-verifies symlinks and re-writes the block if its hash drifted.
 - Re-activating with a different stack tears down existing symlinks first (auto-deactivate then activate). One-step UX.
+- **Clean-slate w.r.t. injected entries.** Re-activation always tears down the previous manifest, which discards any entries added via `sciagent inject` — even when the stack-roles dimension would otherwise be a no-op. Carrying injected state across `activate` invocations is out of scope (revisit if the depth-2 model changes). The CLI surfaces the loss on STDERR before teardown:
+
+  ```
+  sciagent: warning — activate is a clean-slate operation; dropping injected entries:
+    - skill s_extra
+    - agent ag_helper
+    to preserve, run 'sciagent deactivate' first and re-inject after.
+  ```
 
 ### Inject semantics
 
