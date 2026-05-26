@@ -35,6 +35,34 @@
 
 # shellcheck shell=bash
 
+# _validate_join_kinds <csv>
+# Render a comma-separated kinds list (as emitted by collisions_enumerate) as
+# a natural-language phrase. Scales from 2 kinds ("both A and B") through 3+
+# ("A, B, and C"). The 1-kind path is unreachable from the current caller
+# (collisions_enumerate only emits names with >=2 namespace matches) but is
+# handled defensively so this helper is callable from elsewhere later.
+_validate_join_kinds() {
+    local csv="$1"
+    local -a parts=()
+    local IFS=','
+    read -r -a parts <<< "$csv"
+    unset IFS
+    case ${#parts[@]} in
+        0) printf '' ;;
+        1) printf '%s' "${parts[0]}" ;;
+        2) printf 'both %s and %s' "${parts[0]}" "${parts[1]}" ;;
+        *)
+            local last_idx=$(( ${#parts[@]} - 1 ))
+            local i out=""
+            for (( i=0; i<last_idx; i++ )); do
+                out+="${parts[$i]}, "
+            done
+            out+="and ${parts[$last_idx]}"
+            printf '%s' "$out"
+            ;;
+    esac
+}
+
 cmd_validate() {
     local quiet=0
     while [[ $# -gt 0 ]]; do
@@ -187,13 +215,16 @@ USAGE
     # speaks namespace-level (it doesn't know which collisions are "blessed").
     if [[ "$quiet" -eq 0 ]]; then
         local -a _collision_warnings=()
-        local _col_name _col_kinds _col_k1 _col_k2
+        local _col_name _col_kinds
         while IFS=$'\t' read -r _col_name _col_kinds; do
             [[ -z "$_col_name" ]] && continue
-            _col_k1="${_col_kinds%%,*}"
-            _col_k2="${_col_kinds#*,}"
-            _col_k2="${_col_k2%%,*}"
-            _collision_warnings+=("validate: warning — name '$_col_name' appears as both $_col_k1 and $_col_k2 (mounting both is supported; ensure the overlap is intentional)")
+            # collisions_enumerate emits a kinds csv that can carry 2, 3, or 4
+            # entries. Render it as a natural-language list so the warning
+            # stays accurate beyond the two-kind case (the prior templated
+            # "both A and B" form silently dropped any third or fourth kind).
+            local _kinds_phrase
+            _kinds_phrase=$(_validate_join_kinds "$_col_kinds")
+            _collision_warnings+=("validate: warning — name '$_col_name' appears as $_kinds_phrase (mounting both is supported; ensure the overlap is intentional)")
         done < <(collisions_enumerate)
         local w
         for w in "${_collision_warnings[@]+"${_collision_warnings[@]}"}"; do
