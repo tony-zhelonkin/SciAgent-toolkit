@@ -47,10 +47,11 @@ check_unique_skill_dirs() {
         | grep -v -E '/(_TEMPLATE|[^/]+/[^/]+)$' || true)
     # Simpler: assert no SKILL.md exists deeper than skills/<name>/SKILL.md.
     local deep
-    # Exclude hidden directories (e.g. .deprecated/) — they are off the
-    # resolver's path and exist for historical reference only.
+    # Exclude hidden directories (e.g. .deprecated/) and underscore-prefixed
+    # scaffolding dirs (_TEMPLATE, _archive backups, _internal scratch) — they are
+    # off the resolver's path and may legitimately hold archived skill trees.
     deep=$(find "$TOOLKIT/skills" -mindepth 3 -name 'SKILL.md' \
-        -not -path '*/.*' 2>/dev/null || true)
+        -not -path '*/.*' -not -path '*/_*/*' 2>/dev/null || true)
     if [[ -n "$deep" ]]; then
         echo "FAIL [$_TEST_NAME] SKILL.md found deeper than skills/<name>/SKILL.md:" >&2
         echo "$deep" >&2

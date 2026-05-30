@@ -18,6 +18,18 @@ for t in test_*.sh; do
     fi
 done
 
+# Skill-local test runners (e.g. uv-locked Python skills). Each skips gracefully (exit 0)
+# when its toolchain is absent, so this never blocks the bash suite on an un-bootstrapped box.
+for skill_test in ../skills/*/tests/run_skill_tests.sh; do
+    [[ -f "$skill_test" ]] || continue
+    if bash "$skill_test"; then
+        pass=$((pass + 1))
+    else
+        fail=$((fail + 1))
+        failed_tests+=("$skill_test")
+    fi
+done
+
 echo
 echo "==== test summary ===="
 echo "passed: $pass"

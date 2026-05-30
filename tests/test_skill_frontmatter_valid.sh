@@ -13,7 +13,9 @@ declare -i fail_count=0
 
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
-    [[ "$name" == "_TEMPLATE" ]] && continue
+    # Underscore-prefixed dirs are non-skill scaffolding (_TEMPLATE, _archive backups,
+    # _internal scratch) — not skills, so they carry no SKILL.md.
+    [[ "$name" == _* ]] && continue
 
     file="$skill_dir/SKILL.md"
     if [[ ! -f "$file" ]]; then

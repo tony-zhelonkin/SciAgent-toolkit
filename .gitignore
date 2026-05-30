@@ -45,3 +45,6 @@ Thumbs.db
 
 # refactor scratch (private paths)
 .refactor/
+
+# Skill design scratch / internal notes (not shipped with skills)
+skills/_internal/
