@@ -11,19 +11,14 @@ metadata:
   upstream-docs: https://github.com/cafferychen777/mLLMCelltype
   category: annotation
   tier: standard
+  packaged: true   # ships a uv-locked, CLI-driven, tested package — see docs/packaged-skills.md
   tags:
     - annotation
-    - mllmcelltype
     - cell-type-annotation
     - cell-state-annotation
     - llm
-    - consensus
-    - marker-genes
     - reference-free
-    - uncertainty-quantification
     - cli
-    - reproducible
-    - scrna-seq
   complementary-skills:
     - scanpy
     - cellxgene-census-annotation
@@ -33,18 +28,18 @@ metadata:
   contraindications:
     - "Do not use for label transfer from an annotated reference atlas. Use cellxgene-census-annotation instead."
     - "Do not use for semi-supervised propagation from partial ground-truth labels. Use scvi-scanvi instead."
-    - "Do not pass Ensembl IDs (ENSG…/ENSMUSG…) as markers — the LLMs reason over HGNC/MGI symbols. Convert first."
+    - "Do not pass Ensembl IDs (ENSG…/ENSMUSG…)"
 ---
 
 # mllmct — Multi-LLM Consensus Cell-Type / Cell-State Annotation
 
-A single, **version-locked, tested command-line tool**. You hand it per-cluster marker genes
+One **version-locked, tested command-line tool**. You hand it per-cluster marker genes
 (and, for cell-state, per-cluster evidence); it asks several LLMs, reconciles them by consensus
 with cross-model discussion, and returns a label per cluster **plus a Python-recomputed
-confidence** so you know which calls to trust. You do not need to know how it works to use it —
-it is a deep, tested module behind a thin interface. (Internals live in `references/`.)
+confidence** so you know which calls to trust. You don't need to know how it works to use it —
+internals live in `references/`.
 
-**What it gives you that a one-off LLM prompt does not:** multi-model consensus, **uncertainty
+**What it gives you over a one-off LLM prompt:** multi-model consensus, **uncertainty
 recomputed in Python** (not the LLM's self-reported numbers), forced determinism (`temp=0, seed=0`),
 captured token **cost**, and a full **prompt→per-model-vote→label trace** on disk for every run.
 
@@ -178,10 +173,10 @@ adata.obs["confidence"] = adata.obs["leiden"].astype(str).map(lab["py_consensus_
 
 A **profile** is the one knob that turns cell-type into cell-state. It bundles: whether to inject
 evidence, the prompt template, the vocabulary (open/closed + terms + synonyms), domain guards, and
-an optional two-axis join. The two shipped profiles work out of the box; the cell-state one is a
-**generic neutral example** — copy it and put YOUR vocabulary, evidence options, and guards in your
-own profile (keep dataset-specific biology in your analysis repo, not in this shared skill). The
-profile schema, how to write your own `EvidenceProvider`, and the reconcile config are documented in
+an optional two-axis join. Both shipped profiles work out of the box; the cell-state one is a
+**generic neutral example** — copy it and drop in YOUR vocabulary, evidence options, and guards
+(keep dataset-specific biology in your analysis repo, not in this shared skill). The profile schema,
+writing your own `EvidenceProvider`, and the reconcile config live in
 `references/cell-state-annotation.md`.
 
 ---
@@ -213,7 +208,7 @@ profile schema, how to write your own `EvidenceProvider`, and the reconcile conf
 
 ## How it works / extend it (optional reading)
 
-You do not need these to use the tool. When you want internals or to adapt it:
+You don't need these to use the tool. When you want internals or to adapt it:
 
 - `references/cell-state-annotation.md` — cell-state mode, profile knobs, writing an `EvidenceProvider`, reconcile.
 - `references/monkeypatch-internals.md` — the four version-sensitive patches + the lock-regeneration procedure.

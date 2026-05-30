@@ -20,6 +20,8 @@ decides everything else.
 | Template | `templates/celltype_prompt.txt` | `templates/cellstate_prompt.txt` (adds vocab/guardrails/evidence slots) |
 
 Switching modes = passing a different `--profile`. Nothing else.
+The line between a celltype and cellstate is vague, so this delineation in the CLI is opinionated —
+the naming emerged from a specific use case I employed `mllmcelltype` for.
 
 ---
 
@@ -95,7 +97,7 @@ make your module importable on the venv's path) and subclass `EvidenceProvider`.
 ## The reference `PanelEvidenceProvider` — four mechanics
 
 `plugins/panel_evidence.py` is the worked, **domain-neutral** example (no real biology). It
-demonstrates the four assembly mechanics that made the original cell-state run trustworthy.
+shows the four assembly mechanics that made the original cell-state run trustworthy.
 Every name/threshold comes from `options`:
 
 1. **Program decode.** An opaque program id (`P7`) is decoded via the `aux_path` program-map to
@@ -142,10 +144,10 @@ Always read the `py_*` columns. `backfill-metrics` can recompute them offline fr
 ## Open-vocab `Novel:*` are HYPOTHESES, not findings
 
 In `vocab_mode: open`, a label that doesn't map to `vocab`/`synonyms` (and isn't guard-rejected)
-is kept as `Novel:<normalized>` rather than being forced into the nearest vocab term — this is
-deliberately discovery-safe. But a single-run novel discovery is **sampling-sensitive**: even
-with `temperature=0`+`seed`, the panel composition and discussion path can surface or drop a
-novel state run-to-run. Treat every `Novel:*` as a **hypothesis needing orthogonal validation**
+is kept as `Novel:<normalized>` rather than forced into the nearest vocab term — deliberately
+discovery-safe. But a single-run novel discovery is **sampling-sensitive**: even with
+`temperature=0`+`seed`, the panel composition and discussion path can surface or drop a novel
+state run-to-run. Treat every `Novel:*` as a **hypothesis needing orthogonal validation**
 (an independent marker check, a held-out scoring axis, a re-run with a different panel) before
 it becomes a claim. The validation gate flags novels as **warnings**, not failures, precisely
 so you remember to look at them.

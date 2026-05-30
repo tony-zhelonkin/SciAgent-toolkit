@@ -1,11 +1,7 @@
 # Profile: CELL-STATE annotation (evidence-injected) — GENERIC REFERENCE EXAMPLE.
 #
-# This shipped profile is deliberately domain-NEUTRAL: textbook functional states + abstract
-# axis names, wired to the reference PanelEvidenceProvider and the synthetic test fixtures.
-# It is a TEMPLATE, not a finished analysis config. To use cell-state on your data, COPY this
-# file and replace `vocab`, `synonyms`, `evidence_options.axis_order`, `domain_guards`, and
-# the prompt template's guardrails with YOUR biology. (Your project's real, dataset-specific
-# profile should live in your analysis repo, NOT in this shared skill.)
+# This shipped profile is deliberately domain-NEUTRAL: textbook functional states + abstract axis names, wired to the reference PanelEvidenceProvider and the synthetic test fixtures.
+# It is a TEMPLATE, not a finished analysis config. To use cell-state on your data, COPY this file and replace `vocab`, `synonyms`, `evidence_options.axis_order`, `domain_guards`, and the prompt template's guardrails with YOUR biology. (Your project's real, dataset-specific profile should live in your analysis repo, NOT in this shared skill.)
 name: cellstate
 
 inject_evidence: true
@@ -20,7 +16,7 @@ evidence_options:
   category_col: dominant_category
   program_col: dominant_program
   program_top_genes_n: 5
-  drop_categories: [Technical]           # programs in these categories are flagged, not shown as biology
+  drop_categories: [Technical] # programs in these categories are flagged, not shown as biology
   flag_artifact_not_drop: true
   signatures_col: signatures_top
   always_on_signatures: [Housekeeping_sig]  # excluded from ranked slots; surfaced as a `+` flag
@@ -31,8 +27,8 @@ evidence_options:
 
 prompt_template: templates/cellstate_prompt.txt
 
-vocab_mode: open                          # open → unmapped kept as Novel:* (discovery-safe)
-vocab:                                     # CUSTOMIZE: your functional-state vocabulary
+vocab_mode: open # open → unmapped kept as Novel:* (discovery-safe)
+vocab: # CUSTOMIZE: your functional-state vocabulary, depends on biological question and priors, needs expert gating
   - Proliferating
   - Quiescent
   - Activated
@@ -40,7 +36,7 @@ vocab:                                     # CUSTOMIZE: your functional-state vo
   - Apoptotic
   - Interferon_Responsive
   - Ambiguous_LowSignal
-synonyms:                                  # CUSTOMIZE: substring → canonical
+synonyms:  # CUSTOMIZE: substring → canonical
   prolifer: Proliferating
   cycling: Proliferating
   quiescen: Quiescent
@@ -53,15 +49,11 @@ novel_prefix: "Novel:"
 clean_novel: true
 
 domain_guards:
-  # Reject patterns are matched (as regex) against the LOWERCASED label and force it to
-  # `fallback_label` — use these so a FIXED identity can never be emitted as a state.
+  # Reject patterns are matched (as regex) against the LOWERCASED label and force it to `fallback_label` — use these so a FIXED identity can never be emitted as a state.
   # Empty here (generic example). CUSTOMIZE for your dataset's identity terms.
   reject_patterns: []
-  # {state: [allowed_group, ...]} — a state assigned outside its allow-list is flagged for
-  # review (warning only). Empty here. CUSTOMIZE.
+  # {state: [allowed_group, ...]} — a state assigned outside its allow-list is flagged for review (warning only). Empty here. CUSTOMIZE.
   restricted_states: {}
 
-# Two-axis reconcile (consumed ONLY by `mllmct reconcile`). Disabled in this generic example;
-# enable + configure axis_lens/thermal_* in your project profile if you annotate two
-# orthogonal axes per cell and want a semantic join. See references/cell-state-annotation.md.
+# Two-axis reconcile (consumed ONLY by `mllmct reconcile`). Disabled in this generic example; enable + configure axis_lens/thermal_* in your project profile if you annotate two orthogonal axes per cell and want a semantic join. See references/cell-state-annotation.md.
 join: { enabled: false }

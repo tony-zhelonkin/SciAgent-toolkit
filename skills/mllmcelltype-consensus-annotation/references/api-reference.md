@@ -10,8 +10,8 @@ Public exports (`from mllmcelltype import ...`):
 
 > ## ⚠️ What this skill OVERRIDES in the library (read first)
 >
-> This page documents the **upstream `mllmcelltype` API**. `mllmct` deliberately does **not**
-> trust two things the library emits, and recovers a third it discards:
+> This page documents the **upstream `mllmcelltype` API**. `mllmct` deliberately distrusts two
+> things the library emits, and recovers a third it discards:
 >
 > - **Consensus metrics are recomputed in Python.** The library's `consensus_proportion` and
 >   `entropy` (see the return-dict table below) are **post-discussion** numbers — a stochastic

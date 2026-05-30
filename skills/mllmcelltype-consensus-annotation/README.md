@@ -6,9 +6,9 @@ determinism (`temp=0, seed=0`), **Python-recomputed** consensus metrics, and a f
 reproducibility trace. The same tool does both modes; you switch by passing a
 different YAML **profile**.
 
-This package is the *implementation*. If you just want to **use** the tool, read
-[`SKILL.md`](SKILL.md) — it is the thin interface contract (what it is, its arguments,
-how to run it). You do not need to read the source to use it.
+This package is the *implementation*. To just **use** the tool, read
+[`SKILL.md`](SKILL.md) — the thin interface contract (what it is, its arguments,
+how to run it). You don't need to read the source to use it.
 
 ## Bootstrap (one time)
 
@@ -39,8 +39,8 @@ See `mllmct <subcmd> --help` and [`SKILL.md`](SKILL.md) for the full surface.
 uv run --project "$SKILL" pytest "$SKILL/tests" -q
 ```
 
-Tests are **offline** (no API, no AnnData) and run against the pinned `mllmcelltype`
-so the version-sensitive monkeypatches are exercised. Fixtures under `tests/fixtures/`
+Tests are **offline** (no API, no AnnData) and run against the pinned `mllmcelltype`,
+so the version-sensitive monkeypatches get exercised. Fixtures under `tests/fixtures/`
 are **synthetic and de-identified** — see `tests/fixtures/README.md`.
 
 ## How it works / extend it

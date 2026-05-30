@@ -6,12 +6,11 @@
 > `cell-state-annotation.md` or the SKILL.md instead.
 
 `mllmcelltype==2.0.5` does its job (multi-LLM consensus over marker lists) but throws away
-four things I care about: the token usage, sampling determinism, the ability to inject my own
-prompt template, and the raw model responses. None of those are exposed through a public API,
-so I recover them by wrapping internal seams *without editing the vendored package*. Every
-wrapper binds to an **attribute name + call signature**, not a stable public contract — which
-is exactly why all four target packages are pinned `==` and gated by
-`checks/smoke_check_versions.py`.
+four things I care about: token usage, sampling determinism, the ability to inject my own
+prompt template, and the raw model responses. None are exposed through a public API, so I
+recover them by wrapping internal seams *without editing the vendored package*. Every wrapper
+binds to an **attribute name + call signature**, not a stable public contract — which is why
+all four target packages are pinned `==` and gated by `checks/smoke_check_versions.py`.
 
 The wrappers live in:
 - `core/prompt.py` — prompt-template install
@@ -34,9 +33,9 @@ All four were lifted from the original real-world implementation in
 | iii | `mllmcelltype.providers.openrouter.requests.post`; the chat-completions parser that drops `usage`/`cost` | `openrouter.py:5` (`import requests`), `openrouter.py:52` (`post_func=requests.post`); parser at `common.py:177` | `requests==2.33.1` | OpenRouter tokens + native USD lost; `temperature=0`/`seed` not injected → non-deterministic; no error |
 | iv | `mllmcelltype.logger.setup_logging` "just update level" fast path; logger name `"llmcelltype"` | fast path `logger.py:54-60`; logger name `logger.py:17` | `mllmcelltype==2.0.5` | raw-response DEBUG lines never land (empty `llmcelltype_debug.log`); no error |
 
-The unifying failure mode: **every one of these fails *silently***. The run completes, labels
-come out, nothing throws — you just quietly lose tokens, reproducibility, your prompt, or your
-debug trace. That is why the gate is structural-assertion-on-lock, not a runtime try/except.
+The unifying failure mode: **every one fails *silently***. The run completes, labels come out,
+nothing throws — you just quietly lose tokens, reproducibility, your prompt, or your debug trace.
+That's why the gate is structural-assertion-on-lock, not a runtime try/except.
 
 ---
 
@@ -58,10 +57,9 @@ reads that global per call, the next consensus call renders my template verbatim
 passes `prompt_template=template` *explicitly* to `create_prompt`, so it is byte-faithful
 without mutating the global.
 
-**Silent breakage.** If `create_prompt` ever captures the default at import, or stops reading
+**Silent breakage.** If `create_prompt` ever captures the default at import, stops reading
 `DEFAULT_PROMPT_TEMPLATE`, or the attribute is renamed/made read-only → my template is ignored
-and every cluster is annotated with the stock prompt (markers-only, cell-type framing). No
-exception.
+and every cluster gets the stock prompt (markers-only, cell-type framing). No exception.
 
 **Guarded by:** `mllmcelltype==2.0.5`. Smoke-check asserts `DEFAULT_PROMPT_TEMPLATE` is a
 `str` global and `create_prompt` is callable.
