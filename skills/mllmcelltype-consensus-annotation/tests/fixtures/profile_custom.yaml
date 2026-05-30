@@ -1,0 +1,16 @@
+name: custom_test
+inject_evidence: false
+evidence_provider: null
+prompt_template: templates/celltype_prompt.txt
+vocab_mode: closed
+vocab: [Activated, Stressed, Apoptotic, Ambiguous_LowSignal]
+synonyms: { stress: Stressed }
+fallback_label: Ambiguous_LowSignal
+novel_prefix: "Novel:"
+clean_novel: true
+join:
+  enabled: true
+  distinct_labels: [Stressed]
+  order: [Stressed, Apoptotic, Activated]
+  uninformative_labels: [Ambiguous_LowSignal, NA]
+  conf_floor: 0.5

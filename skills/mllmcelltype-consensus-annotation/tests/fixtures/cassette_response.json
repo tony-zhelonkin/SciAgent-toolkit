@@ -1,0 +1,20 @@
+{
+  "_note": "Synthetic, hand-authored result shaped like interactive_consensus_annotation's return. NOT a recording of any real run. Labels chosen to exercise harmonize branches (exact/synonym/novel) and a 1-vs-1 split on cluster 3 so Python-recomputed metrics differ from the (deliberately wrong) llm-reported ones.",
+  "consensus": {
+    "0": "Proliferating",
+    "1": "stressed cells",
+    "2": "Apoptotic",
+    "3": "some weird state",
+    "4": "Activated",
+    "5": "Quiescent"
+  },
+  "consensus_proportion": {"0": 1.0, "1": 1.0, "2": 1.0, "3": 1.0, "4": 1.0, "5": 1.0},
+  "entropy": {"0": 0.0, "1": 0.0, "2": 0.0, "3": 0.0, "4": 0.0, "5": 0.0},
+  "controversial_clusters": ["3"],
+  "resolved": {"3": "some weird state"},
+  "model_annotations": {
+    "provider:model_one": {"0": "Proliferating", "1": "Stressed", "2": "Apoptotic", "3": "some weird state", "4": "Activated", "5": "Quiescent"},
+    "provider:model_two": {"0": "Proliferating", "1": "Stressed", "2": "Apoptotic", "3": "Ambiguous", "4": "Activated", "5": "Quiescent"}
+  },
+  "discussion_logs": {"3": [{"round": 1, "note": "synthetic discussion record"}]}
+}
