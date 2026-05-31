@@ -1,0 +1,39 @@
+# Single-source-of-truth cross-reference manifest for the MOFA family skill cluster.
+#
+# Each key is a skill name; each value is the list of skill names that belong in its
+# metadata.complementary-skills. The validator (scripts/validate_cross_refs.py)
+# compares this manifest against each child SKILL.md frontmatter and reports drift.
+#
+# Edit this file FIRST, then update child SKILL.md files to match. The validator is
+# advisory, not blocking, so individual skills can justify a temporary divergence
+# — but the long-term rule is: this YAML is authoritative.
+
+mofa-framework:
+  - factor-analysis-framework
+  - mofa-mofapy2
+  - mofa-r
+  - mofa-cellular
+  - mofa-mofax
+  - muon-multimodal-analysis
+  - multimodal-anndata-mudata
+  - anndata
+
+mofa-mofapy2:
+  - mofa-framework
+  - mofa-mofax
+  - anndata
+
+mofa-r:
+  - mofa-framework
+  - mofa-cellular
+  - muon-multimodal-analysis
+
+mofa-cellular:
+  - mofa-framework
+  - mofa-r
+  - scrna-pipeline-conventions
+
+mofa-mofax:
+  - mofa-framework
+  - mofa-mofapy2
+  - anndata
