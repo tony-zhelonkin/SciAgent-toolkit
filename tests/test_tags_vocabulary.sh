@@ -43,6 +43,7 @@ fi
 
 declare -i fail_count=0
 declare -i pass_count=0
+declare -i tagref_count=0
 
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
@@ -52,8 +53,14 @@ for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     [[ -f "$file" ]] || continue
 
     # Extract the tags list items from the metadata block.
-    # Matches lines like `  - some-tag` that appear after `  tags:` inside
-    # the metadata block and before any non-list continuation.
+    # Matches list items (`- some-tag`) at ANY indent that appear after the
+    # `  tags:` key inside the metadata block and before the next sibling key.
+    # The indent-agnostic `/^[ \t]+-[ \t]/` match (not a fixed `^  - `) is
+    # deliberate: skills in the library mix 2-space and 4-space list styles,
+    # and a fixed-width matcher silently skips the 4-space ones — letting an
+    # unknown tag slip through undetected. This MUST mirror the awk parser in
+    # lib/sciagent/validate.sh so the test and the validator agree on what
+    # counts as a tag.
     skill_tags="$(awk '
         BEGIN { infm=0; closed=0; inmeta=0; intags=0 }
         NR==1 && /^---[ \t]*$/ { infm=1; next }
@@ -61,22 +68,23 @@ for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
         !infm { next }
         /^metadata:[ \t]*$/ { inmeta=1; next }
         inmeta && /^  tags:/ { intags=1; next }
-        intags && /^  - / {
+        intags && /^[ \t]+-[ \t]/ {
             val=$0
-            sub(/^  - /, "", val)
+            sub(/^[ \t]+-[ \t]+/, "", val)
             sub(/[ \t]*#.*$/, "", val)
             sub(/[ \t]+$/, "", val)
             gsub(/^["'"'"']|["'"'"']$/, "", val)
             print val
             next
         }
-        intags && /^  [^ ]/ { intags=0 }
-        intags && /^[^ ]/ { intags=0 }
+        intags && /^  [^ \t-]/ { intags=0 }
+        intags && /^[^ \t]/ { intags=0 }
     ' "$file")"
 
     skill_ok=1
     while IFS= read -r tag; do
         [[ -z "$tag" ]] && continue
+        tagref_count+=1
         if ! printf '%s\n' "$known_tags" | grep -qxF "$tag"; then
             echo "FAIL [$_TEST_NAME] $name: unknown tag '$tag' (not in tags.yaml)" >&2
             fail_count+=1
@@ -86,6 +94,19 @@ for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
 
     [[ "$skill_ok" -eq 1 ]] && pass_count+=1
 done
+
+# Sentinel: this whole test is vacuous if the parser extracts nothing — every
+# skill would "pass" by carrying zero tags. The library always has many tagged
+# skills, so a near-empty extraction means the parser regressed (e.g. an
+# indent-width assumption silently skipping list items). Fail loudly so the
+# brittleness can't hide behind a green test. The threshold is intentionally
+# low (structural floor, not a hardcoded expected list) so it never breaks when
+# skills are added or retagged.
+declare -i MIN_TAGREFS=10
+if [[ "$tagref_count" -lt "$MIN_TAGREFS" ]]; then
+    echo "FAIL [$_TEST_NAME] parser extracted only $tagref_count tag reference(s) (< $MIN_TAGREFS) — the tags: parser likely regressed and is silently skipping list items" >&2
+    exit 1
+fi
 
 if [[ "$fail_count" -gt 0 ]]; then
     echo "FAIL [$_TEST_NAME] $fail_count unknown tag reference(s) across skills; $pass_count skills ok" >&2
