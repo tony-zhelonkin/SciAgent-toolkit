@@ -10,6 +10,16 @@
 
 # Auto-generated files
 .claude/settings.local.json
+# Runtime activation state (created by sciagent activate; not repo content)
+.agents/
+.sciagent/
+.claude/commands/
+.claude/skills/
+# ToolUniverse runtime artifacts (created by setup-ai.sh; project-local)
+scripts/tooluniverse-env/
+scripts/test_tooluniverse.sh
+# Project-specific MCP config (generated with absolute paths; not shareable)
+.mcp.json
 
 # Python
 __pycache__/
