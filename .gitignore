@@ -16,12 +16,6 @@
 .sciagent/
 .claude/commands/
 .claude/skills/
-# ToolUniverse runtime artifacts (created by setup-ai.sh; project-local)
-scripts/tooluniverse-env/
-scripts/test_tooluniverse.sh
-scripts/.mcp_setup/
-# Project-specific MCP config (generated with absolute paths; not shareable)
-.mcp.json
 
 # Python
 __pycache__/

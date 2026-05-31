@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- `mcp_servers/pal` venv and `deprecated/` harness installers (`install_claude.sh`, `install_codex.sh`, `install_gemini.sh`)
+
 ### Changed
 - Reorganized `commands/` and `agents/` into role-family subfolders. The resolver in `lib/sciagent/symlinks.sh` (`resolve_canonical`) walks these subtrees recursively so symlinks under `.claude/` and `.agents/` remain flat — consumers see no shape change. Basename uniqueness is enforced by `tests/test_no_duplicate_basenames.sh`.
   - `agents/architect/` — 12 architect-pipeline agents

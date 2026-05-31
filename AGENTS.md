@@ -29,7 +29,6 @@ SciAgent-toolkit/
 │                             #   .claude/output-styles/<name>.md)
 ├── templates/                # Project scaffolding (new project bootstrap)
 ├── tests/                    # Bash test suite (run-all.sh)
-├── deprecated/               # Parked harness installers (do not modify)
 └── .refactor/                # Design audit trail (frozen, do not modify)
 ```
 
