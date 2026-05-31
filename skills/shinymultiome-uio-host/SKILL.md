@@ -1,9 +1,9 @@
 ---
 name: shinymultiome-uio-host
-description: "shinymultiome-uio-host — two-phase skill for hosting a Signac-based 10x Multiome Seurat object on the Eskeland lab ShinyMultiome.UiO web app over an internal network. Phase A: object preflight on the .rds (verify/repair ChromatinAssay Annotation seqlevels, rewrite Fragments paths to container mounts, normalise assay names to peaks/RNA/SCT, optionally compute LinkPeaks and motif footprints, validate group.by columns). Phase B: Docker Compose deployment (R+Bioconductor Shiny container with parameterised global.R + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe, websocket-aware proxy with extended timeouts for long CoveragePlot redraws). Use when standing up wet-lab–facing chromatin track viewing for an annotated multiome .rds alongside an existing CellxGene RNA instance (the H2 path of multiome-deploy). For RNA-only CXG hosting use scrna-cxg-host. For ATAC-only ArchR-backed Shiny deployment use ShinyArchRUiO directly. For an interactive multi-panel VIP-style RNA+ATAC viewer use cellxgene-VIP."
+description: 'shinymultiome-uio-host — two-phase skill for hosting a Signac-based 10x Multiome Seurat object on the Eskeland lab ShinyMultiome.UiO web app over an internal network. Phase A: object preflight on the .rds (verify/repair ChromatinAssay Annotation seqlevels, rewrite Fragments paths to container mounts, normalise assay names to peaks/RNA/SCT, optionally compute LinkPeaks and motif footprints, validate group.by columns). Phase B: Docker Compose deployment (R+Bioconductor Shiny container with parameterised global.R + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe, websocket-aware proxy with extended timeouts for long CoveragePlot redraws). Use when standing up wet-lab–facing chromatin track viewing for an annotated multiome .rds alongside an existing CellxGene RNA instance (the H2 path of multiome-deploy). For RNA-only CXG hosting use scrna-cxg-host. For ATAC-only ArchR-backed Shiny deployment use ShinyArchRUiO directly. For an interactive multi-panel VIP-style RNA+ATAC viewer use cellxgene-VIP.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-07
@@ -11,44 +11,30 @@ metadata:
   tier: rich
   version: 0.1.0
   upstream-docs: https://github.com/EskelandLab/ShinyMultiomeUiO
-  tags:
-    - shinymultiome
-    - shiny
-    - signac
-    - seurat
-    - multiome
-    - scatac-seq
-    - scrna-seq
-    - chromatin-tracks
-    - coverageplot
-    - docker
-    - docker-compose
-    - nginx
-    - htpasswd
-    - internal-network
-    - wet-lab-handoff
-    - mm39
-    - bsgenome
+  tags: []
   complementary-skills:
-    - scrna-cxg-host
-    - seurat-multimodal-analysis
-    - chromvar-motif-accessibility
-    - anndatar-seurat-scanpy-conversion
-    - cellranger-arc-multiome
+  - scrna-cxg-host
+  - seurat-multimodal-analysis
+  - chromvar-motif-accessibility
+  - anndatar-seurat-scanpy-conversion
+  - cellranger-arc-multiome
   contraindications:
-    - "Do not use for RNA-only single-cell hosting. Use scrna-cxg-host."
-    - "Do not use for ArchR-backed scATAC-only hosting. Deploy ShinyArchRUiO directly (the upstream that this skill's sibling is forked from)."
-    - "Do not use as the primary annotation-autosave instance. ShinyMultiome.UiO is read-only; pair this skill with a scrna-cxg-host CellxGene instance for wet-lab labelling and use this one for ATAC track viewing."
-    - "Do not use for public-internet hosting. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope."
-    - "Do not use without first running Phase A. A .rds with stale fragment paths or missing Annotation produces a Shiny app that starts cleanly but renders empty CoveragePlots — the failure is silent."
+  - Do not use for RNA-only single-cell hosting. Use scrna-cxg-host.
+  - Do not use for ArchR-backed scATAC-only hosting. Deploy ShinyArchRUiO directly (the upstream that this skill's sibling is forked from).
+  - Do not use as the primary annotation-autosave instance. ShinyMultiome.UiO is read-only; pair this skill with a scrna-cxg-host CellxGene instance for wet-lab labelling and use this one for ATAC track viewing.
+  - Do not use for public-internet hosting. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope.
+  - Do not use without first running Phase A. A .rds with stale fragment paths or missing Annotation produces a Shiny app that starts cleanly but renders empty CoveragePlots — the failure is silent.
+---
 
-    ## Limitations
-    - **No Factorial Comparison:** The application does not natively support comparing the same clusters between different conditions in a factorial design (e.g., HFD vs LFD for 'B Cells'). It only supports visual comparisons and track rendering between cell types/clusters as defined by a single metadata column. For factorial differential accessibility or multi-condition track overlays, manual R plotting or more complex viewers are required.
-    - **Read-Only:** ShinyMultiome.UiO is a visualization tool only; it does not support saving new annotations or cell labels back to the object.
-    - **Single Metadata Focus:** Most tabs are optimized for grouping by a single categorical variable at a time (e.g., cell type or sample).
+# ShinyMultiome.UiO Host
 
-    ## Overview
+## Limitations
 
+- **No Factorial Comparison:** The application does not natively support comparing the same clusters between different conditions in a factorial design (e.g., HFD vs LFD for 'B Cells'). It only supports visual comparisons and track rendering between cell types/clusters as defined by a single metadata column. For factorial differential accessibility or multi-condition track overlays, manual R plotting or more complex viewers are required.
+- **Read-Only:** ShinyMultiome.UiO is a visualization tool only; it does not support saving new annotations or cell labels back to the object.
+- **Single Metadata Focus:** Most tabs are optimized for grouping by a single categorical variable at a time (e.g., cell type or sample).
+
+## Overview
 
 ShinyMultiome.UiO is the Signac-based sister of ShinyArchR.UiO from the Eskeland lab. It takes a Seurat multiome object and serves four tabs (Clustering / Feature of Interest / Coverage Plot / TF Footprinting) over a Shiny frontend. The "10-line README" path runs a single laptop-side `shiny::runApp()` after editing two paths in `global.R` — that is **not** what this skill is for. This skill encapsulates what is missing for a sustained wet-lab deployment: parameterising the hard-coded `global.R` (genome BSgenome import, RDS path, fragments path, assay names), repairing the .rds so chromatin tracks actually render in a container (Annotation seqlevels, fragment file paths, group.by columns), and running the whole stack behind a basic-auth nginx with WebSocket pass-through and timeouts long enough for multi-cell-type track redraws.
 

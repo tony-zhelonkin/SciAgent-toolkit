@@ -25,7 +25,15 @@ sciagent — per-project AI-harness context manager
 Usage:
   sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
   sciagent deactivate [<role>]         Tear down the stack (or one role)
-  sciagent inject <skill>              Add one skill to current overlay
+  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
+  sciagent inject <name>               Add one skill/agent/command (auto-detect)
+  sciagent inject --skill|--agent|--command <name>
+                                       Force resolution to one kind
+  sciagent inject --tag <name>         Add all skills tagged <name>
+  sciagent eject <name>                Remove one previously-injected entry
+  sciagent eject --skill|--agent|--command <name>
+                                       Disambiguate when same name spans kinds
+  sciagent eject --tag <name>          Remove all skills injected via tag
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
@@ -56,6 +64,8 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
+        . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"
@@ -66,6 +76,8 @@ case "$verb" in
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
+        . "$LIB/validate.sh"
         . "$LIB/stack.sh"
         . "$LIB/claude_settings.sh"
         . "$LIB/activate.sh"      # deactivate may re-activate solo-base
@@ -81,12 +93,23 @@ case "$verb" in
         . "$LIB/inject.sh"
         cmd_inject "$@"
         ;;
+    eject)
+        . "$LIB/block.sh"
+        . "$LIB/symlinks.sh"
+        . "$LIB/roles.sh"
+        . "$LIB/skill_deps.sh"
+        . "$LIB/stack.sh"
+        . "$LIB/inject.sh"
+        . "$LIB/eject.sh"
+        cmd_eject "$@"
+        ;;
     status)
         . "$LIB/block.sh"
         . "$LIB/symlinks.sh"
         . "$LIB/roles.sh"
         . "$LIB/skill_deps.sh"
         . "$LIB/stack.sh"
+        . "$LIB/collisions.sh"
         . "$LIB/status.sh"
         cmd_status "$@"
         ;;
@@ -95,6 +118,12 @@ case "$verb" in
         . "$LIB/skill_deps.sh"
         . "$LIB/status.sh"
         cmd_list "$@"
+        ;;
+    validate)
+        . "$LIB/skill_deps.sh"
+        . "$LIB/collisions.sh"
+        . "$LIB/validate.sh"
+        cmd_validate "$@"
         ;;
     new)
         . "$LIB/new.sh"

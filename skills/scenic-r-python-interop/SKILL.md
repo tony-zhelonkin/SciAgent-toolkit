@@ -1,27 +1,27 @@
 ---
 name: scenic-r-python-interop
-description: "R-to-Python data handoff for the SCENIC+ ecosystem (pycisTopic, pycistarget, SCENIC+). Covers Seurat/Signac → pycisTopic count export, cisTopic R → pycisTopic model bridging, existing peak-atlas reuse, and metadata/fragment harmonisation. Use as the bridge skill before any pycisTopic/pycistarget/SCENIC+ run on data originating in R."
+description: R-to-Python data handoff for the SCENIC+ ecosystem (pycisTopic, pycistarget, SCENIC+). Covers Seurat/Signac → pycisTopic count export, cisTopic R → pycisTopic model bridging, existing peak-atlas reuse, and metadata/fragment harmonisation. Use as the bridge skill before any pycisTopic/pycistarget/SCENIC+ run on data originating in R.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires:
-    - anndatar-seurat-scanpy-conversion
+  - anndatar-seurat-scanpy-conversion
   tools:
-    - Seurat
-    - Signac
-    - anndataR
-    - pycisTopic
-    - cisTopic
+  - Seurat
+  - Signac
+  - anndataR
+  - pycisTopic
+  - cisTopic
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-01-17
   category: interop
   tier: standard
-  tags:
-    - scenic-plus
-    - pycistopic
-    - r-python
-    - interop
-    - atac
+  tags: []
+  complementary-skills:
+  - pycistopic-atac-topic-modeling
+  - pycistarget-motif-enrichment
+  - scenic-grn-inference
+  contraindications: []
 ---
 
 # SCENIC+ R → Python Data Handoff

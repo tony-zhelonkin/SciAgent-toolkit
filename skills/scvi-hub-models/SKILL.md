@@ -1,9 +1,9 @@
 ---
 name: scvi-hub-models
-description: "Browses and loads pretrained scvi-tools models (scVI, scANVI, totalVI, MultiVI, MrVI, PeakVI, contrastiveVI) from the Hugging Face scvi-hub, and selects which scvi variant fits a given modality (RNA, CITE-seq, multiome, ATAC, perturbation, multi-sample). Use when choosing between scvi models, loading a HubModel, fetching a reference atlas checkpoint, or saving/sharing a minified model. Unlike scvi-scarches-reference-mapping, this skill does NOT perform architectural surgery or fine-tune a query model; once the reference is loaded, hand off to scvi-scarches-reference-mapping for the mapping procedure. For hierarchical label transfer use treearches-hierarchy-learning; for Census-backed models use cellxgene-census-annotation."
+description: Browses and loads pretrained scvi-tools models (scVI, scANVI, totalVI, MultiVI, MrVI, PeakVI, contrastiveVI) from the Hugging Face scvi-hub, and selects which scvi variant fits a given modality (RNA, CITE-seq, multiome, ATAC, perturbation, multi-sample). Use when choosing between scvi models, loading a HubModel, fetching a reference atlas checkpoint, or saving/sharing a minified model. Unlike scvi-scarches-reference-mapping, this skill does NOT perform architectural surgery or fine-tune a query model; once the reference is loaded, hand off to scvi-scarches-reference-mapping for the mapping procedure. For hierarchical label transfer use treearches-hierarchy-learning; for Census-backed models use cellxgene-census-annotation.
 license: MIT
 metadata:
-  scope: orchestrator
+  scope: concept
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/use_case/hub.html
   category: integration
   tier: simple
-  tags:
-  - scvi-tools
-  - scvi-hub
-  - pretrained-models
-  - huggingface
-  - reference-mapping
-  - model-selection
+  tags: []
   complementary-skills:
   - scvi-framework
   - scvi-scarches-reference-mapping
   - treearches-hierarchy-learning
   - cellxgene-census-annotation
   contraindications:
-  - "Do not use for training scvi models from scratch on your own data. Use scvi-basic or scvi-framework."
-  - "Do not use for non-scvi reference atlases (e.g., Symphony, scPoli-only). Use scvi-scarches-reference-mapping for cross-framework mapping."
+  - Do not use for training scvi models from scratch on your own data. Use scvi-basic or scvi-framework.
+  - Do not use for non-scvi reference atlases (e.g., Symphony, scPoli-only). Use scvi-scarches-reference-mapping for cross-framework mapping.
 ---
 
 # scvi-hub Pretrained Models Skill

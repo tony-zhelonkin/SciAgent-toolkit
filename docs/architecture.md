@@ -115,12 +115,15 @@ Binary: `bin/sciagent`. Alias: `si`. Both installable via symlink into PATH.
 ### Verbs
 
 ```
-sciagent activate <base> [overlay]   # activate role(s); replaces current stack
-sciagent deactivate [<role>]         # deactivate stack (or single role)
-sciagent inject <skill>              # add one skill to current overlay
+sciagent activate <base> [overlay]                # activate role(s); replaces current stack
+sciagent deactivate [<role>]                      # deactivate stack (or single role)
+sciagent inject [--skill|--agent|--command] <name>   # add one entry on top of current stack
+sciagent inject --tag <tag>                       # add all skills carrying <tag>
+sciagent eject  [--skill|--agent|--command] <name>   # remove one injected entry
+sciagent validate [--quiet]                       # check toolkit integrity
 sciagent status [--json] [--effective] [--source <name>]
 sciagent list [roles|skills|agents|commands]
-sciagent new role|skill|agent <name> # scaffold from templates
+sciagent new role|skill|agent <name>              # scaffold from templates
 ```
 
 ### Activation semantics
@@ -128,16 +131,48 @@ sciagent new role|skill|agent <name> # scaffold from templates
 - `sciagent activate base` — solo role (stack: `[base]`). If different stack was active, auto-deactivate first.
 - `sciagent activate base reviewer` — two roles, ordered. `reviewer` overlays `base`. Last-wins on collisions.
 - Three+ positional args → error: "Maximum stack depth is 2 (base + overlay)."
-- Idempotent: `activate base reviewer` while same stack already active is a no-op (re-verifies symlinks, re-writes block if hash drifted with `--force`).
+- Idempotent w.r.t. stack roles: `activate base reviewer` while the same stack is active re-verifies symlinks and re-writes the block if its hash drifted.
 - Re-activating with a different stack tears down existing symlinks first (auto-deactivate then activate). One-step UX.
+- **Clean-slate w.r.t. injected entries.** Re-activation always tears down the previous manifest, which discards any entries added via `sciagent inject` — even when the stack-roles dimension would otherwise be a no-op. Carrying injected state across `activate` invocations is out of scope (revisit if the depth-2 model changes). The CLI surfaces the loss on STDERR before teardown:
+
+  ```
+  sciagent: warning — activate is a clean-slate operation; dropping injected entries:
+    - skill s_extra
+    - agent ag_helper
+    to preserve, run 'sciagent deactivate' first and re-inject after.
+  ```
 
 ### Inject semantics
 
-- `sciagent inject simplify` — adds the `simplify` skill on top of the current stack.
-- If stack is `[base]` only: inject creates an implicit anonymous overlay named `_injected` that holds added skills. Stack becomes `[base, _injected]`.
-- If stack is `[base, reviewer]` already: skill is added to the overlay (`reviewer`)'s effective skill list (tracked in block under a separate `## Injected (overlay)` subsection so the source is clear).
-- `sciagent deactivate _injected` — removes injected-only overlay. `sciagent deactivate reviewer` — removes named overlay AND any injected-into-it skills.
-- Inject never creates a third tier.
+- `sciagent inject <name>` auto-detects the kind by scanning the three canonical directories (`skills/<name>/SKILL.md`, `agents/<name>.md`, `commands/<name>.md`).
+- Unambiguous match → mounted into `_injected` with manifest `kind` set accordingly. Symlinks land in the kind-appropriate directories (skills in `.claude/skills/` + `.agents/skills/`; agents in `.claude/agents/`; commands in `.claude/commands/`).
+- Ambiguous match (same name exists in 2+ canonical directories) → hard-fail; escape hatch is the explicit flag `--skill <name>`, `--agent <name>`, or `--command <name>`.
+- When an explicit-flag inject succeeds but a companion entry of another kind also exists under that name, a stderr note advertises it. Companion entries are never auto-mounted.
+- Unknown name (no canonical file under any kind) → hard-fail.
+- `sciagent inject --tag <tag>` is the bulk form: adds all skills whose `SKILL.md` carries `<tag>`. Tag form is skill-only.
+- If the active stack is `[base]`, inject creates an implicit anonymous overlay `_injected`. Stack becomes `[base, _injected]`. Inject never creates a third tier.
+- `sciagent deactivate _injected` removes the injected-only overlay. `sciagent deactivate <role>` removes a named overlay AND any entries injected into it.
+
+### Eject semantics
+
+- `sciagent eject <name>` is symmetric to inject and removes one entry from the active overlay.
+- Kind discriminator is the manifest `kind` field (not a re-scan of canonical directories), so the entry that gets removed is the one that was actually injected.
+- Auto-detection on bare name: if `<name>` was injected under exactly one kind, eject removes it. If `<name>` was injected under 2+ kinds, eject hard-fails and requires `--skill` / `--agent` / `--command`.
+- Eject refuses to remove an entry that came in via a stack-mounted role (those are owned by `activate`/`deactivate`).
+- Unknown / not-injected name → hard-fail; manifest and symlinks are untouched.
+
+### Validate
+
+`sciagent validate` runs four checks against the toolkit content:
+
+1. **Requires-graph** — every `requires:` reference resolves; the graph is acyclic.
+2. **Tag vocabulary** — every tag used by a skill is declared in the tag registry.
+3. **Optional skills-ref** — every `optional_skills:` reference resolves.
+4. **Cross-namespace name collisions** — names appearing under more than one of `skills/`, `agents/`, `commands/`, `roles/`.
+
+The first three are **hard-fail** (non-zero exit, error on stderr). The fourth is a **soft-warn** (warning on stderr, "all checks passed" on stdout, exit 0): mounting both is supported and sometimes deliberate. `--quiet` suppresses all output and emits only the exit code.
+
+`validate` is allowlist-blind by design — it reports every collision. The allowlist-aware view lives in `sciagent status`'s Notes section, which annotates intentional family overlaps.
 
 ### Status output
 
@@ -222,6 +257,10 @@ Every `activate` walks the union of declared `skills + agents + commands + outpu
 - AGENTS.md managed block is the **human-readable** state.
 - `.sciagent/manifest.json` is the **machine-readable** state — used for safe teardown (we only remove symlinks we own) and drift detection.
 - On conflict between block and manifest: print warning, manifest wins for teardown purposes, block is rewritten.
+
+### Injected-entry row schema
+
+Each injected entry is one row with shape `{overlay, skill, via, kind}` where `kind ∈ {skill, agent, command}`. Wire format is pipe-delimited (`overlay|skill|via|kind`). A row missing `kind` is read as `skill` (forward-compat with pre-extension manifests). The row's name field is `skill` for all kinds — a stable schema quirk retained for backward compatibility; `kind` is the authoritative discriminator.
 
 ## 10. Idempotency
 

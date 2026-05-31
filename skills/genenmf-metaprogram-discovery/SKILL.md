@@ -1,9 +1,9 @@
 ---
 name: genenmf-metaprogram-discovery
-description: "Runs PER-SAMPLE non-negative matrix factorization then consensus-clusters the resulting programs into recurrent meta-programs across donors/patients/tumors, using R's GeneNMF plus UCell for signature scoring. Use when identifying reproducible transcriptional states shared across MULTIPLE samples without performing batch correction — canonical for tumor cell heterogeneity (Gavish-style meta-programs), donor-shared stem-cell programs, or cross-patient signatures. Requires multiple samples (single-sample input is not supported). Unlike scvi-lda and scvi-linearscvi, which fit ONE joint model across all cells, this skill fits NMF independently per sample and then finds consensus — a different statistical object. Unlike scvi-framework, it bypasses batch correction instead of modeling it. For batch-integrated latent spaces use scvi-framework; for a single joint topic/factor model on one dataset use scvi-lda or scvi-linearscvi."
+description: Runs PER-SAMPLE non-negative matrix factorization then consensus-clusters the resulting programs into recurrent meta-programs across donors/patients/tumors, using R's GeneNMF plus UCell for signature scoring. Use when identifying reproducible transcriptional states shared across MULTIPLE samples without performing batch correction — canonical for tumor cell heterogeneity (Gavish-style meta-programs), donor-shared stem-cell programs, or cross-patient signatures. Requires multiple samples (single-sample input is not supported). Unlike scvi-lda and scvi-linearscvi, which fit ONE joint model across all cells, this skill fits NMF independently per sample and then finds consensus — a different statistical object. Unlike scvi-framework, it bypasses batch correction instead of modeling it. For batch-integrated latent spaces use scvi-framework; for a single joint topic/factor model on one dataset use scvi-lda or scvi-linearscvi.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,21 +11,13 @@ metadata:
   upstream-docs: https://github.com/carmonalab/GeneNMF
   category: analysis
   tier: standard
-  tags:
-    - nmf
-    - meta-programs
-    - gene-programs
-    - tumor-heterogeneity
-    - consensus-signatures
-    - seurat
-    - ucell
-    - batch-free
+  tags: []
   complementary-skills:
-    - scvi-framework
-    - anndatar-seurat-scanpy-conversion
+  - scvi-framework
+  - anndatar-seurat-scanpy-conversion
   contraindications:
-    - "Do not use for batch correction of integrated embeddings. Use scvi-framework or scvi-scanvi for that."
-    - "Do not use on single samples — the method needs multiple donors/samples for meta-program consensus."
+  - Do not use for batch correction of integrated embeddings. Use scvi-framework or scvi-scanvi for that.
+  - Do not use on single samples — the method needs multiple donors/samples for meta-program consensus.
 ---
 
 # GeneNMF Skill

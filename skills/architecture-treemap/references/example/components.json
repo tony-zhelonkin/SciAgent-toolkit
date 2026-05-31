@@ -1,0 +1,565 @@
+{
+  "schema_version": "1.0",
+  "audit_date": "2026-05-24",
+  "project": "example-service (golden fixture)",
+  "frame": "prune-modularize-extend",
+  "git_sha": "0000000000000000000000000000000000000000",
+  "snapshot_id": "golden-fixture",
+  "extractor": {
+    "tool_version": "architecture-treemap 0.1.0",
+    "extracted_at": "2026-05-24",
+    "metric_tools": [
+      "ast+networkx",
+      "radon",
+      "cloc",
+      "git-log"
+    ]
+  },
+  "metric_descriptors": {
+    "loc": {
+      "label": "LOC",
+      "short_badge_label": null,
+      "unit": "loc",
+      "value_kind": "int",
+      "higher_is_better": false,
+      "kind": "base",
+      "render": "hidden",
+      "badge_threshold": null,
+      "badge_color": "#666"
+    },
+    "fan_in": {
+      "label": "Fan-in",
+      "short_badge_label": null,
+      "unit": "",
+      "value_kind": "int",
+      "higher_is_better": false,
+      "kind": "base",
+      "render": "hidden",
+      "badge_threshold": null,
+      "badge_color": "#666"
+    },
+    "fan_out": {
+      "label": "Fan-out",
+      "short_badge_label": "hi fan-out",
+      "unit": "",
+      "value_kind": "int",
+      "higher_is_better": false,
+      "kind": "base",
+      "render": "badge",
+      "badge_threshold": 5,
+      "badge_color": "#6060a0"
+    },
+    "cyclomatic": {
+      "label": "Cyclomatic",
+      "short_badge_label": "hi CC",
+      "unit": "",
+      "value_kind": "number",
+      "higher_is_better": false,
+      "kind": "base",
+      "render": "badge",
+      "badge_threshold": 10,
+      "badge_color": "#a06020"
+    },
+    "churn_90d": {
+      "label": "Churn 90d",
+      "short_badge_label": "hi churn",
+      "unit": "commits",
+      "value_kind": "int",
+      "higher_is_better": false,
+      "kind": "base",
+      "render": "badge",
+      "badge_threshold": 10,
+      "badge_color": "#405080"
+    },
+    "test_ratio": {
+      "label": "Test ratio",
+      "short_badge_label": "low tests",
+      "unit": "",
+      "value_kind": "number",
+      "higher_is_better": true,
+      "kind": "base",
+      "render": "badge",
+      "badge_threshold": 0.3,
+      "badge_color": "#a04040"
+    },
+    "refactor_pressure": {
+      "label": "Refactor pressure",
+      "short_badge_label": "hi pressure",
+      "unit": "",
+      "value_kind": "number",
+      "higher_is_better": false,
+      "kind": "derived",
+      "render": "badge",
+      "badge_threshold": 400,
+      "badge_color": "#902020"
+    }
+  },
+  "pedagogy": {
+    "epistemic_sources": {
+      "measured": {
+        "label": "measured",
+        "what": "Deterministic: an AST, git, or metric tool proved this directly.",
+        "color": "#3a7a3a"
+      },
+      "metric-anchored": {
+        "label": "metric-anchored judgment",
+        "what": "Judgment biased hard by a metric (import graph, fan-in, churn), but still judgment \u2014 the metric points; it does not decide.",
+        "color": "#a07020"
+      },
+      "requires-your-intent": {
+        "label": "requires your intent",
+        "what": "Extrinsic: not in the code. Only a human naming a concern (via /audit-slice) can ground this; a structural pass cannot assert it.",
+        "color": "#8a4a8a"
+      }
+    },
+    "classifications": {
+      "core": {
+        "what": "Load-bearing: the application cannot function without it.",
+        "how": "Proposed from the import graph + metrics: high fan-in, central in the dependency graph, often high churn or complexity. A structural pass PROPOSES this; a slice confirms it.",
+        "teaches": "Core is the last thing to refactor; seam around it before pruning its dependents. Fooled by re-export hubs (high fan-in but trivial) and by product intent \u2014 kill a feature and a former-core module can become removable. 'Essential' is partly a product claim, not a pure code fact.",
+        "epistemic_source": "metric-anchored",
+        "color": "#2a7a2a",
+        "provisional_label": "core (structural hypothesis)"
+      },
+      "seam": {
+        "what": "A deliberately thin boundary that connects two larger parts.",
+        "how": "Weakly detectable: small LOC + meaningful fan-in + a Protocol/typed contract HINT at a seam, but DELIBERATENESS is not measurable. A structural pass can only flag a CANDIDATE; intent confirms it.",
+        "teaches": "Seams weaken connascence and make two sides independently changeable \u2014 the target state of a modularize phase. Thinness is measurable; deliberateness and boundary-ness are not, so seam is the most judgment-dependent class to DETECT. Always a candidate ('possible extension point \u2014 confirm intent'), never an asserted detection.",
+        "epistemic_source": "requires-your-intent",
+        "color": "#c87800",
+        "provisional_label": "seam? (confirm intent)"
+      },
+      "removable": {
+        "what": "A strip candidate: dead, superseded, or dead-on-arrival.",
+        "how": "NOT in the code. Requires a user-stated concern (/audit-slice) that establishes a feature is gone or a path is unused. A structural or LLM pass must NEVER auto-classify removable \u2014 it would have to fabricate the intent it was never given.",
+        "teaches": "Removable is meaningless without intent: 'unused' is relative to a product surface only a human defines. Until a slice grounds it, a removable verdict renders BLANK ('requires your judgment \u2014 run /audit-slice'), never as an LLM guess dressed as a finding.",
+        "epistemic_source": "requires-your-intent",
+        "color": "#a02020",
+        "provisional_label": "requires your judgment \u2014 run /audit-slice"
+      }
+    },
+    "edge_types": {
+      "direct-call": {
+        "what": "One component names another's identifier (a call/import).",
+        "how": "Detected statically by the AST import graph (build_import_graph). The strongest evidence the tool has: the caller's source literally contains the callee's name.",
+        "teaches": "Connascence of Name \u2014 the weakest, normal form of coupling. Not a smell. Only a problem when the callee is itself removable. Fooled by re-export hubs and __init__ facades that inflate the count.",
+        "epistemic_source": "measured",
+        "color": "#888"
+      },
+      "shared-state": {
+        "what": "Two components both read/write the same data structure.",
+        "how": "Audit-asserted: NOT statically detectable from imports. A human slice must observe both writers touching one global/singleton/DOM node without a single-writer contract.",
+        "teaches": "Connascence of Identity or Value. Tolerable at small scale; corrosive as the structure grows \u2014 any shape change forces coordinated edits and out-of-order writes cause silent bugs. Fooled by assuming co-location implies coordination.",
+        "epistemic_source": "metric-anchored",
+        "color": "#3a86c0"
+      },
+      "background-knowledge": {
+        "what": "An unenforced invariant one component assumes about another.",
+        "how": "Requires intent: the invariant lives only in a human's head, an ADR, or a drifting comment. No code, type, or test enforces it, so nothing static can detect it \u2014 only a human who knows the contract.",
+        "teaches": "Connascence of Convention/Algorithm \u2014 the most expensive form, always a smell: the compiler, type checker, and test suite cannot catch a violation. Pruning a removable component that carries one deletes the invariant entirely \u2014 the architectural prize.",
+        "epistemic_source": "requires-your-intent",
+        "color": "#8a5cb0"
+      }
+    },
+    "evidence_classes": {
+      "static": {
+        "what": "The AST/import graph proved this edge.",
+        "how": "Emitted by build_import_graph when an import resolves to a repo file. Renders as a SOLID stroke.",
+        "teaches": "Solid = the tool can prove it. Cannot prove runtime/dynamic coupling (reflection, dependency injection, string-keyed dispatch).",
+        "epistemic_source": "measured"
+      },
+      "audit-asserted": {
+        "what": "A human asserted this edge from a slice.",
+        "how": "Authored during /audit-slice + /synthesize-audit. Renders as a DASHED stroke. As trustworthy as the slice behind it.",
+        "teaches": "Dashed = judgment, not proof. Shared-state and background-knowledge edges are always audit-asserted because they are not statically detectable; that is precisely why they are the expensive forms.",
+        "epistemic_source": "metric-anchored"
+      }
+    },
+    "direction_encoding": {
+      "what": "Outgoing edges draw full-colour; incoming edges draw lighter.",
+      "how": "A renderer convention (opacity + colour-lightness), not data.",
+      "teaches": "Direction shows who depends on whom, which drives stability: depend TOWARD more-stable (lower-instability) modules (Stable-Dependencies Principle).",
+      "epistemic_source": "measured"
+    },
+    "metrics": {
+      "loc": {
+        "what": "LOC",
+        "how": "Non-blank, non-comment physical lines (stdlib counter).",
+        "teaches": "Size != complexity. A huge file is a prompt to LOOK, not a verdict. Fooled by generated code and long string literals.",
+        "epistemic_source": "measured"
+      },
+      "fan_in": {
+        "what": "Fan-in",
+        "how": "Distinct repo modules that import this one (AST import graph).",
+        "teaches": "High fan-in = widely depended-on, so change is expensive (stability). Fooled by re-export hubs / __init__.",
+        "epistemic_source": "measured"
+      },
+      "fan_out": {
+        "what": "Fan-out",
+        "how": "Distinct repo modules this one imports (AST import graph).",
+        "teaches": "High fan-out = this knows about many things (instability). Fooled by a facade that legitimately wires many parts.",
+        "epistemic_source": "measured"
+      },
+      "cyclomatic": {
+        "what": "Cyclomatic",
+        "how": "Mean radon cc_visit complexity over blocks; ABSENT if radon is not installed.",
+        "teaches": "Branching complexity: hard to test, hard to reason about. When radon is absent this is UNAVAILABLE, not 0 \u2014 do not read a missing value as 'simple'.",
+        "epistemic_source": "measured"
+      },
+      "churn_90d": {
+        "what": "Churn 90d",
+        "how": "Commits touching the file in the window (git log --since).",
+        "teaches": "A change magnet: still-evolving or unstable code. Fooled by mass reformatting and renames.",
+        "epistemic_source": "measured"
+      },
+      "test_ratio": {
+        "what": "Test ratio",
+        "how": "Repo test-LOC / source-LOC, attached to modules a test imports (a rollup proxy).",
+        "teaches": "A repo-level rollup, not per-file truth: import != assertion. Admit the proxy.",
+        "epistemic_source": "measured"
+      },
+      "instability": {
+        "what": "Instability (I)",
+        "how": "I = fan_out / (fan_in + fan_out); undefined for isolated nodes.",
+        "teaches": "Teaches Stable-Dependencies: depend toward lower-I modules. Ignores dynamic coupling; A (abstractness) is not measured, so no main-sequence distance.",
+        "epistemic_source": "measured"
+      },
+      "refactor_pressure": {
+        "what": "Refactor pressure",
+        "how": "churn * cyclomatic * max(fan_in,1) / max(test_ratio, 0.05); ABSENT if any input (esp. cyclomatic) is missing.",
+        "teaches": "Biases attention to hot/complex/depended/untested code \u2014 'look here first', never 'refactor this'. None if any input is missing (fully absent when radon is).",
+        "epistemic_source": "metric-anchored"
+      },
+      "refactor_pressure_loc_proxy": {
+        "what": "Refactor pressure (LOC proxy \u2014 radon absent)",
+        "how": "Computed by the extractor.",
+        "teaches": "",
+        "epistemic_source": "measured"
+      }
+    },
+    "glossary": [
+      {
+        "term": "Coupling",
+        "anchor": "fan_in,fan_out",
+        "definition": "How much one component must know about another. Surfaced directly as fan-in (importers) + fan-out (imports) \u2014 counts of import edges.",
+        "proxy_honesty": "Direct for static imports; blind to runtime coupling."
+      },
+      {
+        "term": "Cohesion",
+        "anchor": null,
+        "definition": "How single-purpose a module is (one reason to change). The tool does NOT ship a measured cohesion metric: a clean code-intrinsic proxy (within-file vs cross-file reference ratio) is not available from the file-level import graph, and len(logical_owners) is judgment-derived (authored by synthesis), not substrate \u2014 presenting it as 'measured' would dress judgment as measurement.",
+        "proxy_honesty": "No measured proxy here by design. Read it qualitatively: a file owned by many logical components (a synthesis judgment) hints at low cohesion, but that is a verdict, not a number."
+      },
+      {
+        "term": "Decoupling",
+        "anchor": "seam",
+        "definition": "Reducing what two components must know about each other, usually by inserting a seam (a typed boundary). The seam classification marks where this has been done deliberately.",
+        "proxy_honesty": "Seam-ness is judgment; only thinness (LOC) is measured."
+      },
+      {
+        "term": "Instability (I)",
+        "anchor": "instability",
+        "definition": "I = fan_out / (fan_in + fan_out), in [0,1]. I=0 is maximally stable (a depended-on sink); I=1 is maximally unstable (a leaf).",
+        "proxy_honesty": "Exact for static imports. Abstractness A (the other axis of the main sequence) is not reliably computable in Python, so the tool surfaces I but NOT main-sequence distance \u2014 and says so."
+      },
+      {
+        "term": "Stability",
+        "anchor": "fan_in",
+        "definition": "Resistance to change. Proxied by low instability + high fan-in: many dependents make a module expensive to change.",
+        "proxy_honesty": "Partial \u2014 stability is also about change RATE; pair with churn_90d. A low-I module that churns constantly is not really stable."
+      },
+      {
+        "term": "SRP / one-reason-to-change",
+        "anchor": "churn_90d",
+        "definition": "A module should have one reason to change. Proxied by many logical owners (judgment) plus high churn \u2014 many owners changing often approximates many reasons to change.",
+        "proxy_honesty": "Weak proxy: churn counts commits, not distinct REASONS; a mass reformat inflates it. The owner count is a judgment, not a metric."
+      },
+      {
+        "term": "Acyclic Dependencies Principle (ADP)",
+        "anchor": "cycle",
+        "definition": "The dependency graph should have no cycles. Detected exactly by Tarjan strongly-connected-components over the static import graph; any component in a cycle of size >1 is flagged.",
+        "proxy_honesty": "Strong \u2014 SCC is exact for STATIC imports. A cycle formed only through runtime/dynamic dispatch is invisible to it."
+      },
+      {
+        "term": "Stable-Dependencies Principle (SDP)",
+        "anchor": "instability",
+        "definition": "Dependencies should point toward more-stable (lower-I) components. Read the instability gradient along an edge: depending on a more unstable module than yourself is the violation.",
+        "proxy_honesty": "Proxy via the I gradient; ignores dynamic coupling."
+      },
+      {
+        "term": "Connascence (Page-Jones)",
+        "anchor": "direct-call,shared-state,background-knowledge",
+        "definition": "Two components are connascent if a change in one forces a change in the other. Strength taxonomy (weak\u2192strong): Name \u2192 Type \u2192 Meaning/Convention \u2192 Position \u2192 Algorithm \u2192 Execution-Order \u2192 Timing \u2192 Identity. The three edge types map onto it: direct-call = Name/Type (weakest), shared-state = Identity/Value, background-knowledge = Convention/Algorithm (strongest).",
+        "proxy_honesty": "Name/Type are detected exactly (AST imports). Convention/Algorithm cannot be measured at all \u2014 which is WHY they are the most expensive forms. Locality and other forms have no proxy here."
+      },
+      {
+        "term": "Deep vs shallow modules (Ousterhout)",
+        "anchor": "loc,fan_in",
+        "definition": "A deep module hides a lot of implementation behind a narrow interface (high LOC, low fan-in is a hint). A shallow module adds little behind a wide interface (low LOC, high fan-out is a hint).",
+        "proxy_honesty": "Weak proxy: interface NARROWNESS is not directly measured. LOC and fan counts are only hints \u2014 a file can be large and shallow."
+      }
+    ]
+  },
+  "logical_components": [
+    {
+      "id": "api-router",
+      "name": "ApiRouter",
+      "description": "HTTP entrypoint. Parses requests, dispatches to the store, loads plugins. The application's front door.",
+      "physical_files": [
+        {
+          "path": "src/router.py",
+          "line_range": "1-180",
+          "ownership": "primary"
+        }
+      ],
+      "classification": "core",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 180,
+      "metrics": {
+        "loc": 180,
+        "fan_in": 1,
+        "fan_out": 3,
+        "cyclomatic": 7.2,
+        "churn_90d": 9,
+        "test_ratio": 0.8,
+        "instability": 0.75
+      },
+      "epistemic_source": "metric-anchored"
+    },
+    {
+      "id": "store",
+      "name": "Store",
+      "description": "In-memory + persisted record store. Read and written by multiple callers; the shared-state hub of the service.",
+      "physical_files": [
+        {
+          "path": "src/store.py",
+          "line_range": "1-240",
+          "ownership": "primary"
+        }
+      ],
+      "classification": "core",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 240,
+      "metrics": {
+        "loc": 240,
+        "fan_in": 3,
+        "fan_out": 0,
+        "cyclomatic": 5.1,
+        "churn_90d": 14,
+        "test_ratio": 1.1,
+        "refactor_pressure": 194.73,
+        "instability": 0.0
+      }
+    },
+    {
+      "id": "plugin-loader",
+      "name": "PluginLoader",
+      "description": "Discovers and instantiates external plugins against a typed Protocol. The intended extension seam.",
+      "physical_files": [
+        {
+          "path": "src/plugin_loader.py",
+          "line_range": "1-90",
+          "ownership": "primary"
+        }
+      ],
+      "classification": "seam",
+      "smoke_findings": [],
+      "audit_slices": [],
+      "size_estimate_loc": 90,
+      "metrics": {
+        "loc": 90,
+        "fan_in": 1,
+        "fan_out": 1,
+        "cyclomatic": 3.0,
+        "churn_90d": 2,
+        "test_ratio": 0.6,
+        "instability": 0.5
+      },
+      "epistemic_source": "requires-your-intent"
+    },
+    {
+      "id": "legacy-export",
+      "name": "LegacyExport",
+      "description": "Old CSV export path superseded by the plugin system. Still wired into the router but no longer used by any live caller. STRIP candidate.",
+      "physical_files": [
+        {
+          "path": "src/legacy_export.py",
+          "line_range": "1-150",
+          "ownership": "primary"
+        }
+      ],
+      "classification": "removable",
+      "smoke_findings": [
+        "F-EX1"
+      ],
+      "audit_slices": [],
+      "size_estimate_loc": 150,
+      "metrics": {
+        "loc": 150,
+        "fan_in": 1,
+        "fan_out": 1,
+        "cyclomatic": 11.4,
+        "churn_90d": 0,
+        "test_ratio": 0.2,
+        "instability": 0.5
+      }
+    }
+  ],
+  "physical_components": [
+    {
+      "id": "router-py",
+      "path": "src/router.py",
+      "size_loc": 180,
+      "logical_owners": [
+        "api-router"
+      ],
+      "kind": "module",
+      "metrics": {
+        "loc": 180,
+        "cyclomatic": 7.2
+      },
+      "cycle_id": "cycle-1",
+      "cycle_size": 2
+    },
+    {
+      "id": "store-py",
+      "path": "src/store.py",
+      "size_loc": 240,
+      "logical_owners": [
+        "store"
+      ],
+      "kind": "module",
+      "metrics": {
+        "loc": 240,
+        "cyclomatic": 5.1
+      },
+      "cycle_id": "cycle-1",
+      "cycle_size": 2
+    },
+    {
+      "id": "plugin-loader-py",
+      "path": "src/plugin_loader.py",
+      "size_loc": 90,
+      "logical_owners": [
+        "plugin-loader"
+      ],
+      "kind": "module"
+    },
+    {
+      "id": "legacy-export-py",
+      "path": "src/legacy_export.py",
+      "size_loc": 150,
+      "logical_owners": [
+        "legacy-export"
+      ],
+      "kind": "module"
+    },
+    {
+      "id": "config-yaml",
+      "path": "config/app.yaml",
+      "size_loc": 24,
+      "logical_owners": [
+        "api-router"
+      ],
+      "kind": "config"
+    }
+  ],
+  "edges": [
+    {
+      "from": "api-router",
+      "to": "plugin-loader",
+      "type": "direct-call",
+      "evidence_class": "static",
+      "evidence": "src/router.py:42 \u2014 `from plugin_loader import load_plugins`",
+      "smell": null,
+      "smoke_finding": null,
+      "epistemic_source": "measured"
+    },
+    {
+      "from": "api-router",
+      "to": "store",
+      "type": "shared-state",
+      "evidence_class": "audit-asserted",
+      "evidence": "Both router request handlers and the background flush task read/write Store.records without a single-writer contract.",
+      "smell": "multi-writer-shared-record-store",
+      "smoke_finding": null,
+      "epistemic_source": "metric-anchored"
+    },
+    {
+      "from": "api-router",
+      "to": "legacy-export",
+      "type": "direct-call",
+      "evidence_class": "static",
+      "evidence": "src/router.py:118 \u2014 legacy /export route still calls legacy_export.write_csv",
+      "smell": "unidirectional-coupling-to-removable",
+      "smoke_finding": "F-EX1",
+      "epistemic_source": "measured"
+    },
+    {
+      "from": "legacy-export",
+      "to": "store",
+      "type": "background-knowledge",
+      "evidence_class": "audit-asserted",
+      "evidence": "legacy_export assumes Store records are already flushed before it reads them; nothing in code, types, or tests enforces that ordering \u2014 the invariant lives only in the original author's head.",
+      "smell": "invariant-in-human-memory",
+      "smoke_finding": "F-EX1",
+      "epistemic_source": "metric-anchored"
+    },
+    {
+      "from": "store",
+      "to": "api-router",
+      "type": "shared-state",
+      "evidence_class": "audit-asserted",
+      "epistemic_source": "metric-anchored",
+      "evidence": "Store.flush() calls back into the router refresh hook, closing an import cycle with api-router.",
+      "smell": "cyclic-dependency",
+      "smoke_finding": null
+    }
+  ],
+  "prune_candidates": [
+    {
+      "logical_component": "legacy-export",
+      "bounded": true,
+      "loc_to_remove": 150,
+      "unblocks_simplification_of": [
+        "api-router /export route",
+        "store flush-ordering invariant"
+      ],
+      "latent_bug_fixed": "The background-knowledge flush-ordering invariant disappears once legacy-export is gone \u2014 no remaining caller depends on it."
+    }
+  ],
+  "core_boundary": {
+    "rationale": "Core is the request/store path every feature needs. The seam is the plugin loader (weakest connascence: Name + Type via the Protocol). Removable is the legacy export, kept alive only by one router route, with a background-knowledge edge to the store that is the architectural prize for pruning.",
+    "core": [
+      "api-router",
+      "store"
+    ],
+    "seam": [
+      "plugin-loader"
+    ],
+    "removable": [
+      "legacy-export"
+    ],
+    "open_questions": [
+      "store (today core; could become a seam if persistence is made host-injectable)"
+    ]
+  },
+  "finding_index": {
+    "F-EX1": {
+      "title": "Legacy CSV export still routed but unused by live callers",
+      "severity": "warn",
+      "url": ""
+    }
+  },
+  "cycles": [
+    {
+      "id": "cycle-1",
+      "members": [
+        "router-py",
+        "store-py"
+      ]
+    }
+  ]
+}

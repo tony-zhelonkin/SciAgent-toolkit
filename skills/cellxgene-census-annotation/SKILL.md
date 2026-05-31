@@ -3,7 +3,7 @@ name: cellxgene-census-annotation
 description: Transfers cell-type annotations from the CELLxGENE Census (33M+ cells, pre-computed scVI/Geneformer embeddings) to query scRNA-seq via cloud API, without downloading full datasets. Use for label transfer, tissue-specific reference lookup, or nearest-neighbor majority-vote annotation with TileDB value filters. For cross-atlas vector search use single-cell-vector-search; for hierarchical multi-reference learning use treearches-hierarchy-learning.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -12,22 +12,15 @@ metadata:
   category: annotation
   tier: standard
   tags:
-    - cellxgene
-    - census
-    - tiledb
-    - scvi-embeddings
-    - geneformer
-    - label-transfer
-    - reference-annotation
-    - cloud-api
+  - annotation
   complementary-skills:
-    - single-cell-vector-search
-    - treearches-hierarchy-learning
-    - scvi-scanvi
-    - scvi-scarches-reference-mapping
+  - single-cell-vector-search
+  - treearches-hierarchy-learning
+  - scvi-scanvi
+  - scvi-scarches-reference-mapping
   contraindications:
-    - "Do not omit is_primary_data == True filters — Census contains duplicate cells across datasets."
-    - "Do not use pandas .isin() syntax in value_filter — Census uses TileDB QueryCondition syntax."
+  - Do not omit is_primary_data == True filters — Census contains duplicate cells across datasets.
+  - Do not use pandas .isin() syntax in value_filter — Census uses TileDB QueryCondition syntax.
 ---
 
 # CELLxGENE Census - Cell Type Annotation via Reference Data skill

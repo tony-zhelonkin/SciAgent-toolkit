@@ -365,6 +365,35 @@ The cost of skipping meta when it's not needed is zero. The cost of skipping it 
 
 ---
 
+## When to run the audit cadence vs per-feature `/map`
+
+The architecture-treemap stack (`/components-extract` → `/audit-slice` → `/synthesize-audit` → `/architecture-treemap`) is a **sibling to `/map`, not a replacement** (Shape γ). It is a retrospective, concern-driven audit — expensive (~1M tokens for a full run) and narrowly applicable. The two cadences answer different questions:
+
+| | per-feature `/map` | audit cadence (`/audit-slice` …) |
+|---|---|---|
+| Direction | prospective — scoping work not yet built | retrospective — auditing code that exists |
+| Unit | one feature, all surfaces | one concern, full depth (N concerns in parallel) |
+| Reads code | yes (the only stage that re-explores in the per-feature flow) | yes — slicers re-explore along each concern's spine |
+| Cost | ~30-60K tokens | ~0.8-1M tokens for a full audit |
+| Trigger | start of any new feature | one of the three anchors below |
+
+**Run the audit cadence only when there is an empirical anchor:**
+
+- **Post-smoke / post-demo / post-in-vivo pass** that surfaced cross-cutting findings the per-feature flow cannot chase (a runtime second-writer, a phantom payload key, an emergent cross-cutting concept).
+- **Pre-pivot** — an open-source release or plugin extraction where the core/seam/removable boundary must be defended.
+- **Portfolio drift** — 5+ features have accumulated and the cross-feature coupling is no longer trackable in `/meta-map` alone.
+
+Without such an anchor, concern-traversal degenerates into "enumerate everything" — which `/map` already does, ~20× cheaper. So: **scoping a new feature → `/map`. Auditing existing code with an anchor → the audit cadence.**
+
+Two discipline rules carry over from the design:
+
+- **`/audit-slice` is off-the-autopilot.** No command auto-recommends it; it refuses auto-piped concern lists. The human typing the concerns IS the judgment gate. The assistant should suggest it only when an anchor is present, and should suggest `/map` for new-feature work.
+- **The stack is probationary** (prune review 2026-11-20). It earns its keep only if it fires rarely AND, when it fires, the artifacts it produces are load-bearing for a decision. Treat it as a roughly-quarterly instrument.
+
+The audit also coexists cleanly with `/meta-map`: meta-map answers "what cross-feature touch-points do my in-flight features share?"; the audit answers "trace this one concern through the whole codebase in execution-time order." Route by the question, not by overlap.
+
+---
+
 ## What to ask the assistant for, by stage
 
 The assistant has a system-prompt-loaded skill (`architecture-first-dev`) that knows this cadence. When in doubt, you can ask:

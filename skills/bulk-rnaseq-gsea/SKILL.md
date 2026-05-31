@@ -1,9 +1,9 @@
 ---
 name: bulk-rnaseq-gsea
-description: "Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions."
+description: 'Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions.'
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -12,30 +12,16 @@ metadata:
   category: analysis
   tier: standard
   tags:
-    - gsea
-    - msigdb
-    - clusterProfiler
-    - fgsea
-    - bulk-rnaseq
-    - pathway-analysis
-    - limma-voom
-    - gene-set-enrichment
-    - custom-gene-sets
-    - master-table
-    - visualization
-    - dotplot
-    - running-sum
+  - pathway
   complementary-skills:
-    - gatom-metabolomic-predictions
-    - progeny-pathway-activity
-    - decoupler-tf-activity
-    - coresh-signature-search
-    - bulk-rnaseq-pathway-explorer
+  - gatom-metabolomic-predictions
+  - bulk-rnaseq-activity-inference
+  - coresh-signature-search
+  - bulk-rnaseq-pathway-explorer
   contraindications:
-    - "Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead."
-    - "Do not use for TF activity inference. Use decoupler-tf-activity instead."
-    - "Do not use for PROGENy pathway activity scores. Use progeny-pathway-activity instead."
-    - "Do not use for signature-based GEO dataset search. Use coresh-signature-search instead."
+  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
+  - Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
+  - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
 ---
 
 # Bulk RNA-seq GSEA Pipeline
@@ -62,8 +48,7 @@ This skill covers the complete GSEA pipeline for bulk RNA-seq analyses: from lim
 
 **When NOT to use this skill:**
 - Topology-aware metabolic module discovery → use `gatom-metabolomic-predictions`
-- TF activity inference (CollecTRI) → use `decoupler-tf-activity`
-- PROGENy signaling pathway scores → use `progeny-pathway-activity`
+- TF or PROGENy pathway activity inference → use `bulk-rnaseq-activity-inference`
 - Interactive UMAP explorer as a standalone tool → use `bulk-rnaseq-pathway-explorer`
 - Signature-based GEO dataset ranking → use `coresh-signature-search`
 
@@ -221,8 +206,7 @@ For detailed walkthroughs of each pitfall → see the relevant reference documen
 | When you need... | Use skill | Relationship |
 |---|---|---|
 | Topology-aware metabolic module discovery (KEGG/Rhea networks) | `gatom-metabolomic-predictions` | Extension (produces modules → feed to custom-db.md) |
-| TF activity inference (CollecTRI) | `decoupler-tf-activity` | Parallel analysis (results appear in pathway explorer) |
-| PROGENy signaling pathway activities (14 canonical) | `progeny-pathway-activity` | Parallel analysis (results appear in pathway explorer) |
+| TF activity inference (CollecTRI) or PROGENy pathway activities | `bulk-rnaseq-activity-inference` | Parallel analysis (results appear in pathway explorer) |
 | Standalone interactive UMAP pathway explorer | `bulk-rnaseq-pathway-explorer` | Next step (consumes master_gsea_table.csv) |
 | Signature-based GEO dataset ranking and hypothesis generation | `coresh-signature-search` | Alternative question (data-driven, not prior-knowledge) |
 

@@ -1,33 +1,28 @@
 ---
 name: hint-atac-differential-footprint
-description: "HINT-ATAC (rgt-hint) HMM-based TF footprint detection and multi-condition differential footprinting. Use when comparing TF activity across 3+ conditions/celltypes simultaneously and you want overview heatmaps from a single command. For pairwise quantitative contrasts with p-values use tobias-footprint-bindetect; for publication-quality footprint plots use signac-footprint-visualization."
+description: HINT-ATAC (rgt-hint) HMM-based TF footprint detection and multi-condition differential footprinting. Use when comparing TF activity across 3+ conditions/celltypes simultaneously and you want overview heatmaps from a single command. For pairwise quantitative contrasts with p-values use tobias-footprint-bindetect; for publication-quality footprint plots use signac-footprint-visualization.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   tools:
-    - rgt-hint
-    - rgt-motifanalysis
-    - RGT
+  - rgt-hint
+  - rgt-motifanalysis
+  - RGT
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
   version: 1.0.0
   upstream-docs: https://reg-gen.readthedocs.io/
   category: analysis
   tier: simple
-  tags:
-    - hint-atac
-    - rgt
-    - tf-footprinting
-    - multi-condition
-    - atac-seq
+  tags: []
   complementary-skills:
-    - tobias-footprint-bindetect
-    - signac-footprint-visualization
-    - chromvar-motif-accessibility
+  - tobias-footprint-bindetect
+  - signac-footprint-visualization
+  - chromvar-motif-accessibility
   contraindications:
-    - "Do not use for single-cell TF activity — HINT-ATAC requires pseudobulk BAMs."
-    - "Do not use for quantitative pairwise contrasts — use tobias-footprint-bindetect."
+  - Do not use for single-cell TF activity — HINT-ATAC requires pseudobulk BAMs.
+  - Do not use for quantitative pairwise contrasts — use tobias-footprint-bindetect.
 ---
 
 # HINT-ATAC Multi-Condition Differential Footprinting

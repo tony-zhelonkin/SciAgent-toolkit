@@ -149,7 +149,46 @@ skills:
   - s_a
 EOF
 
+    # Minimal tags.yaml so `sciagent validate` (called internally by activate)
+    # finds the vocabulary file. Tests that need unknown-tag coverage override
+    # this file after calling build_fake_toolkit.
+    cat > "$root/tags.yaml" <<'EOF'
+tags:
+  - name: tooling
+    description: Test fixture tag.
+    since: 2026-05-24
+EOF
+
     # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
     ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
     ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
+}
+
+# tag_skill <toolkit-root> <skill-name> <tag-name>
+# Rewrites <toolkit-root>/skills/<skill-name>/SKILL.md so its frontmatter
+# carries a metadata.tags: block list containing <tag-name>. Any existing
+# file content is replaced with a minimal frontmatter + body.
+# Also ensures <tag-name> is present in <toolkit-root>/tags.yaml.
+tag_skill() {
+    local root="$1" skill="$2" tag="$3"
+
+    mkdir -p "$root/skills/$skill"
+    cat > "$root/skills/$skill/SKILL.md" <<EOF
+---
+metadata:
+  scope: implementation
+  requires: []
+  complementary-skills: []
+  contraindications: []
+  tags:
+    - $tag
+---
+skill $skill
+EOF
+
+    # Add the tag to tags.yaml if not already present.
+    if ! grep -q "name: $tag" "$root/tags.yaml" 2>/dev/null; then
+        printf '  - name: %s\n    description: Test fixture tag.\n    since: 2026-05-24\n' \
+            "$tag" >> "$root/tags.yaml"
+    fi
 }

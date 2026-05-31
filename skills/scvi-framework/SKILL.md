@@ -1,23 +1,16 @@
 ---
 name: scvi-framework
-description: "scvi-tools framework foundation and router — installation, model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract across all scvi-tools models. Use first when choosing between scVI variants (scVI, scANVI, MrVI, MultiVI, PeakVI, LinearSCVI, AmortizedLDA, contrastiveVI) or when a cross-cutting concern (raw counts, batch keys, scArches flags, hub loading, count distributions, GPU) applies to any scvi-* child skill. For the specific model implementation, route to the corresponding scvi-* skill."
+description: scvi-tools framework foundation and router — installation, model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract across all scvi-tools models. Use first when choosing between scVI variants (scVI, scANVI, MrVI, MultiVI, PeakVI, LinearSCVI, AmortizedLDA, contrastiveVI) or when a cross-cutting concern (raw counts, batch keys, scArches flags, hub loading, count distributions, GPU) applies to any scvi-* child skill. For the specific model implementation, route to the corresponding scvi-* skill.
 license: MIT
 metadata:
-  scope: foundation
+  scope: concept
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-20
   category: foundation
   tier: rich
   tags:
-  - scvi
-  - scvi-tools
-  - scverse
-  - deep-learning
-  - pytorch
-  - framework
-  - model-selection
-  - router
+  - integration
   complementary-skills:
   - scvi-basic
   - scvi-scanvi

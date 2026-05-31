@@ -1,9 +1,9 @@
 ---
 name: multimodal-anndata-mudata
-description: "Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see muon-multimodal-analysis."
+description: Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see muon-multimodal-analysis.
 license: MIT
 metadata:
-  scope: foundation
+  scope: concept
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,22 +11,14 @@ metadata:
   upstream-docs: https://mudata.readthedocs.io/
   category: foundation
   tier: standard
-  tags:
-    - mudata
-    - anndata
-    - seurat-to-python
-    - multi-assay
-    - chromatin-assay
-    - paired-unpaired
-    - format-conversion
-    - scverse-interop
+  tags: []
   complementary-skills:
-    - anndatar-seurat-scanpy-conversion
-    - muon-multimodal-analysis
-    - seurat-multimodal-analysis
+  - anndatar-seurat-scanpy-conversion
+  - muon-multimodal-analysis
+  - seurat-multimodal-analysis
   contraindications:
-    - "Do not use for single-assay Seurat conversion. Use anndatar-seurat-scanpy-conversion instead."
-    - "Do not use for downstream multimodal analysis in Python. Use muon-multimodal-analysis."
+  - Do not use for single-assay Seurat conversion. Use anndatar-seurat-scanpy-conversion instead.
+  - Do not use for downstream multimodal analysis in Python. Use muon-multimodal-analysis.
 ---
 
 # Multimodal AnnData/MuData: Seurat → Python Conversion for Multi-Omics

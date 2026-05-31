@@ -1,22 +1,24 @@
 #!/usr/bin/env bash
 # tests/test_skill_scope_lint.sh — enforce per-scope body line caps on skills.
 #
-# ADR-0002 §3.3: count body lines (after frontmatter close to EOF),
-# EXCLUDING fenced code-block content.
+# ADR-001/ADR-003 (kickoff.md §9, 2026-05-24): count body lines (after
+# frontmatter close to EOF), EXCLUDING fenced code-block content.
 #
-# Caps:
-#   atomic       <= 300
-#   orchestrator <= 250
-#   foundation   <= 800
+# Caps (post-migration vocabulary):
+#   concept        <= 500
+#   implementation <= 350
+#
+# Regression block: presence of scope: atomic|orchestrator|foundation in any
+# non-_TEMPLATE skill is a FAIL (prevents re-introduction of old vocabulary).
 #
 # Legacy cutoff: a skill whose `metadata.last-reviewed` is absent OR strictly
-# before 2026-05-21 is exempt from hard-fail (warning only). Skills reviewed
-# on or after the cutoff MUST pass the cap.
+# before 2026-05-24 is exempt from hard-fail on cap overrun (warning only).
+# Skills reviewed on or after the cutoff MUST pass the cap.
 
 set -u
 . "$(dirname "$0")/_lib.sh"
 
-CUTOFF="2026-05-21"
+CUTOFF="2026-05-24"
 
 # Compute body line count excluding fenced code blocks.
 body_loc_no_fences() {
@@ -72,14 +74,22 @@ for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     [[ -f "$file" ]] || continue
 
     scope="$(fm_scalar "$file" scope)"
-    [[ -z "$scope" ]] && scope="atomic"
+    [[ -z "$scope" ]] && scope="implementation"
 
     last_reviewed="$(fm_scalar "$file" last-reviewed)"
 
+    # Regression block: reject any skill still carrying the legacy vocabulary.
     case "$scope" in
-        atomic)       cap=300 ;;
-        orchestrator) cap=250 ;;
-        foundation)   cap=800 ;;
+        atomic|orchestrator|foundation)
+            echo "FAIL [$_TEST_NAME] $name: legacy scope '$scope' — rename to concept or implementation (ADR-003)" >&2
+            fail_count+=1
+            continue
+            ;;
+    esac
+
+    case "$scope" in
+        concept)        cap=500 ;;
+        implementation) cap=350 ;;
         *)
             echo "FAIL [$_TEST_NAME] $name: unknown scope '$scope'" >&2
             fail_count+=1

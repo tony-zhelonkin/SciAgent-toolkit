@@ -60,12 +60,68 @@ Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier 
 |------|-------------|
 | `activate <base> [overlay]` | Activate role(s); replaces current stack |
 | `deactivate [<role>]` | Tear down the stack or remove one role |
-| `inject <skill>` | Add one skill to the current overlay |
+| `inject <name>` | Add one skill / agent / command (auto-detect; `--skill` / `--agent` / `--command` for explicit) |
+| `eject <name>` | Remove one injected entry (symmetric to `inject`) |
+| `validate [--quiet]` | Check toolkit integrity (requires-graph, tags, refs, name collisions) |
 | `status [--json\|--effective\|--source <name>]` | Report active stack and effective tables |
 | `list [roles\|skills\|agents\|commands]` | List available content in the toolkit |
 | `new project\|role\|skill\|agent [args]` | Scaffold from templates |
 
 Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
+
+## inject · eject · validate
+
+`inject <name>` auto-detects whether `<name>` is a skill, agent, or command:
+
+```
+$ sciagent inject extra-skill
+injected: extra-skill (into _injected)
+
+$ sciagent inject extra-agent
+injected: extra-agent (into _injected)
+
+$ sciagent inject extra-command
+injected: extra-command (into _injected)
+```
+
+Ambiguous names hard-fail; the explicit flags resolve them:
+
+```
+$ sciagent inject dual-name
+error: ambiguous — 'dual-name' exists as both skill and command. use --skill <name>, --agent <name>, or --command <name>
+
+$ sciagent inject --command dual-name
+injected: dual-name (into _injected)
+note: companion skill 'dual-name' available — `inject --skill dual-name` to add
+```
+
+The companion-skill note is informational — the skill is not auto-mounted. Unknown names hard-fail:
+
+```
+$ sciagent inject definitely-does-not-exist
+error: 'definitely-does-not-exist' not found as skill, agent, or command
+```
+
+`eject <name>` is symmetric. Ambiguous when the same name was injected as 2+ kinds:
+
+```
+$ sciagent eject extra-agent
+ejected: extra-agent (agent)
+
+$ sciagent eject dual-name
+error: ambiguous — 'dual-name' is injected as both command and skill. use --skill <name>, --agent <name>, or --command <name>
+```
+
+`validate` checks toolkit integrity. Cross-namespace name collisions are soft-warns (mounting both is supported); other failures are hard. `--quiet` suppresses all output (exit code only):
+
+```
+$ sciagent validate
+validate: warning — name 'architect' appears as agent, command, and role (mounting both is supported; ensure the overlap is intentional)
+validate: warning — name 'architecture-treemap' appears as both skill and command (mounting both is supported; ensure the overlap is intentional)
+sciagent validate: all checks passed
+
+$ sciagent validate --quiet
+```
 
 ## What it writes
 

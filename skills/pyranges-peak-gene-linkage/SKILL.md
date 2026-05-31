@@ -1,9 +1,9 @@
 ---
 name: pyranges-peak-gene-linkage
-description: "Peak-to-gene linkage — correlate scATAC-seq peak accessibility with scRNA-seq expression of nearby genes, computing gene activity scores and Pearson correlations within configurable genomic windows. Use when you need cis-regulatory candidate links (peak → gene) for downstream motif / TF analysis on a paired multiome dataset. For unpaired cross-modality linkage, use scglue-unpaired-multiomics-integration."
+description: Peak-to-gene linkage — correlate scATAC-seq peak accessibility with scRNA-seq expression of nearby genes, computing gene activity scores and Pearson correlations within configurable genomic windows. Use when you need cis-regulatory candidate links (peak → gene) for downstream motif / TF analysis on a paired multiome dataset. For unpaired cross-modality linkage, use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://muon.scverse.org/
   category: atac-analysis
   tier: simple
-  tags:
-    - peak-gene-linkage
-    - gene-activity
-    - pyranges
-    - cis-regulatory
-    - multiome
-    - python
+  tags: []
   complementary-skills:
-    - muon-multimodal-analysis
-    - snapatac2-atac-preprocessing
-    - scglue-unpaired-multiomics-integration
-    - crescendo-scatac-cre-analysis
+  - muon-multimodal-analysis
+  - snapatac2-atac-preprocessing
+  - scglue-unpaired-multiomics-integration
+  - crescendo-scatac-cre-analysis
   contraindications:
-    - "Do not use for unpaired RNA + ATAC. Use scglue-unpaired-multiomics-integration."
-    - "Do not use for motif enrichment on linked peaks. Use pycistarget-motif-enrichment."
+  - Do not use for unpaired RNA + ATAC. Use scglue-unpaired-multiomics-integration.
+  - Do not use for motif enrichment on linked peaks. Use pycistarget-motif-enrichment.
 ---
 
 # Peak-to-Gene Linkage (paired multiome)

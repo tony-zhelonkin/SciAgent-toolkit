@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{TITLE}}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+         font-size: 13px; background: #111; color: #ddd; height: 100vh;
+         display: flex; flex-direction: column; overflow: hidden; }
+
+  /* ── Header ── */
+  #header { background: #1a1a1a; border-bottom: 1px solid #333; padding: 8px 16px;
+            flex-shrink: 0; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  #header h1 { font-size: 14px; font-weight: 600; color: #fff; white-space: nowrap; }
+  #header .frame { font-size: 11px; color: #fc0; font-weight: 500;
+                   border: 1px solid #fc0; border-radius: 3px; padding: 1px 6px; }
+  #header .counts { font-size: 11px; color: #888; }
+  #header .stamp  { font-size: 10px; color: #444; margin-left: auto; font-family: monospace; }
+  #toggles { display: flex; gap: 6px; margin-left: 12px; }
+  #toggles button { background: #2a2a2a; border: 1px solid #444; color: #bbb;
+                    padding: 3px 12px; border-radius: 3px; cursor: pointer;
+                    font-size: 12px; transition: all 0.15s; }
+  #toggles button.active { background: #3a3a3a; border-color: #888; color: #fff; font-weight: 600; }
+  #toggles button:hover:not(.active) { border-color: #666; color: #ccc; }
+
+  /* Show-all-edges toggle */
+  #edge-toggle-wrap { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+  #edge-toggle-wrap input { cursor: pointer; }
+  /* Show-tests toggle (Physical view) */
+  #tests-toggle-wrap { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #888; }
+  #tests-toggle-wrap input { cursor: pointer; }
+
+  /* ── Body layout ── */
+  #body { display: flex; flex: 1; overflow: hidden; }
+  #treemap-area { flex: 1; position: relative; overflow: hidden; }
+  svg#treemap { width: 100%; height: 100%; display: block; }
+
+  /* ── Treemap cells ── */
+  .node rect { stroke: #111; stroke-width: 1px; cursor: pointer; transition: opacity 0.1s; }
+  .node rect:hover { stroke: #fff; stroke-width: 1.5px; }
+  .node text { pointer-events: none; fill: #fff; font-size: 11px; font-weight: 500;
+               text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
+  .node text.sub { font-size: 9px; font-weight: 400; fill: rgba(255,255,255,0.65); }
+  .node .badge-stripe { pointer-events: none; }
+  .node .metric-badge { pointer-events: none; }
+
+  /* Graph nodes */
+  .gnode { cursor: pointer; }
+  .gnode circle { transition: opacity 0.1s; }
+  .gnode:hover circle { opacity: 0.85; }
+
+  /* ── Side panel ── */
+  #panel { width: 340px; flex-shrink: 0; background: #161616; border-left: 1px solid #333;
+           display: flex; flex-direction: column; overflow: hidden; }
+  #panel-header { padding: 10px 12px 8px; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+  #panel-header h2 { font-size: 13px; font-weight: 600; color: #fff; }
+  #panel-header .badge { display: inline-block; font-size: 10px; padding: 1px 7px;
+                          border-radius: 10px; margin-top: 4px; font-weight: 600; }
+  .badge.core      { background: #1a3d1a; color: #5cd65c; border: 1px solid #2a5a2a; }
+  .badge.seam      { background: #3d2e00; color: #ffb300; border: 1px solid #5a4400; }
+  .badge.removable { background: #3d1a1a; color: #ff6b6b; border: 1px solid #5a2a2a; }
+  #panel-body { flex: 1; overflow-y: auto; padding: 10px 12px; }
+  #panel-body::-webkit-scrollbar { width: 4px; }
+  #panel-body::-webkit-scrollbar-track { background: #1a1a1a; }
+  #panel-body::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  .panel-section { margin-bottom: 14px; }
+  .panel-section h3 { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: 0.08em; color: #666; margin-bottom: 6px; }
+  .panel-section p  { color: #bbb; line-height: 1.5; font-size: 12px; }
+  .file-row { display: flex; justify-content: space-between; padding: 3px 0;
+              border-bottom: 1px solid #1e1e1e; font-size: 11px; }
+  .file-row .fp { color: #7ab8e0; font-family: monospace; flex: 1; min-width: 0;
+                  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-row .lr { color: #666; flex-shrink: 0; margin-left: 6px; }
+  .finding-pill { display: inline-block; background: #1e2a1e; color: #5cd65c;
+                  border: 1px solid #2a4a2a; border-radius: 3px; padding: 1px 6px;
+                  margin: 2px; font-size: 10px; font-family: monospace; }
+  .slice-pill { display: inline-block; background: #1e1e30; color: #7ab; border: 1px solid #2a2a50;
+                border-radius: 3px; padding: 1px 6px; margin: 2px; font-size: 10px; }
+  .edge-row { padding: 5px 7px; border-radius: 3px; margin-bottom: 4px; font-size: 11px;
+              border-left: 3px solid; }
+  .edge-row.direct-call           { background: #1a1a1a; border-left-color: #555; }
+  .edge-row.shared-state          { background: #0e1a24; border-left-color: #3a86c0; }
+  .edge-row.background-knowledge  { background: #180d24; border-left-color: #8a5cb0; }
+  .edge-row .peer  { font-weight: 600; color: #ddd; }
+  .edge-row .etype { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                     letter-spacing: 0.06em; margin-left: 4px; }
+  .edge-row.direct-call .etype          { color: #666; }
+  .edge-row.shared-state .etype         { color: #3a86c0; }
+  .edge-row.background-knowledge .etype { color: #8a5cb0; }
+  .edge-row .smell { font-size: 10px; color: #c06040; margin-top: 2px;
+                     font-style: italic; line-height: 1.3; }
+  .edge-row .evidence { font-size: 10px; color: #555; margin-top: 2px;
+                        font-family: monospace; line-height: 1.3; word-break: break-all; }
+  .prune-box { background: #1c0f0f; border: 1px solid #5a2a2a; border-radius: 4px;
+               padding: 8px; }
+  .prune-box .loc       { font-size: 18px; font-weight: 700; color: #ff6b6b; }
+  .prune-box .loc-label { font-size: 10px; color: #888; }
+  .prune-box .unblocks  { margin-top: 6px; font-size: 11px; color: #bbb; }
+  .prune-box .unblocks li { margin-left: 14px; margin-top: 2px; }
+  .prune-box .bug { margin-top: 6px; font-size: 11px; color: #c06040; }
+  .empty-state { color: #444; font-size: 12px; padding: 20px; text-align: center; }
+  .owners-list { display: flex; flex-wrap: wrap; gap: 3px; }
+  .owner-pill { font-size: 10px; font-family: monospace; padding: 1px 6px; border-radius: 3px; }
+  .owner-pill.core      { background: #1a3d1a; color: #5cd65c; }
+  .owner-pill.seam      { background: #3d2e00; color: #ffb300; }
+  .owner-pill.removable { background: #3d1a1a; color: #ff6b6b; }
+
+  /* ── Legend ── */
+  /* #legend-launcher: collapsed "?" button — always visible, never blocks tiles */
+  #legend-launcher { position: absolute; top: 10px; right: 10px; z-index: 20;
+                     width: 24px; height: 24px; border-radius: 50%;
+                     background: rgba(30,30,30,0.92); border: 1px solid #555;
+                     color: #aaa; font-size: 13px; font-weight: 700;
+                     cursor: pointer; display: flex; align-items: center;
+                     justify-content: center; line-height: 1; pointer-events: auto; }
+  #legend-launcher:hover { background: rgba(50,50,50,0.95); color: #fff; border-color: #888; }
+
+  /* #legend: expanded panel — hidden by default; pointer-events:none on container
+     so the collapsed state (display:none) truly cannot intercept clicks */
+  #legend { position: absolute; top: 40px; right: 10px; background: rgba(22,22,22,0.95);
+            border: 1px solid #333; border-radius: 4px; padding: 8px 10px;
+            font-size: 10px; min-width: 180px; z-index: 15; max-height: calc(100vh - 120px);
+            overflow-y: auto; display: none; pointer-events: auto; }
+  #legend-close { float: right; cursor: pointer; color: #888; font-size: 12px;
+                  margin-left: 6px; line-height: 1; }
+  #legend-close:hover { color: #fff; }
+  #legend h4 { color: #888; font-size: 9px; text-transform: uppercase;
+               letter-spacing: 0.08em; margin-bottom: 6px; margin-top: 8px; }
+  #legend h4:first-child { margin-top: 0; }
+  .leg-row { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+  .leg-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ── Pedagogy affordances (single source of truth: pedagogy block) ── */
+  .ped-info { cursor: pointer; color: #777; font-size: 9px; margin-left: 3px; }
+  .ped-info:hover { color: #bbb; }
+
+  /* ── Explainer popover (click-toggle floating panel for (?) icons) ── */
+  #ped-popover { position: fixed; z-index: 200; max-width: 320px; min-width: 200px;
+                 background: #1c1c1c; border: 1px solid #555; border-radius: 5px;
+                 padding: 10px 12px; font-size: 11px; line-height: 1.5;
+                 color: #ccc; box-shadow: 0 4px 18px rgba(0,0,0,0.7);
+                 word-wrap: break-word; overflow-wrap: break-word;
+                 max-height: 60vh; overflow-y: auto; display: none; }
+  #ped-popover .pop-section { margin-bottom: 7px; }
+  #ped-popover .pop-section:last-child { margin-bottom: 0; }
+  #ped-popover .pop-label { font-size: 9px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: 0.08em; color: #888; margin-bottom: 2px; }
+  #ped-popover .pop-body { color: #ccc; }
+  #ped-popover .pop-epi { display: inline-block; font-size: 8px; padding: 0 5px;
+                           border-radius: 8px; border: 1px solid #555; margin-top: 4px;
+                           text-transform: lowercase; letter-spacing: 0.02em; }
+  #ped-popover .pop-close { float: right; cursor: pointer; color: #666; font-size: 12px;
+                             margin-left: 8px; line-height: 1; }
+  #ped-popover .pop-close:hover { color: #fff; }
+  .epi-chip { display: inline-block; font-size: 8px; padding: 0 5px; border-radius: 8px;
+              border: 1px solid #555; margin-left: 4px; vertical-align: middle;
+              text-transform: lowercase; letter-spacing: 0.02em; }
+  .badge.provisional-removable { background: repeating-linear-gradient(45deg,#2a1414,#2a1414 4px,#3a1a1a 4px,#3a1a1a 8px);
+              color: #d88; border: 1px dashed #a05050; font-style: italic; }
+  .gloss-anchor { font-size: 9px; color: #5a9; font-family: monospace; margin-left: 4px; }
+  .gloss-entry { margin-bottom: 8px; border-bottom: 1px solid #1e1e1e; padding-bottom: 6px; }
+  .gloss-term { color: #cda; font-weight: 600; font-size: 10px; }
+  .gloss-def  { color: #999; font-size: 10px; line-height: 1.45; margin-top: 2px; }
+  .gloss-honesty { color: #b08050; font-size: 9px; font-style: italic; margin-top: 2px; }
+  #glossary-header { display: flex; align-items: center; gap: 4px; cursor: pointer;
+                     margin-top: 8px; border-top: 1px solid #2a2a2a; padding-top: 6px; }
+  #glossary-header span { color: #666; font-size: 9px; text-transform: uppercase; letter-spacing: 0.08em; }
+  #glossary-toggle { color: #888; font-size: 10px; flex-shrink: 0; }
+  #glossary-panel { display: none; padding-top: 6px; }
+
+  /* Colour-mode toggle (Physical view) */
+  #color-mode-toggle { display: flex; align-items: center; gap: 4px; margin-left: 12px; font-size: 11px; }
+  #color-mode-toggle .cm-label { color: #888; }
+  #color-mode-toggle button { background: #2a2a2a; border: 1px solid #444; color: #bbb;
+                              padding: 2px 8px; border-radius: 3px; cursor: pointer; font-size: 11px; }
+  #color-mode-toggle button.active { background: #3a3a3a; border-color: #888; color: #fff; font-weight: 600; }
+
+  /* Refactor-pressure "look here first" lens */
+  #pressure-lens { position: absolute; left: 10px; bottom: 10px; width: 230px; max-height: 55%;
+                   overflow-y: auto; background: rgba(20,20,20,0.94); border: 1px solid #3a3a3a;
+                   border-radius: 4px; padding: 8px 10px; z-index: 12; font-size: 11px; }
+  #pressure-lens.lens-disabled { opacity: 0.7; }
+  /* Collapsed state: only the header row shows; the body panel is toggled */
+  #lens-collapse-header { border-radius: 3px; }
+  #lens-collapse-header:hover { background: rgba(255,255,255,0.04); }
+  #lens-body { margin-top: 6px; }
+  .lens-head { color: #ddd; font-size: 11px; font-weight: 600; margin-bottom: 6px; }
+  .lens-disabled-msg { color: #999; font-size: 10px; line-height: 1.5; }
+  .lens-disabled-msg code { color: #d2a; background: #221; padding: 0 3px; border-radius: 2px; }
+  .lens-proxy-note { color: #b08050; font-size: 9px; font-style: italic; margin-bottom: 6px; line-height: 1.4; }
+  .lens-row { padding: 4px 3px; border-radius: 3px; cursor: pointer; }
+  .lens-row:hover { background: rgba(255,255,255,0.05); }
+  .lens-row-top { display: flex; justify-content: space-between; }
+  .lens-name { color: #cfcfcf; font-family: monospace; font-size: 10px; overflow: hidden;
+               text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+  .lens-val  { color: #ff7a52; font-weight: 600; font-size: 10px; }
+  .lens-bar  { height: 4px; background: #2a2a2a; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+  .lens-bar-fill { height: 100%; border-radius: 2px; }
+  .lens-factors { margin-top: 4px; padding: 4px 6px; background: rgba(0,0,0,0.3); border-radius: 3px; }
+  .lens-factor { display: flex; justify-content: space-between; font-size: 9px; color: #aaa; }
+
+  /* Cycle-membership marker on physical tiles */
+  .node .cycle-marker { pointer-events: none; }
+
+  /* ── Tooltip ── */
+  #tooltip { position: fixed; pointer-events: none; background: rgba(18,18,18,0.95);
+             border: 1px solid #444; border-radius: 4px; padding: 6px 9px;
+             font-size: 11px; max-width: 260px; z-index: 100; display: none; }
+  #tooltip strong { color: #fff; display: block; margin-bottom: 2px; }
+  #tooltip .tt-cls  { font-size: 10px; font-weight: 600; text-transform: uppercase; }
+  #tooltip .tt-size { color: #888; font-size: 10px; margin-top: 2px; }
+</style>
+</head>
+<body>
+
+<div id="header">
+  <div>
+    <h1>{{PROJECT_NAME}}</h1>
+    <div style="display:flex; gap:8px; margin-top:4px; align-items:center; flex-wrap:wrap;">
+      {{FRAME_BADGE}}
+      <span class="counts">{{COUNTS}}</span>
+    </div>
+  </div>
+  <div id="toggles">
+    <button id="btn-logical"  class="active" onclick="setView('logical')">Logical</button>
+    <button id="btn-physical" onclick="setView('physical')">Physical</button>
+    <button id="btn-graph"    onclick="setView('graph')">Graph</button>
+  </div>
+  <label id="edge-toggle-wrap">
+    <input type="checkbox" id="show-all-edges" onchange="toggleAllEdges(this.checked)">
+    Show all edges (faint)
+  </label>
+  <label id="tests-toggle-wrap">
+    <input type="checkbox" id="show-tests" onchange="toggleTests(this.checked)">
+    Show tests
+  </label>
+  <!-- Physical-view colour mode: time-shares the colour channel (role hue vs
+       refactor-pressure heat). Hidden outside the Physical view. -->
+  <div id="color-mode-toggle" style="display:none">
+    <span class="cm-label">Colour:</span>
+    <button id="btn-color-role" class="active" onclick="setColorMode('role')">role</button>
+    <button id="btn-color-pressure" onclick="setColorMode('pressure')">pressure</button>
+  </div>
+  <span class="stamp">{{STAMP}}</span>
+</div>
+
+<div id="body">
+  <div id="treemap-area">
+    <svg id="treemap"></svg>
+    <!-- Refactor-pressure "look here first" side list (Physical view only) -->
+    <div id="pressure-lens" style="display:none"></div>
+    <!-- Collapsed "?" launcher — always visible, tiny, does not block tiles -->
+    <button id="legend-launcher" onclick="toggleLegend()" title="Show legend">?</button>
+    <!-- Expanded legend panel — hidden by default -->
+    <!-- Legend content is filled from the manifest's `pedagogy` block by
+         buildLegendPopovers() — no hardcoded help here (single source of
+         truth: scripts/pedagogy_registry.py). These are empty host containers. -->
+    <div id="legend">
+      <span id="legend-close" onclick="toggleLegend()" title="Close legend">✕</span>
+      <h4>Provenance (epistemic source)</h4>
+      <div id="leg-epistemic"></div>
+      <h4>Classification</h4>
+      <div id="leg-classifications"></div>
+      <h4>Edge types</h4>
+      <div id="leg-edge-types"></div>
+      <h4>Evidence class</h4>
+      <div id="leg-evidence"></div>
+      <div id="leg-direction" style="margin-top:4px"></div>
+
+      <!-- Glossary: concepts tethered to the proxy metric that surfaces them -->
+      <div id="glossary-header">
+        <span>Glossary (concepts → metrics)</span>
+        <span id="glossary-toggle">▸</span>
+      </div>
+      <div id="glossary-panel">
+        <div id="glossary-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel">
+    <div id="panel-header">
+      <h2 id="panel-title">Click a cell to inspect</h2>
+    </div>
+    <div id="panel-body">
+      <p class="empty-state">Select a component from the treemap to see its details, files, and edges.</p>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip"></div>
+
+<!-- Explainer popover: single reusable floating panel for all (?) affordances.
+     Populated and positioned by openExplainerPopover() in treemap.bundle.js. -->
+<div id="ped-popover" role="dialog" aria-modal="false" aria-label="Explainer">
+  <span class="pop-close" id="ped-popover-close" title="Close">✕</span>
+  <div id="ped-popover-body"></div>
+</div>
+
+<script>
+// Injected data — validated components manifest
+const COMPONENTS_DATA = {{COMPONENTS_JSON}};
+</script>
+<script>
+// Vendored D3 v7 (self-contained, no CDN fetch)
+{{D3_BUNDLE}}
+</script>
+<script>
+// architecture-treemap renderer
+{{TREEMAP_BUNDLE}}
+</script>
+</body>
+</html>

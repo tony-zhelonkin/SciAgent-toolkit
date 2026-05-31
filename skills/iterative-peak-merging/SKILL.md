@@ -1,9 +1,9 @@
 ---
 name: iterative-peak-merging
-description: "Iterative overlap peak merging creates an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces & Granja 2018 method), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified peak set for downstream scATAC quantification, or when bedtools merge/cluster produce artificially wide or undercalled peaks. For peak calling itself use MACS2/MACS3; for peak-level DA use Signac/ArchR."
+description: Iterative overlap peak merging creates an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces & Granja 2018 method), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified peak set for downstream scATAC quantification, or when bedtools merge/cluster produce artificially wide or undercalled peaks. For peak calling itself use MACS2/MACS3; for peak-level DA use Signac/ArchR.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,21 +11,15 @@ metadata:
   upstream-docs: https://www.science.org/doi/10.1126/science.aav1898
   category: foundation
   tier: simple
-  tags:
-  - peak-merging
-  - atac-seq
-  - archr
-  - fixed-width-peaks
-  - macs2
-  - corces-2018
+  tags: []
   complementary-skills:
   - cellranger-arc-multiome
   - scvi-peakvi
   - chromvar-motif-accessibility
   - pycistopic-atac-topic-modeling
   contraindications:
-  - "Do not use as a substitute for peak calling. Requires MACS2/MACS3 summit files as input."
-  - "Do not use bedtools merge or bedtools cluster for the same task — they cause daisy-chaining or undercalling."
+  - Do not use as a substitute for peak calling. Requires MACS2/MACS3 summit files as input.
+  - Do not use bedtools merge or bedtools cluster for the same task — they cause daisy-chaining or undercalling.
 ---
 
 # ATAC-seq Iterative Overlap Peak Merging Skill

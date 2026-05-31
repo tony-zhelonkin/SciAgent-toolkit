@@ -1,0 +1,48 @@
+# tags.yaml — sciagent skill tag vocabulary.
+# Single source of truth. Adding a tag = edit + PR.
+# See docs/proposals/sciagent-extension-design-spec.md ADR-001.
+
+tags:
+  - name: trajectory
+    description: Time-trajectory inference (pseudotime, RNA velocity, dynamics).
+    since: 2026-05-24
+
+  - name: integration
+    description: Batch correction and multi-sample harmonization (scVI, scANVI, harmony, MNN).
+    since: 2026-05-24
+
+  - name: annotation
+    description: Cell-type assignment (marker-based, reference-projection, manual rescue).
+    since: 2026-05-24
+
+  - name: de
+    description: Differential expression (limma, edgeR, DESeq2, scanpy.rank_genes_groups).
+    since: 2026-05-24
+
+  - name: pathway
+    description: Pathway analysis — enrichment (fgsea, hypergeometric), activity scoring (GSVA, AUCell, decoupleR), signatures.
+    since: 2026-05-24
+
+  - name: qc
+    description: Quality control (per-cell, per-sample, batch-level).
+    since: 2026-05-24
+
+  - name: viz
+    description: Plotting, dimensionality-reduction display, figure composition.
+    since: 2026-05-24
+
+  - name: report
+    description: Knit/render, publication-figure pipelines, captions, README/Methods generation, skill documentation.
+    since: 2026-05-24
+
+  - name: architecture
+    description: Software architecture — design patterns, refactoring guidance, system structure.
+    since: 2026-05-24
+
+  - name: tooling
+    description: General-purpose tool/utility building (CLIs, MCP servers, file-handling helpers, dev workflows).
+    since: 2026-05-24
+
+  - name: factor-analysis
+    description: Factor analysis super-family — multi-view / multi-block / multi-modal latent decomposition (MOFA, FAMD/MFA from FactoMineR & prince, mixOmics/DIABLO, scITD Tucker, sciRED PCA+varimax). Covers both probabilistic (Bayesian VI) and geometric (Benzécri-school SVD) generations.
+    since: 2026-05-28

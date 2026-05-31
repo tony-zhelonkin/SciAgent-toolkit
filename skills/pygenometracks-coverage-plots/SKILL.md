@@ -1,9 +1,9 @@
 ---
 name: pygenometracks-coverage-plots
-description: "pyGenomeTracks — publication-quality genome-browser-style coverage plots from bigWig / BED / GTF tracks driven by an INI config file. Use when you need a static PNG/SVG of read pileup, peak calls, or gene annotations at a specific locus for a figure. For interactive browsing use IGV / UCSC; for joint RNA+ATAC UMAPs use the matplotlib helpers in muon-multimodal-analysis."
+description: pyGenomeTracks — publication-quality genome-browser-style coverage plots from bigWig / BED / GTF tracks driven by an INI config file. Use when you need a static PNG/SVG of read pileup, peak calls, or gene annotations at a specific locus for a figure. For interactive browsing use IGV / UCSC; for joint RNA+ATAC UMAPs use the matplotlib helpers in muon-multimodal-analysis.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -12,19 +12,14 @@ metadata:
   category: visualization
   tier: simple
   tags:
-    - pygenometracks
-    - coverage-plot
-    - genome-browser
-    - bigwig
-    - figure-ready
-    - python
+  - viz
   complementary-skills:
-    - muon-multimodal-analysis
-    - snapatac2-atac-preprocessing
-    - signac-chromatin-analysis
+  - muon-multimodal-analysis
+  - snapatac2-atac-preprocessing
+  - signac-chromatin-analysis
   contraindications:
-    - "Do not use for interactive genome browsing — use IGV or UCSC."
-    - "Do not use for per-cell heatmaps of accessibility — use sc.pl.heatmap."
+  - Do not use for interactive genome browsing — use IGV or UCSC.
+  - Do not use for per-cell heatmaps of accessibility — use sc.pl.heatmap.
 ---
 
 # pyGenomeTracks Coverage Plots

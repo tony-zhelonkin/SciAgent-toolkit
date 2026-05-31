@@ -1,9 +1,9 @@
 ---
 name: signac-chromatin-analysis
-description: "Signac (R) for chromatin accessibility — 10x Multiome RNA+ATAC processing, TF-IDF+LSI, WNN joint embedding, gene activity, ChromVAR motif enrichment, peak-gene linkage, and coverage plots. Use when analysing 10x Multiome data in R with Seurat+Signac. For Python equivalents see snapatac2-atac-preprocessing and atac-differential-accessibility; for CITE-seq use seurat-citeseq-wnn."
+description: Signac (R) for chromatin accessibility — 10x Multiome RNA+ATAC processing, TF-IDF+LSI, WNN joint embedding, gene activity, ChromVAR motif enrichment, peak-gene linkage, and coverage plots. Use when analysing 10x Multiome data in R with Seurat+Signac. For Python equivalents see snapatac2-atac-preprocessing and atac-differential-accessibility; for CITE-seq use seurat-citeseq-wnn.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
@@ -11,23 +11,15 @@ metadata:
   upstream-docs: https://stuartlab.org/signac/
   category: integration
   tier: rich
-  tags:
-    - signac
-    - seurat
-    - 10x-multiome
-    - atac-seq
-    - chromvar
-    - link-peaks
-    - coverage-plot
-    - r
+  tags: []
   complementary-skills:
-    - seurat-citeseq-wnn
-    - seurat-multimodal-analysis
-    - chromvar-motif-accessibility
-    - snapatac2-atac-preprocessing
+  - seurat-citeseq-wnn
+  - seurat-multimodal-analysis
+  - chromvar-motif-accessibility
+  - snapatac2-atac-preprocessing
   contraindications:
-    - "Do not use for Python ATAC workflows — use snapatac2-atac-preprocessing."
-    - "Do not use for protein + RNA CITE-seq — use seurat-citeseq-wnn."
+  - Do not use for Python ATAC workflows — use snapatac2-atac-preprocessing.
+  - Do not use for protein + RNA CITE-seq — use seurat-citeseq-wnn.
 ---
 
 # Signac Chromatin Analysis

@@ -71,6 +71,7 @@ Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.
 2. Add to relevant `roles/*.yaml`
 3. Test: `bin/sciagent activate base && echo OK`
 4. Update `agents/README.md`
+5. If the chosen name collides across namespaces (also exists as a skill/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
 
 ### Adding a New Role
 
@@ -83,6 +84,7 @@ Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.
 1. `bin/sciagent new skill <name>` — copies `skills/_TEMPLATE/` to `skills/<name>/`
 2. Edit `skills/<name>/SKILL.md`
 3. Add to relevant `roles/*.yaml`
+4. If the chosen name collides across namespaces (also exists as an agent/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
 
 ---
 

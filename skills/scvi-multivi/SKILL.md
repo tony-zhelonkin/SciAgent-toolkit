@@ -1,9 +1,9 @@
 ---
 name: scvi-multivi
-description: "MultiVI jointly integrates paired and unpaired single-cell RNA and ATAC data using scvi-tools, producing a shared latent embedding with cross-modality imputation. Use when combining 10x Multiome with RNA-only or ATAC-only datasets, when running differential expression plus differential accessibility on joint embeddings, or for multiome batch correction. For ATAC-only analysis use scvi-peakvi; for regulatory TF-to-gene inference on unpaired data use scglue-unpaired-multiomics-integration."
+description: MultiVI jointly integrates paired and unpaired single-cell RNA and ATAC data using scvi-tools, producing a shared latent embedding with cross-modality imputation. Use when combining 10x Multiome with RNA-only or ATAC-only datasets, when running differential expression plus differential accessibility on joint embeddings, or for multiome batch correction. For ATAC-only analysis use scvi-peakvi; for regulatory TF-to-gene inference on unpaired data use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -12,11 +12,6 @@ metadata:
   category: integration
   tier: simple
   tags:
-  - scvi-tools
-  - multivi
-  - multiome
-  - rna-atac
-  - multimodal
   - integration
   complementary-skills:
   - scvi-framework
@@ -24,8 +19,8 @@ metadata:
   - scglue-unpaired-multiomics-integration
   - cellranger-arc-multiome
   contraindications:
-  - "Do not use for ATAC-only datasets. Use scvi-peakvi instead."
-  - "Do not use for unpaired multi-omics where cells are not shared. Use scglue-unpaired-multiomics-integration."
+  - Do not use for ATAC-only datasets. Use scvi-peakvi instead.
+  - Do not use for unpaired multi-omics where cells are not shared. Use scglue-unpaired-multiomics-integration.
 ---
 
 # MultiVI: RNA + ATAC Multimodal Integration

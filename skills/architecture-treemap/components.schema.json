@@ -1,0 +1,223 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sciagent.dev/schemas/components.schema.json",
+  "title": "Architecture audit components manifest",
+  "description": "Wire-format for an architecture-audit snapshot. The DETERMINISTIC substrate (physical_components, static direct-call edges, per-component metrics, git_sha) is produced by /components-extract; the JUDGMENT layer (classifications, smells, background-knowledge edges, prune verdicts, core_boundary) is produced by /audit-slice + /synthesize-audit. The treemap renderer is a pure function of this file.",
+  "type": "object",
+  "required": ["schema_version", "logical_components", "physical_components", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "type": "string", "const": "1.0" },
+    "audit_date": { "type": "string", "format": "date" },
+    "project": { "type": "string", "description": "Free-form project name for the header." },
+    "frame": { "type": "string", "description": "Optional architectural frame label (e.g. 'prune-modularize-extend'). Omitted -> no frame badge." },
+    "git_sha": { "type": "string", "description": "Commit SHA the snapshot was extracted at. Immutability stamp: a re-run produces a NEW snapshot, never updates an old one." },
+    "snapshot_id": { "type": "string", "description": "Optional human label for this snapshot (date or tag). Defaults to audit_date in the header if absent." },
+    "extractor": {
+      "type": "object",
+      "description": "Provenance of the deterministic substrate. Written by /components-extract; absent when the manifest was authored entirely by hand.",
+      "additionalProperties": true,
+      "properties": {
+        "tool_version": { "type": "string" },
+        "extracted_at": { "type": "string" },
+        "metric_tools": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "metric_descriptors": {
+      "type": "object",
+      "description": "Self-describing metric model: key -> descriptor. The single source of truth (scripts/metric_registry.py) serialised into the manifest so the renderer's badge set, side-panel rows, and good/bad semantics are a pure function of this file. Absent -> the renderer falls back to a built-in default descriptor table for backward compatibility with pre-registry manifests.",
+      "additionalProperties": { "$ref": "#/$defs/metric_descriptor" }
+    },
+    "pedagogy": {
+      "type": "object",
+      "description": "Self-describing pedagogy block: classification / edge-type / evidence-class explainers, the direction encoding, per-metric explainers, the epistemic-source legend, and the concept glossary. The single source of truth (scripts/pedagogy_registry.py) serialised into the manifest so the renderer draws every (?) affordance and the glossary as a pure function of this file. Open object (additionalProperties allowed) and OPTIONAL: absent -> the renderer falls back to built-in defaults for backward compatibility with pre-pedagogy manifests.",
+      "additionalProperties": true
+    },
+    "cycles": {
+      "type": "array",
+      "description": "Import cycles detected by Tarjan SCC over the static import graph (deterministic). Each is a strongly-connected component of size > 1: its members can all reach each other, so none can be changed in isolation (Acyclic Dependencies Principle). OPTIONAL: absent on hand-authored or pre-cycle-detection manifests.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "members"],
+        "properties": {
+          "id": { "type": "string" },
+          "members": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "logical_components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/logical_component" }
+    },
+    "physical_components": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/physical_component" }
+    },
+    "edges": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/edge" }
+    },
+    "prune_candidates": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/prune_candidate" }
+    },
+    "core_boundary": { "$ref": "#/$defs/core_boundary" },
+    "finding_index": {
+      "type": "object",
+      "description": "Optional lookup: smoke_finding / audit_slice tag -> human-readable record. Absent -> tags render as plain text.",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "title": { "type": "string" },
+          "severity": { "enum": ["info", "warn", "error"] },
+          "url": { "type": "string", "format": "uri-reference" }
+        }
+      }
+    }
+  },
+
+  "$defs": {
+    "classification": {
+      "type": "string",
+      "enum": ["core", "seam", "removable"]
+    },
+    "edge_type": {
+      "type": "string",
+      "enum": ["direct-call", "shared-state", "background-knowledge"]
+    },
+    "evidence_class": {
+      "type": "string",
+      "description": "How the edge was established. 'static' = detected by the AST/import-graph extractor (renders SOLID). 'audit-asserted' = drawn by a human/synthesis judgment, not statically detectable (renders DASHED). Absent -> renderer defaults direct-call to its own inference and everything else to 'audit-asserted'.",
+      "enum": ["static", "audit-asserted"]
+    },
+    "epistemic_source": {
+      "type": "string",
+      "description": "How much a claim depends on information NOT in the code. 'measured' = deterministic (an AST/git/tool proved it). 'metric-anchored' = judgment biased by a metric (still judgment). 'requires-your-intent' = extrinsic; only a human naming a concern can ground it. The load-bearing provenance channel. OPTIONAL and backward compatible: absent classifications/edges still validate and render (the renderer derives a sensible default from the type/classification).",
+      "enum": ["measured", "metric-anchored", "requires-your-intent"]
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Deterministic substrate metrics, as an OPEN numeric map. Every value is a non-negative number; the set of keys is NOT fixed by this schema. The single source of truth for which metrics exist (their labels, units, badge thresholds, base/derived kind) is the metric registry (scripts/metric_registry.py), serialised into the top-level metric_descriptors block. Adding a metric therefore means registering it once — the schema accepts it here automatically, with no closed property-list to edit. The named entries below are documented for reference only; they are not exhaustive. All optional; the renderer shows badges only for metrics present. Produced by /components-extract; absent on hand-authored components.",
+      "additionalProperties": { "type": "number", "minimum": 0 },
+      "properties": {
+        "loc": { "type": "integer", "minimum": 0 },
+        "fan_in": { "type": "integer", "minimum": 0, "description": "Count of modules that import/call this one." },
+        "fan_out": { "type": "integer", "minimum": 0, "description": "Count of modules this one imports/calls." },
+        "cyclomatic": { "type": "number", "minimum": 0, "description": "Mean (or summed) cyclomatic complexity, e.g. radon cc." },
+        "churn_90d": { "type": "integer", "minimum": 0, "description": "Commits touching this component in the last 90 days." },
+        "test_ratio": { "type": "number", "minimum": 0, "description": "Test LOC / source LOC for this component, where derivable." },
+        "refactor_pressure": { "type": "number", "minimum": 0, "description": "Derived: churn * cyclomatic * fan_in / test_ratio. Surfaces the highest-leverage refactor targets. Computed by the registry from base metrics." }
+      }
+    },
+    "metric_descriptor": {
+      "type": "object",
+      "description": "One metric's declaration, emitted from the registry. The renderer reads these to draw badges and panel rows; nothing here is required because pre-registry manifests omit the block entirely.",
+      "additionalProperties": true,
+      "properties": {
+        "label": { "type": "string" },
+        "short_badge_label": { "type": ["string", "null"] },
+        "unit": { "type": "string" },
+        "value_kind": { "enum": ["int", "number"] },
+        "higher_is_better": { "type": "boolean" },
+        "kind": { "enum": ["base", "derived"] },
+        "render": { "enum": ["badge", "hidden"] },
+        "badge_threshold": { "type": ["number", "null"] },
+        "badge_color": { "type": "string" }
+      }
+    },
+    "physical_file_ref": {
+      "type": "object",
+      "required": ["path"],
+      "additionalProperties": false,
+      "properties": {
+        "path": { "type": "string" },
+        "line_range": { "type": "string", "pattern": "^[0-9]+(-[0-9]+)?$" },
+        "ownership": { "enum": ["primary", "partial"] }
+      }
+    },
+    "logical_component": {
+      "type": "object",
+      "required": ["id", "name", "description", "classification", "physical_files", "size_estimate_loc"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "physical_files": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/physical_file_ref" }
+        },
+        "classification": { "$ref": "#/$defs/classification" },
+        "leaf": {
+          "type": "boolean",
+          "description": "Orphan-gate exemption marker. True declares this logical component a genuine source-only leaf, so the validator's non-leaf-orphan check (validate_components.py, run under --strict by /synthesize-audit) tolerates it having zero logical-id edges after rollup. A 'removable' classification is exempted automatically; use this only for a non-removable node that is legitimately edgeless. Absent -> the node is treated as non-leaf and must be connected."
+        },
+        "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
+        "smoke_findings": { "type": "array", "items": { "type": "string" } },
+        "audit_slices": { "type": "array", "items": { "type": "string" } },
+        "size_estimate_loc": { "type": "integer", "minimum": 0 },
+        "metrics": { "$ref": "#/$defs/metrics" }
+      }
+    },
+    "physical_component": {
+      "type": "object",
+      "required": ["id", "path", "size_loc", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "pattern": "^[a-z0-9-]+$" },
+        "path": { "type": "string" },
+        "size_loc": { "type": "integer", "minimum": 0 },
+        "logical_owners": { "type": "array", "items": { "type": "string" } },
+        "kind": { "enum": ["module", "config", "test", "doc", "asset", "other"] },
+        "metrics": { "$ref": "#/$defs/metrics" },
+        "cycle_id": { "type": "string", "description": "Id of the import cycle (cycles[].id) this component belongs to, if any. Stamped by the deterministic Tarjan SCC pass." },
+        "cycle_size": { "type": "integer", "minimum": 2, "description": "Number of components in this component's import cycle (>= 2)." }
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["from", "to", "type"],
+      "additionalProperties": false,
+      "properties": {
+        "from": { "type": "string" },
+        "to": { "type": "string" },
+        "type": { "$ref": "#/$defs/edge_type" },
+        "evidence_class": { "$ref": "#/$defs/evidence_class" },
+        "epistemic_source": { "$ref": "#/$defs/epistemic_source" },
+        "evidence": { "type": "string" },
+        "smell": { "type": ["string", "null"] },
+        "smoke_finding": { "type": ["string", "null"] },
+        "derived": {
+          "type": "boolean",
+          "description": "Provenance marker. True means this edge was produced deterministically by rollup_logical_edges.py from the physical static import graph. These edges are removed and re-derived on each rollup run (idempotent). Absent on hand-authored and physical static edges."
+        }
+      }
+    },
+    "prune_candidate": {
+      "type": "object",
+      "required": ["logical_component", "bounded", "loc_to_remove"],
+      "additionalProperties": false,
+      "properties": {
+        "logical_component": { "type": "string" },
+        "bounded": { "type": "boolean" },
+        "loc_to_remove": { "type": "integer", "minimum": 0 },
+        "unblocks_simplification_of": { "type": "array", "items": { "type": "string" } },
+        "latent_bug_fixed": { "type": ["string", "null"] }
+      }
+    },
+    "core_boundary": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rationale": { "type": "string" },
+        "core": { "type": "array", "items": { "type": "string" } },
+        "seam": { "type": "array", "items": { "type": "string" } },
+        "removable": { "type": "array", "items": { "type": "string" } },
+        "open_questions": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

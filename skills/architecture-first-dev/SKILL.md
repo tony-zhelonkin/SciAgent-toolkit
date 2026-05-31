@@ -2,8 +2,16 @@
 name: architecture-first-dev
 description: Architecture-first software development methodology. Use when planning non-trivial features, refactors, or redesigns where upfront design pays off. Encodes the 6-stage per-feature pipeline (map → review → synthesize → design → plan → implement) plus the optional 3-command meta-layer (meta-map → meta-design → meta-plan) for cross-feature work. Primes the assistant to stop at each gate, surface per-stage tips, and navigate the user from any state. Defer to docs/workflows/architect/00-quickstart.md as the cadence source of truth.
 metadata:
-  scope: foundation
+  version: 0.2.0
+  scope: concept
   requires: []
+  complementary-skills: []
+  contraindications:
+  - Do not use for one-line fixes, typo corrections, or trivial tweaks.
+  - Do not use for throwaway scripts or exploratory data analysis.
+  - Do not use when design is already locked (just implementing an approved spec).
+  tags:
+  - architecture
 ---
 
 # Architecture-First Development
@@ -120,6 +128,22 @@ Skip the meta-layer when only one feature is in flight, or when in-flight featur
 **The single most important rule:** downstream stages MUST read upstream artifacts and MUST NOT re-grep the codebase. If map.md exists, reviewers use it. If design/ exists, architect reads it. This is how the pipeline stays affordable.
 
 If upstream artifacts are stale or missing context, surface that in an "Open questions" section and have the user re-run `/map` — do not silently expand your own investigation.
+
+## Behaviour-preserving refactors — the oracle discipline
+
+When `/implement` must preserve existing output **byte-for-byte** — large mechanical refactors, module extractions, monolith decompositions — three patterns make a multi-stage change safe. They were earned on a 22-commit refactor of a ~7,500-line surface where every stage had to leave the rendered output identical.
+
+1. **Establish a byte-exact golden oracle FIRST, as Stage 0 — before touching the surface.** Snapshot the real output (rendered artifact, serialised payload, computed array) for a pinned, deterministic input and assert byte/array equality. This is the oracle every later stage verifies against (diff == 0); it is the single guard that lets mechanical extraction proceed without re-reasoning correctness at each step. Nothing else starts until it is green AND deterministic **across separate processes** — comparing two in-process calls misses per-process hash/seed ordering variation, the classic flaky-oracle trap.
+
+2. **Verify the gate yourself — an agent's "tests pass" is a claim, not a guarantee.** When orchestrating sub-agents, re-run the gate in your own hands after each stage; never advance on a sub-agent's reported green. On the refactor that earned this, sub-agents reported "6/6 green" while the oracle was red in the orchestrator's environment — twice. The corollary: trust artifacts you can re-run, not summaries you are handed.
+
+3. **Pin the input at the source, don't scrub the output.** To neutralise environmental non-determinism (timestamps, git SHA, hostnames), pin the value at its source — an env hook, an injected clock — so every occurrence renders the fixed value. Scrubbing the output with a regex forces you to enumerate every render site and silently passes the ones you miss. On the earning case the SHA appeared in four places; the first scrub-regex knew about one.
+
+Supporting practices:
+- **Split the behavioural change from the pure moves into separate commits.** A global-removal, a signature change, or a state-threading rewrite should be bisectable apart from the mechanical relocation around it.
+- **When the golden doesn't cover a path, carry an extra guard.** A standalone-call golden won't exercise a populated-cache or batch path; run a one-shot before/after byte-diff of that path during the stage, and leave a **permanent** regression test behind for the seam you changed — a behavioural change should leave a behavioural guard, not a one-time manual check.
+
+The portable axiom: **pin the input at the source, don't scrub the output — and an agent's "tests pass" is a claim, not a guarantee.**
 
 ## Human gates are non-negotiable — where judgment is required
 
@@ -262,3 +286,6 @@ Special case — **after `/meta-apply`**: always surface the MANUAL_REDESIGN_NEE
 - **"Ignore `NEEDS_ITERATION` from `/meta-apply`'s architect phase and proceed to `/plan`"** — the command already rolled `status:` back to `DRAFT` for that feature; `/plan` will refuse. Loop with `/design <slug> --iterate` first.
 - **"Ship without `/verify` after all `/implement` phases land"** — the mechanical drift check is the bug class a human can't eyeball across thousands of lines. Missing files, unreached ADRs, and scope drift are the three failure modes `/verify` is purpose-built to surface. Running it takes <1 minute and turns "did we build what we said?" from a judgment call into a checked fact.
 - **"Treat `/verify` as a quality audit"** — it is not. `/verify` is mechanical (anchors, files, mtimes). Behavioural correctness, architecture quality, and accidental complexity require human review or `/review <slug> --as divergent,code-reviewer`. `/verify` surfaces what it can mechanically check AND flags the rest as `NEEDS_HUMAN_REVIEW` — don't interpret CLEAN as "the code is good."
+- **"Advancing a refactor stage on a sub-agent's reported green"** — re-run the gate yourself; a sub-agent's "tests pass" is a claim, not a guarantee. The orchestrator owns verification. See the oracle-discipline section.
+- **"Scrubbing a non-deterministic value out of the output instead of pinning it at the source"** — you will miss an occurrence you didn't know about. Pin the value at its source (env hook / injected clock) so every render site is covered at once.
+- **"Refactoring a byte-sensitive surface without a golden oracle in place first"** — every later "byte-for-byte" claim then rests on nothing checkable. The byte-exact oracle is Stage 0, not an afterthought.

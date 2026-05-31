@@ -1,17 +1,17 @@
 ---
 name: signac-footprint-visualization
-description: "Signac Footprint() / PlotFootprint() for R-side TF footprint visualization on Seurat ChromatinAssay objects. Use for publication figures showing observed vs expected Tn5 cutting around motif sites, grouped by cell type or condition. For quantitative differential analysis use tobias-footprint-bindetect; for multi-condition heatmaps use hint-atac-differential-footprint."
+description: Signac Footprint() / PlotFootprint() for R-side TF footprint visualization on Seurat ChromatinAssay objects. Use for publication figures showing observed vs expected Tn5 cutting around motif sites, grouped by cell type or condition. For quantitative differential analysis use tobias-footprint-bindetect; for multi-condition heatmaps use hint-atac-differential-footprint.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   tools:
-    - Signac
-    - Seurat
-    - motifmatchr
-    - JASPAR2020
-    - TFBSTools
-    - BSgenome
+  - Signac
+  - Seurat
+  - motifmatchr
+  - JASPAR2020
+  - TFBSTools
+  - BSgenome
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
   version: 1.0.0
@@ -19,19 +19,14 @@ metadata:
   category: visualization
   tier: simple
   tags:
-    - signac
-    - seurat
-    - tf-footprinting
-    - visualization
-    - atac-seq
-    - r
+  - viz
   complementary-skills:
-    - tobias-footprint-bindetect
-    - hint-atac-differential-footprint
-    - signac-chromatin-analysis
+  - tobias-footprint-bindetect
+  - hint-atac-differential-footprint
+  - signac-chromatin-analysis
   contraindications:
-    - "Do not use for quantitative differential binding — Signac Footprint() is visualization-first; use tobias-footprint-bindetect."
-    - "Do not use on very large fragment files for many TFs — slow; restrict with `in.peaks = TRUE` or use TOBIAS."
+  - Do not use for quantitative differential binding — Signac Footprint() is visualization-first; use tobias-footprint-bindetect.
+  - Do not use on very large fragment files for many TFs — slow; restrict with `in.peaks = TRUE` or use TOBIAS.
 ---
 
 # Signac TF Footprint Visualization

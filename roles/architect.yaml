@@ -50,8 +50,9 @@ agents:
 
   # === Pipeline agents (invoked by specific commands) ===
   - mapper          # read-only codebase cartographer (/map)
+  - slicer          # concern-driven codebase slicer — re-explores along one concern (/audit-slice); PROBATIONARY
   - architect       # architecture consistency/completeness gate (/design)
-  - synth           # consensus synthesizer (/synthesize)
+  - synth           # consensus synthesizer (/synthesize, /synthesize-audit)
   - status-reporter # portfolio-state aggregator (/status) — Sonnet, frontmatter+grep only, no file writes
 
   # === Meta agent (cross-feature portfolio orchestrator) ===
@@ -63,6 +64,7 @@ agents:
 # Skills activate into .claude/skills/ via symlink
 skills:
   - architecture-first-dev   # methodology reminder: when to use which stage
+  - architecture-treemap     # retrospective audit visualiser: extract → audit-slice → synthesize-audit → treemap; PROBATIONARY
 
 # Commands activate into .claude/commands/ via symlink
 commands:
@@ -76,6 +78,11 @@ commands:
   - verify          # mechanical drift check: plan + design vs current code (main-agent only; produces verify.md)
   - status          # one-page portfolio-state summary (main-agent only; read-only; <30s)
   - diagram         # feature-level diagram renderer: collects Mermaid from design artifacts into diagrams.md (main-agent; read-only; <10s)
+  # === Architecture-treemap stack (retrospective audit; PROBATIONARY, prune review 2026-11-20) ===
+  - components-extract  # deterministic AST/git/metrics substrate → substrate components.json
+  - audit-slice         # dispatch N concern-driven slicers in parallel (user-authored trigger; off-the-autopilot)
+  - synthesize-audit    # integrate slices + substrate → full renderable components.json + decision menu
+  - architecture-treemap  # render self-contained treemap.html from components.json (deterministic; validates first)
   # === Meta-layer commands (cross-feature; optional) ===
   - meta-map
   - meta-design

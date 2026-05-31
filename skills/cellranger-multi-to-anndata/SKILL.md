@@ -1,9 +1,9 @@
 ---
 name: cellranger-multi-to-anndata
-description: "cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use muon-multimodal-analysis; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in."
+description: cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use muon-multimodal-analysis; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-29
@@ -11,27 +11,17 @@ metadata:
   tier: standard
   version: 0.1.0
   upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
-  tags:
-    - cellranger
-    - cellranger-multi
-    - anndata
-    - scrna-seq
-    - ingestion
-    - mouse
-    - human
-    - 10x
-    - biomart
-    - gene-union
+  tags: []
   complementary-skills:
-    - anndata
-    - single-cell-rna-qc
-    - scvi-basic
-    - scrna-pipeline-conventions
+  - anndata
+  - single-cell-rna-qc
+  - scvi-basic
+  - scrna-pipeline-conventions
   contraindications:
-    - "Do not use for 10x Multiome (RNA + ATAC paired) data. Use muon-multimodal-analysis instead."
-    - "Do not use for STARsolo intron-aware or spliced/unspliced counts. Use starsolo-spliced-unspliced instead."
-    - "Do not use on an already-built .h5ad. Use anndata directly for I/O on existing objects."
-    - "Do not use on cellranger count (single-sample) output. Read the single .h5 with scanpy.read_10x_h5 directly."
+  - Do not use for 10x Multiome (RNA + ATAC paired) data. Use muon-multimodal-analysis instead.
+  - Do not use for STARsolo intron-aware or spliced/unspliced counts. Use starsolo-spliced-unspliced instead.
+  - Do not use on an already-built .h5ad. Use anndata directly for I/O on existing objects.
+  - Do not use on cellranger count (single-sample) output. Read the single .h5 with scanpy.read_10x_h5 directly.
 ---
 
 # CellRanger Multi → AnnData

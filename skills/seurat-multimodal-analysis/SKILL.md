@@ -1,37 +1,30 @@
 ---
 name: seurat-multimodal-analysis
-description: "Orchestrator for R/Seurat multimodal single-cell analysis — chains CITE-seq + WNN, Signac chromatin analysis, bridge integration, and unpaired RNA+ATAC anchoring across four leaf skills. Use as the entry point when the project is R-based and analyses must stay in Seurat. For Python scverse use muon-multimodal-analysis; for Seurat-to-AnnData conversion use anndatar-seurat-scanpy-conversion."
+description: Orchestrator for R/Seurat multimodal single-cell analysis — chains CITE-seq + WNN, Signac chromatin analysis, bridge integration, and unpaired RNA+ATAC anchoring across four leaf skills. Use as the entry point when the project is R-based and analyses must stay in Seurat. For Python scverse use muon-multimodal-analysis; for Seurat-to-AnnData conversion use anndatar-seurat-scanpy-conversion.
 license: MIT
 metadata:
-  scope: orchestrator
+  scope: concept
   requires:
-    - seurat-citeseq-wnn
-    - signac-chromatin-analysis
-    - seurat-bridge-integration
-    - seurat-unpaired-cross-modality
-    - harmonypy-batch-integration
-    - anndatar-seurat-scanpy-conversion
-    - louper-seurat-conversion
+  - seurat-citeseq-wnn
+  - signac-chromatin-analysis
+  - seurat-bridge-integration
+  - seurat-unpaired-cross-modality
+  - harmonypy-batch-integration
+  - anndatar-seurat-scanpy-conversion
+  - louper-seurat-conversion
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-21
   version: 2.0.0
   upstream-docs: https://satijalab.org/seurat/
   category: integration
   tier: orchestrator
-  tags:
-    - seurat
-    - signac
-    - wnn
-    - cite-seq
-    - 10x-multiome
-    - orchestrator
-    - r
+  tags: []
   complementary-skills:
-    - muon-multimodal-analysis
-    - scglue-unpaired-multiomics-integration
+  - muon-multimodal-analysis
+  - scglue-unpaired-multiomics-integration
   contraindications:
-    - "Do not use for Python/scverse workflows. Use muon-multimodal-analysis instead."
-    - "Do not use to convert Seurat objects to AnnData/MuData. Use multimodal-anndata-mudata."
+  - Do not use for Python/scverse workflows. Use muon-multimodal-analysis instead.
+  - Do not use to convert Seurat objects to AnnData/MuData. Use multimodal-anndata-mudata.
 ---
 
 # Seurat Multimodal Analysis — Orchestrator

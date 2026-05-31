@@ -1,9 +1,9 @@
 ---
 name: scenic-grn-inference
-description: "SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons linking TF to region to gene) from paired scRNA-seq and scATAC-seq by integrating motif enrichment with expression correlation. Use when you need mechanistic TF-to-enhancer-to-target gene edges and have multiome or matched RNA+ATAC data with pycisTopic + pycistarget outputs ready. For scRNA-only regulon inference use classic pySCENIC; for unpaired RNA/ATAC integration use scglue-unpaired-multiomics-integration."
+description: SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons linking TF to region to gene) from paired scRNA-seq and scATAC-seq by integrating motif enrichment with expression correlation. Use when you need mechanistic TF-to-enhancer-to-target gene edges and have multiome or matched RNA+ATAC data with pycisTopic + pycistarget outputs ready. For scRNA-only regulon inference use classic pySCENIC; for unpaired RNA/ATAC integration use scglue-unpaired-multiomics-integration.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,22 +11,16 @@ metadata:
   upstream-docs: https://scenicplus.readthedocs.io/
   category: analysis
   tier: simple
-  tags:
-  - scenic-plus
-  - grn
-  - eregulons
-  - multiome
-  - transcription-factors
-  - snakemake
+  tags: []
   complementary-skills:
   - pycistopic-atac-topic-modeling
   - pycistarget-motif-enrichment
   - cellranger-arc-multiome
   - scvi-multivi
   contraindications:
-  - "Do not use without pycisTopic + pycistarget prerequisites. Run those skills first."
-  - "Do not use for scRNA-only GRN inference. Use pySCENIC instead."
-  - "Do not use for unpaired RNA/ATAC where cells are not shared. Use scglue-unpaired-multiomics-integration."
+  - Do not use without pycisTopic + pycistarget prerequisites. Run those skills first.
+  - Do not use for scRNA-only GRN inference. Use pySCENIC instead.
+  - Do not use for unpaired RNA/ATAC where cells are not shared. Use scglue-unpaired-multiomics-integration.
 ---
 
 # SCENIC+ GRN Inference Skill

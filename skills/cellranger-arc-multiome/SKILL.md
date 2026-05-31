@@ -1,9 +1,9 @@
 ---
 name: cellranger-arc-multiome
-description: "Cell Ranger ARC processes 10x Chromium Single Cell Multiome ATAC+GEX data via mkfastq, count, aggr, and reanalyze to produce paired ATAC fragments and gene expression matrices from the same cells. Use for primary processing of multiome FASTQs, including the tricky single-indexed ATAC library demultiplexing and libraries CSV configuration. For scRNA-only use Cell Ranger (not ARC); for downstream multiome integration use cellranger-arc output with scvi-multivi or scglue."
+description: Cell Ranger ARC processes 10x Chromium Single Cell Multiome ATAC+GEX data via mkfastq, count, aggr, and reanalyze to produce paired ATAC fragments and gene expression matrices from the same cells. Use for primary processing of multiome FASTQs, including the tricky single-indexed ATAC library demultiplexing and libraries CSV configuration. For scRNA-only use Cell Ranger (not ARC); for downstream multiome integration use cellranger-arc output with scvi-multivi or scglue.
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
@@ -11,22 +11,16 @@ metadata:
   upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger-arc
   category: foundation
   tier: simple
-  tags:
-  - cellranger-arc
-  - 10x-multiome
-  - atac-gex
-  - primary-processing
-  - fastq
-  - demultiplexing
+  tags: []
   complementary-skills:
   - scvi-multivi
   - scglue-unpaired-multiomics-integration
   - iterative-peak-merging
   - pycistopic-atac-topic-modeling
   contraindications:
-  - "Do not use for scRNA-only 3'/5' data. Use Cell Ranger (non-ARC) instead."
-  - "Do not use for scATAC-only libraries. Use Cell Ranger ATAC."
-  - "Cannot analyze ATAC or GEX modality alone; both modalities are required for all ARC pipelines."
+  - Do not use for scRNA-only 3'/5' data. Use Cell Ranger (non-ARC) instead.
+  - Do not use for scATAC-only libraries. Use Cell Ranger ATAC.
+  - Cannot analyze ATAC or GEX modality alone; both modalities are required for all ARC pipelines.
 ---
 
 # Cell Ranger ARC - 10x Multiome ATAC+GEX Pipeline
