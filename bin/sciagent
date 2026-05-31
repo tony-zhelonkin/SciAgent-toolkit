@@ -42,6 +42,7 @@ Usage:
   sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
+  sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
@@ -128,6 +129,10 @@ case "$verb" in
     new)
         . "$LIB/new.sh"
         cmd_new "$@"
+        ;;
+    gitignore)
+        . "$LIB/gitignore.sh"
+        cmd_gitignore "$@"
         ;;
     *)
         echo "sciagent: unknown verb '$verb'" >&2

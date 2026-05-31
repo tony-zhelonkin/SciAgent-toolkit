@@ -54,3 +54,28 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 ## Notes
 
 [Any caveats, known issues, or interpretation notes relevant to all agents working on this project]
+
+---
+
+## Docs architecture
+
+All documentation follows the SciAgent canonical taxonomy. Agents MUST route artifacts
+to their correct location and follow the naming rules below.
+
+### Public-facing (committed, tracked)
+- docs/README.md — navigation hub
+- docs/stages/ — durable per-phase methodology guides
+- docs/reference/ — external dataset READMEs and data lineage
+
+### Internal-facing (gitignored via SCIAGENT:GITIGNORE block)
+- docs/_internal/reasoning/ — reasoning traces: YYYYMMDD_HHMMSS_topic.md
+- docs/_internal/research/  — web-research notes: YYYYMMDD_topic.md
+- docs/_internal/plans/     — planning iterations
+- docs/_internal/reports/   — audit/quality reports (NOT in 03_results/)
+- docs/_internal/handoffs/  — handoff_YYYYMMDD_HHMMSS.md + MANIFEST.txt
+
+### Naming rules (enforced by sciagent validate)
+- Dated artifacts: YYYYMMDD_HHMMSS_topic.md or YYYYMMDD_topic.md (snake_case only)
+- Archive convention: _archive/YYYYMMDD/ per stage — never parallel .archive + _deprecated + _legacy
+- No .md reports inside 03_results/ — move to docs/_internal/reports/
+- Repo root holds at most: AGENTS.md, CLAUDE.md, GEMINI.md, README.md, context.md, one current handoff
