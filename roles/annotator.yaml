@@ -1,0 +1,42 @@
+# annotator.yaml — cell-type annotation role
+#
+# Purpose
+#   Cell-type annotation of scRNA-seq clusters via complementary strategies:
+#   reference-free multi-LLM consensus over marker genes (mLLMCelltype) and
+#   reference-based label transfer from the CELLxGENE Census.
+#
+# Use when
+#   - Assigning cell-type labels to scRNA-seq clusters
+#   - Reference-free annotation from per-cluster marker genes
+#   - Label transfer from an annotated reference atlas
+#   - Flagging low-confidence clusters for manual review
+#
+# Do NOT use when
+#   - Trajectory / velocity work
+#   - ATAC-seq / multiome work (use scatac-regulatory or multiome-grn)
+#   - Atlas integration / batch correction (use scrna-atlas)
+
+name: annotator
+description: Cell-type annotation of scRNA-seq clusters — multi-LLM consensus (mLLMCelltype) and Census label transfer
+
+agents:
+  - docs-librarian              # Tool/doc lookup
+  - bio-interpreter             # Biology interpretation; cell type context
+  - insight-explorer            # Validates annotation claims vs data
+  - code-reviewer               # Review generated notebooks and scripts
+  - handoff                     # Session continuity documentation
+
+skills:
+  # === scverse Foundation ===
+  - anndata                             # AnnData I/O, subsetting, concat
+  - scanpy                              # QC, normalization, Leiden, markers
+  - single-cell-rna-qc                  # MAD-based QC filtering
+
+  # === Annotation ===
+  - mllmcelltype-consensus-annotation   # Reference-free multi-LLM consensus over markers
+  - cellxgene-census-annotation         # Annotation transfer from CZ Census (33M cells)
+  - scvi-scanvi                         # Semi-supervised label propagation
+
+# === Universal addons ===
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution
