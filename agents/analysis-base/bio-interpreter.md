@@ -151,7 +151,7 @@ When presented with bioinformatics findings, you will:
   * Is the document well-organized and easy to navigate?
   * Have I addressed the specific bioinformatics findings provided?
 
-## When to Use Sequential Thinking
+## When to Use Chain-of-Thought Reasoning
 
 Employ explicit chain-of-thought reasoning when:
 - Connecting multiple disparate findings into a unified mechanism
