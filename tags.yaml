@@ -42,3 +42,7 @@ tags:
   - name: tooling
     description: General-purpose tool/utility building (CLIs, MCP servers, file-handling helpers, dev workflows).
     since: 2026-05-24
+
+  - name: factor-analysis
+    description: Factor analysis super-family — multi-view / multi-block / multi-modal latent decomposition (MOFA, FAMD/MFA from FactoMineR & prince, mixOmics/DIABLO, scITD Tucker, sciRED PCA+varimax). Covers both probabilistic (Bayesian VI) and geometric (Benzécri-school SVD) generations.
+    since: 2026-05-28
