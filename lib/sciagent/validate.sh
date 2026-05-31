@@ -63,26 +63,125 @@ _validate_join_kinds() {
     esac
 }
 
+# _validate_docs_layout <projdir> [--quiet]
+# Lints the docs/ layout of a project directory for common structural problems.
+# Hard failures (exit 1): docs/_internal/ exists, is inside a git repo, and is
+#   NOT gitignored (would expose internal notes in a push).
+# Soft warnings (exit 0): missing docs/, missing _internal/, .md in 03_results/,
+#   mixed archive-naming conventions, non-standard handoff filenames.
+# --quiet suppresses soft-warn stdout; hard-fail ERROR still goes to stderr.
+_validate_docs_layout() {
+    local projdir="${1:-.}"
+    local _quiet=0
+    if [[ "${2:-}" == "--quiet" ]]; then
+        _quiet=1
+    fi
+    local _docs_fail=0
+
+    # Check A (soft warn): docs/ directory does not exist.
+    [[ "$_quiet" -eq 0 && ! -d "$projdir/docs" ]] && echo "WARN docs: no docs/ directory found"
+
+    # Check B (soft warn): docs/_internal/ does not exist.
+    [[ "$_quiet" -eq 0 && ! -d "$projdir/docs/_internal" ]] && echo "WARN docs: docs/_internal/ missing — run: sciagent gitignore"
+
+    # Check C (HARD fail): docs/_internal/ exists but is NOT gitignored.
+    if [[ -d "$projdir/docs/_internal" ]]; then
+        local _in_git
+        _in_git=$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)
+        if [[ "$_in_git" == "true" ]]; then
+            if ! git -C "$projdir" check-ignore -q docs/_internal 2>/dev/null; then
+                echo "ERROR docs: docs/_internal/ is NOT gitignored — add 'docs/_internal/' to .gitignore" >&2
+                _docs_fail=1
+            fi
+        fi
+    fi
+
+    # Check D (soft warn): any .md file directly in 03_results/ at maxdepth 1.
+    if [[ "$_quiet" -eq 0 ]]; then
+        find "$projdir/03_results" -maxdepth 1 -name "*.md" 2>/dev/null | while IFS= read -r f; do
+            echo "WARN docs: report in results dir: $(basename "$f") — move to docs/_internal/reports/"
+        done
+    fi
+
+    # Check E (soft warn): multiple archive-style naming conventions coexist.
+    # Look for dirs named .archive, _deprecated, _legacy, .deprecated.
+    if [[ "$_quiet" -eq 0 ]]; then
+        local _dir
+        for _dir in "$projdir/02_analysis" "$projdir/03_results"; do
+            [[ -d "$_dir" ]] || continue
+            local _conventions
+            _conventions=$(find "$_dir" -maxdepth 3 -type d \
+                \( -name ".archive" -o -name "_deprecated" -o -name "_legacy" -o -name ".deprecated" \) \
+                2>/dev/null | awk -F'/' '{
+                    # get the parent path (all but last component)
+                    n=split($0,a,"/")
+                    parent=""
+                    for(i=1;i<n;i++) parent=parent (i>1?"/":"") a[i]
+                    # record which convention names appear under each parent
+                    basename=a[n]
+                    key=parent SUBSEP basename
+                    if(!seen[key]++) {
+                        count[parent]++
+                    }
+                }
+                END {
+                    for(p in count) {
+                        if(count[p]>=2) print p
+                    }
+                }')
+            if [[ -n "$_conventions" ]]; then
+                local _p
+                while IFS= read -r _p; do
+                    echo "WARN docs: mixed archive-naming conventions under $_p — pick one (.archive / _deprecated / _legacy / .deprecated)"
+                done <<< "$_conventions"
+            fi
+        done
+    fi
+
+    # Check F (soft warn): handoff_*.md files at repo root that don't match
+    # handoff_YYYYMMDD_HHMMSS.md
+    if [[ "$_quiet" -eq 0 ]]; then
+        local f
+        for f in "$projdir"/handoff_*.md; do
+            [[ -f "$f" ]] || continue
+            if ! printf '%s\n' "$(basename "$f")" | grep -qE '^handoff_[0-9]{8}_[0-9]{6}\.md$'; then
+                echo "WARN docs: non-standard handoff filename: $(basename "$f")"
+            fi
+        done
+    fi
+
+    return $_docs_fail
+}
+
 cmd_validate() {
     local quiet=0
+    local _projdir="."
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h|--help)
                 cat <<'USAGE'
-sciagent validate [--quiet]
+sciagent validate [--quiet] [--project-dir <dir>]
   Check requires graph + tag-vocab compliance over every skill in the
   toolkit. Exits 0 on success, 1 on any hard-fail (missing requires
   target, cycle, or unknown tag).
 
-  --quiet   Suppress the "all checks passed" summary on success.
+  --quiet            Suppress the "all checks passed" summary on success.
+  --project-dir <d>  Project directory to lint for docs-layout issues (default: .).
 USAGE
                 return 0 ;;
             --quiet)
                 quiet=1; shift ;;
+            --project-dir)
+                _projdir="${2:-.}"; shift 2 ;;
             *)
-                echo "sciagent validate: unknown option '$1'" >&2
-                echo "usage: sciagent validate [--quiet]" >&2
-                return 1 ;;
+                # Accept first positional non-flag arg as project dir.
+                if [[ "$1" != -* ]]; then
+                    _projdir="$1"; shift
+                else
+                    echo "sciagent validate: unknown option '$1'" >&2
+                    echo "usage: sciagent validate [--quiet] [--project-dir <dir>]" >&2
+                    return 1
+                fi ;;
         esac
     done
 
@@ -235,5 +334,17 @@ USAGE
     if [[ "$quiet" -eq 0 ]]; then
         echo "sciagent validate: all checks passed"
     fi
-    return 0
+
+    # Docs-layout linter (runs after all other checks; hard-fail from it
+    # increments fail and causes a non-zero exit).
+    # Pass --quiet through so soft-warn stdout is suppressed in quiet mode.
+    if [[ "$quiet" -eq 1 ]]; then
+        _validate_docs_layout "$_projdir" --quiet
+    else
+        _validate_docs_layout "$_projdir"
+    fi
+    local _docs_rc=$?
+    (( _docs_rc != 0 )) && fail=$(( fail + 1 ))
+
+    [[ "$fail" -eq 0 ]] && return 0 || return 1
 }
