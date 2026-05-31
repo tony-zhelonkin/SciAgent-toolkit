@@ -15,7 +15,9 @@ metadata:
   upstream-docs: https://github.com/loosolab/TOBIAS
   category: analysis
   tier: orchestrator
-  tags: []
+  tags:
+  - chromatin
+  - motif
   complementary-skills:
   - chromvar-motif-accessibility
   - pycistarget-motif-enrichment

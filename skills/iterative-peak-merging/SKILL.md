@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://www.science.org/doi/10.1126/science.aav1898
   category: foundation
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - preprocessing
   complementary-skills:
   - cellranger-arc-multiome
   - scvi-peakvi

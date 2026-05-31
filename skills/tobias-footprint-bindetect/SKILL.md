@@ -17,7 +17,9 @@ metadata:
   upstream-docs: https://github.com/loosolab/TOBIAS
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - motif
   complementary-skills:
   - hint-atac-differential-footprint
   - signac-footprint-visualization

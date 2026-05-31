@@ -13,6 +13,7 @@ metadata:
   tier: simple
   tags:
   - viz
+  - chromatin
   complementary-skills:
   - muon-multimodal-analysis
   - snapatac2-atac-preprocessing

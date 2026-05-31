@@ -12,6 +12,7 @@ metadata:
   tags:
   - factor-analysis
   - integration
+  - multimodal
   complementary-skills:
   - factor-analysis-framework
   - mofa-mofapy2

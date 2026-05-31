@@ -13,14 +13,7 @@ metadata:
   tier: standard
   tags:
   - annotation
-  - cellxgene
-  - census
-  - tiledb
-  - scvi-embeddings
-  - geneformer
-  - label-transfer
-  - reference-annotation
-  - cloud-api
+  - reference-mapping
   complementary-skills:
   - single-cell-vector-search
   - treearches-hierarchy-learning

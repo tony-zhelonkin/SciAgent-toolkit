@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://stuartlab.org/signac/
   category: integration
   tier: rich
-  tags: []
+  tags:
+  - chromatin
+  - multimodal
   complementary-skills:
   - seurat-citeseq-wnn
   - seurat-multimodal-analysis

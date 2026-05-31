@@ -19,7 +19,8 @@ metadata:
   upstream-docs: https://muon.scverse.org/
   category: integration
   tier: orchestrator
-  tags: []
+  tags:
+  - multimodal
   complementary-skills:
   - seurat-multimodal-analysis
   - scglue-unpaired-multiomics-integration

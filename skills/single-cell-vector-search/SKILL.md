@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://genentech.github.io/scimilarity/
   category: annotation
   tier: standard
-  tags: []
+  tags:
+  - annotation
+  - reference-mapping
   complementary-skills:
   - cellxgene-census-annotation
   - scvi-scanvi

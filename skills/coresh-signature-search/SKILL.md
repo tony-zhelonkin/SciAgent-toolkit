@@ -13,6 +13,7 @@ metadata:
   tier: standard
   tags:
   - pathway
+  - metaprogram
   complementary-skills:
   - bulk-rnaseq-gsea
   - bulk-rnaseq-pathway-explorer

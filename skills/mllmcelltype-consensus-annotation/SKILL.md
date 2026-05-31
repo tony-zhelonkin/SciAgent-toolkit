@@ -14,11 +14,6 @@ metadata:
   packaged: true   # ships a uv-locked, CLI-driven, tested package — see docs/packaged-skills.md
   tags:
     - annotation
-    - cell-type-annotation
-    - cell-state-annotation
-    - llm
-    - reference-free
-    - cli
   complementary-skills:
     - scanpy
     - cellxgene-census-annotation

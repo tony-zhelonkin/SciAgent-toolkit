@@ -13,6 +13,7 @@ metadata:
   tier: standard
   tags:
   - integration
+  - multimodal
   complementary-skills:
   - scvi-multivi
   - muon-multimodal-analysis

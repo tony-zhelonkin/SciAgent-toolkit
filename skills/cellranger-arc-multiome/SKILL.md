@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger-arc
   category: foundation
   tier: simple
-  tags: []
+  tags:
+  - preprocessing
+  - multimodal
   complementary-skills:
   - scvi-multivi
   - scglue-unpaired-multiomics-integration

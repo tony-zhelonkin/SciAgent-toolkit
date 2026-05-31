@@ -18,7 +18,8 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/
   category: integration
   tier: orchestrator
-  tags: []
+  tags:
+  - multimodal
   complementary-skills:
   - muon-multimodal-analysis
   - scglue-unpaired-multiomics-integration

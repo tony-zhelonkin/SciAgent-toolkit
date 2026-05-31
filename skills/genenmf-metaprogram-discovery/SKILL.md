@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://github.com/carmonalab/GeneNMF
   category: analysis
   tier: standard
-  tags: []
+  tags:
+  - metaprogram
   complementary-skills:
   - scvi-framework
   - anndatar-seurat-scanpy-conversion

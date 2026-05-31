@@ -11,7 +11,8 @@ metadata:
   tier: rich
   version: 0.1.0
   upstream-docs: https://github.com/EskelandLab/ShinyMultiomeUiO
-  tags: []
+  tags:
+  - hosting
   complementary-skills:
   - scrna-cxg-host
   - seurat-multimodal-analysis

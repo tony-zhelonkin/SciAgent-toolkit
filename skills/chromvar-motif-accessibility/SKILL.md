@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://greenleaflab.github.io/chromVAR/
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - motif
   complementary-skills:
   - pycistarget-motif-enrichment
   - tf-footprint-differential-analysis

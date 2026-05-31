@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis
   category: integration
   tier: simple
-  tags: []
+  tags:
+  - multimodal
   complementary-skills:
   - signac-chromatin-analysis
   - seurat-multimodal-analysis

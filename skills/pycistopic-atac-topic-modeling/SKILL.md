@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://pycistopic.readthedocs.io/
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - grn
+  - chromatin
   complementary-skills:
   - pycistarget-motif-enrichment
   - scenic-grn-inference

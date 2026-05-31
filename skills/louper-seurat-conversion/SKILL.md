@@ -9,7 +9,8 @@ metadata:
   last-reviewed: 2026-04-14
   category: foundation
   tier: rich
-  tags: []
+  tags:
+  - conversion
   complementary-skills:
   - anndatar-seurat-scanpy-conversion
   - anndata

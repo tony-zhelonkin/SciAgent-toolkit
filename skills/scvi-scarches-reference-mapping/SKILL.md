@@ -13,6 +13,7 @@ metadata:
   tier: simple
   tags:
   - annotation
+  - reference-mapping
   complementary-skills:
   - scvi-framework
   - scvi-hub-models

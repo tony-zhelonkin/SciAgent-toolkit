@@ -12,6 +12,7 @@ metadata:
   tags:
   - factor-analysis
   - integration
+  - multimodal
   complementary-skills:
   - mofa-framework
   - mofa-mofax

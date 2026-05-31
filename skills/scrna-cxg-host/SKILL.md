@@ -11,7 +11,8 @@ metadata:
   tier: rich
   version: 0.1.0
   upstream-docs: https://cellxgene.cziscience.com/
-  tags: []
+  tags:
+  - hosting
   complementary-skills:
   - anndata
   - scanpy

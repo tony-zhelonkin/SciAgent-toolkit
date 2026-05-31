@@ -12,7 +12,9 @@ metadata:
   upstream-docs: https://kzhang.org/SnapATAC2/
   category: atac-preprocessing
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - preprocessing
   complementary-skills:
   - muon-multimodal-analysis
   - harmonypy-batch-integration

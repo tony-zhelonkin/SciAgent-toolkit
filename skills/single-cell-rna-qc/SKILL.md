@@ -11,6 +11,7 @@ metadata:
   tier: standard
   tags:
   - qc
+  - preprocessing
   complementary-skills:
   - anndata
   - scanpy

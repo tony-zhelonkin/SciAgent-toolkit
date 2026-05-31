@@ -20,6 +20,8 @@ metadata:
   tier: simple
   tags:
   - viz
+  - chromatin
+  - motif
   complementary-skills:
   - tobias-footprint-bindetect
   - hint-atac-differential-footprint

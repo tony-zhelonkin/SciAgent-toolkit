@@ -15,7 +15,9 @@ metadata:
   upstream-docs: https://reg-gen.readthedocs.io/
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - motif
   complementary-skills:
   - tobias-footprint-bindetect
   - signac-footprint-visualization

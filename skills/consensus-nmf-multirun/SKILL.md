@@ -11,7 +11,8 @@ metadata:
   tier: rich
   version: 0.1.0
   upstream-docs: https://github.com/dylkot/cNMF
-  tags: []
+  tags:
+  - metaprogram
   complementary-skills:
   - scanpy
   - single-cell-rna-qc

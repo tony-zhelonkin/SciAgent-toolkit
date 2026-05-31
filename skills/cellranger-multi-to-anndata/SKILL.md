@@ -11,7 +11,9 @@ metadata:
   tier: standard
   version: 0.1.0
   upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
-  tags: []
+  tags:
+  - preprocessing
+  - conversion
   complementary-skills:
   - anndata
   - single-cell-rna-qc

@@ -13,6 +13,7 @@ metadata:
   tier: standard
   tags:
   - annotation
+  - reference-mapping
   complementary-skills:
   - scvi-scarches-reference-mapping
   - scvi-scanvi

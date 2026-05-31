@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://muon.scverse.org/
   category: atac-analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
   complementary-skills:
   - muon-multimodal-analysis
   - snapatac2-atac-preprocessing

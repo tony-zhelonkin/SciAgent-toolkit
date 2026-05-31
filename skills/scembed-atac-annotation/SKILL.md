@@ -13,6 +13,7 @@ metadata:
   tier: simple
   tags:
   - annotation
+  - chromatin
   complementary-skills:
   - scvi-scarches-reference-mapping
   - scvi-peakvi

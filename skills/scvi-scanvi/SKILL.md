@@ -11,6 +11,7 @@ metadata:
   tier: standard
   tags:
   - annotation
+  - reference-mapping
   complementary-skills:
   - scvi-framework
   - scvi-basic

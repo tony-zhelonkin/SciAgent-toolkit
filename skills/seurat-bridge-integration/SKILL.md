@@ -14,6 +14,8 @@ metadata:
   tags:
   - annotation
   - integration
+  - multimodal
+  - reference-mapping
   complementary-skills:
   - seurat-unpaired-cross-modality
   - signac-chromatin-analysis

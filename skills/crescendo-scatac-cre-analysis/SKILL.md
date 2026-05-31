@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://github.com/GreenleafLab/CREscendo
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
   complementary-skills:
   - iterative-peak-merging
   - chromvar-motif-accessibility

@@ -13,6 +13,7 @@ metadata:
   - factor-analysis
   - integration
   - pathway
+  - multimodal
   complementary-skills:
   - mofa-framework
   - mofa-r

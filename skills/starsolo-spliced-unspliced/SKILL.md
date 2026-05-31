@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://github.com/alexdobin/STAR/blob/master/docs/STARsolo.md
   category: foundation
   tier: standard
-  tags: []
+  tags:
+  - preprocessing
   complementary-skills:
   - rna-velocity-trajectory
   contraindications:

@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://mudata.readthedocs.io/
   category: foundation
   tier: standard
-  tags: []
+  tags:
+  - multimodal
+  - conversion
   complementary-skills:
   - anndatar-seurat-scanpy-conversion
   - muon-multimodal-analysis

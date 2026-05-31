@@ -13,6 +13,7 @@ metadata:
   tier: simple
   tags:
   - integration
+  - chromatin
   complementary-skills:
   - scvi-framework
   - scvi-multivi

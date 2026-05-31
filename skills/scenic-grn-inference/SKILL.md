@@ -11,7 +11,8 @@ metadata:
   upstream-docs: https://scenicplus.readthedocs.io/
   category: analysis
   tier: simple
-  tags: []
+  tags:
+  - grn
   complementary-skills:
   - pycistopic-atac-topic-modeling
   - pycistarget-motif-enrichment

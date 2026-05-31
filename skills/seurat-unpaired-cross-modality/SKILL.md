@@ -14,6 +14,7 @@ metadata:
   tags:
   - annotation
   - integration
+  - multimodal
   complementary-skills:
   - signac-chromatin-analysis
   - seurat-bridge-integration

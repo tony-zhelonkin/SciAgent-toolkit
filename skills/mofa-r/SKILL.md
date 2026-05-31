@@ -13,6 +13,7 @@ metadata:
   - factor-analysis
   - integration
   - viz
+  - multimodal
   complementary-skills:
   - mofa-framework
   - mofa-cellular

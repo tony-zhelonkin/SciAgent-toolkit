@@ -73,12 +73,12 @@ metadata:
   #   where a user MIGHT reach for this skill but shouldn't. 1-4 entries.
 
   tags:
-    - tag-one
-    - tag-two
+    - annotation
+    - qc
   # ^ Values MUST exist in tags.yaml at the toolkit root (ADR-001 tag vocabulary).
-  #   Use the shortest-unambiguous form: de, qc, viz (not differential-expression).
-  #   Day-one vocabulary: trajectory, integration, annotation, de, pathway, qc,
-  #   viz, report, architecture, tooling. Add new tags via tags.yaml PR first.
+  #   Tags are thematic FAMILIES (inject --tag pulls the whole family), not
+  #   tool/format details. Use the shortest-unambiguous form: de, qc, viz.
+  #   See tags.yaml for the full vocabulary; add new tags via tags.yaml PR first.
 
   category: foundation
   # ^ one of:

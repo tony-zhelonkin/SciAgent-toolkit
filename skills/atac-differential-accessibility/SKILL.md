@@ -11,7 +11,9 @@ metadata:
   upstream-docs: https://kzhang.org/SnapATAC2/api/index.html
   category: atac-analysis
   tier: simple
-  tags: []
+  tags:
+  - chromatin
+  - de
   complementary-skills:
   - snapatac2-atac-preprocessing
   - chromvar-motif-accessibility

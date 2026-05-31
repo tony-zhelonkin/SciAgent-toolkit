@@ -16,7 +16,9 @@ metadata:
   last-reviewed: 2026-01-17
   category: interop
   tier: standard
-  tags: []
+  tags:
+  - grn
+  - conversion
   complementary-skills:
   - pycistopic-atac-topic-modeling
   - pycistarget-motif-enrichment
