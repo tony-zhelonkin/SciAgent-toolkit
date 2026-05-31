@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] - 2026-05-31
+
+### Added
+- `templates/GEMINI.md.template`: one-line `@AGENTS.md` shim — Gemini provider now has a canonical single-source shim matching the Claude pattern
+- `templates/AGENTS.md.template`: appended `## Docs architecture` section with full taxonomy (`docs/stages/`, `docs/reference/`, `docs/_internal/{reasoning,research,plans,reports,handoffs}`), naming rules (YYYYMMDD_HHMMSS snake_case), archive convention (`_archive/YYYYMMDD/`), and boundary rules (no `.md` in `03_results/`)
+- `sciagent gitignore [<path>]`: new verb that writes a `SCIAGENT:GITIGNORE` BEGIN/END managed block into `.gitignore`; idempotent; covers `docs/_internal/`, `.claude/`, `.agents/`, `.gemini/`, `.sciagent/`, `.mcp.json`, `.env`, `.env.*`
+- `sciagent new project`: now scaffolds full `docs/` tree including `docs/_internal/{reasoning,research,plans,reports,handoffs}` with `.gitkeep` sentinels; writes `docs/README.md`; applies managed `.gitignore` block via `sciagent gitignore`
+- `sciagent validate --project-dir <dir>`: six-check docs-layout linter — checks for `docs/`, `docs/_internal/`, hard-fails if `docs/_internal/` exists but is ungitignored, warns on `.md` files in `03_results/`, warns on coexisting archive-style dirs, warns on malformed root handoffs
+- `templates/pre-commit.template`: pre-commit hook scaffold that runs `sciagent validate --project-dir` on every commit
+- `tests/test_validate_docs_layout.sh`: 5 subtests covering all docs-layout linter checks
+
 ### Removed
 - `mcp_servers/pal` venv and `deprecated/` harness installers (`install_claude.sh`, `install_codex.sh`, `install_gemini.sh`)
 
