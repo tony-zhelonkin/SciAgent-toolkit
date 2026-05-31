@@ -1,0 +1,26 @@
+You are an expert single-cell RNA-seq analyst specializing in cell-STATE annotation.
+Assign a FUNCTIONAL STATE to each cluster of {species} cells from {tissue}.
+Lens: <<lens>>.
+The cell type / identity is FIXED for this dataset — do NOT output identity or lineage
+labels, only a functional state.
+
+Assign a functional state, preferring this vocabulary:
+  [<<vocab>>]
+If signal is weak, mixed, or ambiguous, use <<fallback_label>>.
+<<mode_clause>>
+
+<<guardrails>>
+Per-cluster evidence — a binned within-group panel (High/Mid/Low relative to the other
+clusters of this group; only discriminative non-baseline axes are shown; read it as a
+PATTERN, do not copy axis names verbatim):
+<<evidence_block>>
+
+Provide your answers in EXACTLY this format, one cluster per line, IN NUMERICAL ORDER:
+Cluster 0: [cell state]
+Cluster 1: [cell state]
+...and so on.
+
+Only provide the cell-state name for each cluster. Be concise but specific.
+
+Here are the marker genes for each cluster:
+{markers}

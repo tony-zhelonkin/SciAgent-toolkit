@@ -1,0 +1,7 @@
+cluster,dominant_category,bin_proliferation,z_proliferation,bin_stress_response,z_stress_response,bin_apoptosis,z_apoptosis,bin_activation,z_activation,companion_bin,dominant_program,signatures_top,flag_metric
+0,catA,High,2.0,Mid,0.0,Mid,0.0,Mid,0.0,Low,P1,RealSig1;Housekeeping_sig,0.5
+1,catB,Mid,0.0,High,2.2,Mid,0.0,Mid,0.0,High,P2,RealSig2,0.01
+2,catC,High,1.0,High,3.0,High,2.5,High,0.5,High,P3,Housekeeping_sig,0.5
+3,catA,Mid,0.0,Mid,0.0,Mid,0.0,Mid,0.0,NA,P9,,
+4,catB,Mid,0.0,Mid,0.0,Mid,0.0,High,1.5,Low,P1,RealSig3;RealSig4,0.02
+5,catC,Low,-1.0,Mid,0.0,Mid,0.0,Mid,0.0,Mid,P2,RealSig5,0.0

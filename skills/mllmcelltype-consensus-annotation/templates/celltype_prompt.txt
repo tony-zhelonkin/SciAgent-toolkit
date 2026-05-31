@@ -1,0 +1,15 @@
+You are an expert single-cell RNA-seq analyst.
+Identify the CELL TYPE of each cluster of {species} cells from {tissue}.
+
+For each cluster, give the most specific cell-type name supported by its marker genes.
+If the markers are ambiguous or mixed, say so plainly rather than guessing.
+
+Provide your answers in EXACTLY this format, one cluster per line, IN NUMERICAL ORDER:
+Cluster 0: [cell type]
+Cluster 1: [cell type]
+...and so on.
+
+Only provide the cell-type name for each cluster. Be concise but specific.
+
+Here are the marker genes for each cluster:
+{markers}

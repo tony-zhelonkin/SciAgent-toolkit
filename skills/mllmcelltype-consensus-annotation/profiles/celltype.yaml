@@ -1,0 +1,20 @@
+# Profile: CELL-TYPE annotation (classic mLLMCelltype — markers only).
+# Switch to cell-state by passing --profile profiles/cellstate.yaml instead.
+name: celltype
+
+inject_evidence: false # markers-only; no EvidenceProvider is constructed
+evidence_provider: null
+
+prompt_template: templates/celltype_prompt.txt
+
+# Open vocab with NO predefined list: the LLM's free-text cell-type label passes through verbatim (novel_prefix:"" + clean_novel:false). Add a `vocab:` list + `synonyms:` map if you want to canonicalize to an ontology; set vocab_mode: closed to force-snap off-vocab calls to `fallback_label`.
+vocab_mode: open
+vocab: []
+synonyms: {}
+fallback_label: Unknown
+novel_prefix: ""
+clean_novel: false
+
+domain_guards: {}
+
+join: { enabled: false }

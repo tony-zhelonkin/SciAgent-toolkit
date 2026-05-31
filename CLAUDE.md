@@ -108,3 +108,5 @@ If this toolkit is a submodule, re-activate from the parent:
 ## Architecture Reference
 
 See [docs/architecture.md](docs/architecture.md) for the full design spec.
+
+For skills that ship version-locked, tested executable code (not just prose), see [docs/packaged-skills.md](docs/packaged-skills.md) — the `packaged: true` tier, with `skills/mllmcelltype-consensus-annotation/` as the reference implementation.

@@ -1,0 +1,7 @@
+cell_id,axis_a_label,axis_a_conf,axis_b_label,axis_b_conf
+c1,Ambiguous_LowSignal,1.0,Ambiguous_LowSignal,1.0
+c2,Ambiguous_LowSignal,1.0,Activated,1.0
+c3,Activated,1.0,Activated,1.0
+c4,Stressed,1.0,Activated,1.0
+c5,Activated,1.0,Apoptotic,1.0
+c6,Stressed / Apoptotic,0.5,Activated,1.0
