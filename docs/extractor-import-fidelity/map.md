@@ -71,8 +71,9 @@ decision (Open questions, item c).
 ### Tests
 
 - No Python unit tests exist for the extractor. `find` over the toolkit returns
-  only vendored test files under `mcp_servers/pal/venv/.../site-packages/` and
-  one unrelated `docs/.ref/era/implementation/futs_test.py`.
+  only one unrelated `docs/.ref/era/implementation/futs_test.py`. (At audit time
+  vendored test files also appeared under a since-removed `mcp_servers/pal/venv`
+  tree; that directory no longer exists.)
 - `skills/architecture-treemap/tests/` does not exist.
 - `skills/architecture-treemap/checks/golden_render.sh` — end-to-end check:
   validates + renders the golden fixture, asserts self-containment and
