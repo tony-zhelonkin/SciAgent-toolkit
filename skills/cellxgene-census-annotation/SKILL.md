@@ -12,6 +12,7 @@ metadata:
   category: annotation
   tier: standard
   tags:
+    - annotation
     - cellxgene
     - census
     - tiledb
