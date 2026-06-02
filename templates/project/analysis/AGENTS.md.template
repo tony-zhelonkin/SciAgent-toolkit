@@ -15,8 +15,7 @@ to `docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
 
 ## Active role
 
-<!-- BEGIN SCIAGENT:ROLES managed block — do not edit between these markers -->
-<!-- END SCIAGENT:ROLES -->
+_No role activated yet. Run `sciagent activate <role>` to populate this section._
 
 Run `sciagent status` to see the current stack, effective skills, agents, and commands.
 
