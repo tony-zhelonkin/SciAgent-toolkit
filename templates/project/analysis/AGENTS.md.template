@@ -63,15 +63,23 @@ name read from the script (never guessed); Config is the active `key = value`. N
 
 ## Documentation namespace
 
-`docs/_internal/` is agent-facing (not the published deliverable). Route writing here:
+`docs/_internal/` is agent-facing (not the published deliverable). Route every output here:
 
-| Path | Holds |
-|------|-------|
-| `docs/_internal/scientific-context.md` | stable scientific framing (question, datasets, goals) |
-| `docs/_internal/reasoning/` | decision traces, why-not logs, agent thinking |
-| `docs/_internal/sessions/` | dated handoffs `YYYY-MM-DD_<slug>.md` |
-| `docs/_internal/scratch/` | exploratory writeups before they crystallize |
-| `docs/plan/` | public-facing phased research plan |
+| Output kind | Directory |
+|-------------|-----------|
+| session handoff | `docs/_internal/sessions/` |
+| research note | `docs/_internal/ai-generated/research/` |
+| decision log | `docs/_internal/reasoning/` |
+| scratch | `docs/_internal/scratch/` |
+| scientific framing | `docs/_internal/scientific-context.md` |
+| public phased plan | `docs/plan/` |
+
+Naming conventions: see `docs/_internal/README.md`.
+
+**One-way reference rule:** public `docs/` must NOT reference `_internal/` paths.
+
+**Never-grow-this-file rule:** if `AGENTS.md` exceeds ~150 lines, split content into
+referenced files under `docs/_internal/`.
 
 ---
 
