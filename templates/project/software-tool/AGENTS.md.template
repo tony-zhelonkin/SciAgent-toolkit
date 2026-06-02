@@ -57,6 +57,7 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 | `docs/_internal/design/` | design intent, API decisions, scope |
 | `docs/_internal/reasoning/` | decision traces, why-not logs |
 | `docs/_internal/benchmarks/` | performance results backing any claims |
+| session handoff | `docs/_internal/design/` |
 
 ---
 
