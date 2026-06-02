@@ -1,0 +1,45 @@
+# {{PROJECT_TITLE}}
+
+> One-line description of what {{PROJECT_ID}} does and who it is for.
+
+## Features
+
+- Feature one.
+- Feature two.
+- Feature three.
+
+## Installation
+
+```bash
+# Python
+pip install {{PROJECT_ID}}
+
+# or, from source
+git clone <repo-url> {{PROJECT_ID}} && cd {{PROJECT_ID}}
+pip install -e .
+```
+
+## Usage
+
+```python
+import {{PROJECT_ID}}
+
+# minimal runnable example — see examples/ for more
+{{PROJECT_ID}}.do_thing()
+```
+
+## Development
+
+```bash
+pip install -e .        # editable install
+ruff check src tests    # lint
+ruff format src tests   # format
+pytest -q               # run the test suite
+```
+
+Build/quality commands are recorded in `tool_config.yaml`. Design notes, API drafts, and
+benchmarks live under `docs/_internal/` (agent-facing, not part of the published deliverable).
+
+## License
+
+TODO — choose and state a license (e.g. MIT, Apache-2.0).

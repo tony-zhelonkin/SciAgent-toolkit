@@ -1,0 +1,34 @@
+# software-tool.yaml — Standalone software library / CLI development role
+#
+# Purpose
+#   The day-to-day stack for building a packageable tool (Python or R) rather
+#   than running an analysis. Domain-neutral agents for review, docs, curation,
+#   and handoff, plus the meta skill for authoring new skills.
+#
+# Use when
+#   - Developing a reusable library or CLI (e.g. a toolkit under 01_modules/)
+#   - Work whose deliverable is code + tests + docs, not figures + tables
+#
+# Do NOT use when
+#   - Running a scientific analysis (use base)
+#   - You want mentor-style design-before-code narration (overlay architect)
+#
+# Note
+#   Dedicated software-eng skills (packaging, testing, api/cli design) are a
+#   catalogued follow-on (ADR-6.5/A — ship the role now, author skills later).
+
+name: software-tool
+description: Standalone software library or CLI development role
+
+agents:
+  - code-reviewer
+  - docs-librarian
+  - doc-curator
+  - handoff
+
+skills:
+  - skill-creator
+
+commands:
+  - commit
+# output_style: unset — compose `architect` overlay for mentor style.

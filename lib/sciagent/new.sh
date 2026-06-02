@@ -17,6 +17,8 @@ usage:
   sciagent new project <dir> [--type analysis|software-tool] [--species ...]
                              [--genome ...] [--title ...] [--git]
                              [--with-submodules] [--force]
+      --type analysis        00_data/ 01_modules/ 02_analysis/ 03_results/ tree (default)
+      --type software-tool   src/ tests/ docs/ examples/ packageable-library tree
   sciagent new role <name>       scaffold roles/<name>.yaml
   sciagent new skill <name>      copy skills/_TEMPLATE/ to skills/<name>/
   sciagent new agent <name>      scaffold agents/<name>.md
@@ -184,7 +186,7 @@ _new_project() {
         _new_git "$abs" "$type" "$with_submodules" || return 1
     fi
 
-    _new_project_next_steps "$dir" "$type" "$with_submodules"
+    _new_project_next_steps "$dir" "$abs" "$type" "$with_submodules"
 }
 
 # _warn_unresolved_tokens <dir> — surface any {{TOKEN}} left in rendered output. Some
@@ -197,9 +199,34 @@ _warn_unresolved_tokens() {
     printf '  %s\n' $hits >&2
 }
 
-# _new_project_next_steps <dir> <type> <with_submodules>
+# _default_role_for_type <type> — the role the "Next:" hint suggests activating.
+#   analysis → base ; software-tool → software-tool (umbrella uses base, same as analysis).
+_default_role_for_type() {
+    case "$1" in
+        software-tool) echo "software-tool" ;;
+        *)             echo "base" ;;
+    esac
+}
+
+# _note_child_software_tool <abs> — when a software-tool is scaffolded inside an existing
+# project's 01_modules/, it gets its own independent activation root (ADR-6.3); flag that.
+# Detection: the parent directory of <abs> is named "01_modules". Emits nothing otherwise.
+_note_child_software_tool() {
+    local abs="$1" parent grandparent
+    parent=$(dirname "$abs")
+    [[ "$(basename "$parent")" == "01_modules" ]] || return 0
+    grandparent=$(dirname "$parent")
+    echo
+    echo "Note: scaffolded a child software-tool under $grandparent."
+    echo "      It has its own activation root (independent of the parent, depth-2 cap intact)."
+    echo "      Activate its context: cd $abs && sciagent activate software-tool"
+}
+
+# _new_project_next_steps <dir> <abs> <type> <with_submodules>
 _new_project_next_steps() {
-    local dir="$1" type="$2" with_submodules="$3"
+    local dir="$1" abs="$2" type="$3" with_submodules="$4"
+    local role
+    role=$(_default_role_for_type "$type")
     echo
     echo "Project scaffolded at $dir (type: $type)."
     if [[ "$with_submodules" != "true" ]]; then
@@ -245,7 +272,11 @@ TMPL
     echo "  2. Add container substrate (from scbio-docker):"
     echo "       <scbio-docker>/scripts/init-container.sh $dir --type $type"
     echo "  3. Open in VS Code → Reopen in Container"
-    echo "  4. sciagent activate base"
+    echo "  4. sciagent activate $role"
+
+    if [[ "$type" == "software-tool" ]]; then
+        _note_child_software_tool "$abs"
+    fi
 }
 
 # _new_git <abs_dir> <type> <with_submodules> — git init (if absent) and, when requested,

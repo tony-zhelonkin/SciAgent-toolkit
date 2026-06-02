@@ -274,19 +274,92 @@ Every operation is safe to re-run:
 Replaces `setup-ai.sh`:
 
 ```
-sciagent new project [<dir>]   # bootstrap: copy templates/, do NOT activate
+sciagent new project [<dir>] [--type analysis|software-tool]
+                               # bootstrap a typed project tree, do NOT activate
 sciagent new role <name>       # scaffold roles/<name>.yaml from template
 sciagent new skill <name>      # copy skills/_TEMPLATE/ to skills/<name>/
 sciagent new agent <name>      # scaffold agents/<name>.md from template
 ```
 
-`sciagent new project` puts AGENTS.md, CLAUDE.md (1-line `@AGENTS.md`), and `context.md` into the target dir. Does NOT activate any role; the user picks one with `sciagent activate`.
+`sciagent new project` materializes the directory tree for `--type` (default `analysis`),
+renders `templates/project/_common/` first then `templates/project/<type>/` over it, seeds a
+shared `.gitignore`, and drops `.gitkeep` into empty dirs. It does NOT activate any role; the
+user picks one with `sciagent activate` (see the type→default-role hint in §13).
 
 ## 12. Packaged skills
 
 Most skills are flat docs-only SKILL.md files an agent reads and interprets. A **packaged skill** is the other tier: a thin SKILL.md interface over a deep, version-locked, tested module that an agent or human outsources execution to via one CLI — deterministic instead of re-derived each run. Marked with `packaged: true` in frontmatter (orthogonal to `scope:` / `tier:`, which describe the doc, not the packaging). The reference implementation is `skills/mllmcelltype-consensus-annotation/`; the code is the spec, so there is no separate packaged template.
 
 See [docs/packaged-skills.md](packaged-skills.md) for the full contract, distribution stance, and the copy-this checklist.
+
+## 13. Project types
+
+`sciagent new project --type <t>` materializes one of two first-class project shapes. The
+template root is `templates/project/{_common,analysis,software-tool}/`: `_new_project()`
+renders `_common/` first, then overlays `<type>/`.
+
+### First-class types
+
+| Type | One-liner | Canonical top-level layout | Default role |
+|------|-----------|----------------------------|--------------|
+| `analysis` | A scientific analysis project. | `00_data/ 01_modules/ 02_analysis/ 03_results/<NN_phase>/ docs/ docs/_internal/` | `base` |
+| `software-tool` | A standalone, packageable software library or CLI. | `src/ tests/ docs/ examples/ docs/_internal/` + `tool_config.yaml` / `README.md` | `software-tool` |
+
+These are the only two `--type` values. Default role is a hint emitted in the "Next steps"
+output; it is not auto-activated.
+
+### Umbrella — layout variant of `analysis` (no separate `--type`)
+
+An **umbrella** is an `analysis` project whose integration scope is cross-project:
+
+- Root-level submodules are other *analysis* projects, gitlinked at the repo root — **not**
+  inside `01_modules/`. (`01_modules/` holds only software-tool toolkits serving the umbrella.)
+- An `integration/` directory plays the `02_analysis/` role; its scripts consume only each
+  child's `03_results/` published surface — never child `02_analysis/` or intermediate state.
+
+There is no `--type umbrella`. Initialize with `--type analysis`, then add child submodules
+and create `integration/` by hand. Umbrella projects use `base` as their role (same as analysis).
+DC-nexus is the canonical instance.
+
+### Deferred / catalogued-only types
+
+`pipeline` (Nextflow/Snakemake), `paper` (manuscript + figures), and `data-package` (curated
+dataset + loader) are real categories with no present-day instance demanding a scaffold. The
+vocabulary is reserved here; no `templates/project/<type>/` directory exists for them. They are
+the extension points for a future `--type` value: add `templates/project/<type>/` plus a
+`_dirs_for_type` branch.
+
+### Nested-toolkit activation (depth-2 cap, independent per-root)
+
+The stack depth cap of 2 (§5) is a load-bearing invariant. A child `software-tool` under a
+parent's `01_modules/<tool>/` does **not** become a third stack tier on top of the parent's
+analysis stack. Instead:
+
+- **Activation root = CWD.** A child toolkit is activated by `cd`-ing into it and running
+  `sciagent activate <role>` there. It gets its own `.claude/`, `.agents/`, and AGENTS.md
+  managed block rooted at the child directory — its own depth-≤2 stack, independent of the parent.
+- Parent analysis and child tool are *different working contexts*, not nested ones. When working
+  on the child tool you want the `software-tool` role, not "analysis base + tool overlay".
+- `sciagent new project --type software-tool` run inside an existing project's `01_modules/`
+  emits an informational note pointing at `cd <dir> && sciagent activate software-tool`.
+
+Cross-root awareness (auto-switching context on `cd`) is a future shell-hook concern, out of
+scope for sciagent-core.
+
+### `docs/_internal/` namespace by type
+
+`reasoning/` is universal — agents write decision traces there regardless of type. The rest of
+the namespace is type-conditional:
+
+| Subdir | Holds | Present in |
+|--------|-------|-----------|
+| `reasoning/` | decision traces, why-not logs | analysis + software-tool |
+| `sessions/` | session handoffs | analysis |
+| `scratch/` | throwaway notes | analysis |
+| `design/` | design records, API drafts, ADRs for the tool | software-tool |
+| `benchmarks/` | benchmark results, profiling logs | software-tool |
+
+The handoff agent targets `sessions/` for analysis and `design/` for software-tool.
 
 ---
 

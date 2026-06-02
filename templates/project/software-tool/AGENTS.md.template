@@ -9,9 +9,10 @@ This file is the single source of truth for AI agent behavior in this project.
 
 ## Project context
 
-This is a **software-tool** repository: a reusable package, not an analysis. The design
-intent and scope live in `docs/_internal/design/`. Session handoffs are written to
-`docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
+This is a **software-tool** repository: a reusable package, not an analysis. Package
+identity, language, and lint/test commands live in `tool_config.yaml`. The design intent
+and scope live in `docs/_internal/design/`; handoffs are written there as
+`docs/_internal/design/YYYY-MM-DD_<slug>.md` (software-tool has no `sessions/`).
 
 ---
 
@@ -41,7 +42,9 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 ├── src/                # package source
 ├── tests/              # unit + integration tests
 ├── examples/           # runnable usage examples
-└── docs/               # public-facing docs
+├── docs/               # public-facing API docs, usage guides
+├── tool_config.yaml    # package name, language, lint/test commands
+└── README.md           # Features / Installation / Usage / Development / License
 ```
 
 ---
