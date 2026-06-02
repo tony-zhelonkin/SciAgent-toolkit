@@ -73,6 +73,19 @@ Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.
 4. Update `agents/README.md`
 5. If the chosen name collides across namespaces (also exists as a skill/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
 
+**Optional frontmatter** (`sciagent roster` reads these; absence renders a blank column, never an error):
+
+```yaml
+domain:                # 1–3 taxonomy tags, e.g. session-management, documentation
+  - session-management
+outputs:               # only for agents that write files; omit for read-only agents
+  default_path: docs/_internal/sessions/   # canonical default per the naming convention
+  kind: session-handoff                     # matches the AGENTS.md routing-table kind
+  path_source: AGENTS.md                    # constant; signals the Step-0 protocol applies
+```
+
+Any agent that writes a dated artifact must implement the Step-0 output-path protocol in its body — see `docs/architecture.md § Agent output path resolution (Step-0)`.
+
 ### Adding a New Role
 
 1. `bin/sciagent new role <name>` — scaffolds `roles/<name>.yaml`

@@ -38,6 +38,9 @@ sciagent inject simplify
 # Show the active stack, effective tables, and block/symlink health
 sciagent status
 
+# List the active agents (add --json for a machine-readable manifest)
+sciagent roster
+
 # Tear down: remove symlinks and the managed block from AGENTS.md
 sciagent deactivate
 ```

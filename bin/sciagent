@@ -36,6 +36,7 @@ Usage:
   sciagent eject --tag <name>          Remove all skills injected via tag
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
+  sciagent roster [--json]             List active agents (table or JSON manifest)
   sciagent list [roles|skills|agents|commands]
                                        List available content
   sciagent list deps <skill>           Transitive requires closure (leaves first)
@@ -75,6 +76,7 @@ verb="$1"; shift
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
 #   eject.sh            depends on inject.sh + stack.sh + block.sh + collisions.sh
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh
+#   roster.sh           leaf: reads .claude/agents/ frontmatter, no sciagent deps
 #
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 # ---------------------------------------------------------------------------
@@ -84,6 +86,7 @@ declare -A VERB_MODULES=(
     [inject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
     [eject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
     [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
+    [roster]="roster.sh"
     [list]="roles.sh skill_deps.sh status.sh"
     [validate]="skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
@@ -97,6 +100,7 @@ declare -A VERB_ENTRY=(
     [inject]=cmd_inject
     [eject]=cmd_eject
     [status]=cmd_status
+    [roster]=cmd_roster
     [list]=cmd_list
     [validate]=cmd_validate
     [new]=cmd_new

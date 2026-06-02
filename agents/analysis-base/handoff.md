@@ -9,6 +9,7 @@ domain:
 outputs:
   default_path: docs/_internal/sessions/
   kind: session-handoff
+  path_source: AGENTS.md
 ---
 
 You are a Project Documentation Specialist focused on writing clear, concise session

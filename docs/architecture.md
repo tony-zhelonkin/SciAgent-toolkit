@@ -122,6 +122,7 @@ sciagent inject --tag <tag>                       # add all skills carrying <tag
 sciagent eject  [--skill|--agent|--command] <name>   # remove one injected entry
 sciagent validate [--quiet]                       # check toolkit integrity
 sciagent status [--json] [--effective] [--source <name>]
+sciagent roster [--json]                          # list active agents from .claude/agents/
 sciagent list [roles|skills|agents|commands]
 sciagent new role|skill|agent <name>              # scaffold from templates
 ```
@@ -360,6 +361,33 @@ the namespace is type-conditional:
 | `benchmarks/` | benchmark results, profiling logs | software-tool |
 
 The handoff agent targets `sessions/` for analysis and `design/` for software-tool.
+
+Naming conventions for files within this namespace live in the scaffold itself
+(`docs/_internal/README.md`), not in `CLAUDE.md` or `AGENTS.md`. Every new project ships
+that reference; agents read it at runtime to name dated artifacts.
+
+### Agent output path resolution (Step-0)
+
+Any agent that writes a dated artifact resolves its output directory at runtime rather than
+hardcoding it. The protocol is three steps, executed by the LLM running the agent:
+
+```
+Step 0: Read AGENTS.md (project root). Find the `## Documentation namespace` section.
+        Find the routing-table entry for your output kind. Use that directory.
+
+Fallback: if AGENTS.md has no Documentation namespace section, or no routing entry
+          matches your kind, use `outputs.default_path` from your own frontmatter.
+          Proceed silently — do not stop or ask.
+
+Never write to the project root. Never hardcode a path that includes a project name,
+user name, or absolute filesystem location.
+```
+
+This is prose in the agent body, not a library call. It keeps agent definitions
+project-agnostic (no baked-in paths) while letting each project declare its own routing in
+the always-present AGENTS.md. The `outputs.default_path` frontmatter field is the canonical
+default per the convention, so an agent works correctly even before a project configures its
+managed block.
 
 ---
 
