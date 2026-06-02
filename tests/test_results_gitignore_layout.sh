@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Phase-based 03_results/ .gitignore: data artifacts ignored, .gitkeep tracked,
+# objects/ checkpoints hard-ignored.
+
+. "$(dirname "$0")/_lib.sh"
+
+setup_tmpdir
+
+proj="$TMPDIR_TEST/proj"
+"$SCIAGENT_TOOLKIT/bin/sciagent" new project "$proj" --type analysis >/dev/null 2>&1 \
+    || { echo "FAIL [$_TEST_NAME] scaffold failed" >&2; exit 1; }
+
+# git check-ignore needs a repo with the seeded .gitignore.
+git -C "$proj" init -q
+git -C "$proj" add .gitignore >/dev/null 2>&1
+
+# A PDF in a phase figures dir must be ignored.
+touch "$proj/03_results/01_qc/figures/plot.pdf"
+if git -C "$proj" check-ignore -q "03_results/01_qc/figures/plot.pdf"; then
+    :
+else
+    echo "FAIL [$_TEST_NAME] figure PDF not gitignored" >&2
+    exit 1
+fi
+
+# The .gitkeep skeleton placeholder must NOT be ignored.
+if git -C "$proj" check-ignore -q "03_results/01_qc/figures/.gitkeep"; then
+    echo "FAIL [$_TEST_NAME] .gitkeep was gitignored (should be tracked)" >&2
+    exit 1
+fi
+
+# Checkpoint state objects must be hard-ignored.
+touch "$proj/03_results/objects/data.h5ad"
+if git -C "$proj" check-ignore -q "03_results/objects/data.h5ad"; then
+    :
+else
+    echo "FAIL [$_TEST_NAME] objects/data.h5ad not hard-ignored" >&2
+    exit 1
+fi
+
+pass

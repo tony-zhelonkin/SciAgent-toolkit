@@ -6,9 +6,22 @@
 00_data/references/*
 !00_data/references/.gitkeep
 
-# Results — track folder structure, not artifacts
-03_results/*/*
-!03_results/*/.gitkeep
+# Results — track the directory skeleton (.gitkeep) and caption READMEs, never artifacts.
+# Hard-ignore checkpoint state objects at any depth (large + recomputable).
+03_results/objects/*.h5ad
+03_results/objects/*.rds
+03_results/objects/*.rdata
+03_results/objects/*.parquet
+
+# Ignore data artifacts within phase dirs at any depth, keep the skeleton.
+03_results/**/figures/**/*.pdf
+03_results/**/figures/**/*.png
+03_results/**/figures/**/*.svg
+03_results/**/tables/**/*.csv
+03_results/**/tables/**/*.tsv
+
+# Keep .gitkeep placeholders everywhere under 03_results/.
+!03_results/**/.gitkeep
 
 # Reference codebases (gitignored by default — add explicitly if needed)
 01_modules/.ref/

@@ -13,16 +13,12 @@ The canonical scientific framing — question, datasets, hypotheses, goals — l
 `docs/_internal/scientific-context.md`. Read it before acting. Session handoffs are written
 to `docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
 
----
-
 ## Active role
 
 <!-- BEGIN SCIAGENT:ROLES managed block — do not edit between these markers -->
 <!-- END SCIAGENT:ROLES -->
 
 Run `sciagent status` to see the current stack, effective skills, agents, and commands.
-
----
 
 ## Critical rules
 
@@ -33,8 +29,6 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 3. **Read-only input data.** `00_data/` is read-only. Outputs go to `03_results/`.
 4. **Cache expensive operations.** Anything over a minute goes through a checkpoint object.
 
----
-
 ## Directory structure
 
 ```
@@ -43,16 +37,27 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 ├── 01_modules/                          # toolkits (submodules)
 ├── 02_analysis/{config,helpers,scripts,notebooks}
 ├── 03_results/
-│   ├── objects/                         # checkpoint state (.h5ad, .rds) — not a deliverable
-│   ├── 01_qc/                           # tables + figures for the QC phase
+│   ├── objects/                         # checkpoint state (.h5ad, .rds) — NOT a deliverable
+│   ├── 01_qc/{tables,figures}/          # QC-phase deliverables
+│   ├── 02_eda/{tables,figures}/         # EDA-phase deliverables
+│   ├── master/                          # cross-stage accumulator tables
+│   ├── interactive/                     # standalone HTML dashboards
 │   └── _scratch/                        # throwaway plots/tables
 ├── docs/                                # public-facing: plan, guides
 └── logs/
 ```
 
-Each `NN_phase/` folder under `03_results/` holds the tables **and** figures for that phase;
-reusable checkpoint objects live in `03_results/objects/`. Add `02_*`, `03_*` as the plan
-in `docs/plan/` progresses.
+Each `NN_<slug>/` stage holds the tables **and** figures for that phase. Stage ids are declared
+in `analysis_config.yaml:stages` (two-digit prefix, lowercase snake_case); append a stage there
+before writing to it. Checkpoints live in `objects/`, cross-stage tables in `master/`.
+
+## Artifact captions
+
+Every file in `03_results/<stage>/` needs a caption entry in that stage's `README.md`, written
+as the artifact is produced: `## <filename>`, a one-sentence scientific **finding** (what it
+shows, not what it is), then a `Script | Function | Config | Input` table. Function is the exact
+name read from the script (never guessed); Config is the active `key = value`. Never cite
+`docs/_internal/` in these READMEs.
 
 ---
 

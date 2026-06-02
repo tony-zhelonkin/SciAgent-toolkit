@@ -47,6 +47,14 @@ Identify files that are:
 - **Fragmented**: Information scattered across SESSION_SUMMARY*.md or similar temporary files
 - **Stale**: Outdated information that contradicts current state
 
+### Artifact caption completeness (`03_results/`)
+Each `03_results/<stage>/README.md` is a figure-legend sheet: every artifact in that stage
+must have a matching `## <filename>` caption entry. Audit it:
+- List every file under `03_results/**/{figures,tables}/*.{pdf,png,svg,csv,tsv,html}`.
+- For each, check the sibling stage `README.md` for a `## <filename>` heading.
+- Report files with no caption entry as **uncaptioned artifacts**, with their full paths.
+- Flag caption entries whose referenced artifact no longer exists as **orphaned captions**.
+
 ### Documentation Interoperability Analysis
 - How do documents cross-reference each other?
 - Are there broken internal links?

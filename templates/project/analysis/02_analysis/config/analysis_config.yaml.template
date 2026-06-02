@@ -106,6 +106,21 @@ databases:
     # - { path: "00_data/references/custom_gene_sets.csv", name: "Custom" }
 
 # =============================================================================
+# ANALYSIS STAGES
+# =============================================================================
+# Each stage owns 03_results/<id>/{tables,figures}/, created on first write.
+# Stage id = NN_<slug>: zero-padded two-digit prefix + lowercase snake_case (<=2 words).
+# Append a new entry here BEFORE any script writes artifacts to that stage.
+
+stages:
+  - id: "01_qc"
+    title: "Quality control"
+    purpose: "Filter cells/samples, flag doublets, gate on QC metrics."
+  - id: "02_eda"
+    title: "Exploratory analysis"
+    purpose: "Embeddings, clustering, first-pass structure of the data."
+
+# =============================================================================
 # INPUT/OUTPUT PATHS (relative to project root)
 # =============================================================================
 
@@ -113,10 +128,17 @@ paths:
   # Input
   references: "00_data/references/"
 
-  # Output — phase-based layout. Checkpoint state is separate from deliverables.
-  objects: "03_results/objects/"      # reusable state (.h5ad, .rds)
-  qc: "03_results/01_qc/"             # tables + figures for the QC phase
+  # Output roots — phase-based layout. Checkpoint state is separate from deliverables.
+  results: "03_results/"              # results root
+  objects: "03_results/objects/"      # reusable state (.h5ad, .rds) — NOT a deliverable
+  master: "03_results/master/"        # cross-stage accumulator tables
+  interactive: "03_results/interactive/"  # standalone HTML dashboards
   scratch: "03_results/_scratch/"     # throwaway plots/tables
+
+  # Per-stage directories — <stage_id>/{tables,figures}/.
+  # Resolve with the config loader (e.g. stage_dir("01_qc", "figures")); do not hardcode.
+  stage_tables_subdir: "tables"
+  stage_figures_subdir: "figures"
 
   # Toolkits
   rnaseq_toolkit: "01_modules/RNAseq-toolkit/"

@@ -99,7 +99,9 @@ _dirs_for_type() {
             echo "00_data/raw 00_data/processed 00_data/references" \
                  "01_modules" \
                  "02_analysis/config 02_analysis/helpers 02_analysis/scripts 02_analysis/notebooks" \
-                 "03_results/objects 03_results/01_qc 03_results/_scratch" \
+                 "03_results/objects 03_results/master 03_results/interactive 03_results/_scratch" \
+                 "03_results/01_qc/tables 03_results/01_qc/figures" \
+                 "03_results/02_eda/tables 03_results/02_eda/figures" \
                  "docs/plan docs/_internal/reasoning docs/_internal/sessions docs/_internal/scratch" \
                  "logs"
             ;;
