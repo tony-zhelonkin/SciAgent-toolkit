@@ -56,87 +56,67 @@ fi
 
 verb="$1"; shift
 
+# ---------------------------------------------------------------------------
+# Verb → module load graph.
+#
+# Layering DAG (each module depends only on those listed above it; sourcing is
+# centralised here, so source-time cycles are impossible by construction):
+#
+#   block.sh            leaf: managed-block file I/O + hashing, no sciagent deps
+#   roles.sh            leaf: role/skill YAML reads
+#   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
+#   skill_deps.sh       requires-graph resolver (depends on roles.sh)
+#   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
+#   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
+#   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
+#   validate.sh         depends on skill_deps.sh, collisions.sh
+#   inject.sh           depends on roles.sh, stack.sh, block.sh, symlinks.sh, collisions.sh
+#   activate.sh         depends on ~everything above
+#   deactivate.sh       depends on activate.sh (may re-activate solo-base)
+#   eject.sh            depends on inject.sh + stack.sh + block.sh + collisions.sh
+#   status.sh           depends on stack.sh, collisions.sh, roles.sh
+#
+# Each row below lists exactly a verb's transitive closure, in dependency order.
+# ---------------------------------------------------------------------------
+declare -A VERB_MODULES=(
+    [activate]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
+    [deactivate]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
+    [inject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
+    [eject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
+    [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
+    [list]="roles.sh skill_deps.sh status.sh"
+    [validate]="skill_deps.sh collisions.sh validate.sh"
+    [new]="new.sh"
+    [gitignore]="gitignore.sh"
+)
+
+# Verb → cmd_* entrypoint.
+declare -A VERB_ENTRY=(
+    [activate]=cmd_activate
+    [deactivate]=cmd_deactivate
+    [inject]=cmd_inject
+    [eject]=cmd_eject
+    [status]=cmd_status
+    [list]=cmd_list
+    [validate]=cmd_validate
+    [new]=cmd_new
+    [gitignore]=cmd_gitignore
+)
+
 case "$verb" in
     -h|--help|help)
         usage; exit 0 ;;
-    activate)
-        # shellcheck source=/dev/null
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/claude_settings.sh"
-        . "$LIB/activate.sh"
-        cmd_activate "$@"
-        ;;
-    deactivate)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/claude_settings.sh"
-        . "$LIB/activate.sh"      # deactivate may re-activate solo-base
-        . "$LIB/deactivate.sh"
-        cmd_deactivate "$@"
-        ;;
-    inject)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/inject.sh"
-        cmd_inject "$@"
-        ;;
-    eject)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/inject.sh"
-        . "$LIB/eject.sh"
-        cmd_eject "$@"
-        ;;
-    status)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/status.sh"
-        cmd_status "$@"
-        ;;
-    list)
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/status.sh"
-        cmd_list "$@"
-        ;;
-    validate)
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        cmd_validate "$@"
-        ;;
-    new)
-        . "$LIB/new.sh"
-        cmd_new "$@"
-        ;;
-    gitignore)
-        . "$LIB/gitignore.sh"
-        cmd_gitignore "$@"
-        ;;
     *)
-        echo "sciagent: unknown verb '$verb'" >&2
-        usage
-        exit 1
+        if [[ -z "${VERB_MODULES[$verb]:-}" ]]; then
+            echo "sciagent: unknown verb '$verb'" >&2
+            usage
+            exit 1
+        fi
+        # shellcheck source=/dev/null
+        for _mod in ${VERB_MODULES[$verb]}; do
+            . "$LIB/$_mod"
+        done
+        "${VERB_ENTRY[$verb]}" "$@"
+        exit $?
         ;;
 esac

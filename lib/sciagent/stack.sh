@@ -5,6 +5,32 @@
 
 # shellcheck shell=bash
 
+# _sw_record <map-name> <shadow-map-name> <order-array-name> <name> <role>
+# Records <name>=<role> into the provider map with last-wins semantics.
+# On a repeat name, the *previous* provider is appended to the shadow CSV
+# (preserving the existing comma-joined accumulation order). On a first
+# sighting, <name> is pushed onto the order array.
+# Locals are `_`-prefixed so a nameref can never alias one of this helper's
+# own locals (a known bash nameref footgun); the caller arrays are `_sw_*`.
+_sw_record() {
+    local -n _map="$1"
+    local -n _shadow="$2"
+    local -n _order="$3"
+    local name="$4" role="$5"
+
+    if [[ -n "${_map[$name]:-}" ]]; then
+        local prev="${_map[$name]}"
+        if [[ -n "${_shadow[$name]:-}" ]]; then
+            _shadow[$name]="${_shadow[$name]},$prev"
+        else
+            _shadow[$name]="$prev"
+        fi
+    else
+        _order+=("$name")
+    fi
+    _map[$name]="$role"
+}
+
 # stack_walk <role1> [role2]
 # Emits the resolved effective table in tagged form, one entry per line:
 #   SKILL    <name>  <providing-role>  <shadowed-roles-csv-or-empty>
@@ -32,52 +58,14 @@ stack_walk() {
             name="${line#* }"
             case "$kind" in
                 SKILL)
-                    if [[ -n "${_sw_skills[$name]:-}" ]]; then
-                        # Already present: record the previous provider as shadowed.
-                        local prev="${_sw_skills[$name]}"
-                        if [[ -n "${_sw_skill_shadows[$name]:-}" ]]; then
-                            _sw_skill_shadows[$name]="${_sw_skill_shadows[$name]},$prev"
-                        else
-                            _sw_skill_shadows[$name]="$prev"
-                        fi
-                    else
-                        _sw_skill_order+=("$name")
-                    fi
-                    _sw_skills[$name]="$role"
-                    ;;
+                    _sw_record _sw_skills   _sw_skill_shadows   _sw_skill_order   "$name" "$role" ;;
                 AGENT)
-                    if [[ -n "${_sw_agents[$name]:-}" ]]; then
-                        local prev="${_sw_agents[$name]}"
-                        if [[ -n "${_sw_agent_shadows[$name]:-}" ]]; then
-                            _sw_agent_shadows[$name]="${_sw_agent_shadows[$name]},$prev"
-                        else
-                            _sw_agent_shadows[$name]="$prev"
-                        fi
-                    else
-                        _sw_agent_order+=("$name")
-                    fi
-                    _sw_agents[$name]="$role"
-                    ;;
+                    _sw_record _sw_agents   _sw_agent_shadows   _sw_agent_order   "$name" "$role" ;;
                 COMMAND)
-                    if [[ -n "${_sw_commands[$name]:-}" ]]; then
-                        local prev="${_sw_commands[$name]}"
-                        if [[ -n "${_sw_command_shadows[$name]:-}" ]]; then
-                            _sw_command_shadows[$name]="${_sw_command_shadows[$name]},$prev"
-                        else
-                            _sw_command_shadows[$name]="$prev"
-                        fi
-                    else
-                        _sw_command_order+=("$name")
-                    fi
-                    _sw_commands[$name]="$role"
-                    ;;
+                    _sw_record _sw_commands _sw_command_shadows _sw_command_order "$name" "$role" ;;
                 OUTPUT_STYLE)
-                    if [[ -n "$_sw_style" ]]; then
-                        _sw_style_shadow="$_sw_style_role"
-                    fi
-                    _sw_style="$name"
-                    _sw_style_role="$role"
-                    ;;
+                    [[ -n "$_sw_style" ]] && _sw_style_shadow="$_sw_style_role"
+                    _sw_style="$name"; _sw_style_role="$role" ;;
             esac
         done < <(role_load "$role")
     done
@@ -212,5 +200,39 @@ render_block_body() {
             printf '## Output style\n'
             printf -- '- `%s` — (%s)\n' "$_rb_style" "$_rb_style_role"
         fi
+    }
+}
+
+# block_render_and_write [<agents-file>]
+# Canonical "recompute the managed block from current manifest + role YAMLs
+# and write it" routine. Lives here because it needs render_block_body, but
+# delegates ALL byte I/O to block.sh (stack.sh → block.sh, never the reverse).
+# Called by inject.sh, activate.sh, eject.sh. Returns block.sh's write status.
+block_render_and_write() {
+    local file="${1:-AGENTS.md}"
+    local stack base overlay
+    stack=$(manifest_stack)
+    base=$(printf '%s\n' "$stack" | awk '{print $1}')
+    overlay=$(printf '%s\n' "$stack" | awk '{print $2}')
+
+    # Only skill-kind injected rows feed the "## Injected (overlay)" block;
+    # agent/command injections surface via the role-walk path.
+    local -a injected=()
+    local ov nm _via kind
+    while IFS='|' read -r ov nm _via kind; do
+        [[ -n "$ov" ]] || continue
+        [[ "${kind:-skill}" == "skill" ]] || continue
+        injected+=("$nm")
+    done < <(manifest_injected)
+
+    local body
+    body=$(render_block_body "$base" "$overlay" "${injected[@]+"${injected[@]}"}")
+    block_write "$file" "$body" || {
+        echo "sciagent: failed to write managed block to $file" >&2
+        return 1
+    }
+    manifest_update_block_hash "$(block_stored_hash "$file")" || {
+        echo "sciagent: failed to update manifest block hash" >&2
+        return 1
     }
 }

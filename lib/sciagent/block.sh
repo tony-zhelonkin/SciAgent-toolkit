@@ -62,6 +62,21 @@ block_stored_hash() {
         | sed -e "s|^$_BLOCK_BEGIN_PREFIX||" -e 's| -->$||'
 }
 
+# block_line_range <file>
+# Print "<begin-line> <end-line>" (1-based) for the managed block, or nothing
+# (return 1) when there is no complete block. Keeps marker-string knowledge in
+# block.sh so consumers (e.g. status.sh) never grep the literals themselves.
+block_line_range() {
+    local file="$1"
+    [[ -f "$file" ]] || return 1
+    grep -qF -- "$_BLOCK_BEGIN_PREFIX" "$file" 2>/dev/null || return 1
+    local lb le
+    lb=$(grep -nF -- "$_BLOCK_BEGIN_PREFIX" "$file" | head -n1 | cut -d: -f1)
+    le=$(grep -nF -- "$_BLOCK_END" "$file" | head -n1 | cut -d: -f1)
+    [[ -n "$lb" && -n "$le" ]] || return 1
+    printf '%s %s\n' "$lb" "$le"
+}
+
 block_hash_check() {
     local file="$1"
     [[ -f "$file" ]] || return 1

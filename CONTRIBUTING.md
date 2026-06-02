@@ -32,6 +32,10 @@ Fix: update the allowlist row to include the new kind.
 
 Manifest schema (for the curious): `docs/architecture.md` §9.
 
+## Error handling (lib/sciagent)
+
+Library functions in `lib/sciagent/*.sh` only ever `return <code>` — never `exit` (only `bin/sciagent`, at the top dispatch level, may exit; awk/subshell `exit` is fine since it tears down the awk/subshell, not the caller's shell). Every side-effecting call (`block_write`, `manifest_*`, `ln -sfn`, `mkdir -p`, …) is checked: `cmd || { echo "sciagent <verb>: <message>" >&2; return 1; }`. User-facing errors use the prefix `sciagent <verb>: <message>` on stderr. Reserve `|| true` for genuinely best-effort, non-state operations and annotate each with a `# best-effort: <reason>` comment. `set -e`/`set -o pipefail` are deliberately off — the codebase relies on explicit return-code dispatch.
+
 ## Commit messages
 
 Imperative mood, subject ≤72 chars. No AI attribution trailers.

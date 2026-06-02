@@ -1,7 +1,7 @@
 # lib/sciagent/inject.sh — sciagent inject <name> [--skill|--agent|--command]
 #                                           | --tag <name>
 # Adds one skill, sub-agent, or slash-command on top of the current stack
-# (per architecture §5). For tag form, expands to every skill carrying the tag.
+# For tag form, expands to every skill carrying the tag.
 # - Stack [base]            → synthesize implicit overlay "_injected".
 # - Stack [base, overlay]   → record entry as injected-into-overlay.
 # Idempotent: re-injecting a tracked entry is a no-op.
@@ -24,6 +24,11 @@
 # When injecting a non-skill entry whose name also matches a skill, a one-line
 # stderr note advertises the companion skill; the skill is NOT auto-mounted.
 #
+# Cross-namespace collision check (ADR-5.1 C): before any write, inject warns
+# on stderr if <name> collides across ≥2 toolkit namespaces. `--force` silences
+# the warning; SCIAGENT_STRICT_COLLISIONS=1 upgrades it to a hard fail;
+# allowlisted overlaps are downgraded to a single informational note.
+#
 # Block-body rendering is delegated to stack.sh:render_block_body.
 
 # shellcheck shell=bash
@@ -36,6 +41,26 @@ cmd_inject() {
 
     if ! manifest_exists; then
         echo "no role active; run \`sciagent activate <role>\` first" >&2
+        return 1
+    fi
+
+    # Strip the (positional-independent) --force flag before form dispatch.
+    # --force silences the inline cross-namespace collision warning. Exported
+    # for _inject_named_entry / _inject_handle_collision via _INJECT_FORCE.
+    _INJECT_FORCE=0
+    local -a _args=()
+    local a
+    for a in "$@"; do
+        if [[ "$a" == "--force" ]]; then
+            _INJECT_FORCE=1
+        else
+            _args+=("$a")
+        fi
+    done
+    set -- "${_args[@]+"${_args[@]}"}"
+
+    if [[ $# -eq 0 ]]; then
+        echo "usage: sciagent inject <name> | --skill <name> | --agent <name> | --command <name> | --tag <name>" >&2
         return 1
     fi
 
@@ -117,7 +142,7 @@ _inject_detect_kind() {
 
     local n=${#found_kinds[@]}
     if (( n == 0 )); then
-        echo "error: '$name' not found as skill, agent, or command" >&2
+        echo "sciagent inject: '$name' not found as skill, agent, or command" >&2
         return 1
     fi
     if (( n >= 2 )); then
@@ -126,7 +151,7 @@ _inject_detect_kind() {
         # 3-namespace overlap is rare but still listed in full.
         local kind1="${found_kinds[0]}" kind2="${found_kinds[1]}"
         if (( n == 2 )); then
-            echo "error: ambiguous — '$name' exists as both $kind1 and $kind2. use --skill <name>, --agent <name>, or --command <name>" >&2
+            echo "sciagent inject: ambiguous — '$name' exists as both $kind1 and $kind2. use --skill <name>, --agent <name>, or --command <name>" >&2
         else
             # 3+ namespaces. Render the list as "A, B, and C" rather than the
             # space-separated "${found_kinds[*]}" — the latter prints as
@@ -137,7 +162,7 @@ _inject_detect_kind() {
                 _joined+="${found_kinds[$_i]}, "
             done
             _joined+="and ${found_kinds[$_last_idx]}"
-            echo "error: ambiguous — '$name' exists as $_joined. use --skill <name>, --agent <name>, or --command <name>" >&2
+            echo "sciagent inject: ambiguous — '$name' exists as $_joined. use --skill <name>, --agent <name>, or --command <name>" >&2
         fi
         return 1
     fi
@@ -209,41 +234,90 @@ _inject_named_entry() {
         fi
     fi
 
+    # Inline cross-namespace collision check. Read-only; runs before the first
+    # side-effecting line (mkdir), so a hard-fail policy leaves nothing written.
+    local _coll_csv
+    if _coll_csv=$(collisions_for_name "$name"); then
+        _inject_handle_collision "$name" "$kind" "$_coll_csv" || return $?
+    fi
+
     # Create symlinks per kind. The canonical layout mirrors what activate.sh
     # builds for stack-mounted entries (see symlinks.sh:symlink_create_dual).
-    local claude_path agents_path
+    local claude_path agents_path claude_dir agents_dir
     case "$kind" in
         skill)
-            mkdir -p .claude/skills .agents/skills
+            claude_dir=.claude/skills;   agents_dir=.agents/skills
             claude_path=".claude/skills/$name"
             agents_path=".agents/skills/$name"
             ;;
         agent)
-            mkdir -p .claude/agents .agents/agents
+            claude_dir=.claude/agents;   agents_dir=.agents/agents
             claude_path=".claude/agents/${name}.md"
             agents_path=".agents/agents/${name}.md"
             ;;
         command)
-            mkdir -p .claude/commands .agents/commands
+            claude_dir=.claude/commands; agents_dir=.agents/commands
             claude_path=".claude/commands/${name}.md"
             agents_path=".agents/commands/${name}.md"
             ;;
     esac
-    ln -sfn "$src" "$claude_path"
-    ln -sfn "$src" "$agents_path"
+    mkdir -p "$claude_dir" "$agents_dir" || {
+        echo "sciagent inject: failed to create symlink dirs for '$name'" >&2
+        return 1
+    }
+    ln -sfn "$src" "$claude_path" || {
+        echo "sciagent inject: failed to symlink $claude_path" >&2
+        return 1
+    }
+    ln -sfn "$src" "$agents_path" || {
+        echo "sciagent inject: failed to symlink $agents_path" >&2
+        return 1
+    }
 
     # Persist new symlinks and injected entry (with via + kind).
-    manifest_append_inject "$claude_path" "$agents_path" "$target_overlay" "$name" "$via" "$kind"
+    manifest_append_inject "$claude_path" "$agents_path" "$target_overlay" "$name" "$via" "$kind" || {
+        echo "sciagent inject: failed to record '$name' in manifest" >&2
+        return 1
+    }
 
     # Update the stack line if synthesizing _injected.
     if [[ -z "$overlay" ]]; then
-        manifest_update_stack "$base _injected"
+        manifest_update_stack "$base _injected" || {
+            echo "sciagent inject: failed to update stack for '$name'" >&2
+            return 1
+        }
     fi
 
     # Re-render the AGENTS.md managed block to reflect injection.
-    _inject_rewrite_block
+    block_render_and_write AGENTS.md || return 1
 
     echo "injected: $name (into $target_overlay)"
+    return 0
+}
+
+# _inject_handle_collision <name> <kind> <kinds-csv>
+# Policy for a cross-namespace collision detected at inject time (ADR-5.1 C):
+#   - allowlisted overlap  → single informational note (or silence under --force)
+#   - SCIAGENT_STRICT_COLLISIONS=1 → hard-fail (return 1)
+#   - --force (_INJECT_FORCE=1)     → silent, proceed
+#   - default                       → warn on stderr, proceed (return 0)
+_inject_handle_collision() {
+    local name="$1" kind="$2" csv="$3"
+
+    if collisions_is_allowlisted "$name" "$csv"; then
+        [[ "${_INJECT_FORCE:-0}" == "1" ]] && return 0
+        echo "note: '$name' is an approved family overlap across $csv (per tests/collision-allowlist.txt)" >&2
+        return 0
+    fi
+
+    if [[ "${SCIAGENT_STRICT_COLLISIONS:-0}" == "1" ]]; then
+        echo "sciagent inject: '$name' collides across $csv — disambiguation (/foo vs @foo vs foo) is load-bearing; refusing under SCIAGENT_STRICT_COLLISIONS=1" >&2
+        return 1
+    fi
+
+    [[ "${_INJECT_FORCE:-0}" == "1" ]] && return 0
+
+    echo "sciagent inject: '$name' now collides across $csv — disambiguation (/foo vs @foo vs foo) is load-bearing" >&2
     return 0
 }
 
@@ -379,32 +453,4 @@ _inject_entry_is_stack_mounted() {
         return 0
     fi
     return 1
-}
-
-# _inject_rewrite_block — rebuild AGENTS.md block from current manifest + role YAMLs.
-_inject_rewrite_block() {
-    local stack base overlay
-    stack=$(manifest_stack)
-    base=$(printf '%s\n' "$stack" | awk '{print $1}')
-    overlay=$(printf '%s\n' "$stack" | awk '{print $2}')
-
-    # Collect injected skill names from manifest. Only skill-kind rows feed
-    # the "## Injected (overlay)" block — agent/command injections show up
-    # in the standard "## Sub-agents" / "## Slash commands" sections via the
-    # role-walk path (TODO: once `_injected` synthesises a role view of its
-    # own, agent/command rows can join the block render too).
-    local -a INJECTED_NAMES=()
-    local ov nm _via kind
-    while IFS='|' read -r ov nm _via kind; do
-        [[ -n "$ov" ]] || continue
-        [[ "${kind:-skill}" == "skill" ]] || continue
-        INJECTED_NAMES+=("$nm")
-    done < <(manifest_injected)
-
-    local body
-    body=$(render_block_body "$base" "$overlay" "${INJECTED_NAMES[@]+"${INJECTED_NAMES[@]}"}")
-    block_write AGENTS.md "$body"
-
-    # Refresh manifest BLOCK_HASH.
-    manifest_update_block_hash "$(block_stored_hash AGENTS.md)"
 }

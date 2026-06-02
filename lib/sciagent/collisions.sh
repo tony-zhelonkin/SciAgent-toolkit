@@ -5,10 +5,10 @@
 # always legal — the symlink trees never overlap — but the human-facing
 # disambiguation (`/foo` the command vs. `@foo` the agent vs. `foo` the
 # skill vs. `foo` the role) becomes load-bearing. Most collisions in
-# practice are deliberate "family overlaps" (a slash command that dispatches
+# my practice are deliberate "family overlaps" (a slash command that dispatches
 # the same-named agent or invokes the same-named skill); the CI allowlist
 # at tests/collision-allowlist.txt is the source of truth for which ones
-# are blessed.
+# are approved.
 #
 # Two callers consume this helper:
 #   - validate.sh — emits a soft-warn per collision (exit 0 either way)
@@ -125,4 +125,43 @@ collisions_enumerate() {
         }
     '
     rm -f "$tmp"
+}
+
+# collisions_for_name <name>
+# Emits the kind-csv (e.g. "skill,command") iff <name> collides across
+# ≥2 namespaces in the toolkit; empty output + return 1 otherwise.
+# Reuses collisions_enumerate rather than re-walking the four namespaces.
+collisions_for_name() {
+    local name="$1" nm csv
+    while IFS=$'\t' read -r nm csv; do
+        if [[ "$nm" == "$name" ]]; then
+            printf '%s\n' "$csv"
+            return 0
+        fi
+    done < <(collisions_enumerate)
+    return 1
+}
+
+# collisions_is_allowlisted <name> <kinds-csv>
+# Returns 0 when tests/collision-allowlist.txt records this exact (name, kinds)
+# pair, 1 otherwise. Single parser shared by inject (the inline check) and
+# validate (the soft-warn). A kinds-csv that differs from the allowlist line is
+# treated as NOT allowlisted (callers surface it as an unexpected collision).
+collisions_is_allowlisted() {
+    local want_name="$1" want_kinds="$2"
+    local allowlist
+    allowlist="$(_collisions_toolkit_root)/tests/collision-allowlist.txt"
+    [[ -f "$allowlist" ]] || return 1
+    local line name kinds
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        line="${line%%#*}"
+        line="${line#"${line%%[![:space:]]*}"}"
+        line="${line%"${line##*[![:space:]]}"}"
+        [[ -z "$line" ]] && continue
+        name="${line%%[[:space:]]*}"
+        kinds="${line#"$name"}"
+        kinds="${kinds#"${kinds%%[![:space:]]*}"}"
+        [[ "$name" == "$want_name" && "$kinds" == "$want_kinds" ]] && return 0
+    done < "$allowlist"
+    return 1
 }

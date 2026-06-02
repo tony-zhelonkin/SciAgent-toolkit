@@ -1,6 +1,6 @@
 # lib/sciagent/status.sh — sciagent status [--json|--effective|--source <name>]
 # Reports active stack, effective tables, shadow info, block-hash drift,
-# symlink integrity, and harness presence (per architecture §5).
+# symlink integrity, and harness presence.
 # Stack-walking is delegated to stack.sh:stack_walk.
 
 # shellcheck shell=bash
@@ -248,11 +248,9 @@ _status_render_text() {
         corrupt) hash_label="markers corrupted" ;;
         missing) hash_label="block missing" ;;
     esac
-    local lines=""
-    if [[ -f AGENTS.md ]] && grep -qF '<!-- BEGIN SCIAGENT:ROLES' AGENTS.md; then
-        local lb le
-        lb=$(grep -nF '<!-- BEGIN SCIAGENT:ROLES' AGENTS.md | head -n1 | cut -d: -f1)
-        le=$(grep -nF '<!-- END SCIAGENT:ROLES'   AGENTS.md | head -n1 | cut -d: -f1)
+    local lines="" range lb le
+    if range=$(block_line_range AGENTS.md); then
+        read -r lb le <<< "$range"
         lines="lines ${lb}-${le}  "
     fi
     printf 'Managed block: AGENTS.md  %s%s\n' "$lines" "$hash_label"

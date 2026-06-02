@@ -156,7 +156,7 @@ _eject_named_entry() {
     _eject_maybe_collapse_injected_overlay
 
     # Re-render AGENTS.md block.
-    _eject_rewrite_block
+    _eject_rewrite_block || return 1
 
     echo "ejected: $name ($target_kind)"
     return 0
@@ -197,7 +197,7 @@ _eject_by_tag() {
     _eject_maybe_collapse_injected_overlay
 
     # Re-render AGENTS.md block.
-    _eject_rewrite_block
+    _eject_rewrite_block || return 1
 
     return 0
 }
@@ -377,27 +377,7 @@ _eject_maybe_collapse_injected_overlay() {
 }
 
 # _eject_rewrite_block — rebuild AGENTS.md block from current manifest + role YAMLs.
+# Thin wrapper over the shared block_render_and_write recipe (stack.sh).
 _eject_rewrite_block() {
-    local stack base overlay
-    stack=$(manifest_stack)
-    base=$(printf '%s\n' "$stack" | awk '{print $1}')
-    overlay=$(printf '%s\n' "$stack" | awk '{print $2}')
-
-    # Collect remaining injected skill names from manifest. Only kind=skill
-    # rows feed the "## Injected (overlay)" block — matches inject.sh's
-    # rewrite logic (agent/command rows are not yet rendered into the block).
-    local -a INJECTED_NAMES=()
-    local ov nm _via kind
-    while IFS='|' read -r ov nm _via kind; do
-        [[ -n "$ov" ]] || continue
-        [[ "${kind:-skill}" == "skill" ]] || continue
-        INJECTED_NAMES+=("$nm")
-    done < <(manifest_injected)
-
-    local body
-    body=$(render_block_body "$base" "$overlay" "${INJECTED_NAMES[@]+"${INJECTED_NAMES[@]}"}")
-    block_write AGENTS.md "$body"
-
-    # Refresh manifest BLOCK_HASH.
-    manifest_update_block_hash "$(block_stored_hash AGENTS.md)"
+    block_render_and_write AGENTS.md
 }

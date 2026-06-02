@@ -3,7 +3,7 @@
 # dual symlinks, rewrites the AGENTS.md managed block, writes manifest.
 # Stack-walking and block-body rendering are delegated to stack.sh.
 #
-# Complementary-skills warning surface (kickoff.md §9, PR 2 2026-05-24):
+# Complementary-skills warning surface:
 #   Missing complementary-skills references are soft-warn only. Buffered
 #   during the walk and emitted as one STDERR summary block after the
 #   normal activation output. Exit code remains 0.
@@ -90,7 +90,7 @@ cmd_activate() {
 
     # Phase A: gather direct entries via stack_walk, preserving insertion order.
     # No mutation yet — all validation/resolution must succeed before we touch
-    # the filesystem (per ADR-0002 §4.6).
+    # the filesystem.
     local -a SKILL_ORDER=() AGENT_ORDER=() COMMAND_ORDER=()
     declare -A SKILLS=() AGENTS_M=() COMMANDS_M=()
     local OUTPUT_STYLE="" OUTPUT_STYLE_ROLE=""
@@ -107,7 +107,7 @@ cmd_activate() {
 
     # Phase B: transitive `requires:` resolution. For each direct skill, fold
     # its closure into SKILL_ORDER; new entries get provider=":requires:<parent>"
-    # so the manifest is self-describing (per ADR-0002 Decision 1).
+    # so the manifest is self-describing.
     # Resolver failures (cycles, missing targets) abort before any mutation.
     local direct
     for direct in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
@@ -134,8 +134,8 @@ cmd_activate() {
     done
 
     # Phase B.5: scan complementary-skills for unresolvable references.
-    # Per kickoff.md §9 PR 2 hardness boundary: complementary-skills misses
-    # are soft-warn only — buffer here, emit at end-of-activate on STDERR.
+    # complementary-skills misses are soft-warn only — buffer here, 
+    # emit at end-of-activate on STDERR.
     # Exit code stays 0 regardless of how many warnings accumulate.
     local -a _comp_warnings=()
     local sk
@@ -239,7 +239,7 @@ cmd_activate() {
 
     # Render and write the managed block. Inherited (`:requires:`) skills are
     # passed via the SCIAGENT_INHERITED env var so render_block_body can put
-    # them under a dedicated subsection (per ADR-0002 §4.4).
+    # them under a dedicated subsection.
     local SCIAGENT_INHERITED=""
     local sk
     for sk in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
@@ -251,8 +251,14 @@ cmd_activate() {
     local body
     body=$(render_block_body "$base" "$overlay")
     unset SCIAGENT_INHERITED
-    block_write AGENTS.md "$body"
-    manifest_finalize "$(block_stored_hash AGENTS.md)"
+    block_write AGENTS.md "$body" || {
+        echo "sciagent activate: failed to write managed block" >&2
+        return 1
+    }
+    manifest_finalize "$(block_stored_hash AGENTS.md)" || {
+        echo "sciagent activate: failed to finalize manifest" >&2
+        return 1
+    }
 
     # Summary.
     echo "Activated stack: $stack"
@@ -265,7 +271,6 @@ cmd_activate() {
 
     # Emit complementary-skills warning block to STDERR after the activation
     # summary. One block, one place to look. Exit code stays 0.
-    # Per kickoff.md §9 ADR-002 warning surface + PR 2 hardness boundary.
     if [[ "${#_comp_warnings[@]}" -gt 0 ]]; then
         {
             echo ""
