@@ -1,0 +1,63 @@
+# AGENTS.md — {{PROJECT_ID}}
+
+**Created:** {{DATE}} · **Type:** {{PROJECT_TYPE}}
+
+This file is the single source of truth for AI agent behavior in this project.
+`CLAUDE.md` imports it via `@AGENTS.md`. Edit here, not there.
+
+---
+
+## Project context
+
+This is a **software-tool** repository: a reusable package, not an analysis. The design
+intent and scope live in `docs/_internal/design/`. Session handoffs are written to
+`docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
+
+---
+
+## Active role
+
+<!-- BEGIN SCIAGENT:ROLES managed block — do not edit between these markers -->
+<!-- END SCIAGENT:ROLES -->
+
+Run `sciagent status` to see the current stack, effective skills, agents, and commands.
+
+---
+
+## Engineering rules
+
+1. **Code lives in `src/`, tests in `tests/`.** Every public function has a test.
+2. **Public API is the contract.** Keep it small, documented, and stable.
+3. **No analysis idioms.** This is a library — no checkpoint objects, no `00_data/` tree,
+   no figure generation. Examples go in `examples/`.
+4. **Benchmarks are reproducible.** Performance claims are backed by `docs/_internal/benchmarks/`.
+
+---
+
+## Directory structure
+
+```
+{{PROJECT_ID}}/
+├── src/                # package source
+├── tests/              # unit + integration tests
+├── examples/           # runnable usage examples
+└── docs/               # public-facing docs
+```
+
+---
+
+## Documentation namespace
+
+`docs/_internal/` is agent-facing (not the published deliverable). Route writing here:
+
+| Path | Holds |
+|------|-------|
+| `docs/_internal/design/` | design intent, API decisions, scope |
+| `docs/_internal/reasoning/` | decision traces, why-not logs |
+| `docs/_internal/benchmarks/` | performance results backing any claims |
+
+---
+
+## Notes
+
+[Caveats, known issues, or interpretation notes relevant to all agents on this project]

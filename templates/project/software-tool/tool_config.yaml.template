@@ -1,0 +1,21 @@
+# tool_config.yaml — software-tool project configuration (stub)
+# Template version: 0.1.0
+#
+# Phase 6 fleshes this out (pyproject vs DESCRIPTION, test runner, packaging).
+# For now it records the project identity and intended language.
+
+tool:
+  id: "{{PROJECT_ID}}"
+  title: "{{PROJECT_TITLE}}"
+  type: "{{PROJECT_TYPE}}"
+  created: "{{DATE}}"
+
+# Intended implementation language: "python" or "r".
+language: "python"
+
+# Public entry points (fill in as the API stabilizes).
+api: []
+  # - name: "do_thing"
+  #   summary: "one-line description"
+
+# TODO (Phase 6): packaging metadata, test runner, CI config.

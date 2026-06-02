@@ -1,0 +1,75 @@
+# AGENTS.md — {{PROJECT_ID}}
+
+**Created:** {{DATE}} · **Type:** {{PROJECT_TYPE}} · **Species:** {{SPECIES}} ({{GENOME_BUILD}})
+
+This file is the single source of truth for AI agent behavior in this project.
+`CLAUDE.md` imports it via `@AGENTS.md`. Edit here, not there.
+
+---
+
+## Project context
+
+The canonical scientific framing — question, datasets, hypotheses, goals — lives in
+`docs/_internal/scientific-context.md`. Read it before acting. Session handoffs are written
+to `docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
+
+---
+
+## Active role
+
+<!-- BEGIN SCIAGENT:ROLES managed block — do not edit between these markers -->
+<!-- END SCIAGENT:ROLES -->
+
+Run `sciagent status` to see the current stack, effective skills, agents, and commands.
+
+---
+
+## Critical rules
+
+1. **Config, not hardcoding.** Paths and parameters come from
+   `02_analysis/config/analysis_config.yaml`. Never inline file paths or thresholds.
+2. **Normalize, then visualize.** Compute scores/embeddings and checkpoint them under
+   `03_results/objects/` before any visualization step.
+3. **Read-only input data.** `00_data/` is read-only. Outputs go to `03_results/`.
+4. **Cache expensive operations.** Anything over a minute goes through a checkpoint object.
+
+---
+
+## Directory structure
+
+```
+{{PROJECT_ID}}/
+├── 00_data/{raw,processed,references}   # READ-ONLY input data
+├── 01_modules/                          # toolkits (submodules)
+├── 02_analysis/{config,helpers,scripts,notebooks}
+├── 03_results/
+│   ├── objects/                         # checkpoint state (.h5ad, .rds) — not a deliverable
+│   ├── 01_qc/                           # tables + figures for the QC phase
+│   └── _scratch/                        # throwaway plots/tables
+├── docs/                                # public-facing: plan, guides
+└── logs/
+```
+
+Each `NN_phase/` folder under `03_results/` holds the tables **and** figures for that phase;
+reusable checkpoint objects live in `03_results/objects/`. Add `02_*`, `03_*` as the plan
+in `docs/plan/` progresses.
+
+---
+
+## Documentation namespace
+
+`docs/_internal/` is agent-facing (not the published deliverable). Route writing here:
+
+| Path | Holds |
+|------|-------|
+| `docs/_internal/scientific-context.md` | stable scientific framing (question, datasets, goals) |
+| `docs/_internal/reasoning/` | decision traces, why-not logs, agent thinking |
+| `docs/_internal/sessions/` | dated handoffs `YYYY-MM-DD_<slug>.md` |
+| `docs/_internal/scratch/` | exploratory writeups before they crystallize |
+| `docs/plan/` | public-facing phased research plan |
+
+---
+
+## Notes
+
+[Caveats, known issues, or interpretation notes relevant to all agents on this project]

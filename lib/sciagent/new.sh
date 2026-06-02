@@ -14,7 +14,9 @@ cmd_new() {
         ""|-h|--help)
             cat <<EOF
 usage:
-  sciagent new project [<dir>]   bootstrap a project (copy templates)
+  sciagent new project <dir> [--type analysis|software-tool] [--species ...]
+                             [--genome ...] [--title ...] [--git]
+                             [--with-submodules] [--force]
   sciagent new role <name>       scaffold roles/<name>.yaml
   sciagent new skill <name>      copy skills/_TEMPLATE/ to skills/<name>/
   sciagent new agent <name>      scaffold agents/<name>.md
@@ -26,40 +28,180 @@ EOF
     esac
 }
 
-_subst() {
-    # _subst <src> <dst> <project_id>
-    local src="$1" dst="$2" pid="$3"
-    local date_str
-    date_str=$(date +%Y-%m-%d)
-    sed -e "s|{{PROJECT_ID}}|$pid|g" \
-        -e "s|{{DATE}}|$date_str|g" \
-        -e "s|{{SKILL_NAME}}|$pid|g" \
-        "$src" > "$dst"
+# _derive_species_db <species> → echoes the short DB code (MM / HS / "").
+_derive_species_db() {
+    local species
+    species=$(printf '%s' "${1:-}" | tr '[:upper:]' '[:lower:]')
+    case "$species" in
+        mouse|*mus*musculus*) echo "MM" ;;
+        human|*homo*sapiens*) echo "HS" ;;
+        *)                    echo "" ;;
+    esac
 }
 
-_new_project() {
-    local dir="${1:-.}"
-    mkdir -p "$dir"
-    local pid
-    pid=$(basename "$(cd "$dir" && pwd)")
+# _subst <src> <dst> — renders one template, substituting the {{TOKENS}} held in the
+# PROJECT_VARS associative array (populated by the caller). Errors out (returns) if the
+# write fails so the caller can surface it.
+_subst() {
+    local src="$1" dst="$2"
+    local -a sed_args=()
+    local key
+    for key in "${!PROJECT_VARS[@]}"; do
+        sed_args+=(-e "s|{{$key}}|${PROJECT_VARS[$key]}|g")
+    done
+    sed "${sed_args[@]}" "$src" > "$dst" || {
+        echo "render failed: $dst" >&2
+        return 1
+    }
+}
 
-    local tpl_dir="$SCIAGENT_TOOLKIT/templates"
-    local f base out
-    local copied=0
-    for f in AGENTS.md.template CLAUDE.md.template GEMINI.md.template context.md.template; do
-        [[ -f "$tpl_dir/$f" ]] || continue
-        base="${f%.template}"
-        out="$dir/$base"
-        if [[ -e "$out" ]]; then
+# _mkdirs <base> <dir>... — mkdir -p each child of <base>, error-checked.
+_mkdirs() {
+    local base="$1"; shift
+    local d
+    for d in "$@"; do
+        mkdir -p "$base/$d" || { echo "mkdir failed: $base/$d" >&2; return 1; }
+    done
+}
+
+# _seed_gitkeep <root> — drop a .gitkeep into every empty directory under <root>.
+_seed_gitkeep() {
+    local root="$1" d
+    while IFS= read -r d; do
+        touch "$d/.gitkeep" || { echo "gitkeep failed: $d" >&2; return 1; }
+    done < <(find "$root" -type d -empty)
+}
+
+# _render_tree <tpl_root> <dir> <force> — walk *.template under <tpl_root>, strip the
+# suffix, re-root under <dir>, render via _subst. Non-template files (e.g. .gitkeep,
+# .gitignore-seed) are handled by the caller, not here.
+_render_tree() {
+    local tpl_root="$1" dir="$2" force="$3"
+    [[ -d "$tpl_root" ]] || return 0
+    local src rel out
+    while IFS= read -r src; do
+        rel="${src#"$tpl_root"/}"
+        out="$dir/${rel%.template}"
+        if [[ -e "$out" && "$force" != "true" ]]; then
             echo "skip (exists): $out"
             continue
         fi
-        _subst "$tpl_dir/$f" "$out" "$pid"
+        mkdir -p "$(dirname "$out")" || return 1
+        _subst "$src" "$out" || return 1
         echo "wrote: $out"
-        copied=$((copied + 1))
+    done < <(find "$tpl_root" -type f -name '*.template')
+}
+
+# Directory lists per project type (relative to project root).
+_dirs_for_type() {
+    case "$1" in
+        analysis)
+            echo "00_data/raw 00_data/processed 00_data/references" \
+                 "01_modules" \
+                 "02_analysis/config 02_analysis/helpers 02_analysis/scripts 02_analysis/notebooks" \
+                 "03_results/objects 03_results/01_qc 03_results/_scratch" \
+                 "docs/plan docs/_internal/reasoning docs/_internal/sessions docs/_internal/scratch" \
+                 "logs"
+            ;;
+        software-tool)
+            echo "src tests docs examples" \
+                 "docs/_internal/reasoning docs/_internal/design docs/_internal/benchmarks"
+            ;;
+    esac
+}
+
+_new_project() {
+    local dir="" type="analysis" species="Mus musculus" genome="mm10" title=""
+    local do_git=false with_submodules=false force=false
+    while (( $# )); do
+        case "$1" in
+            --type)             type="$2"; shift 2 ;;
+            --species)          species="$2"; shift 2 ;;
+            --genome)           genome="$2"; shift 2 ;;
+            --title)            title="$2"; shift 2 ;;
+            --git)              do_git=true; shift ;;
+            --with-submodules)  with_submodules=true; shift ;;
+            --force)            force=true; shift ;;
+            -*)  echo "sciagent new project: unknown flag '$1'" >&2; return 1 ;;
+            *)   if [[ -z "$dir" ]]; then dir="$1"; else
+                     echo "sciagent new project: unexpected argument '$1'" >&2; return 1
+                 fi; shift ;;
+        esac
     done
-    if (( copied == 0 )); then
-        echo "no new files written (all templates already present)"
+    dir="${dir:-.}"
+
+    case "$type" in
+        analysis|software-tool) ;;
+        *) echo "sciagent new project: --type must be 'analysis' or 'software-tool' (got '$type')" >&2
+           return 1 ;;
+    esac
+
+    mkdir -p "$dir" || { echo "mkdir failed: $dir" >&2; return 1; }
+    local pid abs
+    abs=$(cd "$dir" && pwd) || return 1
+    pid=$(basename "$abs")
+
+    # Build the substitution vocabulary (ADR-2.2).
+    local species_db
+    species_db=$(_derive_species_db "$species")
+    declare -gA PROJECT_VARS=(
+        [PROJECT_ID]="$pid"
+        [PROJECT_NAME]="$pid"                         # deprecated alias for PROJECT_ID
+        [PROJECT_TITLE]="${title:-$pid Analysis}"
+        [DATE]="$(date +%Y-%m-%d)"
+        [PROJECT_TYPE]="$type"
+        [SPECIES]="$species"
+        [SPECIES_DB]="$species_db"
+        [GENOME_BUILD]="$genome"
+    )
+
+    # 1. directory tree for this type.
+    local -a dirlist
+    read -r -a dirlist <<< "$(_dirs_for_type "$type")"
+    _mkdirs "$dir" "${dirlist[@]}" || return 1
+
+    # 2. render templates: _common/ first, then the type overlay.
+    local proj_tpl="$SCIAGENT_TOOLKIT/templates/project"
+    _render_tree "$proj_tpl/_common" "$dir" "$force" || return 1
+    _render_tree "$proj_tpl/$type"   "$dir" "$force" || return 1
+
+    # 3. seed the shared .gitignore (non-.template source) if absent.
+    local gi_seed="$proj_tpl/_common/.gitignore-seed"
+    if [[ -f "$gi_seed" && ( ! -e "$dir/.gitignore" || "$force" == "true" ) ]]; then
+        cp "$gi_seed" "$dir/.gitignore" && echo "wrote: $dir/.gitignore" || return 1
+    fi
+
+    # 4. seed .gitkeep into empty dirs.
+    _seed_gitkeep "$dir" || return 1
+
+    # 5. post-render validation: warn on any unresolved {{TOKEN}}.
+    _warn_unresolved_tokens "$dir"
+
+    # 6. optional git init + submodule registration.
+    if [[ "$do_git" == "true" || "$with_submodules" == "true" ]]; then
+        _new_git "$abs" "$type" "$with_submodules" || return 1
+    fi
+
+    _new_project_next_steps "$dir" "$type" "$with_submodules"
+}
+
+# _warn_unresolved_tokens <dir> — surface any {{TOKEN}} left in rendered output. Some
+# templates intentionally carry no tokens; this only warns, never fails.
+_warn_unresolved_tokens() {
+    local dir="$1" hits
+    hits=$(grep -rl '{{' "$dir" 2>/dev/null) || return 0
+    [[ -n "$hits" ]] || return 0
+    echo "warning: unresolved {{tokens}} in:" >&2
+    printf '  %s\n' $hits >&2
+}
+
+# _new_project_next_steps <dir> <type> <with_submodules>
+_new_project_next_steps() {
+    local dir="$1" type="$2" with_submodules="$3"
+    echo
+    echo "Project scaffolded at $dir (type: $type)."
+    if [[ "$with_submodules" != "true" ]]; then
+        echo "Hint: re-run with --with-submodules to attach toolkits under 01_modules/."
     fi
 
     # Create the canonical docs/ tree.
@@ -96,7 +238,92 @@ TMPL
     cmd_gitignore "${dir}/.gitignore"
 
     echo
-    echo "Next: cd $dir && sciagent activate <role>"
+    echo "Next steps:"
+    echo "  1. cd $dir"
+    echo "  2. Add container substrate (from scbio-docker):"
+    echo "       <scbio-docker>/scripts/init-container.sh $dir --type $type"
+    echo "  3. Open in VS Code → Reopen in Container"
+    echo "  4. sciagent activate base"
+}
+
+# _new_git <abs_dir> <type> <with_submodules> — git init (if absent) and, when requested,
+# register the type's toolkit submodules under 01_modules/. SSH → gh-HTTPS fallback ported
+# from init-project.sh.
+_new_git() {
+    local abs_dir="$1" type="$2" with_submodules="$3"
+    local owner="tony-zhelonkin"
+
+    if [[ ! -d "$abs_dir/.git" ]]; then
+        git -C "$abs_dir" init -q || { echo "git init failed" >&2; return 1; }
+        echo "git: initialized repository in $abs_dir"
+    fi
+
+    [[ "$with_submodules" == "true" ]] || return 0
+
+    # Per-type toolkit set: "<repo> <branch> <target>".
+    local -a subs=()
+    case "$type" in
+        analysis)
+            subs+=("RNAseq-toolkit dev 01_modules/RNAseq-toolkit")
+            subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
+            ;;
+        software-tool)
+            subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
+            ;;
+    esac
+
+    local spec repo branch target added=0
+    for spec in "${subs[@]}"; do
+        read -r repo branch target <<< "$spec"
+        echo "git: adding $repo (branch: $branch)..."
+        if _add_submodule_with_fallback "$abs_dir" "$owner" "$repo" "$branch" "$target"; then
+            added=$((added + 1))
+        fi
+    done
+
+    if (( added > 0 )); then
+        git -C "$abs_dir" add .gitmodules >/dev/null 2>&1 || true
+        git -C "$abs_dir" commit -q -m "add analysis toolkits as git submodules" \
+            >/dev/null 2>&1 || true
+    fi
+}
+
+# _add_submodule_with_fallback <abs_dir> <owner> <repo> <branch> <target>
+# Tries SSH `git submodule add`, then falls back to a gh-CLI HTTPS clone that rewrites the
+# recorded URL back to SSH. Returns non-zero (without aborting the scaffold) on failure.
+_add_submodule_with_fallback() {
+    local abs_dir="$1" owner="$2" repo="$3" branch="$4" target="$5"
+    local ssh_url="git@github.com:${owner}/${repo}.git"
+
+    if [[ -d "$abs_dir/$target" ]]; then
+        echo "  $repo directory already exists, skipping"
+        return 1
+    fi
+
+    if git -C "$abs_dir" submodule add -b "$branch" "$ssh_url" "$target" 2>/dev/null; then
+        echo "  $repo added via git (SSH)"
+        return 0
+    fi
+
+    echo "  SSH failed, trying gh CLI fallback (HTTPS)..."
+    if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        if GIT_CONFIG_COUNT=1 \
+           GIT_CONFIG_KEY_0="url.https://github.com/.insteadOf" \
+           GIT_CONFIG_VALUE_0="git@github.com:" \
+           gh repo clone "${owner}/${repo}" "$abs_dir/$target" -- -b "$branch" 2>/dev/null; then
+            git -C "$abs_dir" config -f .gitmodules "submodule.${target}.path" "$target"
+            git -C "$abs_dir" config -f .gitmodules "submodule.${target}.url" "$ssh_url"
+            git -C "$abs_dir" config -f .gitmodules "submodule.${target}.branch" "$branch"
+            git -C "$abs_dir" config "submodule.${target}.url" "$ssh_url"
+            git -C "$abs_dir" config "submodule.${target}.active" "true"
+            git -C "$abs_dir" add "$target" 2>/dev/null || true
+            echo "  $repo added via gh CLI (HTTPS)"
+            return 0
+        fi
+    fi
+
+    echo "  failed to add $repo" >&2
+    return 1
 }
 
 _new_role() {

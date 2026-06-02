@@ -1,0 +1,150 @@
+# analysis_config.yaml — language-agnostic project configuration
+# Template version: 2.1.0
+#
+# This file holds ALL project-specific values that must NOT be hardcoded in
+# analysis scripts. It is the cross-language data contract: both R and Python read it.
+#
+# Usage:
+#   R:      config <- yaml::read_yaml("02_analysis/config/analysis_config.yaml")
+#   Python: with open("02_analysis/config/analysis_config.yaml") as f: config = yaml.safe_load(f)
+
+# =============================================================================
+# PROJECT METADATA
+# =============================================================================
+
+project:
+  id: "{{PROJECT_ID}}"
+  title: "{{PROJECT_TITLE}}"
+  species: "{{SPECIES}}"              # e.g. "Mus musculus" / "Homo sapiens"
+  species_db: "{{SPECIES_DB}}"        # e.g. "MM" / "HS"
+  genome_build: "{{GENOME_BUILD}}"    # e.g. "mm10", "mm39", "hg38"
+
+# =============================================================================
+# EXPERIMENTAL DESIGN
+# =============================================================================
+
+design:
+  groups:
+    - "Control"                       # rename to your conditions
+    - "Treatment"
+  contrasts:
+    - name: "Treatment_vs_Control"
+      numerator: "Treatment"
+      denominator: "Control"
+  samples_per_group: null             # e.g. 5
+
+# =============================================================================
+# ANALYSIS THRESHOLDS
+# =============================================================================
+
+thresholds:
+  # Differential Expression
+  de_fdr: 0.05                        # FDR cutoff for significance
+  de_logfc: 1.0                       # absolute log2FC cutoff (optional)
+
+  # GSEA
+  gsea_fdr: 0.05                      # FDR cutoff for pathway significance
+  gsea_nperm: 100000                  # number of permutations
+  gsea_seed: 123                      # random seed for reproducibility
+  gsea_min_size: 15                   # minimum gene set size
+  gsea_max_size: 500                  # maximum gene set size
+
+# =============================================================================
+# COLOR PALETTES (colorblind-safe)
+# =============================================================================
+
+colors:
+  # Okabe-Ito palette for categorical data
+  okabe_ito:
+    orange: "#E69F00"
+    sky_blue: "#56B4E9"
+    bluish_green: "#009E73"
+    yellow: "#F0E442"
+    blue: "#0072B2"
+    vermillion: "#D55E00"
+    reddish_purple: "#CC79A7"
+    black: "#000000"
+
+  # Diverging scale for NES, logFC (blue = down, orange = up)
+  diverging:
+    down: "#2166AC"
+    neutral: "#F7F7F7"
+    up: "#B35806"
+
+  # Group colors for sample comparisons
+  groups:
+    Control: "#56B4E9"
+    Treatment: "#E69F00"
+
+# =============================================================================
+# VISUALIZATION SETTINGS
+# =============================================================================
+
+visualization:
+  width: 10
+  height: 8
+  width_narrow: 6                     # single column
+  width_wide: 14                      # two columns
+  dpi: 300                            # print quality
+  base_size: 12
+  title_size: 14
+  label_size: 11
+  n_top_pathways: 20                  # top pathways to show
+  volcano_label_top: 10               # top genes to label
+
+# =============================================================================
+# DATABASES TO ANALYZE
+# =============================================================================
+
+databases:
+  msigdb:
+    - { category: "H",  subcategory: "",            name: "Hallmark" }
+    - { category: "C2", subcategory: "CP:KEGG",     name: "KEGG" }
+    - { category: "C2", subcategory: "CP:REACTOME", name: "Reactome" }
+    - { category: "C5", subcategory: "GO:BP",       name: "GO_BP" }
+  custom: []
+    # - { path: "00_data/references/custom_gene_sets.csv", name: "Custom" }
+
+# =============================================================================
+# INPUT/OUTPUT PATHS (relative to project root)
+# =============================================================================
+
+paths:
+  # Input
+  references: "00_data/references/"
+
+  # Output — phase-based layout. Checkpoint state is separate from deliverables.
+  objects: "03_results/objects/"      # reusable state (.h5ad, .rds)
+  qc: "03_results/01_qc/"             # tables + figures for the QC phase
+  scratch: "03_results/_scratch/"     # throwaway plots/tables
+
+  # Toolkits
+  rnaseq_toolkit: "01_modules/RNAseq-toolkit/"
+  sciagent_toolkit: "01_modules/SciAgent-toolkit/"
+
+# =============================================================================
+# SCHEMA DEFINITIONS (for validation)
+# =============================================================================
+
+schemas:
+  master_gsea_table:
+    required_columns:
+      - pathway_id
+      - pathway_name
+      - database
+      - nes
+      - pvalue
+      - padj
+      - set_size
+      - core_enrichment
+      - contrast
+      - direction
+  master_de_table:
+    required_columns:
+      - gene_symbol
+      - logFC
+      - P.Value
+      - adj.P.Val
+      - contrast
+      - significant
+      - direction

@@ -1,0 +1,27 @@
+# Context — {{PROJECT_TITLE}}
+
+**Created:** {{DATE}}
+
+This is a pointer, not the body. The substantive scientific context lives in:
+
+- **`docs/_internal/scientific-context.md`** — question, datasets, hypotheses, analysis
+  goals, references. Start here.
+
+Session handoffs (dated, append-only) go to:
+
+- **`docs/_internal/sessions/YYYY-MM-DD_<slug>.md`** — what was done, what's next.
+
+Decision traces and why-not logs go to:
+
+- **`docs/_internal/reasoning/`**
+
+---
+
+## Quick orientation
+
+- **Species / system:** {{SPECIES}} ({{GENOME_BUILD}})
+- **Project config:** `02_analysis/config/analysis_config.yaml`
+- **Plan:** `docs/plan/`
+
+Keep this file short. When you need to record substance, write it where it belongs above —
+not here.

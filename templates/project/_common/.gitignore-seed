@@ -6,7 +6,7 @@
 00_data/references/*
 !00_data/references/.gitkeep
 
-# Results
+# Results — track folder structure, not artifacts
 03_results/*/*
 !03_results/*/.gitkeep
 
