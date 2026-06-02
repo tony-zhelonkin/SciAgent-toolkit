@@ -1,0 +1,135 @@
+# pipeline.yaml - Shared Configuration for {{PROJECT_NAME}}
+# Single source of truth for R and Python scripts
+# Created: {{DATE}}
+
+# =============================================================================
+# PROJECT METADATA
+# =============================================================================
+project:
+  id: "{{PROJECT_NAME}}"
+  title: "{{PROJECT_NAME}} Analysis"
+  species: "{{SPECIES}}"
+  species_db: "{{SPECIES_DB}}"
+  genome_build: "{{GENOME_BUILD}}"
+
+# =============================================================================
+# COLOR CONFIGURATIONS
+# =============================================================================
+
+colors:
+  # Diverging scale for NES/logFC/activity scores
+  diverging:
+    negative: "#2166AC"   # Blue (downregulated)
+    neutral: "#F7F7F7"    # White
+    positive: "#B35806"   # Orange (upregulated)
+
+  # 5-point gradient for heatmaps
+  diverging_5pt:
+    neg_strong: "#2166AC"
+    neg_weak: "#92c5de"
+    neutral: "#F7F7F7"
+    pos_weak: "#f4a582"
+    pos_strong: "#B35806"
+
+  # Experimental group colors - CUSTOMIZE THIS
+  groups:
+    Control: "#1f77b4"    # Blue
+    Treatment: "#ff7f0e"  # Orange
+
+  # Database colors - Okabe-Ito colorblind-safe palette
+  # Validated for deuteranopia and protanopia
+  databases:
+    Hallmark: "#E69F00"       # Orange
+    KEGG: "#56B4E9"           # Sky Blue
+    Reactome: "#009E73"       # Bluish Green
+    WikiPathways: "#F0E442"   # Yellow
+    GO_BP: "#0072B2"          # Blue
+    GO_MF: "#D55E00"          # Vermillion
+    GO_CC: "#CC79A7"          # Reddish Purple
+    Custom: "#999999"         # Gray
+
+# =============================================================================
+# VISUALIZATION PARAMETERS
+# =============================================================================
+visualization:
+  # Score capping for color scales
+  nes_max: 3.5
+  signed_sig_max: 30
+
+  # Default thresholds for significance
+  default_fdr: 0.05
+  default_logfc: 1.0
+
+  # UMAP parameters (for pathway embedding)
+  umap_n_neighbors: 15
+  umap_min_dist: 0.1
+  umap_random_state: 42
+
+  # Plot dimensions
+  plot_width: 10
+  plot_height: 8
+  plot_dpi: 300
+
+  # Top pathways to show
+  n_top_pathways: 20
+
+# =============================================================================
+# ANALYSIS PARAMETERS
+# =============================================================================
+analysis:
+  # Filtering thresholds
+  min_count: 10
+  min_samples: 3
+
+  # Differential expression
+  de_fdr_cutoff: 0.05
+  de_logfc_cutoff: 2.0
+
+  # GSEA parameters
+  gsea_nperm: 100000
+  gsea_seed: 123
+  gsea_min_size: 15
+  gsea_max_size: 500
+
+# =============================================================================
+# SCHEMA DEFINITIONS (for validation)
+# =============================================================================
+schemas:
+  master_gsea_table:
+    version: "1.0.0"
+    required_columns:
+      - pathway_id
+      - pathway_name
+      - database
+      - nes
+      - pvalue
+      - padj
+      - core_enrichment
+    optional_columns:
+      - contrast
+      - direction
+      - set_size
+      - leading_edge_size
+
+  master_de_table:
+    version: "1.0.0"
+    required_columns:
+      - gene_symbol
+      - logFC
+      - pvalue
+      - padj
+    optional_columns:
+      - contrast
+      - gene_id
+      - description
+      - t_statistic
+
+  master_tf_activities:
+    version: "1.0.0"
+    required_columns:
+      - source
+      - score
+      - pvalue
+    optional_columns:
+      - contrast
+      - statistic

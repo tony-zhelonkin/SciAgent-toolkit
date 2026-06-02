@@ -1,0 +1,155 @@
+# color_config.R - Colorblind-Safe Palette Configuration
+# Based on Okabe-Ito palette (validated for deuteranopia and protanopia)
+# Created: {{DATE}}
+
+# ============================================================================
+# LOAD YAML COLORS (if available)
+# ============================================================================
+
+# Try to load from pipeline.yaml
+if (!exists("YAML_CONFIG") || is.null(YAML_CONFIG)) {
+  yaml_file <- "02_analysis/config/pipeline.yaml"
+  if (file.exists(yaml_file) && requireNamespace("yaml", quietly = TRUE)) {
+    YAML_CONFIG <- yaml::read_yaml(yaml_file)
+  }
+}
+
+# Null coalesce operator
+if (!exists("%||%")) {
+  `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
+}
+
+# ============================================================================
+# DIVERGING COLOR SCALE (Blue-White-Orange)
+# ============================================================================
+
+# For NES, logFC, activity scores
+DIVERGING_COLORS <- list(
+  negative = YAML_CONFIG$colors$diverging$negative %||% "#2166AC",  # Blue
+  neutral = YAML_CONFIG$colors$diverging$neutral %||% "#F7F7F7",    # White
+  positive = YAML_CONFIG$colors$diverging$positive %||% "#B35806"   # Orange
+)
+
+# 5-point gradient for heatmaps
+DIVERGING_5PT <- c(
+  YAML_CONFIG$colors$diverging_5pt$neg_strong %||% "#2166AC",
+  YAML_CONFIG$colors$diverging_5pt$neg_weak %||% "#92c5de",
+  YAML_CONFIG$colors$diverging_5pt$neutral %||% "#F7F7F7",
+  YAML_CONFIG$colors$diverging_5pt$pos_weak %||% "#f4a582",
+  YAML_CONFIG$colors$diverging_5pt$pos_strong %||% "#B35806"
+)
+
+# ============================================================================
+# DATABASE COLORS (Okabe-Ito Palette)
+# ============================================================================
+
+# Colorblind-safe palette for categorical data
+DB_COLORS <- c(
+  Hallmark = YAML_CONFIG$colors$databases$Hallmark %||% "#E69F00",       # Orange
+  KEGG = YAML_CONFIG$colors$databases$KEGG %||% "#56B4E9",               # Sky Blue
+  Reactome = YAML_CONFIG$colors$databases$Reactome %||% "#009E73",       # Bluish Green
+  WikiPathways = YAML_CONFIG$colors$databases$WikiPathways %||% "#F0E442", # Yellow
+  GO_BP = YAML_CONFIG$colors$databases$GO_BP %||% "#0072B2",             # Blue
+  GO_MF = YAML_CONFIG$colors$databases$GO_MF %||% "#D55E00",             # Vermillion
+  GO_CC = YAML_CONFIG$colors$databases$GO_CC %||% "#CC79A7",             # Reddish Purple
+  Custom = YAML_CONFIG$colors$databases$Custom %||% "#999999"            # Gray
+)
+
+# ============================================================================
+# GROUP COLORS (Customize for your experiment)
+# ============================================================================
+
+# Default group colors - CUSTOMIZE THIS for your experimental groups
+GROUP_COLORS <- c(
+  Control = YAML_CONFIG$colors$groups$Control %||% "#1f77b4",
+  Treatment = YAML_CONFIG$colors$groups$Treatment %||% "#ff7f0e"
+)
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
+#' Get diverging color palette
+#'
+#' @param n Number of colors (default 100)
+#' @return Character vector of hex colors
+get_diverging_palette <- function(n = 100) {
+  colorRampPalette(c(
+    DIVERGING_COLORS$negative,
+    DIVERGING_COLORS$neutral,
+    DIVERGING_COLORS$positive
+  ))(n)
+}
+
+#' Create NES color scale for a vector of values
+#'
+#' @param values Numeric vector of NES values
+#' @param max_val Maximum absolute value for scale (default 3.5)
+#' @return Character vector of colors
+nes_color_scale <- function(values, max_val = 3.5) {
+  # Cap values at +/- max_val
+  values_capped <- pmax(pmin(values, max_val), -max_val)
+
+  # Normalize to 0-1
+  normalized <- (values_capped + max_val) / (2 * max_val)
+
+  # Get colors from palette
+  palette <- get_diverging_palette(100)
+  indices <- pmax(1, pmin(100, round(normalized * 99) + 1))
+
+  palette[indices]
+}
+
+#' Create ggplot2 scale for NES values
+#'
+#' @param max_val Maximum absolute value for scale
+#' @param name Legend title
+#' @return ggplot2 scale object
+nes_ggplot_scale <- function(max_val = 3.5, name = "NES") {
+  ggplot2::scale_fill_gradient2(
+    low = DIVERGING_COLORS$negative,
+    mid = DIVERGING_COLORS$neutral,
+    high = DIVERGING_COLORS$positive,
+    midpoint = 0,
+    limits = c(-max_val, max_val),
+    oob = scales::squish,
+    name = name
+  )
+}
+
+#' Get color for a database name
+#'
+#' @param db_name Database name
+#' @return Hex color code
+get_db_color <- function(db_name) {
+  # Try exact match first
+  if (db_name %in% names(DB_COLORS)) {
+    return(DB_COLORS[db_name])
+  }
+
+  # Try partial matching
+  for (db in names(DB_COLORS)) {
+    if (grepl(db, db_name, ignore.case = TRUE)) {
+      return(DB_COLORS[db])
+    }
+  }
+
+  # Default to gray
+  return(DB_COLORS["Custom"])
+}
+
+#' Database color scale for ggplot2
+#'
+#' @return ggplot2 scale object
+db_color_scale <- function() {
+  ggplot2::scale_fill_manual(values = DB_COLORS)
+}
+
+# ============================================================================
+# CONFIGURATION COMPLETE
+# ============================================================================
+
+message("Color configuration loaded")
+message("Diverging: ", DIVERGING_COLORS$negative, " -> ",
+        DIVERGING_COLORS$neutral, " -> ", DIVERGING_COLORS$positive)
+message("Databases: ", length(DB_COLORS), " colors defined")

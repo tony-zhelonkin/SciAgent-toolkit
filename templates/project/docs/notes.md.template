@@ -1,0 +1,92 @@
+# Research Notes - {{PROJECT_NAME}}
+
+**Created:** {{DATE}}
+**Last Updated:** {{DATE}}
+
+---
+
+## Biological Context
+
+### System/Organism
+- **Species:** {{SPECIES}}
+- **Genome Build:** {{GENOME_BUILD}}
+- **Tissue/Cell Type:** [To be filled]
+- **Experimental Condition:** [To be filled]
+
+### Key Background
+<!-- Add relevant biological background for this project -->
+
+---
+
+## Key Findings Log
+
+<!-- Add dated entries as you discover important results -->
+
+### {{DATE}} - Project Initialization
+- Project created using {{TEMPLATE_TYPE}} template
+- Analysis guidelines: `01_modules/SciAgent-toolkit/docs/guidelines/`
+
+---
+
+## Genes of Interest
+
+<!-- Track important genes discovered during analysis -->
+
+| Gene | logFC | FDR | Notes |
+|------|-------|-----|-------|
+| | | | |
+
+---
+
+## Pathways of Interest
+
+<!-- Track important pathways from GSEA results -->
+
+| Pathway | Database | NES | FDR | Interpretation |
+|---------|----------|-----|-----|----------------|
+| | | | | |
+
+---
+
+## Hypotheses to Test
+
+<!-- Document testable hypotheses generated from the analysis -->
+
+### Hypothesis 1
+- **Statement:**
+- **Evidence:**
+- **Validation Approach:**
+
+---
+
+## External Resources
+
+### Papers
+<!-- Key references for this analysis -->
+-
+
+### Databases
+<!-- External databases consulted -->
+- MSigDB: https://www.gsea-msigdb.org/gsea/msigdb/
+-
+
+### Tools
+<!-- Software and tools used -->
+-
+
+---
+
+## Questions for Follow-up
+
+<!-- Track open questions that need discussion or further analysis -->
+
+1.
+
+---
+
+## Meeting Notes
+
+<!-- Document discussions about the analysis -->
+
+### [Date] - [Attendees]
+-

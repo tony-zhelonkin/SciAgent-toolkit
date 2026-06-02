@@ -1,0 +1,51 @@
+# Data files (track structure via .gitkeep, not contents)
+00_data/raw/*
+!00_data/raw/.gitkeep
+00_data/processed/*
+!00_data/processed/.gitkeep
+00_data/references/*
+!00_data/references/.gitkeep
+
+# Results
+03_results/*/*
+!03_results/*/.gitkeep
+
+# Reference codebases (gitignored by default — add explicitly if needed)
+01_modules/.ref/
+
+# Logs
+logs/
+*.log
+
+# Secrets and env
+.env
+.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+.mcp.json
+
+# CLI auth configs
+.gemini/
+.codex/
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+tooluniverse-env/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*.log

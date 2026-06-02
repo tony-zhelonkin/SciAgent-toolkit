@@ -1,0 +1,9 @@
+# {{PROJECT_NAME}} — Documentation
+
+- `plan/` — research plan, phased
+- `ai-generated/` — AI-assisted research notes and vignettes
+  - `vignettes/` — short reproducible snippets, gotchas
+  - `research/` — longer guides, exploration writeups
+- `raw/` — unprocessed source material (PDFs, web notes, papers)
+
+Project README is at the repo root.
