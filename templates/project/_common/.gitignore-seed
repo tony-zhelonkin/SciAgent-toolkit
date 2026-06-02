@@ -20,6 +20,10 @@
 03_results/**/tables/**/*.csv
 03_results/**/tables/**/*.tsv
 
+# Scratch: throwaway artifacts, never committed
+03_results/_scratch/*
+!03_results/_scratch/.gitkeep
+
 # Keep .gitkeep placeholders everywhere under 03_results/.
 !03_results/**/.gitkeep
 

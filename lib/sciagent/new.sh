@@ -104,7 +104,7 @@ _dirs_for_type() {
                  "03_results/objects 03_results/master 03_results/interactive 03_results/_scratch" \
                  "03_results/01_qc/tables 03_results/01_qc/figures" \
                  "03_results/02_eda/tables 03_results/02_eda/figures" \
-                 "docs/plan docs/_internal/reasoning docs/_internal/sessions docs/_internal/scratch docs/_internal/ai-generated/research" \
+                 "docs/plan docs/_internal/reasoning docs/_internal/sessions docs/_internal/ai-generated/research" \
                  "logs"
             ;;
         software-tool)

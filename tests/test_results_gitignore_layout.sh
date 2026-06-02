@@ -38,4 +38,17 @@ else
     exit 1
 fi
 
+# Scratch contents must be ignored, but the skeleton .gitkeep stays tracked.
+touch "$proj/03_results/_scratch/throwaway.png"
+if git -C "$proj" check-ignore -q "03_results/_scratch/throwaway.png"; then
+    :
+else
+    echo "FAIL [$_TEST_NAME] _scratch/throwaway.png not gitignored" >&2
+    exit 1
+fi
+if git -C "$proj" check-ignore -q "03_results/_scratch/.gitkeep"; then
+    echo "FAIL [$_TEST_NAME] _scratch/.gitkeep was gitignored (should be tracked)" >&2
+    exit 1
+fi
+
 pass

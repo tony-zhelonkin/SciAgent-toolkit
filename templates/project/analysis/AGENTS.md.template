@@ -69,7 +69,6 @@ name read from the script (never guessed); Config is the active `key = value`. N
 | session handoff | `docs/_internal/sessions/` |
 | research note | `docs/_internal/ai-generated/research/` |
 | decision log | `docs/_internal/reasoning/` |
-| scratch | `docs/_internal/scratch/` |
 | scientific framing | `docs/_internal/scientific-context.md` |
 | public phased plan | `docs/plan/` |
 

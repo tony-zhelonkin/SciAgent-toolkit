@@ -12,7 +12,6 @@ deliverable. Public-facing material lives under `docs/` outside `_internal/`.
 | `reasoning/` | decision traces, why-not logs, agent thinking |
 | `sessions/` | dated session handoffs |
 | `ai-generated/research/` | literature / web research notes |
-| `scratch/` | exploratory writeups before they crystallize (gitignored) |
 
 ## Naming conventions
 
