@@ -14,20 +14,9 @@ proj="$TMPDIR_TEST/proj"
 git -C "$proj" init -q
 git -C "$proj" add .gitignore >/dev/null 2>&1
 
-# A PDF in a phase figures dir must be ignored.
-touch "$proj/03_results/01_qc/figures/plot.pdf"
-if git -C "$proj" check-ignore -q "03_results/01_qc/figures/plot.pdf"; then
-    :
-else
-    echo "FAIL [$_TEST_NAME] figure PDF not gitignored" >&2
-    exit 1
-fi
-
-# The .gitkeep skeleton placeholder must NOT be ignored.
-if git -C "$proj" check-ignore -q "03_results/01_qc/figures/.gitkeep"; then
-    echo "FAIL [$_TEST_NAME] .gitkeep was gitignored (should be tracked)" >&2
-    exit 1
-fi
+# NOTE: figure/table gitignore rules were deliberately commented out in
+# .gitignore-seed ("Decided to leave for now"), so we no longer assert
+# that PDFs/PNGs/CSVs in phase figures/tables dirs are ignored.
 
 # Checkpoint state objects must be hard-ignored.
 touch "$proj/03_results/objects/data.h5ad"
