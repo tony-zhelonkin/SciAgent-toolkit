@@ -11,7 +11,7 @@ deliverable. Public-facing material lives under `docs/` outside `_internal/`.
 | `scientific-context.md` | stable scientific framing (question, datasets, goals) |
 | `reasoning/` | decision traces, why-not logs, agent thinking |
 | `sessions/` | dated session handoffs |
-| `ai-generated/research/` | literature / web research notes |
+| `research/` | literature / web research notes |
 
 ## Naming conventions
 

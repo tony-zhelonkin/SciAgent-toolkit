@@ -34,9 +34,9 @@ without confirmation.
   into `docs/_internal/`.
 - `CLAUDE.md` with more than 2 substantive lines (anything beyond `@AGENTS.md` and a
   comment) → flag as drift; it should just import AGENTS.md.
-- `context.md` that is the full monolith rather than a ~30-line pointer (no link to
-  `docs/_internal/scientific-context.md`) → flag; recommend converting to a pointer and
-  moving the body into `scientific-context.md`.
+- `docs/_internal/scientific-context.md` exceeding ~300 lines → flag as likely needing
+  a split; recommend extracting verbose background into a referenced sub-document under
+  `docs/_internal/` and keeping only the active framing in `scientific-context.md`.
 
 ### C2 — One-way reference rule
 

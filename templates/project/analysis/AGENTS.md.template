@@ -67,7 +67,7 @@ name read from the script (never guessed); Config is the active `key = value`. N
 | Output kind | Directory |
 |-------------|-----------|
 | session handoff | `docs/_internal/sessions/` |
-| research note | `docs/_internal/ai-generated/research/` |
+| research note | `docs/_internal/research/` |
 | decision log | `docs/_internal/reasoning/` |
 | scientific framing | `docs/_internal/scientific-context.md` |
 | public phased plan | `docs/plan/` |

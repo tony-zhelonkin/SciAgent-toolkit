@@ -38,9 +38,8 @@ sciagent-toolkit/
 ├── output-styles/<name>.md   # canonical output styles
 ├── roles/<name>.yaml         # role definitions
 └── templates/                # project scaffolding (new project bootstrap)
-    ├── AGENTS.md.template
-    ├── CLAUDE.md.template    # 1-line shim: @AGENTS.md
-    └── context.md.template
+    ├── AGENTS.md.template    # points at docs/_internal/scientific-context.md
+    └── CLAUDE.md.template    # 1-line shim: @AGENTS.md
 ```
 
 ### In an activated project (what `sciagent activate` writes)

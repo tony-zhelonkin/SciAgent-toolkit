@@ -44,8 +44,7 @@ directory.
 ### Step 1: Gather current context
 
 Read, in this order:
-- `context.md` (a pointer — follow its links).
-- `docs/_internal/scientific-context.md` — the scientific framing.
+- `docs/_internal/scientific-context.md` — the primary scientific framing.
 - The most recent prior session file in the resolved sessions directory
   (`ls -1 <sessions_dir>/*.md | sort | tail -n 1`), to see where the last session left off.
 - Recent checkpoint files or results relevant to the work just done.
