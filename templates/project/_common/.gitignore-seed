@@ -14,11 +14,12 @@
 03_results/objects/*.parquet
 
 # Ignore data artifacts within phase dirs at any depth, keep the skeleton.
-03_results/**/figures/**/*.pdf
-03_results/**/figures/**/*.png
-03_results/**/figures/**/*.svg
-03_results/**/tables/**/*.csv
-03_results/**/tables/**/*.tsv
+# Decided to leave for now
+#03_results/**/figures/**/*.pdf
+#03_results/**/figures/**/*.png
+#03_results/**/figures/**/*.svg
+#03_results/**/tables/**/*.csv
+#03_results/**/tables/**/*.tsv
 
 # Scratch: throwaway artifacts, never committed
 03_results/_scratch/*
@@ -60,7 +61,6 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 venv/
-tooluniverse-env/
 
 # OS / editor
 .DS_Store

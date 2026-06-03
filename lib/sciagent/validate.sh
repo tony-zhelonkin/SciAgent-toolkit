@@ -1,9 +1,9 @@
 # lib/sciagent/validate.sh — sciagent validate [--quiet]
 #
-# Per kickoff.md §9 ADR-007 dissolution: thin callable verb, not a subsystem.
+# Thin callable verb, not a subsystem.
 # Called internally by `activate` before mounting; standalone for debugging.
 #
-# Checks (per kickoff.md §9, ADR-007 resolution 2026-05-24):
+# Checks:
 #   1. requires resolution    — every named dep exists as a skill
 #   2. cycle detection        — DFS over requires graph (skill_deps.sh helper)
 #   3. tag-vocab compliance   — every metadata.tags: entry is in tags.yaml
@@ -17,7 +17,7 @@
 #                               tests/collision-allowlist.txt is the CI mirror
 #                               that turns accidental overlaps into a merge gate.
 #
-# Hardness boundary (kickoff.md §9, PR 2 2026-05-24):
+# Hardness boundary:
 #   Hard-fail (exit 1): cycle or missing requires target; unknown tag.
 #   Soft-warn:          skills-ref findings (when present);
 #                       cross-namespace name collisions.

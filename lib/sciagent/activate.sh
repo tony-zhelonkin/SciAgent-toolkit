@@ -178,10 +178,10 @@ cmd_activate() {
     # resolution leaves the previous stack intact.
     #
     # Inject lifecycle note: activate is clean-slate w.r.t. injected entries
-    # (see docs/architecture.md §5). The previous manifest's injected rows
-    # are about to be torn down with the rest of the stack. Surface them on
-    # STDERR before teardown so the loss is attributed to this activate, not
-    # buried under the post-activation summary line. Exit code stays 0.
+    # The previous manifest's injected rows are about to be torn down with 
+    # the rest of the stack. Surface them on STDERR before teardown so 
+    # the loss is attributed to this activate, not buried under the 
+    # post-activation summary line. Exit code stays 0.
     if manifest_exists; then
         local -a _dropped_injected=()
         local _ov _sk _via _kind

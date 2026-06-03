@@ -11,19 +11,20 @@
 #     "block_hash": "abc123..."
 #   }
 #
-# The "via" field was added in PR 3. Named-skill injections carry via:"" (empty
+# The "via" field: Named-skill injections carry via:"" (empty
 # string). Tag-driven injections carry via:"tag:<name>". Pre-PR-3 manifest
 # entries with no "via" key are treated as named-skill injections on read
 # (forward-compatible).
 #
-# The "kind" field was added in PR-A (cross-kind inject). Values are one of
+# The "kind" field (cross-kind inject): Values are one of
 # "skill", "agent", "command". The legacy "skill" JSON key still names the
 # entry (e.g. `"skill": "code-reviewer"` for an injected sub-agent) — only
-# the "kind" discriminates which symlink tree the entry owns. Pre-PR-A
-# manifest entries with no "kind" key default to "skill" on read
+# the "kind" discriminates which symlink tree the entry owns. 
+# The legacy manifest entries with no "kind" key default to "skill" on read
 # (forward-compatible).
 #
-# jq is used when available for reading; when absent, a targeted bash fallback
+# jq is a dependency I couldn`t yet avoid 
+# jq used when available for reading; when absent, a targeted bash fallback
 # uses grep+sed against this well-known flat structure. The fallback does NOT
 # attempt general JSON parsing — it only supports this specific schema.
 # Writing always uses the bash _json_escape helper (no jq dependency).
@@ -160,7 +161,7 @@ _manifest_write_json() {
         local _nsyms=${#_manifest_syms[@]}
         if (( _nsyms > 0 )); then
             for s in "${_manifest_syms[@]}"; do
-                (( first )) && first=0 || printf ',\n              '
+                (( first )) && first=0 || printf ',\n'
                 printf '"%s"' "$(_json_escape "$s")"
             done
         fi
@@ -339,9 +340,9 @@ manifest_symlinks() {
 }
 
 # manifest_injected — print one "overlay|skill|via|kind" tuple per line.
-# Pre-PR-3 entries without a "via" key emit an empty third field (treated as
+# The legacy entries without a "via" key emit an empty third field (treated as
 # named-skill injection by callers that inspect the via column).
-# Pre-PR-A entries without a "kind" key emit "skill" as the fourth field
+# The legacy entries without a "kind" key emit "skill" as the fourth field
 # (the legacy default — every pre-PR-A injection was a skill).
 #
 # Fields are pipe-separated rather than whitespace-separated so that an empty
@@ -359,8 +360,8 @@ manifest_injected() {
     else
         # Fallback: each injected entry spans one line:
         #   {"overlay": "X", "skill": "Y", "via": "Z", "kind": "K"}
-        # Pre-PR-3 entries lack the "via" field; those emit empty third field.
-        # Pre-PR-A entries lack the "kind" field; those emit "skill" fourth field.
+        # The legacy entries lack the "via" field; those emit empty third field.
+        # The legacy entries lack the "kind" field; those emit "skill" fourth field.
         grep '"overlay"' "$_MANIFEST_PATH" | while IFS= read -r line; do
             local ov sk via kind
             ov=$(printf '%s' "$line" | sed 's/.*"overlay":[[:space:]]*"\([^"]*\)".*/\1/')
