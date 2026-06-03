@@ -173,6 +173,21 @@ _status_load_state() {
                 ;;
         esac
     done < <(stack_walk "$_STK_BASE" "$_STK_OVERLAY")
+
+    # Compute skills mounted purely via `metadata.requires:` inheritance —
+    # they sit on disk per the manifest but are not in any role yaml or the
+    # injected list. Depends on SKILL_ORDER, INJECTED_SKILLS, and MANIFEST_SKILLS
+    # all being populated above. Use a temp associative array as a set.
+    declare -A _inh_declared_set=()
+    local _inh_n
+    for _inh_n in "${SKILL_ORDER[@]:-}";     do [[ -n "$_inh_n" ]] && _inh_declared_set[$_inh_n]=1; done
+    for _inh_n in "${INJECTED_SKILLS[@]:-}"; do [[ -n "$_inh_n" ]] && _inh_declared_set[$_inh_n]=1; done
+    INHERITED_SKILLS=()
+    for _inh_n in "${MANIFEST_SKILLS[@]:-}"; do
+        [[ -z "$_inh_n" ]] && continue
+        [[ -n "${_inh_declared_set[$_inh_n]:-}" ]] && continue
+        INHERITED_SKILLS+=("$_inh_n")
+    done
 }
 
 _status_render_text() {
@@ -190,21 +205,7 @@ _status_render_text() {
     fi
     printf '\n'
 
-    # Compute skills mounted purely via `metadata.requires:` inheritance —
-    # they sit on disk per the manifest but are not in any role yaml or the
-    # injected list. Use a temp associative array as a set.
-    declare -A _declared_set=()
-    local n
-    for n in "${SKILL_ORDER[@]:-}";     do [[ -n "$n" ]] && _declared_set[$n]=1; done
-    for n in "${INJECTED_SKILLS[@]:-}"; do [[ -n "$n" ]] && _declared_set[$n]=1; done
-    local -a INHERITED_SKILLS=()
-    for n in "${MANIFEST_SKILLS[@]:-}"; do
-        [[ -z "$n" ]] && continue
-        [[ -n "${_declared_set[$n]:-}" ]] && continue
-        INHERITED_SKILLS+=("$n")
-    done
-
-    local note total
+    local n note total
     total=$(( ${#SKILL_ORDER[@]} + ${#INJECTED_SKILLS[@]} + ${#INHERITED_SKILLS[@]} ))
     printf 'Skills (%d effective):\n' "$total"
     for n in "${SKILL_ORDER[@]:-}"; do
@@ -412,10 +413,12 @@ _status_render_effective() {
     local n
     for n in "${SKILL_ORDER[@]:-}";       do [[ -n "$n" ]] && echo "$n"; done
     for n in "${INJECTED_SKILLS[@]:-}";   do [[ -n "$n" ]] && echo "$n"; done
+    for n in "${INHERITED_SKILLS[@]:-}";  do [[ -n "$n" ]] && echo "$n"; done
     for n in "${AGENTS_ORDER[@]:-}";      do [[ -n "$n" ]] && echo "$n"; done
     for n in "${INJECTED_AGENTS[@]:-}";   do [[ -n "$n" ]] && echo "$n"; done
     for n in "${COMMANDS_ORDER[@]:-}";    do [[ -n "$n" ]] && echo "$n"; done
     for n in "${INJECTED_COMMANDS[@]:-}"; do [[ -n "$n" ]] && echo "$n"; done
+    return 0
 }
 
 _status_render_source() {
@@ -435,6 +438,12 @@ _status_render_source() {
         [[ "${INJECTED_SKILLS[$i]}" == "$q" ]] || continue
         local ov="${INJECTED_SKILLS_OVERLAY[$i]:-_injected}"
         echo "injected (into $ov)"
+        return 0
+    done
+    # Inherited skills: mounted via metadata.requires: transitive closure.
+    for n in "${INHERITED_SKILLS[@]:-}"; do
+        [[ "$n" == "$q" ]] || continue
+        echo "inherited via requires:"
         return 0
     done
     for n in "${AGENTS_ORDER[@]:-}"; do
@@ -511,6 +520,11 @@ _status_render_json() {
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","source":"injected"}' "$(_json_esc "$n")"
+    done
+    for n in "${INHERITED_SKILLS[@]:-}"; do
+        [[ -z "$n" ]] && continue
+        if (( first )); then first=0; else printf ','; fi
+        printf '{"name":"%s","source":"inherited"}' "$(_json_esc "$n")"
     done
     printf '],'
 
