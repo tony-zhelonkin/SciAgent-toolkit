@@ -17,7 +17,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 | Path | Purpose |
 |------|---------|
 | `bin/sciagent` | CLI dispatcher |
-| `lib/sciagent/` | Internal bash modules (`activate.sh`, `deactivate.sh`, `inject.sh`, `status.sh`, `new.sh`, `block.sh`, `roles.sh`, `symlinks.sh`, `stack.sh`) |
+| `lib/sciagent/` | Internal bash modules (`activate.sh`, `deactivate.sh`, `inject.sh`, `status.sh`, `new.sh`, `block.sh`, `roles.sh`, `symlinks.sh`, `stack.sh`, `frontmatter.sh`) |
 | `roles/` | Role definitions (YAML) |
 | `agents/` | Canonical sub-agent definitions (`.md` files) |
 | `skills/` | Canonical skill definitions (`<name>/SKILL.md` format) |
@@ -73,7 +73,7 @@ Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.
 4. Update `agents/README.md`
 5. If the chosen name collides across namespaces (also exists as a skill/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
 
-**Optional frontmatter** (`sciagent roster` reads these; absence renders a blank column, never an error):
+**Optional frontmatter** (`sciagent status` and `sciagent status --json` read these; absence renders a blank column, never an error):
 
 ```yaml
 domain:                # 1–3 taxonomy tags, e.g. session-management, documentation

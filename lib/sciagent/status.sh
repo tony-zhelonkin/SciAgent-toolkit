@@ -2,8 +2,19 @@
 # Reports active stack, effective tables, shadow info, block-hash drift,
 # symlink integrity, and harness presence.
 # Stack-walking is delegated to stack.sh:stack_walk.
+#
+# Also hosts cmd_list (sciagent list ...).
 
 # shellcheck shell=bash
+
+# Source the frontmatter parser if available (graceful degradation if absent).
+_status_load_frontmatter() {
+    local fm_path="${SCIAGENT_TOOLKIT}/lib/sciagent/frontmatter.sh"
+    if [[ -f "$fm_path" ]] && ! declare -F _fm_extract >/dev/null 2>&1; then
+        # shellcheck source=/dev/null
+        . "$fm_path"
+    fi
+}
 
 cmd_status() {
     local mode="text"
@@ -214,11 +225,31 @@ _status_render_text() {
 
     local agent_total=$(( ${#AGENTS_ORDER[@]} + ${#INJECTED_AGENTS[@]} ))
     printf 'Sub-agents (%d effective, Claude-only):\n' "$agent_total"
+
+    # Try to load frontmatter parser for enriched agent info.
+    _status_load_frontmatter
+
     for n in "${AGENTS_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
         note=""
         [[ -n "${AGENT_SHADOWS[$n]:-}" ]] && note="    (shadows ${AGENT_SHADOWS[$n]})"
-        printf '  %-24s %s%s\n' "$n" "${AGENTS_M[$n]}" "$note"
+        # Enrich with domain[0] and description brief if frontmatter.sh is loaded
+        # and the activated agent file exists.
+        local _agent_extra=""
+        if declare -F _fm_extract >/dev/null 2>&1; then
+            local _agent_md=".claude/agents/${n}.md"
+            if [[ -f "$_agent_md" ]]; then
+                local _agent_fm _agent_domain _agent_desc
+                _agent_fm=$(_fm_extract "$_agent_md")
+                _agent_domain=$(_fm_list domain <<< "$_agent_fm" | head -1)
+                _agent_desc=$(_fm_description "$_agent_md")
+                _agent_desc="${_agent_desc:0:60}"
+                if [[ -n "$_agent_domain" || -n "$_agent_desc" ]]; then
+                    _agent_extra=$(printf '  %-20s  "%s"' "${_agent_domain:-}" "$_agent_desc")
+                fi
+            fi
+        fi
+        printf '  %-24s %-8s%s%s\n' "$n" "${AGENTS_M[$n]}" "$_agent_extra" "$note"
     done
     for n in "${INJECTED_AGENTS[@]:-}"; do
         [[ -z "$n" ]] && continue
@@ -483,20 +514,34 @@ _status_render_json() {
     done
     printf '],'
 
-    # agents
+    # agents — enriched with domain and description_brief when frontmatter.sh is loaded.
+    _status_load_frontmatter
     printf '"agents":['
     first=1
     for n in "${AGENTS_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
-        printf '{"name":"%s","source":"%s"}' "$(_json_esc "$n")" "$(_json_esc "${AGENTS_M[$n]}")"
+        local _aj_domain="" _aj_desc=""
+        if declare -F _fm_extract >/dev/null 2>&1; then
+            local _aj_md=".claude/agents/${n}.md"
+            if [[ -f "$_aj_md" ]]; then
+                local _aj_fm
+                _aj_fm=$(_fm_extract "$_aj_md")
+                _aj_domain=$(_fm_list domain <<< "$_aj_fm" | paste -sd, -)
+                _aj_desc=$(_fm_description "$_aj_md")
+            fi
+        fi
+        printf '{"name":"%s","source":"%s","domain":"%s","description_brief":"%s"}' \
+            "$(_json_esc "$n")" "$(_json_esc "${AGENTS_M[$n]}")" \
+            "$(_json_esc "$_aj_domain")" "$(_json_esc "$_aj_desc")"
     done
     _ninj_json=${#INJECTED_AGENTS[@]}
     for (( i=0; i<_ninj_json; i++ )); do
         n="${INJECTED_AGENTS[$i]}"
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
-        printf '{"name":"%s","source":"injected"}' "$(_json_esc "$n")"
+        printf '{"name":"%s","source":"injected","domain":"","description_brief":""}' \
+            "$(_json_esc "$n")"
     done
     printf '],'
 
@@ -550,11 +595,29 @@ _status_render_json() {
     printf '}\n'
 }
 
-# cmd_list [roles|skills|agents|commands|deps <skill>|dependents <skill>]
+# cmd_list [roles|skills|agents|commands|role <name>|deps <skill>|dependents <skill>]
+#
+# Subcommands:
+#   (no arg)             — list everything (roles, skills, agents, commands)
+#   roles                — list all roles with one-line description + counts
+#   role <name>          — detailed view of a specific role (skills/agents/commands)
+#   skills               — list all available skills
+#   agents               — list all available agents
+#   commands             — list all available slash commands
+#   deps <skill>         — transitive requires closure for a skill (leaves first)
+#   dependents <skill>   — skills that directly require <skill>
 cmd_list() {
     local what="${1:-all}"
     case "$what" in
         roles)    _list_roles ;;
+        role)
+            shift || true
+            if [[ -z "${1:-}" ]]; then
+                echo "sciagent list role: missing <name> argument" >&2
+                return 1
+            fi
+            _list_role_detail "$1"
+            ;;
         skills)   _list_skills ;;
         agents)   _list_agents ;;
         commands) _list_commands ;;
@@ -581,7 +644,7 @@ cmd_list() {
             printf '\nCommands:\n'; _list_commands
             ;;
         *)
-            echo "sciagent list: unknown category '$what' (use: roles|skills|agents|commands|deps <skill>|dependents <skill>)" >&2
+            echo "sciagent list: unknown category '$what' (use: roles|role <name>|skills|agents|commands|deps <skill>|dependents <skill>)" >&2
             return 1 ;;
     esac
 }
@@ -633,13 +696,46 @@ _list_dependents() {
 }
 
 _list_roles() {
-    local f name desc
+    local f name desc skill_count agent_count cmd_count
     for f in "$SCIAGENT_TOOLKIT"/roles/*.yaml; do
         [[ -f "$f" ]] || continue
         name=$(basename "$f" .yaml)
         desc=$(role_scalar "$f" description)
-        printf '  %-26s %s\n' "$name" "$desc"
+        skill_count=$(role_array "$f" skills | wc -l | tr -d ' ')
+        agent_count=$(role_array "$f" agents | wc -l | tr -d ' ')
+        cmd_count=$(role_array "$f" commands | wc -l | tr -d ' ')
+        # Suppress zero counts when array is empty (wc -l of empty = 0, still ok)
+        printf '  %-26s  skills:%-3s agents:%-3s cmds:%-3s  %s\n' \
+            "$name" "$skill_count" "$agent_count" "$cmd_count" "$desc"
     done
+}
+
+# _list_role_detail <name>
+# Print a detailed RPG-hero view of a role: description, skills, agents, commands.
+_list_role_detail() {
+    local name="$1"
+    local rfile
+    rfile="$SCIAGENT_TOOLKIT/roles/${name}.yaml"
+    if [[ ! -f "$rfile" ]]; then
+        echo "sciagent list role: role '$name' not found (looked for roles/${name}.yaml)" >&2
+        return 1
+    fi
+    local desc
+    desc=$(role_scalar "$rfile" description)
+    printf 'Role: %s — %s\n\n' "$name" "$desc"
+
+    local -a skills=() agents=() cmds=()
+    while IFS= read -r item; do [[ -n "$item" ]] && skills+=("$item"); done \
+        < <(role_array "$rfile" skills)
+    while IFS= read -r item; do [[ -n "$item" ]] && agents+=("$item"); done \
+        < <(role_array "$rfile" agents)
+    while IFS= read -r item; do [[ -n "$item" ]] && cmds+=("$item"); done \
+        < <(role_array "$rfile" commands)
+
+    printf 'Skills  (%d): %s\n' "${#skills[@]}" "$(IFS=', '; printf '%s' "${skills[*]:-}")"
+    printf 'Agents  (%d): %s\n' "${#agents[@]}" "$(IFS=', '; printf '%s' "${agents[*]:-}")"
+    printf 'Commands(%d): %s\n' "${#cmds[@]}" "$(IFS=', '; printf '%s' "${cmds[*]:-}")"
+    return 0
 }
 
 _list_skills() {

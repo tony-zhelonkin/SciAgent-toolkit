@@ -8,8 +8,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Removed
+- **`sciagent roster` command removed.** The verb and its module (`lib/sciagent/roster.sh`) have been deleted. Agent-metadata functionality (domain, description) is now served by:
+  - `sciagent status` (text mode) — Sub-agents section now shows `domain[0]` and the first 60 chars of description for each activated agent.
+  - `sciagent status --json` — each agent object now carries `"domain"` and `"description_brief"` fields.
+  - `sciagent list roles` — roles listing now shows skill/agent/command counts per role.
+  - `sciagent list role <name>` — new subcommand; prints role description, skills, agents, and commands in detail.
 - Deleted 6 redundant roles that bloated the UI and duplicated coverage: `planning`, `annotator`, `scrna-atlas`, `multiome-analysis`, `multiome-grn`, `dc-dictionary`. The clean framework is now 4 roles: `base` (general scRNA foundation), `scatac-regulatory` (chromatin/ATAC overlay), `pathway-signature` (pathway/functional overlay), `architect` (software architecture, standalone). `software-tool` remains as the project-type-specific role.
 - Updated `scatac-regulatory` and `pathway-signature` "Do NOT use when" comments to reference the surviving role names (`base`, `scatac-regulatory`) instead of the deleted ones.
+
+### Added
+- **`lib/sciagent/frontmatter.sh`** — new leaf module (no sciagent deps) with a pure bash YAML frontmatter parser. Exports `_fm_extract`, `_fm_scalar`, `_fm_list`, `_fm_nested_scalar`, `_fm_description`. Replaces the identical private functions that were baked into `roster.sh`.
+- **`sciagent list role <name>`** — new subcommand; prints a detailed RPG-hero view of a role (description, skill list with count, agent list with count, command list with count). Returns exit 1 if the role does not exist.
+- **`sciagent list roles`** — enhanced output now shows per-role skill/agent/command counts alongside the description.
 
 ## [3.0.0] - 2026-05-31
 
