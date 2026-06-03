@@ -121,8 +121,7 @@ sciagent inject --tag <tag>                       # add all skills carrying <tag
 sciagent eject  [--skill|--agent|--command] <name>   # remove one injected entry
 sciagent validate [--quiet]                       # check toolkit integrity
 sciagent status [--json] [--effective] [--source <name>]
-sciagent roster [--json]                          # list active agents from .claude/agents/
-sciagent list [roles|skills|agents|commands]
+sciagent list [roles|skills|agents|commands]      # catalog view; `list role <name>` for one role's detail
 sciagent new role|skill|agent <name>              # scaffold from templates
 ```
 
@@ -148,6 +147,7 @@ sciagent new role|skill|agent <name>              # scaffold from templates
 - Unambiguous match → mounted into `_injected` with manifest `kind` set accordingly. Symlinks land in the kind-appropriate directories (skills in `.claude/skills/` + `.agents/skills/`; agents in `.claude/agents/`; commands in `.claude/commands/`).
 - Ambiguous match (same name exists in 2+ canonical directories) → hard-fail; escape hatch is the explicit flag `--skill <name>`, `--agent <name>`, or `--command <name>`.
 - When an explicit-flag inject succeeds but a companion entry of another kind also exists under that name, a stderr note advertises it. Companion entries are never auto-mounted.
+- Injecting a skill resolves its transitive `requires:` closure and mounts any dependency not already present, recorded with `via="requires:<root>"` — the same closure walk `activate` performs for role skills. Injecting an orchestrator skill therefore pulls its whole leaf set. A name already supplied by the active requires-closure is refused ("nothing to inject") rather than producing a spurious manifest row.
 - Unknown name (no canonical file under any kind) → hard-fail.
 - `sciagent inject --tag <tag>` is the bulk form: adds all skills whose `SKILL.md` carries `<tag>`. Tag form is skill-only.
 - If the active stack is `[base]`, inject creates an implicit anonymous overlay `_injected`. Stack becomes `[base, _injected]`. Inject never creates a third tier.
@@ -159,6 +159,7 @@ sciagent new role|skill|agent <name>              # scaffold from templates
 - Kind discriminator is the manifest `kind` field (not a re-scan of canonical directories), so the entry that gets removed is the one that was actually injected.
 - Auto-detection on bare name: if `<name>` was injected under exactly one kind, eject removes it. If `<name>` was injected under 2+ kinds, eject hard-fails and requires `--skill` / `--agent` / `--command`.
 - Eject refuses to remove an entry that came in via a stack-mounted role (those are owned by `activate`/`deactivate`).
+- Eject of a closure root prunes any `requires:`-mounted dependency no longer needed by another root; shared dependencies stay. Direct eject of an auto-mounted dependency is refused — it points you to eject the root instead, so a shared dependency symlink is never destroyed out from under another root.
 - Unknown / not-injected name → hard-fail; manifest and symlinks are untouched.
 
 ### Validate
@@ -203,8 +204,12 @@ Symlinks:      .claude/* OK   .agents/* OK
 Harness:       Claude Code detected (.claude/ present)   Pi: not detected (.pi/ absent)
 ```
 
-`--json` emits structured stack + effective table + shadow list + drift state.
-`--effective` emits just the merged name list (for piping).
+Skills mounted via a role's `requires:` closure surface in every output mode — the text Skills section (tagged with their `via` root), `--effective`, `--json`, and `--source` — not just the default text view.
+
+If the manifest pins a role that has since left the catalog (stack drift), status flags it: the text view adds a `Notes:` line naming the stale role and pointing at `sciagent deactivate`, and `--json` carries a `stale_roles` array.
+
+`--json` emits structured stack + effective table + shadow list + drift state (including `stale_roles`).
+`--effective` emits just the merged name list (for piping) and exits 0 on success.
 `--source <name>` resolves a single name to its providing role.
 
 ## 6. Role YAML schema

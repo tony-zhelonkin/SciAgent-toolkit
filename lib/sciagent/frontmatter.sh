@@ -1,8 +1,8 @@
 # lib/sciagent/frontmatter.sh — pure YAML frontmatter parser.
 #
-# Leaf module: no sciagent deps. Functions lifted and generalised from the old
-# roster.sh so other modules (status.sh, list) can read agent/skill frontmatter
-# without pulling in roster.
+# Leaf module: no sciagent deps. Functions lifted and generalised from the
+# former roster.sh (since removed) so other modules (status.sh, list) can read
+# agent/skill frontmatter on their own.
 #
 # Usage pattern (here-string or pipe):
 #   fm=$(_fm_extract path/to/file.md)

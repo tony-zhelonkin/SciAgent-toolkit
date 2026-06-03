@@ -1,6 +1,6 @@
 # K-selection — how to read `<variant>.k_selection.png` and pick K
 
-K selection is manual on purpose ([ADR-005](../../../../docs/ai-generated/workflow-architecture/03-decisions.md#adr-005)). Automated elbow-detection on the stability curve picks the right K maybe 60–70% of the time on real-world cell-state landscapes; the 30% miss case produces silently wrong programs that downstream stages amplify. Domain knowledge — "T cells in this experiment should produce ~8 transcriptional states because there are 8 known polarisations" — beats any heuristic.
+K selection is manual on purpose. Automated elbow-detection on the stability curve picks the right K maybe 60–70% of the time on real-world cell-state landscapes; the 30% miss case produces silently wrong programs that downstream stages amplify. Domain knowledge — "T cells in this experiment should produce ~8 transcriptional states because there are 8 known polarisations" — beats any heuristic.
 
 ## What the plot shows
 

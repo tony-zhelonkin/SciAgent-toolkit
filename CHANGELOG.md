@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **`inject` resolves the requires-closure.** `sciagent inject <skill>` now walks the skill's transitive `requires:` graph and mounts any missing dependency (recorded with `via="requires:<root>"`), matching what `activate` does for role skills — injecting an orchestrator skill pulls its leaves. A skill already supplied by the active requires-closure is refused (`nothing to inject`) instead of creating a spurious manifest row.
+- **`eject` no longer destroys shared dependencies.** Ejecting a closure root now prunes closure deps no longer needed by any other root, and direct eject of an auto-mounted dependency is refused (pointing you to eject the root instead).
+- **`status` surfaces requires-inherited skills in all outputs.** Inherited skills now appear in text, `--effective`, `--json`, and `--source` — previously only the default text view. `--effective` now exits 0 on success (was 1).
+- **`status` warns on stack drift.** When the manifest pins a role no longer in the catalog, the text view adds a `Notes:` line naming it and pointing at `sciagent deactivate`; `--json` gains a `stale_roles` array.
+
 ### Removed
 - **`sciagent roster` command removed.** The verb and its module (`lib/sciagent/roster.sh`) have been deleted. Agent-metadata functionality (domain, description) is now served by:
   - `sciagent status` (text mode) — Sub-agents section now shows `domain[0]` and the first 60 chars of description for each activated agent.

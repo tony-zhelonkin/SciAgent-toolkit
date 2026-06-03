@@ -279,7 +279,7 @@ Fate probabilities & terminal states? → CellRank
 
 ### scRNA-seq Workflow (project-shared scaffolding)
 
-These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching the user's `scbio-docker` template (see `docs/ai-generated/workflow-architecture/`).
+These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching the user's `scbio-docker` template.
 
 | Skill | Tier | Purpose |
 |-------|------|---------|
@@ -288,7 +288,7 @@ These three skills share the house style documented by `scrna-pipeline-conventio
 | `scrna-cxg-host` | rich | Two-phase CellxGene hosting: schema prep + Docker Compose deploy (nginx + htpasswd) |
 | `consensus-nmf-multirun` | rich | Multi-run consensus cNMF (run × N variants → K-selection → merge → annotate → ANOVA) |
 
-All four embody the **Decision Pause Contract** (see `docs/ai-generated/workflow-architecture/03-decisions.md` § ADR-013): each judgment moment surfaces as a `### DECISION PAUSE — <topic>` block that the agent stops at, with named defaults a user can clear with one word ("default"). Recorded choices land in `analysis_config.yaml::decisions::<skill>::<key>` for replay on re-run.
+All four embody the **Decision Pause Contract** (documented per-skill in each SKILL.md's "Decision Pauses" section): each judgment moment surfaces as a `### DECISION PAUSE — <topic>` block that the agent stops at, with named defaults a user can clear with one word ("default"). Recorded choices land in `analysis_config.yaml::decisions::<skill>::<key>` for replay on re-run.
 
 ---
 
