@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Project type `software-tool` renamed to `software`; `--type software` now suggests activating `architect` (the software-design lane). No dedicated software role exists.
+
+### Removed
+- `roles/software-tool.yaml` removed; the `architect` role owns the software-design lane. No replacement software role — use `sciagent activate architect` in software projects.
+
 ### Fixed
 - **`inject` resolves the requires-closure.** `sciagent inject <skill>` now walks the skill's transitive `requires:` graph and mounts any missing dependency (recorded with `via="requires:<root>"`), matching what `activate` does for role skills — injecting an orchestrator skill pulls its leaves. A skill already supplied by the active requires-closure is refused (`nothing to inject`) instead of creating a spurious manifest row.
 - **`eject` no longer destroys shared dependencies.** Ejecting a closure root now prunes closure deps no longer needed by any other root, and direct eject of an auto-mounted dependency is refused (pointing you to eject the root instead).
@@ -19,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `sciagent status --json` — each agent object now carries `"domain"` and `"description_brief"` fields.
   - `sciagent list roles` — roles listing now shows skill/agent/command counts per role.
   - `sciagent list role <name>` — new subcommand; prints role description, skills, agents, and commands in detail.
-- Deleted 6 redundant roles that bloated the UI and duplicated coverage: `planning`, `annotator`, `scrna-atlas`, `multiome-analysis`, `multiome-grn`, `dc-dictionary`. The clean framework is now 4 roles: `base` (general scRNA foundation), `scatac-regulatory` (chromatin/ATAC overlay), `pathway-signature` (pathway/functional overlay), `architect` (software architecture, standalone). `software-tool` remains as the project-type-specific role.
+- Deleted 6 redundant roles that bloated the UI and duplicated coverage: `planning`, `annotator`, `scrna-atlas`, `multiome-analysis`, `multiome-grn`, `dc-dictionary`. The clean framework is now 4 roles: `base` (general scRNA foundation), `scatac-regulatory` (chromatin/ATAC overlay), `pathway-signature` (pathway/functional overlay), `architect` (software architecture, standalone).
 - Updated `scatac-regulatory` and `pathway-signature` "Do NOT use when" comments to reference the surviving role names (`base`, `scatac-regulatory`) instead of the deleted ones.
 
 ### Added

@@ -279,7 +279,7 @@ Every operation is safe to re-run:
 Replaces `setup-ai.sh`:
 
 ```
-sciagent new project [<dir>] [--type analysis|software-tool]
+sciagent new project [<dir>] [--type analysis|software]
                                # bootstrap a typed project tree, do NOT activate
 sciagent new role <name>       # scaffold roles/<name>.yaml from template
 sciagent new skill <name>      # copy skills/_TEMPLATE/ to skills/<name>/
@@ -300,7 +300,7 @@ See [docs/packaged-skills.md](packaged-skills.md) for the full contract, distrib
 ## 13. Project types
 
 `sciagent new project --type <t>` materializes one of two first-class project shapes. The
-template root is `templates/project/{_common,analysis,software-tool}/`: `_new_project()`
+template root is `templates/project/{_common,analysis,software}/`: `_new_project()`
 renders `_common/` first, then overlays `<type>/`.
 
 ### First-class types
@@ -308,7 +308,7 @@ renders `_common/` first, then overlays `<type>/`.
 | Type | One-liner | Canonical top-level layout | Default role |
 |------|-----------|----------------------------|--------------|
 | `analysis` | A scientific analysis project. | `00_data/ 01_modules/ 02_analysis/ 03_results/<NN_phase>/ docs/ docs/_internal/` | `base` |
-| `software-tool` | A standalone, packageable software library or CLI. | `src/ tests/ docs/ examples/ docs/_internal/` + `tool_config.yaml` / `README.md` | `software-tool` |
+| `software` | A standalone, packageable software library or CLI. | `src/ tests/ docs/ examples/ docs/_internal/` + `tool_config.yaml` / `README.md` | `architect` |
 
 These are the only two `--type` values. Default role is a hint emitted in the "Next steps"
 output; it is not auto-activated.
@@ -318,7 +318,7 @@ output; it is not auto-activated.
 An **umbrella** is an `analysis` project whose integration scope is cross-project:
 
 - Root-level submodules are other *analysis* projects, gitlinked at the repo root — **not**
-  inside `01_modules/`. (`01_modules/` holds only software-tool toolkits serving the umbrella.)
+  inside `01_modules/`. (`01_modules/` holds only software toolkits serving the umbrella.)
 - An `integration/` directory plays the `02_analysis/` role; its scripts consume only each
   child's `03_results/` published surface — never child `02_analysis/` or intermediate state.
 
@@ -336,7 +336,7 @@ the extension points for a future `--type` value: add `templates/project/<type>/
 
 ### Nested-toolkit activation (depth-2 cap, independent per-root)
 
-The stack depth cap of 2 (§5) is a load-bearing invariant. A child `software-tool` under a
+The stack depth cap of 2 (§5) is a load-bearing invariant. A child `software` project under a
 parent's `01_modules/<tool>/` does **not** become a third stack tier on top of the parent's
 analysis stack. Instead:
 
@@ -344,9 +344,9 @@ analysis stack. Instead:
   `sciagent activate <role>` there. It gets its own `.claude/`, `.agents/`, and AGENTS.md
   managed block rooted at the child directory — its own depth-≤2 stack, independent of the parent.
 - Parent analysis and child tool are *different working contexts*, not nested ones. When working
-  on the child tool you want the `software-tool` role, not "analysis base + tool overlay".
-- `sciagent new project --type software-tool` run inside an existing project's `01_modules/`
-  emits an informational note pointing at `cd <dir> && sciagent activate software-tool`.
+  on the child tool, use the `architect` role (the software-design lane); not "analysis base + tool overlay".
+- `sciagent new project --type software` run inside an existing project's `01_modules/`
+  emits an informational note pointing at `cd <dir> && sciagent activate architect`.
 
 Cross-root awareness (auto-switching context on `cd`) is a future shell-hook concern, out of
 scope for sciagent-core.
@@ -358,13 +358,13 @@ the namespace is type-conditional:
 
 | Subdir | Holds | Present in |
 |--------|-------|-----------|
-| `reasoning/` | decision traces, why-not logs | analysis + software-tool |
+| `reasoning/` | decision traces, why-not logs | analysis + software |
 | `sessions/` | session handoffs | analysis |
 | `scratch/` | throwaway notes | analysis |
-| `design/` | design records, API drafts, ADRs for the tool | software-tool |
-| `benchmarks/` | benchmark results, profiling logs | software-tool |
+| `design/` | design records, API drafts, ADRs for the tool | software |
+| `benchmarks/` | benchmark results, profiling logs | software |
 
-The handoff agent targets `sessions/` for analysis and `design/` for software-tool.
+The handoff agent targets `sessions/` for analysis and `design/` for software.
 
 Naming conventions for files within this namespace live in the scaffold itself
 (`docs/_internal/README.md`), not in `CLAUDE.md` or `AGENTS.md`. Every new project ships

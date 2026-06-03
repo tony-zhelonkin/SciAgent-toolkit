@@ -14,11 +14,11 @@ cmd_new() {
         ""|-h|--help)
             cat <<EOF
 usage:
-  sciagent new project <dir> [--type analysis|software-tool] [--species ...]
+  sciagent new project <dir> [--type analysis|software] [--species ...]
                              [--genome ...] [--title ...] [--git]
                              [--with-submodules] [--force]
-      --type analysis        00_data/ 01_modules/ 02_analysis/ 03_results/ tree (default)
-      --type software-tool   src/ tests/ docs/ examples/ packageable-library tree
+      --type analysis   00_data/ 01_modules/ 02_analysis/ 03_results/ tree (default)
+      --type software   src/ tests/ docs/ examples/ packageable-library tree
   sciagent new role <name>       scaffold roles/<name>.yaml
   sciagent new skill <name>      copy skills/_TEMPLATE/ to skills/<name>/
   sciagent new agent <name>      scaffold agents/<name>.md
@@ -107,7 +107,7 @@ _dirs_for_type() {
                  "docs/plan docs/_internal/reasoning docs/_internal/sessions docs/_internal/research" \
                  "logs"
             ;;
-        software-tool)
+        software)
             echo "src tests docs examples" \
                  "docs/_internal/reasoning docs/_internal/design docs/_internal/benchmarks"
             ;;
@@ -135,8 +135,8 @@ _new_project() {
     dir="${dir:-.}"
 
     case "$type" in
-        analysis|software-tool) ;;
-        *) echo "sciagent new project: --type must be 'analysis' or 'software-tool' (got '$type')" >&2
+        analysis|software) ;;
+        *) echo "sciagent new project: --type must be 'analysis' or 'software' (got '$type')" >&2
            return 1 ;;
     esac
 
@@ -200,26 +200,26 @@ _warn_unresolved_tokens() {
 }
 
 # _default_role_for_type <type> — the role the "Next:" hint suggests activating.
-#   analysis → base ; software-tool → software-tool (umbrella uses base, same as analysis).
+#   analysis → base ; software → architect (software design lane owned by architect).
 _default_role_for_type() {
     case "$1" in
-        software-tool) echo "software-tool" ;;
-        *)             echo "base" ;;
+        software) echo "architect" ;;
+        *)        echo "base" ;;
     esac
 }
 
-# _note_child_software_tool <abs> — when a software-tool is scaffolded inside an existing
+# _note_child_software <abs> — when a software project is scaffolded inside an existing
 # project's 01_modules/, it gets its own independent activation root (ADR-6.3); flag that.
 # Detection: the parent directory of <abs> is named "01_modules". Emits nothing otherwise.
-_note_child_software_tool() {
+_note_child_software() {
     local abs="$1" parent grandparent
     parent=$(dirname "$abs")
     [[ "$(basename "$parent")" == "01_modules" ]] || return 0
     grandparent=$(dirname "$parent")
     echo
-    echo "Note: scaffolded a child software-tool under $grandparent."
+    echo "Note: scaffolded a child software project under $grandparent."
     echo "      It has its own activation root (independent of the parent, depth-2 cap intact)."
-    echo "      Activate its context: cd $abs && sciagent activate software-tool"
+    echo "      Activate its context: cd $abs && sciagent activate architect"
 }
 
 # _new_project_next_steps <dir> <abs> <type> <with_submodules>
@@ -274,8 +274,8 @@ TMPL
     echo "  3. Open in VS Code → Reopen in Container"
     echo "  4. sciagent activate $role"
 
-    if [[ "$type" == "software-tool" ]]; then
-        _note_child_software_tool "$abs"
+    if [[ "$type" == "software" ]]; then
+        _note_child_software "$abs"
     fi
 }
 
@@ -300,7 +300,7 @@ _new_git() {
             subs+=("RNAseq-toolkit dev 01_modules/RNAseq-toolkit")
             subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
             ;;
-        software-tool)
+        software)
             subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
             ;;
     esac

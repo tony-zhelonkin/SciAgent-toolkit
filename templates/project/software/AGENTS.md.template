@@ -9,16 +9,16 @@ This file is the single source of truth for AI agent behavior in this project.
 
 ## Project context
 
-This is a **software-tool** repository: a reusable package, not an analysis. Package
+This is a **software** repository: a reusable package, not an analysis. Package
 identity, language, and lint/test commands live in `tool_config.yaml`. The design intent
 and scope live in `docs/_internal/design/`; handoffs are written there as
-`docs/_internal/design/YYYY-MM-DD_<slug>.md` (software-tool has no `sessions/`).
+`docs/_internal/design/YYYY-MM-DD_<slug>.md` (software projects have no `sessions/`).
 
 ---
 
 ## Active role
 
-_No role activated yet. Run `sciagent activate <role>` to populate this section._
+_No role activated yet. Run `sciagent activate architect` to populate this section._
 
 Run `sciagent status` to see the current stack, effective skills, agents, and commands.
 
