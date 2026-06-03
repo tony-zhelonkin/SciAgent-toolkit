@@ -3,7 +3,7 @@ name: mllmcelltype-consensus-annotation
 description: "mllmct — a version-locked CLI that annotates scRNA-seq clusters by multi-LLM consensus over marker genes, doing BOTH classic cell-TYPE annotation and evidence-injected cell-STATE annotation (the mode is one YAML profile). Reference-free (no atlas), with Python-recomputed per-cluster uncertainty (consensus proportion + Shannon entropy), forced determinism, captured token cost, and a full prompt→label trace. Use when you have per-cluster marker genes (from scanpy rank_genes_groups or Seurat FindAllMarkers) and want automated, no-reference labels plus a confidence score to flag clusters for review — or when you additionally have per-cluster evidence (programs, signatures, binned scores) and want functional-state calls. For label transfer from an annotated atlas use cellxgene-census-annotation; for semi-supervised propagation from partial labels use scvi-scanvi."
 license: MIT
 metadata:
-  scope: atomic
+  scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-29
