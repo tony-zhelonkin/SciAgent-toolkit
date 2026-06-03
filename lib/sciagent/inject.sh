@@ -222,6 +222,21 @@ _inject_named_entry() {
         fi
     done < <(manifest_injected)
 
+    # Requires-closure guard (F1): a skill whose symlink already exists on disk,
+    # yet is neither stack-role-declared (checked above) nor injected (loop
+    # above), can only be an inherited requires-closure dep — some stack/injected
+    # skill pulled it in via its `requires:` graph. Minting a spurious injected
+    # row for it here is exactly what made eject destructive: a later
+    # `eject <name>` would rm the still-shared symlink and drop the row, breaking
+    # whatever skill still requires it. Refuse-but-exit-0 keeps inject idempotent.
+    # The `-e` test follows the link: a dangling symlink (e.g. left by an
+    # interrupted run) fails it, so we fall through and re-mount/repair rather
+    # than refuse against a broken link.
+    if [[ "$kind" == "skill" && -L ".claude/skills/$name" && -e ".claude/skills/$name" ]]; then
+        echo "already mounted via requires-closure: $name — nothing to inject" >&2
+        return 0
+    fi
+
     # Companion-skill note: when injecting a non-skill entry, advertise (but
     # do NOT auto-mount) any skill of the same name. Surfaces the "did you
     # also mean the skill?" discoverability cue without taking the action.
@@ -239,6 +254,13 @@ _inject_named_entry() {
     local _coll_csv
     if _coll_csv=$(collisions_for_name "$name"); then
         _inject_handle_collision "$name" "$kind" "$_coll_csv" || return $?
+    fi
+
+    # Mount X's requires-closure (F4) BEFORE mounting X itself, so a partial
+    # failure leaves X unrecorded (X-present implies its deps present). Skill
+    # entries only; agents/commands have no requires graph.
+    if [[ "$kind" == "skill" ]]; then
+        _inject_mount_requires_deps "$name" "$target_overlay" || return 1
     fi
 
     # Create symlinks per kind. The canonical layout mirrors what activate.sh
@@ -292,6 +314,62 @@ _inject_named_entry() {
     block_render_and_write AGENTS.md || return 1
 
     echo "injected: $name (into $target_overlay)"
+    return 0
+}
+
+# _inject_mount_requires_deps <root> <target_overlay>
+# Mounts the requires-closure of skill <root> so that injecting an orchestrator
+# skill (one with `metadata.requires:`) also pulls in the leaf skills it depends
+# on (F4). Without this, X is injected alone and is non-functional.
+#
+# skill_resolve_transitive prints the closure leaves-first with <root> LAST and
+# hard-fails (rc 1) on a missing dep or cycle — a skill with a broken requires
+# graph must not be injected, so we surface its stderr and abort.
+#
+# Each dep is recorded with via="requires:<root>" so eject can later orphan-prune
+# it. A single on-disk check (`-L .claude/skills/<dep>`) covers the
+# stack-mounted, inherited, and already-injected cases uniformly.
+_inject_mount_requires_deps() {
+    local root="$1" target_overlay="$2"
+
+    local -a _deps=()
+    local _closure
+    if ! _closure=$(skill_resolve_transitive "$root"); then
+        echo "sciagent inject: '$root' has a broken requires graph — refusing to inject" >&2
+        return 1
+    fi
+    local d
+    while IFS= read -r d; do
+        [[ -n "$d" ]] && _deps+=("$d")
+    done <<< "$_closure"
+
+    local dep src claude_path agents_path
+    for dep in "${_deps[@]+"${_deps[@]}"}"; do
+        # Skip the root itself; it is mounted+recorded by the caller.
+        [[ "$dep" == "$root" ]] && continue
+        # Already on disk (stack-mounted, inherited, or already-injected): leave it.
+        [[ -L ".claude/skills/$dep" ]] && continue
+
+        src=$(resolve_canonical skills "$dep") || return 1
+        claude_path=".claude/skills/$dep"
+        agents_path=".agents/skills/$dep"
+        mkdir -p .claude/skills .agents/skills || {
+            echo "sciagent inject: failed to create symlink dirs for dep '$dep'" >&2
+            return 1
+        }
+        ln -sfn "$src" "$claude_path" || {
+            echo "sciagent inject: failed to symlink $claude_path" >&2
+            return 1
+        }
+        ln -sfn "$src" "$agents_path" || {
+            echo "sciagent inject: failed to symlink $agents_path" >&2
+            return 1
+        }
+        manifest_append_inject "$claude_path" "$agents_path" "$target_overlay" "$dep" "requires:$root" "skill" || {
+            echo "sciagent inject: failed to record dep '$dep' in manifest" >&2
+            return 1
+        }
+    done
     return 0
 }
 

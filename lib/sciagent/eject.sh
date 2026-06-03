@@ -145,12 +145,28 @@ _eject_named_entry() {
 
     # Exactly one row matched.
     local target_kind="${matched_kinds[0]}"
+    local target_via="${matched_vias[0]}"
+
+    # Dependency guard: a row carrying via="requires:<root>" was auto-mounted to
+    # satisfy another skill's closure, not injected on its own. Ejecting it by
+    # name would silently break that closure (and the prune below would not
+    # re-add it). Point the user at the root instead; orphaned deps whose root
+    # is already gone are cleaned by the prune, never reached here.
+    if [[ "$target_via" == requires:* ]]; then
+        echo "sciagent eject: '$name' was auto-mounted as a dependency (${target_via}); eject that skill instead, or run 'sciagent deactivate'" >&2
+        return 1
+    fi
 
     # Remove the dual symlinks for this kind+name.
     _eject_remove_symlinks "$name" "$target_kind"
 
     # Rebuild the manifest without this entry (matched by skill + kind).
     _eject_drop_injected_entry "$name" "$target_kind" ""
+
+    # Prune any requires-closure deps this skill pulled in that no real root
+    # still needs (orphan-prevention counterpart to inject's F4 dep mounting).
+    # Safe/idempotent for any kind, but only meaningful after a skill eject.
+    [[ "$target_kind" == skill ]] && _eject_prune_orphaned_requires_deps
 
     # Collapse _injected overlay if it is now empty.
     _eject_maybe_collapse_injected_overlay
@@ -192,6 +208,10 @@ _eject_by_tag() {
         _eject_drop_injected_entry "$nm" "$kd" "$via_key"
         echo "ejected: $nm (tag:$tag_name)"
     done
+
+    # A tag-injected skill may have pulled requires-closure deps; prune any now
+    # orphaned (no real root still needs them).
+    _eject_prune_orphaned_requires_deps
 
     # Collapse _injected overlay if now empty.
     _eject_maybe_collapse_injected_overlay
@@ -350,6 +370,63 @@ _eject_drop_injected_entry() {
     _manifest_write_json "$old_hash"
     mv "$_manifest_staging" "$_MANIFEST_PATH"
     _manifest_staging=""
+}
+
+# _eject_prune_orphaned_requires_deps
+# Orphan-prevention counterpart to inject's F4 dep mounting. Removes any
+# injected skill row tagged via="requires:*" whose dep is no longer reachable
+# from any "real root":
+#   - every skill declared by the active stack roles (base + overlay), and
+#   - every injected skill row whose via is NOT "requires:*" (user-injected roots).
+# A requires:* row is itself never a root — it exists only because some root
+# pulled it in. We recompute the live requires-closure over all real roots and
+# drop any requires:* dep that falls outside it.
+_eject_prune_orphaned_requires_deps() {
+    # Gather the real roots.
+    local -a _roots=()
+    local stack base overlay role
+    stack=$(manifest_stack)
+    base=$(printf '%s\n' "$stack" | awk '{print $1}')
+    overlay=$(printf '%s\n' "$stack" | awk '{print $2}')
+
+    for role in "$base" "$overlay"; do
+        [[ -z "$role" || "$role" == "_injected" ]] && continue
+        local line skill_name
+        while IFS= read -r line; do
+            skill_name="${line#SKILL }"
+            [[ -n "$skill_name" ]] && _roots+=("$skill_name")
+        done < <(role_load "$role" 2>/dev/null | grep '^SKILL ')
+    done
+
+    # User-injected skill roots: injected rows whose via is not "requires:*".
+    local inj_ov inj_sk inj_via inj_kind
+    while IFS='|' read -r inj_ov inj_sk inj_via inj_kind; do
+        [[ -z "$inj_ov" ]] && continue
+        [[ "${inj_kind:-skill}" != "skill" ]] && continue
+        [[ "$inj_via" == requires:* ]] && continue
+        _roots+=("$inj_sk")
+    done < <(manifest_injected)
+
+    # Compute the live needed-set (requires-closure over all real roots). With
+    # zero roots the closure is empty, so every requires:* dep is orphaned.
+    declare -A _needed=()
+    if [[ "${#_roots[@]}" -gt 0 ]]; then
+        local n
+        while IFS= read -r n; do
+            [[ -n "$n" ]] && _needed["$n"]=1
+        done < <(skill_resolve_transitive "${_roots[@]}")
+    fi
+
+    # Drop every requires:* dep that is no longer needed.
+    while IFS='|' read -r inj_ov inj_sk inj_via inj_kind; do
+        [[ -z "$inj_ov" ]] && continue
+        [[ "${inj_kind:-skill}" != "skill" ]] && continue
+        [[ "$inj_via" == requires:* ]] || continue
+        if [[ -z "${_needed[$inj_sk]:-}" ]]; then
+            _eject_remove_symlinks "$inj_sk" skill
+            _eject_drop_injected_entry "$inj_sk" skill ""
+        fi
+    done < <(manifest_injected)
 }
 
 # _eject_maybe_collapse_injected_overlay
