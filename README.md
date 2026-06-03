@@ -1,10 +1,34 @@
 # sciagent
 
-Per-project context manager for AI coding harnesses. Activates a role — a bundle of skills, sub-agents, and slash commands — for a session.
+Per-project context manager for AI coding harnesses. 
+Activates a role — a bundle of skills, sub-agents, and slash commands — for a session.
+
+## Premise
+
+I worked as computational biologist across different projects for two collaborating labs, 
+with occasional collaborations on the side. Somehow I needed to manage and perform. 
+Here came ChatGPT -> then Claude Code -> vibe coding -> agentic coding -> and we\`re
+still falling down to see how deep the rabbit hole goes. 
+
+Since 2024 I\`ve been exploring how I could make this at least somewhat more reproducible in my own hands.
+This project is an attempt at sharpening the blunt tools.
 
 ## Why
 
-Different work modes need different context. Reviewing code and running bioinformatics analysis call for different agents, different skills, different commands. Roles let you swap that context in one command. Everything is per-project — nothing touches your home directory.
+Different projects make you put on different hats. 
+Just as we have to switch contexts, so do LLM.
+Different work modes need different context. 
+Different data modalities, different goals, might require different context.
+- different agents, 
+- different skills, 
+- different commands. 
+Roles let you swap that context in one command. 
+Everything is by design per-project folder.
+
+Even with increased context window size I don\`t personally believe that 
+universal agents are universally good. So I decided my agents need to have specialization.
+But requirements would constantly change, so I needed something that allow me to control the
+context management process. So this tool has been an exploration of the process
 
 ## Install
 
@@ -26,7 +50,7 @@ sciagent --help     # verify it resolves
 ## Quick start
 
 ```bash
-# Bootstrap a new project directory with AGENTS.md, CLAUDE.md, context.md
+# Bootstrap a new project directory with AGENTS.md, CLAUDE.md, docs/_internal/scientific-context.md
 sciagent new project
 
 # Activate a role — symlinks agents, skills, commands into .claude/ and .agents/
@@ -35,11 +59,11 @@ sciagent activate base
 # Add one skill on top of the current stack
 sciagent inject simplify
 
-# Show the active stack, effective tables, and block/symlink health
+# Show the active stack, effective tables, and block/symlink health (add --json for a machine-readable manifest)
 sciagent status
 
-# List the active agents (add --json for a machine-readable manifest)
-sciagent roster
+# List the roles available to activate, with per-role skill/agent/command counts
+sciagent list roles
 
 # Tear down: remove symlinks and the managed block from AGENTS.md
 sciagent deactivate
@@ -47,15 +71,19 @@ sciagent deactivate
 
 ## The RPG model
 
-A project has at most two active roles: a `base` (the foundation) and an optional `overlay` (the specialization). Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
+A project has at most two active roles: 
+- a `base` (the foundation) 
+- and an optional `overlay` (the specialization). 
+Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
 
-Any role can occupy either slot; there's no enforced base/overlay typing. Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `scrna-atlas` + `planning` to layer a research stack on top of atlas work, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
+Any role can occupy either slot; there's no enforced base/overlay typing. 
+Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `base` + `scatac-regulatory` to layer a chromatin stack on top of the scRNA foundation, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
 
 ```bash
 sciagent activate base pathway-signature
 ```
 
-Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier resolution already makes "where did this come from?" painful enough.
+Stack depth is for now capped at 2 to stay inspectable.
 
 ## Verbs
 
