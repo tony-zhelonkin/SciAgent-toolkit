@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-06-02
+
 ### Changed
 - Project type `software-tool` renamed to `software`; `--type software` now suggests activating `architect` (the software-design lane). No dedicated software role exists.
 
