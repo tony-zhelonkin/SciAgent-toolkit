@@ -8,6 +8,7 @@
 .env.*
 !.env.template
 .ref/
+_internal/
 
 # Auto-generated files
 .claude/settings.local.json
@@ -16,6 +17,10 @@
 .sciagent/
 .claude/commands/
 .claude/skills/
+scripts/tooluniverse-env/
+scripts/.mcp_setup/
+# Project-specific MCP config (generated with absolute paths; not shareable)
+.mcp.json
 
 # Python
 __pycache__/
