@@ -309,75 +309,77 @@ _status_render_text() {
 }
 
 # _status_render_notes
-# Inspects the active mount set across skills/agents/commands (roles aren't
-# mounted, but a stack-mounted name that also exists as a role still counts
-# as a collision the user should know about). Cross-references each match
-# against the toolkit-wide enumeration; only collisions whose *active mount*
-# spans >=2 kinds are surfaced.
+# Emits a Notes: section when the active stack has actionable signal:
+#   (1) drift — a manifest-pinned role whose .yaml no longer exists in the catalog
+#   (2) collisions — a name mounted as >=2 kinds (skill, agent, command)
+# Prints nothing when the stack is clean. Both signals can co-occur.
 _status_render_notes() {
-    # Bail silently if the helper is not on the load path. Status is read-only
-    # and must never block on optional surfaces.
-    if ! declare -F collisions_enumerate >/dev/null 2>&1; then
-        return 0
-    fi
-
-    # Build the active mount set: kind -> set of names. Each injected entry
-    # contributes to the bucket matching its kind only — leaking an injected
-    # agent into _mounted_skill would synthesise a fake "skill and agent"
-    # collision for any name that exists in both namespaces.
-    declare -A _mounted_skill=() _mounted_agent=() _mounted_command=()
-    local n
-    for n in "${SKILL_ORDER[@]:-}";       do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-    for n in "${MANIFEST_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-    for n in "${INJECTED_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-    for n in "${AGENTS_ORDER[@]:-}";      do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
-    for n in "${INJECTED_AGENTS[@]:-}";   do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
-    for n in "${COMMANDS_ORDER[@]:-}";    do [[ -n "$n" ]] && _mounted_command[$n]=1; done
-    for n in "${INJECTED_COMMANDS[@]:-}"; do [[ -n "$n" ]] && _mounted_command[$n]=1; done
-
-    # Walk every collision in the toolkit; for each, intersect the recorded
-    # kinds with what this stack actually mounted. A "role" hit doesn't count
-    # toward the >=2 floor (roles aren't symlinks) but is reported alongside
-    # mounted kinds when it co-occurs with a mounted overlap.
     local -a _active_lines=()
-    local col_name col_kinds
-    while IFS=$'\t' read -r col_name col_kinds; do
-        [[ -z "$col_name" ]] && continue
-        local -a _active_kinds=()
-        case ",$col_kinds," in *,skill,*)
-            [[ -n "${_mounted_skill[$col_name]:-}" ]] && _active_kinds+=("skill") ;;
-        esac
-        case ",$col_kinds," in *,agent,*)
-            [[ -n "${_mounted_agent[$col_name]:-}" ]] && _active_kinds+=("agent") ;;
-        esac
-        case ",$col_kinds," in *,command,*)
-            [[ -n "${_mounted_command[$col_name]:-}" ]] && _active_kinds+=("command") ;;
-        esac
-        (( ${#_active_kinds[@]} >= 2 )) || continue
-        # Render the kinds list as "a and b" / "a, b, and c".
-        local kinds_phrase
-        case ${#_active_kinds[@]} in
-            2) kinds_phrase="${_active_kinds[0]} and ${_active_kinds[1]}" ;;
-            3) kinds_phrase="${_active_kinds[0]}, ${_active_kinds[1]}, and ${_active_kinds[2]}" ;;
-            *) kinds_phrase="${_active_kinds[*]}" ;;
-        esac
-        # Annotate against the allowlist. Status leans on the same file the
-        # CI test reads; format mirrors the line shape there (`<name> <csv>`).
-        local annotation
-        if _status_collision_in_allowlist "$col_name" "$col_kinds"; then
-            # Qualify the path: status runs in the user's project dir, so a
-            # bare "tests/collision-allowlist.txt" looks like a sibling file
-            # that doesn't exist. The file lives in the toolkit submodule.
-            annotation="intentional family overlap per the toolkit's tests/collision-allowlist.txt"
-        else
-            annotation="UNEXPECTED — run 'sciagent validate' for details"
-        fi
-        _active_lines+=("  - '$col_name' appears as both $kinds_phrase ($annotation)")
-    done < <(collisions_enumerate)
 
-    if (( ${#_active_lines[@]} == 0 )); then
-        return 0
+    # --- (1) Drift detection (no external helper required) ---
+    # Check manifest-pinned base role.
+    if [[ -n "$_STK_BASE" ]] && ! role_exists "$_STK_BASE"; then
+        _active_lines+=("  - stack role '$_STK_BASE' is no longer in the toolkit catalog (roles/$_STK_BASE.yaml missing); run 'sciagent deactivate' to reset")
     fi
+    # Check overlay, skipping synthetic _injected value.
+    if [[ -n "$_STK_OVERLAY" && "$_STK_OVERLAY" != "_injected" ]] && ! role_exists "$_STK_OVERLAY"; then
+        _active_lines+=("  - overlay role '$_STK_OVERLAY' is no longer in the toolkit catalog (roles/$_STK_OVERLAY.yaml missing); run 'sciagent deactivate' to reset")
+    fi
+
+    # --- (2) Collision detection (requires optional collisions_enumerate helper) ---
+    if declare -F collisions_enumerate >/dev/null 2>&1; then
+        # Build the active mount set: kind -> set of names. Each injected entry
+        # contributes to the bucket matching its kind only — leaking an injected
+        # agent into _mounted_skill would synthesise a fake "skill and agent"
+        # collision for any name that exists in both namespaces.
+        declare -A _mounted_skill=() _mounted_agent=() _mounted_command=()
+        local n
+        for n in "${SKILL_ORDER[@]:-}";       do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+        for n in "${MANIFEST_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+        for n in "${INJECTED_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+        for n in "${AGENTS_ORDER[@]:-}";      do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
+        for n in "${INJECTED_AGENTS[@]:-}";   do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
+        for n in "${COMMANDS_ORDER[@]:-}";    do [[ -n "$n" ]] && _mounted_command[$n]=1; done
+        for n in "${INJECTED_COMMANDS[@]:-}"; do [[ -n "$n" ]] && _mounted_command[$n]=1; done
+
+        # Walk every collision; intersect with what this stack actually mounted.
+        local col_name col_kinds
+        while IFS=$'\t' read -r col_name col_kinds; do
+            [[ -z "$col_name" ]] && continue
+            local -a _active_kinds=()
+            case ",$col_kinds," in *,skill,*)
+                [[ -n "${_mounted_skill[$col_name]:-}" ]] && _active_kinds+=("skill") ;;
+            esac
+            case ",$col_kinds," in *,agent,*)
+                [[ -n "${_mounted_agent[$col_name]:-}" ]] && _active_kinds+=("agent") ;;
+            esac
+            case ",$col_kinds," in *,command,*)
+                [[ -n "${_mounted_command[$col_name]:-}" ]] && _active_kinds+=("command") ;;
+            esac
+            (( ${#_active_kinds[@]} >= 2 )) || continue
+            # Render the kinds list as "a and b" / "a, b, and c".
+            local kinds_phrase
+            case ${#_active_kinds[@]} in
+                2) kinds_phrase="${_active_kinds[0]} and ${_active_kinds[1]}" ;;
+                3) kinds_phrase="${_active_kinds[0]}, ${_active_kinds[1]}, and ${_active_kinds[2]}" ;;
+                *) kinds_phrase="${_active_kinds[*]}" ;;
+            esac
+            # Annotate against the allowlist. Status leans on the same file the
+            # CI test reads; format mirrors the line shape there (`<name> <csv>`).
+            local annotation
+            if _status_collision_in_allowlist "$col_name" "$col_kinds"; then
+                # Qualify the path: status runs in the user's project dir, so a
+                # bare "tests/collision-allowlist.txt" looks like a sibling file
+                # that doesn't exist. The file lives in the toolkit submodule.
+                annotation="intentional family overlap per the toolkit's tests/collision-allowlist.txt"
+            else
+                annotation="UNEXPECTED — run 'sciagent validate' for details"
+            fi
+            _active_lines+=("  - '$col_name' appears as both $kinds_phrase ($annotation)")
+        done < <(collisions_enumerate)
+    fi
+
+    (( ${#_active_lines[@]} == 0 )) && return 0
 
     printf '\nNotes:\n'
     local line
@@ -605,6 +607,19 @@ _status_render_json() {
     local pi="false";      [[ -d .pi     ]] && pi="true"
     printf '"block":{"hash_ok":%s,"state":"%s"},' "$hash_ok" "$_BLOCK_HASH_OK"
     printf '"symlinks_ok":%s,' "$sym_ok"
+
+    # stale_roles: manifest-pinned roles whose .yaml no longer exists in catalog.
+    printf '"stale_roles":['
+    first=1
+    local role
+    for role in "$_STK_BASE" "$_STK_OVERLAY"; do
+        [[ -z "$role" || "$role" == "_injected" ]] && continue
+        role_exists "$role" && continue
+        if (( first )); then first=0; else printf ','; fi
+        printf '"%s"' "$(_json_esc "$role")"
+    done
+    printf '],'
+
     printf '"harness":{"claude":%s,"pi":%s}' "$claude" "$pi"
     printf '}\n'
 }
