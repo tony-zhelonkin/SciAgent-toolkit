@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- Deleted 6 redundant roles that bloated the UI and duplicated coverage: `planning`, `annotator`, `scrna-atlas`, `multiome-analysis`, `multiome-grn`, `dc-dictionary`. The clean framework is now 4 roles: `base` (general scRNA foundation), `scatac-regulatory` (chromatin/ATAC overlay), `pathway-signature` (pathway/functional overlay), `architect` (software architecture, standalone). `software-tool` remains as the project-type-specific role.
+- Updated `scatac-regulatory` and `pathway-signature` "Do NOT use when" comments to reference the surviving role names (`base`, `scatac-regulatory`) instead of the deleted ones.
+
 ## [3.0.0] - 2026-05-31
 
 ### Added

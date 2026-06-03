@@ -13,9 +13,8 @@
 #   - Building regulatory networks from ATAC data
 #
 # Do NOT use when
-#   - scRNA-seq QC/normalization/clustering (use scrna-atlas)
+#   - scRNA-seq QC/normalization/clustering (use base)
 #   - Trajectory / velocity work
-#   - scGLUE unpaired integration (use multiome-grn)
 
 name: scatac-regulatory
 description: scATAC-seq regulatory analysis — CREscendo, ChromVAR, TF footprinting, pycisTopic, SCENIC+

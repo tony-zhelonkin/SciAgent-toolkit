@@ -13,8 +13,8 @@
 #   - Emitting master_unified.csv + interactive pathway_explorer HTMLs
 #
 # Do NOT use when
-#   - scRNA QC / integration / annotation upstream (use scrna-atlas)
-#   - GRN / ATAC / multiome (use multiome-grn)
+#   - scRNA QC / integration / annotation upstream (use base)
+#   - Chromatin / ATAC / regulatory work (use scatac-regulatory)
 #   - Trajectory / velocity work
 
 name: pathway-signature
