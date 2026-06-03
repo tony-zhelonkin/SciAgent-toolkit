@@ -293,23 +293,38 @@ _new_git() {
 
     [[ "$with_submodules" == "true" ]] || return 0
 
-    # Per-type toolkit set: "<repo> <branch> <target>".
+    # Pin SciAgent-toolkit to the same release tag that is currently running.
+    # Falls back to "main" branch if not on a tagged commit.
+    local sciagent_ref="main"
+    local _sat
+    _sat=$(git -C "$SCIAGENT_TOOLKIT" describe --tags --exact-match HEAD 2>/dev/null \
+           || git -C "$SCIAGENT_TOOLKIT" describe --tags --abbrev=0 HEAD 2>/dev/null \
+           || true)
+    [[ -n "$_sat" ]] && sciagent_ref="tag:${_sat}"
+
+    # Per-type toolkit set: "<repo> <branch-or-tag:REF> <target>".
+    # Use "tag:<ref>" to pin to a specific tag (no branch tracking in .gitmodules).
     local -a subs=()
     case "$type" in
         analysis)
             subs+=("RNAseq-toolkit dev 01_modules/RNAseq-toolkit")
-            subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
+            subs+=("SciAgent-toolkit ${sciagent_ref} 01_modules/SciAgent-toolkit")
             ;;
         software)
-            subs+=("SciAgent-toolkit main 01_modules/SciAgent-toolkit")
+            subs+=("SciAgent-toolkit ${sciagent_ref} 01_modules/SciAgent-toolkit")
             ;;
     esac
 
-    local spec repo branch target added=0
+    local spec repo ref target added=0
     for spec in "${subs[@]}"; do
-        read -r repo branch target <<< "$spec"
-        echo "git: adding $repo (branch: $branch)..."
-        if _add_submodule_with_fallback "$abs_dir" "$owner" "$repo" "$branch" "$target"; then
+        read -r repo ref target <<< "$spec"
+        local pin_tag="" branch="$ref"
+        if [[ "$ref" == tag:* ]]; then
+            pin_tag="${ref#tag:}"
+            branch=""
+        fi
+        echo "git: adding $repo${pin_tag:+ (tag: $pin_tag)}${branch:+ (branch: $branch)}..."
+        if _add_submodule_with_fallback "$abs_dir" "$owner" "$repo" "$branch" "$target" "$pin_tag"; then
             added=$((added + 1))
         fi
     done
@@ -321,11 +336,12 @@ _new_git() {
     fi
 }
 
-# _add_submodule_with_fallback <abs_dir> <owner> <repo> <branch> <target>
+# _add_submodule_with_fallback <abs_dir> <owner> <repo> <branch> <target> [pin_tag]
 # Tries SSH `git submodule add`, then falls back to a gh-CLI HTTPS clone that rewrites the
-# recorded URL back to SSH. Returns non-zero (without aborting the scaffold) on failure.
+# recorded URL back to SSH. When pin_tag is set, branch tracking is omitted from .gitmodules
+# and the submodule is checked out at that tag (detached HEAD). Returns non-zero on failure.
 _add_submodule_with_fallback() {
-    local abs_dir="$1" owner="$2" repo="$3" branch="$4" target="$5"
+    local abs_dir="$1" owner="$2" repo="$3" branch="$4" target="$5" pin_tag="${6:-}"
     local ssh_url="git@github.com:${owner}/${repo}.git"
 
     if [[ -d "$abs_dir/$target" ]]; then
@@ -333,22 +349,36 @@ _add_submodule_with_fallback() {
         return 1
     fi
 
-    if git -C "$abs_dir" submodule add -b "$branch" "$ssh_url" "$target" 2>/dev/null; then
+    # Build submodule add args: omit -b when pinning to a tag.
+    local -a add_args=()
+    [[ -n "$branch" ]] && add_args+=(-b "$branch")
+
+    if git -C "$abs_dir" submodule add "${add_args[@]}" "$ssh_url" "$target" 2>/dev/null; then
+        if [[ -n "$pin_tag" ]]; then
+            git -C "$abs_dir/$target" checkout -q "$pin_tag" 2>/dev/null || true
+            git -C "$abs_dir" add "$target" 2>/dev/null || true
+        fi
         echo "  $repo added via git (SSH)"
         return 0
     fi
 
     echo "  SSH failed, trying gh CLI fallback (HTTPS)..."
     if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+        local -a clone_args=()
+        [[ -n "$branch" ]] && clone_args+=(-b "$branch")
         if GIT_CONFIG_COUNT=1 \
            GIT_CONFIG_KEY_0="url.https://github.com/.insteadOf" \
            GIT_CONFIG_VALUE_0="git@github.com:" \
-           gh repo clone "${owner}/${repo}" "$abs_dir/$target" -- -b "$branch" 2>/dev/null; then
+           gh repo clone "${owner}/${repo}" "$abs_dir/$target" -- "${clone_args[@]}" 2>/dev/null; then
             git -C "$abs_dir" config -f .gitmodules "submodule.${target}.path" "$target"
             git -C "$abs_dir" config -f .gitmodules "submodule.${target}.url" "$ssh_url"
-            git -C "$abs_dir" config -f .gitmodules "submodule.${target}.branch" "$branch"
+            [[ -n "$branch" ]] && \
+                git -C "$abs_dir" config -f .gitmodules "submodule.${target}.branch" "$branch"
             git -C "$abs_dir" config "submodule.${target}.url" "$ssh_url"
             git -C "$abs_dir" config "submodule.${target}.active" "true"
+            if [[ -n "$pin_tag" ]]; then
+                git -C "$abs_dir/$target" checkout -q "$pin_tag" 2>/dev/null || true
+            fi
             git -C "$abs_dir" add "$target" 2>/dev/null || true
             echo "  $repo added via gh CLI (HTTPS)"
             return 0
