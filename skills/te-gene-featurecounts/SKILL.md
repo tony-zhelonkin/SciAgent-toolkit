@@ -3,9 +3,13 @@ name: te-gene-featurecounts
 description: >-
   featureCounts TE+gene counting workflow, packaged with its own locked,
   version-pinned container (te-fc:2.0.2, featureCounts v2.0.2). Two-pass driver:
-  integer Random-One TE counting (grouped Subfamily:Family:Class SAF, -M, -s 0,
+  integer Random-One TE counting (grouped Subfamily:Family:Class SAF, -M,
   NO --fraction) plus per-library-stranded gene counting, then a row-bound
-  combined matrix. Use when you have nf-core/rnaseq star_salmon BAMs (including
+  combined matrix. TE strandedness is context-dependent (field is SPLIT): -s 0
+  (unstranded) matches the dominant tool's default (TEtranscripts --stranded no)
+  for standalone work; stranded sense/antisense (--te-strand sense_antisense)
+  matched to genes is the more principled best-practice for a joint matrix
+  (grade B, not a standard). Use when you have nf-core/rnaseq star_salmon BAMs (including
   the lean markdup.sorted.bam path) and need the runnable, env-locked step that
   turns them into gene + TE subfamily count matrices. For the upstream STAR
   Random-One alignment recipe use star-te-preprocessing; for building the TE SAF
@@ -15,7 +19,7 @@ license: MIT
 metadata:
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-06-11
-  version: 1.0.0
+  version: 1.0.1
   upstream-docs: https://subread.sourceforge.net/
   scope: implementation
   category: workflow
@@ -28,7 +32,7 @@ metadata:
     - star-te-preprocessing
     - annotate-bulk-rnaseq-data
   contraindications:
-    - "Do not use for fractional multimapper counting. This is integer Random-One (-M, -s 0, NO --fraction); adding --fraction breaks the contract."
+    - "Do not use for fractional multimapper counting. This is integer Random-One (-M, NO --fraction); adding --fraction breaks the contract."
     - "Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead."
     - "Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF."
     - "Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2)."
@@ -139,33 +143,105 @@ head -1 "$M"; wc -l "$M"   # ~1,243 TE meta-features (mm39), Subfamily:Family:Cl
    `te-fc:2.0.2` as `-u $(id -u):$(id -g)`.
 
 Required args: `--bam-dir --gene-gtf --te-saf --gene-s --out-dir`. Optional: `--threads`
-(12), `--te-strand` (`unstranded`), `--bam-glob` (`*.bam`), `--image` (`te-fc:2.0.2`).
+(12), `--te-strand` (`unstranded` | `sense_antisense`; default `unstranded`), `--bam-glob`
+(`*.bam`), `--image` (`te-fc:2.0.2`). `--te-strand sense_antisense` gives stranded,
+bidirectional-preserving TE counts (sense + antisense channels) — the more principled
+best-practice for a joint gene+TE matrix on a stranded library (grade B / mechanistic, not a
+benchmarked standard). `unstranded` (`-s 0`) is a valid standalone option that matches the
+dominant tool's default (TEtranscripts `--stranded no`); the field genuinely splits and
+mode-switching is not required.
 
 ### Intermediate Usage — strandedness (the error-prone variable)
 
 The **gene** `-s` is **library-specific and must be verified per dataset** — never hardcode.
 Confirm against MultiQC inferred strandedness, RSeQC/Salmon, AND the featureCounts header
 (`Strand specific : reversely stranded`). 14839-DM and 13036-DM were `-s 2` (reverse, dUTP/
-TruSeq); AdaW was `-s 1` (forward). The **TE** pass is **always `-s 0` (unstranded)** to avoid
-halving signal from antisense TE transcription — fixed inside the driver via
-`--te-strand unstranded`.
+TruSeq); AdaW was `-s 1` (forward).
+
+**TE strandedness is context-dependent and the field is SPLIT — `-s 0` is neither a universal
+rule nor retroactively wrong.** Two myths to avoid in *both* directions:
+- The old "always `-s 0` to capture bidirectional TE transcription" framing is mis-attributed to
+  Teissandier 2019 (it benchmarks *multimapper handling only* — the word "strand" appears once, as
+  a fixed `-s 0` parameter — and says nothing about strand choice).
+- But "stranded is THE field standard" is *also* an over-claim. The dominant tool
+  (TEtranscripts/TEcount) **defaults to `--stranded no` (unstranded)**; best-practice literature
+  (TE-Seq 2025, doi:10.1186/s13100-025-00381-w) *recommends* stranded for directional libraries.
+  So stranded-for-joint is **best-practice / mechanistic (grade B), not a benchmarked standard**,
+  and the field genuinely splits between tool default and best-practice.
+
+Also do **not** claim `-s 0` buys better TE *sensitivity*: that has **never been benchmarked
+head-to-head** (grade GAP). The one study simulating both modes (Savytska 2022,
+doi:10.3389/fgene.2022.1026847) found **stranded FDR (54.9%) ≤ unstranded (58.7%)** — `-s 0` is a
+sensitivity-for-specificity *trade*, not a gain. Real TE bidirectionality is **class-specific**
+(L1-ASP/ORF0 and LTR/ERV antisense are real; SINE/intronic antisense is largely passive host
+read-through), not a uniform property of TE loci.
+
+Choose by goal (options with grades, not a mandate):
+
+- **Standalone TE-family quantification or a genuinely non-directional library →** `-s 0`
+  (unstranded), the wrapper default (`--te-strand unstranded`). **Defensible (grade B):** matches
+  the dominant tool's default. Counts TE reads on either strand; cost is a specificity *trade*,
+  not a sensitivity gain.
+- **JOINT gene+TE matrix on a STRANDED library →** the **more principled best-practice** is a
+  single consistent stranded convention: count TEs at the **same strandedness as genes** and
+  preserve bidirectional biology via a **sense/antisense split** rather than collapsing to `-s 0`.
+  Use `--te-strand sense_antisense`: for a reverse library this emits a TE-**sense** matrix
+  (`-s 2`, matched to genes) and a TE-**antisense** matrix (`-s 1`), keeping bidirectional signal
+  *and* gene-comparability. **Grade B / mechanistic — better FDR in the one benchmark and
+  separates autonomous from passive TE transcription, but NOT proven superior for TE DE.**
+  Mode-switching (unstranded TEs + stranded genes) is **not required**.
+
+**Standalone vs joint (gene+TE) strandedness — short note.** For 14839-DM the actual run used TE
+`-s 0`. That remains a **defensible standalone choice** — it matches TEtranscripts' default — and
+is **not** retroactively wrong. For the *definitive joint* gene+TE analysis, a stranded recount
+(`-s 2` / sense+antisense) is the more principled option (grade B; see the evidence-graded
+reconciliation, note 13). When you do combine gene+TE for joint normalization/DE, the caveats
+below are **graded options**, not mandates (see "Evidence & open questions"):
+
+- **Size factors from genes only** (`controlGenes = isGene`): **grade B / contested.** TE-Seq
+  advocates genes-only; the dominant tool TEtranscripts **pools** genes+TEs. Reasonable but
+  non-universal — sanity-check against pooled factors.
+- **Sense/antisense split:** **grade B / SQuIRE-specific** design ("the only TE tool to output
+  strandedness of each transcript"), defensible to mirror, not a field standard.
+- **Within-feature-type, across-sample DE only; never compare gene-vs-TE magnitude within a
+  sample; no TPM/FPKM for TE meta-features** (a summed multi-locus subfamily has no single
+  length): **grade C / mechanistic inference** — sound and consistent with tool behavior, but not
+  stated in any TE primary source.
+
+This handoff caveat travels with the matrix to `annotate-bulk-rnaseq-data`.
 
 ### Advanced Usage — the vendored driver (the code is the spec)
 
 `scripts/runFeatureCounts_TE_and_genes.sh` (gene pass delegates to `scripts/runFeatureCounts.sh`)
 are **frozen, vendored copies** of the TE-RNAseq-toolkit drivers — self-contained so the skill
 is a runnable artifact (a deliberate reversal of the prior version-pointer ADR). Comments were
-corrected vs the originals (grouped no-exon SAF; integer Random-One; `-s 0`, no `--fraction`);
-**code logic is byte-identical**. Underlying invocations:
+corrected vs the originals (grouped no-exon SAF; integer Random-One; no `--fraction`; TE `-s`
+context-dependent); **code logic is byte-identical**. Underlying invocations:
 
 ```
-TE:   featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T <t> <BAMs>
-Gene: featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s <0|1|2> -t exon -g gene_id -T <t> <BAMs>
+TE (unstranded, default):     featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T <t> <BAMs>
+TE (sense, reverse lib):      featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T <t> <BAMs>   # NON-INTEGER -> round() before DESeq2
+TE (antisense, reverse lib):  featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T <t> <BAMs>   # NON-INTEGER -> round() before DESeq2
+Gene:                         featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s <0|1|2> -t exon -g gene_id -T <t> <BAMs>
 ```
 
-- **TE pass:** `-M` (multi-mappers counted — essential for TEs), `-s 0`, **NO `--fraction`**
-  → integer Random-One. SAF `GeneID = Subfamily:Family:Class` → ~1,243 subfamily meta-features.
+> Note: the **primary unstranded** TE pass is integer (no `--fraction`). The **optional sense/antisense
+> auxiliary** passes (`--te-strand sense_antisense`) run `-M --fraction` in the vendored driver, so they
+> are **non-integer** — round (or use a fractional-tolerant model like limma-voom) before DESeq2.
+
+- **TE pass:** `-M` (multi-mappers counted — REQUIRED under Random-One: STAR keeps `NH>1` on the
+  single emitted line, so featureCounts discards multimappers without `-M`), **NO `--fraction`**
+  → integer Random-One (preferred for joint DESeq2; feeds it natively without a lossy `round()`).
+  SAF `GeneID = Subfamily:Family:Class` → ~1,243 subfamily meta-features. TE `-s` is chosen by
+  context (see "Intermediate Usage" above; field is split): `-s 0` unstranded (matches the
+  dominant tool's default) for standalone work, or stranded sense/antisense
+  (`--te-strand sense_antisense`) matched to genes — the more principled best-practice (grade B)
+  for a joint matrix.
 - **Gene pass:** multi-mappers excluded (featureCounts default), `-s` per library.
+- **Flags deliberately NOT added on the grouped exon-subtracted SAF:** `--primary` (redundant
+  under Random-One — one primary line already emitted), `-O` (can double-assign reads across
+  overlapping subfamilies → overestimate), `--largestOverlap` (silently drops tie reads). Keep
+  the lean set above. `--runRNGseed` is pinned upstream (STAR) for reproducible Random-One.
 - **Combine:** row-binds gene + TE into `combined_gene_TE_counts.tsv` (valid only because
   exonic TE loci were subtracted from the SAF → no double-counting).
 
@@ -196,11 +272,52 @@ After running, confirm before handoff:
       == TE header.
 - [ ] **No zero-libsize samples** — every per-sample gene and TE total is nonzero.
 - [ ] **TE proportion = a library-specific sanity band, NOT a hard threshold.** Expect internal
-      consistency across replicates; flag *wild* outliers, not an absolute number. The
-      unstranded-TE / stranded-gene ratio **inflates** TE% (the gene denominator drops
-      antisense/ambiguous reads the unstranded TE pass keeps) — 14839-DM saw 5.5–12.5%
-      (mean 8.7%), internally consistent vs the AdaW ~3.8–6.0% reference (different tissue).
+      consistency across replicates; flag *wild* outliers, not an absolute number. When TEs are
+      counted `-s 0` (unstranded) against a stranded gene denominator, the mismatch **inflates**
+      TE% (the gene denominator drops antisense/ambiguous reads the unstranded TE pass keeps), so
+      "TE %" is a QC sanity band, **not a biological transcriptome fraction** — 14839-DM saw
+      5.5–12.5% (mean 8.7%) under standalone `-s 0`, internally consistent vs the AdaW ~3.8–6.0%
+      reference (different tissue). A stranded TE recount (`--te-strand sense_antisense`) puts TE
+      and gene rows on one orientation convention (the more principled best-practice for a joint
+      matrix, grade B); it still does not license gene-vs-TE within-sample magnitude comparison
+      (grade C — see "Evidence & open questions").
 - [ ] **featureCounts version** — raw headers read `# Program:featureCounts v2.0.2`.
+
+---
+
+## Evidence & open questions
+
+Grade tags used across this skill (and the two it hands to): **A** peer-reviewed standard ·
+**B** tool default or single strong pipeline's recommendation · **C** sound mechanistic inference,
+not stated in a TE primary source · **D** folklore / mis-imported · **GAP** no adequate primary
+source — open. Authoritative basis: the evidence-graded reconciliation (note 13).
+
+Key claims by grade:
+- **A (intact):** `-M` required under Random-One; integer Random-One feeds DESeq2; random-one ≈
+  `-M --fraction`, unique-only undercounts young families (Teissandier 2019); do NOT add
+  `--primary`/`-O`/`--largestOverlap`; `--runRNGseed` pinned; `te-fc:2.0.2` pin; no TPM for genes
+  cross-sample DE; the joint gene+TE *matrix* is a reviewed construct.
+- **B:** stranded-for-joint is best-practice, not a benchmarked standard (field SPLITS —
+  TEtranscripts defaults `--stranded no`); genes-only `controlGenes` size factors (TEtranscripts
+  pools instead); sense/antisense split (SQuIRE-specific).
+- **C:** no gene-vs-TE within-sample magnitude comparison; no TPM/FPKM for TE meta-features.
+- **GAP:** "unstranded → better TE sensitivity" — **never benchmarked**; the only both-mode study
+  (Savytska 2022) found stranded FDR ≤ unstranded.
+
+Explicit gaps (do not paper over):
+- **No ground-truth gold standard** — every TE benchmark rests on simulation (no dataset has known
+  per-locus TE counts).
+- **TE strandedness is under-benchmarked** — exactly one both-mode study, FDR-only.
+- **Gene–TE disambiguation is unsolved** — intron retention / exonized fragments / read-through
+  inflate TE counts; no consensus fix.
+- **The in-house gene `s0/s2 ≈ 0.95` figure is an EMPIRICAL in-house measurement** (14839-DM, note
+  08), not a literature value.
+
+Long-read note: short-read **subfamily-level** quant (this skill) is **current**, not legacy
+(new tools still baseline against TEtranscripts). Long-read (ONT/PacBio) **complements** — it owns
+locus identity / isoform / chimera resolution — but lacks the depth for sensitive differential
+*abundance*; the flagship hybrid (LocusMasterTE 2025) injects long-read TPM into a short-read EM.
+It is **not a replacement** for short-read TE DE.
 
 ---
 

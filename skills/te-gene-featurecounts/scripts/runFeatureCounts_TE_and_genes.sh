@@ -28,7 +28,13 @@ set -euo pipefail
 #   - TE is counted with:  -M  -p --countReadPairs -B -C
 #   - TE multi-mapper counting is INTEGER Random-One: -M, -s 0, NO --fraction.
 #     (--fraction is deliberately NOT used on the primary TE matrix.)
-#   - TE default is unstranded (-s 0) to avoid halving signal from antisense TE transcription.
+#   - TE default is unstranded (-s 0) for STANDALONE TE-family quantification — a defensible choice
+#     that matches the dominant tool's default (TEtranscripts --stranded no). NOTE: "-s 0 = better TE
+#     sensitivity" is UNBENCHMARKED (a sensitivity-for-specificity trade, not a proven gain; the only
+#     both-mode study, Savytska 2022, found stranded FDR 54.9% <= unstranded 58.7%). For a JOINT
+#     gene+TE matrix on a stranded library, the more principled (best-practice, not proven-superior)
+#     route is counting TEs at the gene strandedness (-s 2 for reverse dUTP); preserve class-specific
+#     antisense TE biology via --te-strand sense_antisense, NOT by collapsing to -s 0. Field is SPLIT.
 #   - If you set --te-strand sense_antisense AND your library is stranded (e.g., reverse), we also produce TE-sense and TE-antisense matrices by running -s 2 and -s 1 respectively.
 #
 # Author: Anton Zhelonkin

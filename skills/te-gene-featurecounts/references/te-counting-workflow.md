@@ -90,7 +90,7 @@ scripts/run_te_counting.sh \
   --gene-s    2 \                      # GENE strandedness — VERIFY per library
   --out-dir   <OUT_DIR> \
   --threads   12
-                                       # --te-strand unstranded (default); TE pass fixed -s 0
+                                       # --te-strand unstranded (default, -s 0) OR sense_antisense
 ```
 
 The two passes (contract enforced by the vendored driver):
@@ -99,15 +99,47 @@ The two passes (contract enforced by the vendored driver):
   = `-s 2` reverse; AdaW = `-s 1` forward), multi-mappers **excluded** (featureCounts default),
   `-p --countReadPairs -B -C`. **Never assume 1 vs 2** — confirm against MultiQC inferred
   strandedness, RSeQC/Salmon, and the featureCounts header (`Strand specific : ...`).
-- **TE pass:** SAF, `-M` (multi-mappers **counted** — essential for TEs), `-s 0` (**unstranded**),
-  **NO `--fraction`** → **integer** Random-One counts, `-p --countReadPairs -B -C`.
+- **TE pass:** SAF, `-M` (multi-mappers **counted** — REQUIRED under Random-One; without `-M`
+  featureCounts drops the `NH>1` reads STAR keeps on the single emitted line), **NO `--fraction`**
+  → **integer** Random-One counts, `-p --countReadPairs -B -C`. TE strandedness is
+  **context-dependent and the field is SPLIT, NOT a fixed `-s 0`** (see "Why" below):
+  - **Standalone TE-family quantification or a non-directional library →** `-s 0` (unstranded),
+    the wrapper default. **Defensible (grade B): matches the dominant tool's default**
+    (TEtranscripts `--stranded no`). Counts TE reads on either strand; a specificity *trade*, not
+    a sensitivity gain.
+  - **JOINT gene+TE matrix on a STRANDED library (more principled best-practice, grade B) →**
+    count TEs at the **same strandedness as genes** and keep bidirectional biology via a
+    **sense/antisense split** rather than collapsing to `-s 0`. `--te-strand sense_antisense`
+    emits TE-sense (`-s 2` for a reverse lib, matched to genes) + TE-antisense (`-s 1`) matrices.
+    Better FDR in the one benchmark and separates autonomous from passive TE transcription, but
+    **not proven superior** for TE DE; mode-switching is **not required**.
 
-### Exact underlying invocations (from raw headers, 14839-DM)
+> **Why.** Two over-claims to avoid in both directions. (1) "Always `-s 0` for bidirectional TEs"
+> is mis-attributed to Teissandier 2019 (benchmarks *multimapper handling only* — "strand" appears
+> once, as a fixed `-s 0` parameter; no strand-choice test). (2) "Stranded is THE field standard"
+> is *also* over-claimed: the dominant tool TEtranscripts/TEcount **defaults to `--stranded no`
+> (unstranded)**; best-practice (TE-Seq 2025) *recommends* stranded for directional libraries. So
+> stranded-for-joint is **best-practice / mechanistic (grade B), not a benchmarked standard**, and
+> the field genuinely splits. The "unstranded → better TE sensitivity" claim is **GAP** (never
+> benchmarked); the only both-mode study (Savytska 2022, doi:10.3389/fgene.2022.1026847) found
+> **stranded FDR (54.9%) ≤ unstranded (58.7%)**. Real TE bidirectionality is class-specific (L1-ASP/ORF0, LTR/ERV
+> real; SINE/intronic largely passive), not a uniform property of TE loci.
+
+### Exact underlying invocations
 
 ```
-TE:   featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T 12 <BAMs>
-Gene: featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s 2 -t exon -g gene_id -T 12 <BAMs>
+TE (unstranded, default):     featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T 12 <BAMs>
+TE (sense, reverse lib):      featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T 12 <BAMs>   # NON-INTEGER -> round() before DESeq2
+TE (antisense, reverse lib):  featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T 12 <BAMs>   # NON-INTEGER -> round() before DESeq2
+Gene:                         featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s 2 -t exon -g gene_id -T 12 <BAMs>
 ```
+
+The primary unstranded TE pass is integer (no `--fraction`); the optional sense/antisense auxiliary
+passes use `-M --fraction` (vendored driver) and are **non-integer** — round() before DESeq2, or use limma-voom.
+
+(The TE `-s 0` line above is the exact 14839-DM run — a defensible standalone choice that matches
+TEtranscripts' default, not retroactively wrong; for the definitive joint analysis the
+sense/antisense lines matched to gene `-s 2` are the more principled best-practice, grade B.)
 
 ## 5. Outputs, QC gate, handoff
 
@@ -132,14 +164,21 @@ Outputs land under `<OUT_DIR>`:
 - **TE proportion = a LIBRARY-SPECIFIC sanity band, NOT a hard threshold.** TE% =
   TE_total / (gene_total + TE_total) per sample. Expect internal consistency across replicates;
   flag *wild* outliers, not an absolute number. The AdaW reference (~3.8–6.0%) is a *different*
-  library/tissue, so an offset is expected. Crucially, the **unstranded TE pass vs reverse-stranded
-  gene denominator** inflates TE% (the gene denominator drops antisense/ambiguous reads the
-  unstranded TE pass keeps): 14839-DM measured 5.5–12.5% (mean 8.7%), internally consistent — a
-  QC *observation*, not an error.
+  library/tissue, so an offset is expected. When TEs are counted **`-s 0` (unstranded) against a
+  reverse-stranded gene denominator**, the mismatch inflates TE% (the gene denominator drops
+  antisense/ambiguous reads the unstranded TE pass keeps): 14839-DM measured 5.5–12.5% (mean 8.7%)
+  under standalone `-s 0`, internally consistent — a QC *observation*, not an error. So "TE %" is a
+  QC sanity band, **not a biological transcriptome fraction**; a stranded TE recount removes the
+  mismatch.
 
 **Handoff:** the gene + TE matrices are the inputs to **`annotate-bulk-rnaseq-data`** (Ensembl→Symbol
 gene annotation, `parse_te_id` TE parsing, combined annotated `DGEList`) → then DE/GSEA. Do not
-perform DE here.
+perform DE here. **Joint-analysis caveats to carry with the matrix (graded options, not mandates;
+see SKILL.md "Evidence & open questions"):** genes-only DESeq2 size factors (`controlGenes`) are
+**grade B / contested** (TEtranscripts pools genes+TEs); the sense/antisense split is **grade B /
+SQuIRE-specific**; the joint matrix is valid for **within-feature-type, across-sample DE only** —
+never compare gene-vs-TE magnitude within a sample, and emit no TPM/FPKM for TE meta-features
+(**grade C / mechanistic inference**, not stated in any TE primary source).
 
 ---
 
