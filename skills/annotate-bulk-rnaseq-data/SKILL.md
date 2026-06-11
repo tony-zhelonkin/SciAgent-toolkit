@@ -6,10 +6,13 @@ metadata:
   scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-08
-  # CHANGELOG: 1.1.0 — split into thin router + references/{gene,te}-annotation.md;
+  last-reviewed: 2026-06-11
+  # CHANGELOG: 1.1.1 — added joint gene+TE analysis caveats at the combined-matrix handoff
+  #            (genes-only size factors, within-feature-type-only validity, no gene-vs-TE
+  #            magnitude comparison, no TPM for TEs).
+  #            1.1.0 — split into thin router + references/{gene,te}-annotation.md;
   #            fixed TE-ID label to Subfamily:Family:Class; added star-te-preprocessing back-edge.
-  version: 1.1.0
+  version: 1.1.1
   category: workflow
   tier: standard
   tags: []
@@ -67,6 +70,17 @@ Annotating a bulk RNA-seq count matrix?
 ## Shared Principle
 
 **Always annotate BEFORE filtering.** Never drop low-count rows first — filtering before annotation loses Ensembl/TE IDs irreversibly, and the mapping back to symbols/families cannot be recovered. This rule holds on both paths.
+
+## Joint gene+TE matrix — analysis caveats (read before combined-mode DE)
+
+A row-bound gene+TE matrix is valid only because exonic TE loci were subtracted upstream (no double-counting) — but mutual exclusivity is **necessary, not sufficient**. When you take a combined matrix into joint normalization/DE, the rules below are load-bearing — but they are **graded options, not mandates** (grade scale + key claims + gaps live in `te-gene-featurecounts/SKILL.md` "Evidence & open questions", authoritative source: the evidence-graded reconciliation, note 13). The *joint matrix itself* is a reviewed construct (**grade A**).
+
+- **Size factors from genes ONLY — grade B / CONTESTED.** Estimate DESeq2 size factors on the gene submatrix (`estimateSizeFactors(dds, controlGenes = which(feature_type == "gene"))`). TE-Seq advocates this (the long-tailed, multimapper-inflated (`-M`) TE minority can violate the "most features unchanged" assumption and drag *gene* fold-changes); but the dominant tool **TEtranscripts pools** genes+TEs. Reasonable, not universal — sanity-check against pooled size factors and confirm gene LFCs are stable.
+- **Within-feature-type, across-sample DE ONLY — grade C / inference.** The combined object is valid for gene-vs-sample and TE-vs-sample comparison; the per-sample basis offset and multimapper bias cancel across samples within a feature type. Sound mechanistic inference, not stated in a TE primary source.
+- **NEVER compare gene-vs-TE magnitude within a sample — grade C / inference.** Genes (unique-only, possibly Salmon/EM/length-modeled) and TEs (`-M` integer, no length model, possibly `-s 0` both-strand) sit on different measurement bases. "This TE is expressed like that gene" and "TE % of transcriptome" are not interpretable as biology.
+- **No TPM/FPKM for TE meta-features — grade C / inference.** A summed multi-locus subfamily has no single length, so length-normalized units are undefined. Use model-normalized counts / logCPM / DESeq2 LFCs only.
+
+If TE rows were counted stranded with a sense/antisense split upstream (`--te-strand sense_antisense`), keep sense and antisense as **separate** TE features — the more principled best-practice (**grade B / SQuIRE-specific**) for preserving bidirectional TE biology on a stranded library without breaking gene-comparability. The field is split (TEtranscripts defaults `--stranded no`); `-s 0` standalone matrices remain a valid choice, and mode-switching is not required.
 
 ---
 

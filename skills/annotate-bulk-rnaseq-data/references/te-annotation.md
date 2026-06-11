@@ -14,7 +14,7 @@ TE matrix rows use the toolkit-canonical 3-field label **`Subfamily:Family:Class
 (e.g. `L1Md_A:L1:LINE`). This is the same label `star-te-preprocessing` writes into
 the SAF `GeneID`, so it parses cleanly downstream.
 
-> **Authoritative parser:** TE-RNAseq-toolkit **v2.0.0** —
+> **Authoritative parser:** TE-RNAseq-toolkit **v2.0.1** —
 > `R/te_utils.R::parse_te_id` (version-pinned). Do not restate the parser logic here;
 > the code is the spec.
 
@@ -27,7 +27,7 @@ the SAF `GeneID`, so it parses cleanly downstream.
 
 ## Helpers (SSoT — do not duplicate code)
 
-From **TE-RNAseq-toolkit v2.0.0**:
+From **TE-RNAseq-toolkit v2.0.1**:
 
 - `build_te_annotation()` — `scripts/te_utils.R` — parse TE IDs into subfamily/family/class
 - `parse_te_id` — `R/te_utils.R` — authoritative `Subfamily:Family:Class` parser
@@ -54,7 +54,7 @@ dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
 # ---- source helpers ----
 source("01_modules/RNAseq-toolkit/scripts/General/io_helpers.R")
 source("01_modules/RNAseq-toolkit/scripts/General/dge_helpers.R")
-source("01_modules/TE-RNAseq-toolkit/scripts/te_utils.R")   # TE-RNAseq-toolkit v2.0.0
+source("01_modules/TE-RNAseq-toolkit/scripts/te_utils.R")   # TE-RNAseq-toolkit v2.0.1
 
 # ---- read counts ----
 message("[info] reading counts...")
@@ -132,7 +132,30 @@ write_annotated_matrix(combined_counts, md_aligned, combined_annot,
 | `genes_TEs_combined_annotated.tsv` | Combined gene + TE matrix |
 
 > The combined matrix is valid only because exonic TE loci were subtracted upstream
-> (`bedtools subtract`) in `star-te-preprocessing`, so no read is double-counted.
+> (`bedtools subtract`) in `star-te-preprocessing`, so no read is double-counted. Exon
+> subtraction stops double-counting (necessary) but does **not** equalize the gene/TE
+> measurement bases — mutual exclusivity is necessary, not sufficient.
+
+> **Joint normalization/DE caveats (graded options, not mandates — grades + gaps in
+> `te-gene-featurecounts/SKILL.md` "Evidence & open questions"; the joint matrix itself is grade
+> A).** When this combined matrix goes into joint normalization/DE:
+> - **Size factors from genes only — grade B / contested:**
+>   `estimateSizeFactors(dds, controlGenes = which(type == "gene"))`. TE-Seq advocates it (the
+>   `-M`-inflated, long-tailed TE minority can drag gene LFCs); TEtranscripts **pools** instead.
+>   Sanity-check against pooled factors.
+> - **Valid for within-feature-type, across-sample DE only — grade C / inference** (gene-vs-sample,
+>   TE-vs-sample).
+> - **Never compare gene-vs-TE magnitude within a sample — grade C / inference**, and treat "TE %"
+>   as a QC band, not biology — genes and TEs sit on different strandedness / multimapper / length
+>   bases.
+> - **No TPM/FPKM for TE rows — grade C / inference** — a summed multi-locus subfamily has no single
+>   length; use model-normalized counts / logCPM / DESeq2 LFCs only.
+>
+> If TE rows were counted stranded with a sense/antisense split upstream (`--te-strand
+> sense_antisense`), keep sense and antisense as separate TE features — the more principled
+> best-practice (**grade B / SQuIRE-specific**) for preserving bidirectional TE biology without
+> breaking gene-comparability. The field is split (TEtranscripts defaults `--stranded no`), so
+> `-s 0` standalone matrices remain valid and mode-switching is not required.
 
 ## Customization Points
 
@@ -141,4 +164,4 @@ write_annotated_matrix(combined_counts, md_aligned, combined_annot,
 3. **Metadata columns**: Adjust `samp_df` selection based on experimental design.
 4. **TE format**: TE IDs are expected in `Subfamily:Family:Class` format (e.g.
    `L1Md_A:L1:LINE`), as produced by `star-te-preprocessing` and parsed by
-   TE-RNAseq-toolkit v2.0.0 `R/te_utils.R::parse_te_id`.
+   TE-RNAseq-toolkit v2.0.1 `R/te_utils.R::parse_te_id`.
