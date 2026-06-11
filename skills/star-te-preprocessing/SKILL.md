@@ -30,7 +30,7 @@ metadata:
     - annotate-bulk-rnaseq-data
   contraindications:
     - "Do not use for locus-level TE quantification (Random-One assignments are stochastic per locus). Use SQuIRE/Telescope instead."
-    - "Do not use for fractional counting. This recipe is integer Random-One; do not add featureCounts --fraction."
+    - "This recipe is integer Random-One (no --fraction). Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments + -M --fraction) — see the Decision Tree; don't just bolt --fraction onto this integer recipe."
     - "Do not use for generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs). Use nfcore-rnaseq-execution instead."
     - "Do not use for count-matrix annotation, DGEList assembly, or DE. Use annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit instead."
 ---
@@ -64,10 +64,12 @@ Need TE-aware counts from bulk RNA-seq?
 ├─ Want integer, subfamily-level, family-level-accurate counts?
 │     →  THIS skill (Random-One: --outSAMmultNmax 1 + featureCounts -M, NO --fraction)
 │
-├─ Want fractional 1/n multimapper apportionment?
-│     →  NOT current practice. "Strategy B" (-M --fraction) is documented-but-not-current
-│        in TE-RNAseq-toolkit docs/METHODOLOGY.md; the live driver removed --fraction.
-│        Do not use it without an explicit reason.
+├─ Want fractional 1/n multimapper apportionment ("Strategy B")?
+│     →  Equally accurate to Random-One (Teissandier 2019, grade A) — a valid alternative,
+│        just not the opinionated default here. To use it: STAR --outSAMmultNmax 100 (emit
+│        ALL alignments) + featureCounts -M --fraction → NON-INTEGER counts → limma-voom
+│        (or round() for DESeq2). See TE-RNAseq-toolkit docs/METHODOLOGY.md "Strategy B".
+│        Default stays Random-One integer (DESeq2-clean, smaller BAMs, deterministic w/ seed).
 │
 ├─ Want locus-level / copy-resolved TE expression?
 │     →  out of scope → SQuIRE / Telescope (EM)
@@ -164,7 +166,7 @@ The output must satisfy the following for downstream TE DE (condensed from `03-t
 6. **Grouped subfamily SAF.** Built from the TEtranscripts `GRCm39_Ensembl_rmsk_TE.gtf.gz`; the SAF `GeneID` is the TE group label **`Subfamily:Family:Class`** (e.g. `L1Md_A:L1:LINE`) → ~1,243 subfamily meta-features, not locus-level.
 7. **Non-overlapping annotations.** TE loci overlapping gene exons are removed with `bedtools subtract` → `*_noExon.saf`, so a read counts as gene OR TE, never both. This is the precondition for a valid combined matrix.
 8. **Strandedness:** genes `-s` is **library-specific** (verify); TE `-s` is **context-dependent and the field is SPLIT, NOT a fixed `-s 0`** — `-s 0` for standalone TE quantification or a non-directional library (matches the dominant tool's default, TEtranscripts `--stranded no`), or **stranded TEs matched to genes with a sense/antisense split** (`--te-strand sense_antisense`) as the more principled best-practice for a joint gene+TE matrix on a stranded library (grade B / mechanistic, NOT a benchmarked standard; preserves bidirectional biology without discarding strand). Mode-switching is not required. Multi-mappers **included `-M`** in either case. (Alignment itself is strand-agnostic — this choice is made at the featureCounts step, not in STAR.)
-9. **Integer count semantics.** `-M` WITHOUT `--fraction` → integer Random-One. (Fractional "Strategy B" is documented-but-not-current.)
+9. **Integer count semantics.** `-M` WITHOUT `--fraction` → integer Random-One (the opinionated default). Fractional "Strategy B" (`-M --fraction` over all-alignment BAMs) is an equally-accurate alternative (Teissandier 2019) — non-integer, use limma-voom/round; see the Decision Tree.
 10. **TE-ID label = `Subfamily:Family:Class`** — the same label `annotate-bulk-rnaseq-data` and `te_utils.R::parse_te_id` consume. Construct the SAF `GeneID` with this label so it parses downstream.
 11. **Paired-end flags** `-p --countReadPairs -B -C` (fragments, both-ends-mapped, no chimeras).
 12. **QC gate:** TE proportion (TE/total reads) consistent across replicates (AdaW: 3.8–6.0%); wild variation flags a technical problem.

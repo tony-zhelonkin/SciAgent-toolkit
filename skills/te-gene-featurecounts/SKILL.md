@@ -32,7 +32,7 @@ metadata:
     - star-te-preprocessing
     - annotate-bulk-rnaseq-data
   contraindications:
-    - "Do not use for fractional multimapper counting. This is integer Random-One (-M, NO --fraction); adding --fraction breaks the contract."
+    - "Primary recipe is integer Random-One (-M, NO --fraction). Fractional 'Strategy B' is an equally-valid alternative (Teissandier) for the PRIMARY matrix but a different config (STAR all-alignments + -M --fraction, non-integer) — see the Decision Tree. (Note: the optional sense/antisense aux passes already use --fraction.)"
     - "Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead."
     - "Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF."
     - "Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2)."
@@ -77,7 +77,7 @@ Have star_salmon BAMs + a grouped TE SAF, need count matrices?
 │
 ├─ Need to build the TE SAF first?            →  te-reference-saf-build
 ├─ Need to produce the Random-One BAMs first? →  star-te-preprocessing
-├─ Want fractional 1/n multimapper counts?    →  NOT current practice (do not add --fraction)
+├─ Want fractional 1/n ("Strategy B")?        →  Equally accurate (Teissandier), non-default. STAR --outSAMmultNmax 100 + featureCounts -M --fraction → non-integer → limma-voom/round. Default = integer Random-One.
 ├─ Want locus-level / copy-resolved TE?       →  SQuIRE / Telescope (out of scope)
 └─ Already have matrices, want annotation/DE? →  annotate-bulk-rnaseq-data
 ```
