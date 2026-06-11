@@ -14,8 +14,8 @@ description: >-
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-08
-  version: 1.1.0
+  last-reviewed: 2026-06-11
+  version: 1.1.1
   upstream-docs: https://github.com/nf-core/rnaseq
   scope: implementation
   category: workflow
@@ -39,7 +39,7 @@ metadata:
 
 ## Overview
 
-This skill is the opinionated, durable recipe that makes a bulk RNA-seq STAR alignment **transposable-element compatible**: it retains multi-mapping reads (TEs are repetitive, so unique-only mapping discards ~80–90% of TE signal — `METHODOLOGY.md:7-10`) while emitting **exactly one alignment per read**, so every fragment contributes exactly one **integer** count. It owns the canonical `--extra_star_align_args` "Random-One" string and its per-flag TE rationale, the grouped subfamily SAF + bedtools exon-subtraction contract, and the integer `featureCounts -M` counting discipline. It is the missing, now-canonical handoff between nf-core/rnaseq and the TE-RNAseq-toolkit — previously written down only in per-project `/scratch` READMEs (artifact `03-te-rnaseq-toolkit-map.md` §D).
+This skill is the opinionated, durable recipe that makes a bulk RNA-seq STAR alignment **transposable-element compatible**: it retains multi-mapping reads (TEs are repetitive, so unique-only mapping systematically undercounts TEs — a young-family-biased loss, ~10–21% of multimappers overall and much higher for young L1/SVA/ERV families, not a flat 80–90% — `METHODOLOGY.md`) while emitting **exactly one alignment per read**, so every fragment contributes exactly one **integer** count. It owns the canonical `--extra_star_align_args` "Random-One" string and its per-flag TE rationale, the grouped subfamily SAF + bedtools exon-subtraction contract, and the integer `featureCounts -M` counting discipline. It is the missing, now-canonical handoff between nf-core/rnaseq and the TE-RNAseq-toolkit — previously written down only in per-project `/scratch` READMEs (artifact `03-te-rnaseq-toolkit-map.md` §D).
 
 The headline differentiator from adjacent skills: this skill owns the **alignment + counting CONTRACT** (what the BAM and count matrix must satisfy), not the pipeline mechanics and not the downstream R analysis.
 
@@ -96,7 +96,11 @@ runFeatureCounts_TE_and_genes.sh \
   -g  gencode.vM37.primary_assembly.annotation.filtered.gtf \
   -e  GRCm39_rmsk_TE_GROUPED_all_noExon.saf \
   -S  2                     # GENE strandedness — verify per library, do NOT assume
-                            # TE strandedness is fixed at -s 0 inside the driver
+                            # TE strandedness is context-dependent; the field is SPLIT (NOT fixed
+                            # -s 0): -s 0 matches the dominant tool's default (TEtranscripts
+                            # --stranded no) for standalone / non-directional libs; stranded
+                            # sense/antisense (--te-strand sense_antisense) matched to genes is the
+                            # more principled best-practice (grade B) for a joint gene+TE matrix
 ```
 
 **Verify it worked (the contract — see full checklist below):**
@@ -159,7 +163,7 @@ The output must satisfy the following for downstream TE DE (condensed from `03-t
 5. **Two annotations:** gene **GTF** (GENCODE, the nf-core *filtered* variant) + a separate grouped TE **SAF** (not a combined GTF, not Dfam).
 6. **Grouped subfamily SAF.** Built from the TEtranscripts `GRCm39_Ensembl_rmsk_TE.gtf.gz`; the SAF `GeneID` is the TE group label **`Subfamily:Family:Class`** (e.g. `L1Md_A:L1:LINE`) → ~1,243 subfamily meta-features, not locus-level.
 7. **Non-overlapping annotations.** TE loci overlapping gene exons are removed with `bedtools subtract` → `*_noExon.saf`, so a read counts as gene OR TE, never both. This is the precondition for a valid combined matrix.
-8. **Strandedness (asymmetric):** genes `-s` is **library-specific** (verify); TEs are **unstranded `-s 0`** with multi-mappers **included `-M`**.
+8. **Strandedness:** genes `-s` is **library-specific** (verify); TE `-s` is **context-dependent and the field is SPLIT, NOT a fixed `-s 0`** — `-s 0` for standalone TE quantification or a non-directional library (matches the dominant tool's default, TEtranscripts `--stranded no`), or **stranded TEs matched to genes with a sense/antisense split** (`--te-strand sense_antisense`) as the more principled best-practice for a joint gene+TE matrix on a stranded library (grade B / mechanistic, NOT a benchmarked standard; preserves bidirectional biology without discarding strand). Mode-switching is not required. Multi-mappers **included `-M`** in either case. (Alignment itself is strand-agnostic — this choice is made at the featureCounts step, not in STAR.)
 9. **Integer count semantics.** `-M` WITHOUT `--fraction` → integer Random-One. (Fractional "Strategy B" is documented-but-not-current.)
 10. **TE-ID label = `Subfamily:Family:Class`** — the same label `annotate-bulk-rnaseq-data` and `te_utils.R::parse_te_id` consume. Construct the SAF `GeneID` with this label so it parses downstream.
 11. **Paired-end flags** `-p --countReadPairs -B -C` (fragments, both-ends-mapped, no chimeras).
@@ -167,7 +171,7 @@ The output must satisfy the following for downstream TE DE (condensed from `03-t
 
 **SAF build (grouped, exon-subtracted):** start from the TEtranscripts GTF, collapse to subfamily groups with `Subfamily:Family:Class` `GeneID`, then subtract exonic loci with `bedtools subtract` to produce `GRCm39_rmsk_TE_GROUPED_all_noExon.saf`. The no-exon SAF is the one fed to the TE counting pass.
 
-**Strandedness discipline (the most error-prone per-dataset variable):** the samplesheet uses `strandedness=auto` so nf-core infers it, but the downstream **gene** `featureCounts -s` value is set **manually** and must match. 13036-DM used genes `-s 2` (reverse); AdaW used genes `-s 1` (forward). **Always** confirm with the MultiQC inferred strandedness and the `featureCounts` header before trusting gene counts. TE `-s` is always `0`.
+**Strandedness discipline (the most error-prone per-dataset variable):** the samplesheet uses `strandedness=auto` so nf-core infers it, but the downstream **gene** `featureCounts -s` value is set **manually** and must match. 13036-DM used genes `-s 2` (reverse); AdaW used genes `-s 1` (forward). **Always** confirm with the MultiQC inferred strandedness and the `featureCounts` header before trusting gene counts. TE `-s` is **chosen by goal, not fixed (and the field is split)**: `-s 0` for standalone / non-directional libraries (matches the dominant tool's default), or stranded sense/antisense matched to genes as the more principled best-practice (grade B) for a joint gene+TE matrix on a stranded library (see `te-gene-featurecounts` for the full standalone-vs-joint note and its "Evidence & open questions" grades). Alignment is strand-agnostic, so the STAR recipe is unchanged either way.
 
 ### Advanced Usage — featureCounts (point to the authoritative driver)
 
@@ -177,11 +181,11 @@ The exact `featureCounts` flags are NOT restated here as an editable copy — th
 
 The contract the script enforces (authoritative pointer above):
 
-- **TE pass:** `featureCounts -M -F SAF -a TE_SAF -s 0 -p --countReadPairs -B -C` — `-M` counts multi-mappers (essential for TEs); **no `--fraction`** → integer counts; `-s 0` unstranded. The script explicitly notes `--fraction` "was removed to facilitate integer counting" (`runFeatureCounts_TE_and_genes.sh:23-24`).
+- **TE pass:** `featureCounts -M -F SAF -a TE_SAF -s <0|2 sense|1 antisense> -p --countReadPairs -B -C` — `-M` counts multi-mappers (REQUIRED under Random-One — STAR keeps `NH>1` on the single emitted line, so featureCounts drops them without `-M`); **no `--fraction`** → integer counts. TE `-s` is context-dependent and the field is split: `-s 0` (unstranded) for standalone / non-directional libs (matches the dominant tool's default), or stranded sense/antisense (`--te-strand sense_antisense`, e.g. `-s 2`+`-s 1` for a reverse lib) matched to genes as the more principled best-practice (grade B) for a joint matrix — NOT a fixed `-s 0`. The script explicitly notes `--fraction` "was removed to facilitate integer counting" (`runFeatureCounts_TE_and_genes.sh:23-24`).
 - **Gene pass:** `featureCounts -a GTF -s <0|1|2> -t exon -g gene_id -p --countReadPairs -B -C` — multi-mappers **excluded** (featureCounts default), strandedness **per library** (the script's `-S` flag).
 - **Combine:** the driver row-binds the gene matrix + TE matrix into `combined_gene_TE_counts.tsv` (valid only because exonic TEs were subtracted → no double-counting).
 
-> **Note (contradiction C1):** the driver's optional `sense_antisense` branch still calls `--fraction` for the *auxiliary* sense/antisense matrices, but the **primary** TE matrix is integer (`-M`, no `--fraction`). The integer Random-One primary matrix is THE recipe. Fractional "Strategy B" remains documented-but-not-current in `docs/METHODOLOGY.md`; do not adopt it without an explicit reason.
+> **Note on the `sense_antisense` branch:** the primary TE matrix is integer (`-M`, no `--fraction`); the driver's optional `--te-strand sense_antisense` branch emits *auxiliary* TE-sense (`-s 2` for a reverse lib, matched to genes) and TE-antisense (`-s 1`) matrices and currently runs those with `--fraction` (so they are non-integer and need `round()` before DESeq2). This sense/antisense split is **the more principled best-practice (grade B / SQuIRE-specific) for keeping bidirectional TE biology in a joint gene+TE matrix on a stranded library** — it preserves strand instead of collapsing to `-s 0` — but it is not a benchmarked standard, and `-s 0` (matching the dominant tool's default) remains a valid standalone option. (Whole-library fractional "Strategy B" for the primary matrix remains documented-but-not-current in `docs/METHODOLOGY.md`; do not adopt it for the primary integer matrix without an explicit reason.)
 
 ### TE counting (post-alignment) — the end-to-end runbook
 
@@ -198,7 +202,7 @@ After running this skill, confirm:
 - [ ] **Integer TE counts:** no fractional values in `te_counts_matrix.txt` (Random-One, no `--fraction`).
 - [ ] **Subfamily-level, correct label:** TE rows are `Subfamily:Family:Class` (e.g. `L1Md_A:L1:LINE`), ~1,243 meta-features for mm39.
 - [ ] **Non-overlapping SAF:** the TE SAF is the `*_noExon.saf` (exonic loci subtracted via `bedtools subtract`).
-- [ ] **Strandedness verified:** gene `-s` matches MultiQC inferred strandedness + `featureCounts` header; TE `-s 0`.
+- [ ] **Strandedness verified:** gene `-s` matches MultiQC inferred strandedness + `featureCounts` header; TE `-s` chosen by goal, field-split-aware (`-s 0` standalone — matches the dominant tool's default; or stranded sense/antisense matched to genes as the more principled best-practice for a joint matrix) — neither assumed `-s 0` nor over-claimed as a stranded "standard".
 - [ ] **QC gate:** TE proportion consistent across replicates (~3.8–6.0% in the reference projects).
 
 ---
