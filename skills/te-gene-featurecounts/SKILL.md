@@ -198,9 +198,12 @@ is **not** retroactively wrong. For the *definitive joint* gene+TE analysis, a s
 reconciliation, note 13). When you do combine gene+TE for joint normalization/DE, the caveats
 below are **graded options**, not mandates (see "Evidence & open questions"):
 
-- **Size factors from genes only** (`controlGenes = isGene`): **grade B / contested.** TE-Seq
-  advocates genes-only; the dominant tool TEtranscripts **pools** genes+TEs. Reasonable but
-  non-universal — sanity-check against pooled factors.
+- **Size factors from genes only** (DESeq2 `estimateSizeFactors(dds, controlGenes = isGene)`, or
+  equivalently edgeR `calcNormFactors(method="TMM")` on a genes-only `DGEList` with the resulting
+  `norm.factors` applied to the combined object): **grade B / contested.** Same gene anchor, two
+  estimators (median-of-ratios vs TMM). TE-Seq advocates genes-only; the dominant tool
+  TEtranscripts **pools** genes+TEs. Reasonable but non-universal — sanity-check against pooled
+  factors.
 - **Sense/antisense split:** **grade B / SQuIRE-specific** design ("the only TE tool to output
   strandedness of each transcript"), defensible to mirror, not a field standard.
 - **Within-feature-type, across-sample DE only; never compare gene-vs-TE magnitude within a
@@ -306,8 +309,10 @@ Key claims by grade:
   `--primary`/`-O`/`--largestOverlap`; `--runRNGseed` pinned; `te-fc:2.0.2` pin; no TPM for genes
   cross-sample DE; the joint gene+TE *matrix* is a reviewed construct.
 - **B:** stranded-for-joint is best-practice, not a benchmarked standard (field SPLITS —
-  TEtranscripts defaults `--stranded no`); genes-only `controlGenes` size factors (TEtranscripts
-  pools instead); sense/antisense split (SQuIRE-specific).
+  TEtranscripts defaults `--stranded no`); genes-only size factors (DESeq2
+  `controlGenes = isGene` or edgeR `calcNormFactors(method="TMM")` on a genes-only `DGEList`,
+  applied to the combined object; TEtranscripts pools instead); sense/antisense split
+  (SQuIRE-specific).
 - **C:** no gene-vs-TE within-sample magnitude comparison; no TPM/FPKM for TE meta-features.
 - **GAP:** "unstranded → better TE sensitivity" — **never benchmarked**; the only both-mode study
   (Savytska 2022) found stranded FDR ≤ unstranded.

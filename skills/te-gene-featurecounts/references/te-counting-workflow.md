@@ -176,8 +176,13 @@ Outputs land under `<OUT_DIR>`:
 **Handoff:** the gene + TE matrices are the inputs to **`annotate-bulk-rnaseq-data`** (Ensembl→Symbol
 gene annotation, `parse_te_id` TE parsing, combined annotated `DGEList`) → then DE/GSEA. Do not
 perform DE here. **Joint-analysis caveats to carry with the matrix (graded options, not mandates;
-see SKILL.md "Evidence & open questions"):** genes-only DESeq2 size factors (`controlGenes`) are
-**grade B / contested** (TEtranscripts pools genes+TEs); the sense/antisense split is **grade B /
+see SKILL.md "Evidence & open questions"):** anchor per-sample scaling on the **gene rows only** —
+DESeq2 `estimateSizeFactors(dds, controlGenes = isGene)` (median-of-ratios on gene rows), or
+equivalently edgeR `calcNormFactors(method="TMM")` computed on a **genes-only** `DGEList` with its
+`norm.factors` transplanted onto the combined object (`filterByExpr` per feature type, then
+`voom`/`voomLmFit`) — so a genuine en-masse TE shift cannot be absorbed into the size factor; same
+gene anchor, different estimator (median-of-ratios vs TMM). This is **grade B / contested**
+(TEtranscripts pools genes+TEs); the sense/antisense split is **grade B /
 SQuIRE-specific**; the joint matrix is valid for **within-feature-type, across-sample DE only** —
 never compare gene-vs-TE magnitude within a sample, and emit no TPM/FPKM for TE meta-features
 (**grade C / mechanistic inference**, not stated in any TE primary source).
