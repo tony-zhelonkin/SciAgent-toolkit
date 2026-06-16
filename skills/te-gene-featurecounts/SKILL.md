@@ -18,8 +18,8 @@ description: >-
 license: MIT
 metadata:
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-11
-  version: 1.0.1
+  last-reviewed: 2026-06-15
+  version: 1.0.3
   upstream-docs: https://subread.sourceforge.net/
   scope: implementation
   category: workflow
@@ -32,7 +32,7 @@ metadata:
     - star-te-preprocessing
     - annotate-bulk-rnaseq-data
   contraindications:
-    - "Primary recipe is integer Random-One (-M, NO --fraction). Fractional 'Strategy B' is an equally-valid alternative (Teissandier) for the PRIMARY matrix but a different config (STAR all-alignments + -M --fraction, non-integer) — see the Decision Tree. (Note: the optional sense/antisense aux passes already use --fraction.)"
+    - "Recipe is integer Random-One everywhere (-M, NO --fraction) — primary AND the optional sense/antisense aux passes. Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments --outSAMmultNmax 100 + -M --fraction, non-integer) — see the Decision Tree."
     - "Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead."
     - "Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF."
     - "Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2)."
@@ -220,14 +220,16 @@ context-dependent); **code logic is byte-identical**. Underlying invocations:
 
 ```
 TE (unstranded, default):     featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T <t> <BAMs>
-TE (sense, reverse lib):      featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T <t> <BAMs>   # NON-INTEGER -> round() before DESeq2
-TE (antisense, reverse lib):  featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T <t> <BAMs>   # NON-INTEGER -> round() before DESeq2
+TE (sense, reverse lib):      featureCounts -M -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T <t> <BAMs>   # INTEGER Random-One (no --fraction)
+TE (antisense, reverse lib):  featureCounts -M -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T <t> <BAMs>   # INTEGER Random-One (no --fraction)
 Gene:                         featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s <0|1|2> -t exon -g gene_id -T <t> <BAMs>
 ```
 
-> Note: the **primary unstranded** TE pass is integer (no `--fraction`). The **optional sense/antisense
-> auxiliary** passes (`--te-strand sense_antisense`) run `-M --fraction` in the vendored driver, so they
-> are **non-integer** — round (or use a fractional-tolerant model like limma-voom) before DESeq2.
+> Note: **all** TE passes — primary unstranded AND the optional sense/antisense auxiliaries
+> (`--te-strand sense_antisense`) — are integer Random-One (`-M`, no `--fraction`): one kernel
+> everywhere, integer because STAR Random-One emits one alignment/read. The fractional route
+> (`-M --fraction` → non-integer → round()/limma-voom before DESeq2) is a labeled **non-default
+> alternative**, Strategy-B, requiring STAR `--outSAMmultNmax 100` — see the Decision Tree.
 
 - **TE pass:** `-M` (multi-mappers counted — REQUIRED under Random-One: STAR keeps `NH>1` on the
   single emitted line, so featureCounts discards multimappers without `-M`), **NO `--fraction`**
@@ -282,6 +284,12 @@ After running, confirm before handoff:
       matrix, grade B); it still does not license gene-vs-TE within-sample magnitude comparison
       (grade C — see "Evidence & open questions").
 - [ ] **featureCounts version** — raw headers read `# Program:featureCounts v2.0.2`.
+- [ ] **Strand-split foot-guns acknowledged** — never sum sense+anti (`FLAG-SUM-CHANNELS`),
+      never s0-denominate the ERV/sat/DNA tail (`FLAG-S0-DENOM-ERV`), gene≠TE kernel
+      (`FLAG-KERNEL-MISMATCH`); see `docs/QC.md`.
+- [ ] **QC a new TE dataset end-to-end** — `qc/run_qc.sh BAM_DIR SAF STRAND OUTDIR` runs the
+      strand-split QC suite (the `-R CORE` regime witness, closure-table audit, `-O` silent-loss
+      attribution, young gate, SAF-geometry concordance) and prints a consolidated GREEN/RED block.
 
 ---
 
@@ -354,4 +362,7 @@ The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **
 - **Wrapper:** `scripts/run_te_counting.sh` (staging + identical-path mount + run).
 - **Runbook:** `references/te-counting-workflow.md` (end-to-end, QC gate, handoff).
 - **Smoke tests:** `tests/run_skill_tests.sh` (image present, v2.0.2, synthetic integer matrix).
+- **Strand-split QC + regression:** `tests/strand_qc/run_regression.sh` (synthetic truth table in `te-fc:2.0.2` + regime-classifier fixture, importing the suite's shared classifier); reference `references/strand-split-qc.md`.
+- **Runnable QC suite:** `qc/run_qc.sh BAM_DIR SAF STRAND OUTDIR` — the parameterized, operator-invoked "QC a new TE dataset end-to-end" suite (the `-R CORE` regime witness, closure-table audit, `-O` silent-loss attribution, young gate, SAF-geometry concordance, DE_precheck). Container/bedtools tools skip gracefully when absent. See `qc/README.md`.
+- **QC doctrine:** the strand-split invariant, the `excess/s0_Amb` directional meter, axioms A1–A6, the warning-flag taxonomy, and the GREEN/RED gate live in the toolkit `docs/QC.md`.
 - **subread/featureCounts:** https://subread.sourceforge.net/ (release 2.0.2).
