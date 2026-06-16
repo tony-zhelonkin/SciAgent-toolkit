@@ -129,13 +129,15 @@ The two passes (contract enforced by the vendored driver):
 
 ```
 TE (unstranded, default):     featureCounts -M -F SAF -a <SAF> -o te_counts_raw.txt -s 0 -p --countReadPairs -B -C -T 12 <BAMs>
-TE (sense, reverse lib):      featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T 12 <BAMs>   # NON-INTEGER -> round() before DESeq2
-TE (antisense, reverse lib):  featureCounts -M --fraction -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T 12 <BAMs>   # NON-INTEGER -> round() before DESeq2
+TE (sense, reverse lib):      featureCounts -M -F SAF -a <SAF> -o te_counts_sense_raw.txt -s 2 -p --countReadPairs -B -C -T 12 <BAMs>   # INTEGER Random-One (no --fraction)
+TE (antisense, reverse lib):  featureCounts -M -F SAF -a <SAF> -o te_counts_antisense_raw.txt -s 1 -p --countReadPairs -B -C -T 12 <BAMs>   # INTEGER Random-One (no --fraction)
 Gene:                         featureCounts -a <GTF> -o counts_matrix.txt -p --countReadPairs -B -C -s 2 -t exon -g gene_id -T 12 <BAMs>
 ```
 
-The primary unstranded TE pass is integer (no `--fraction`); the optional sense/antisense auxiliary
-passes use `-M --fraction` (vendored driver) and are **non-integer** — round() before DESeq2, or use limma-voom.
+All TE passes — primary unstranded AND the optional sense/antisense auxiliaries — are integer
+Random-One (`-M`, no `--fraction`): one kernel everywhere, integer because STAR Random-One emits one
+alignment/read. The fractional route (`-M --fraction` → non-integer → round()/limma-voom before
+DESeq2) is a labeled **non-default alternative** (Strategy B; requires STAR `--outSAMmultNmax 100`).
 
 (The TE `-s 0` line above is the exact 14839-DM run — a defensible standalone choice that matches
 TEtranscripts' default, not retroactively wrong; for the definitive joint analysis the
