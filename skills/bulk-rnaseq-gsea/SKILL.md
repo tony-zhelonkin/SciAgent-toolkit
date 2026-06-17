@@ -7,7 +7,7 @@ metadata:
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-04-14
-  version: 1.0.0
+  version: 1.0.1  # 2026-06-17: cross-link te-geneset-gsea (N1)
   upstream-docs: https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
   category: analysis
   tier: standard
@@ -18,10 +18,12 @@ metadata:
   - bulk-rnaseq-activity-inference
   - coresh-signature-search
   - bulk-rnaseq-pathway-explorer
+  - te-geneset-gsea
   contraindications:
   - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
   - Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
   - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
+  - Do not use for TE family/class geneset GSEA. Use te-geneset-gsea instead.
 ---
 
 # Bulk RNA-seq GSEA Pipeline
@@ -51,6 +53,7 @@ This skill covers the complete GSEA pipeline for bulk RNA-seq analyses: from lim
 - TF or PROGENy pathway activity inference → use `bulk-rnaseq-activity-inference`
 - Interactive UMAP explorer as a standalone tool → use `bulk-rnaseq-pathway-explorer`
 - Signature-based GEO dataset ranking → use `coresh-signature-search`
+- TE family/class geneset GSEA (TE-subfamily ranked lists, TE GMT databases) → use `te-geneset-gsea`
 
 ---
 
@@ -209,6 +212,7 @@ For detailed walkthroughs of each pitfall → see the relevant reference documen
 | TF activity inference (CollecTRI) or PROGENy pathway activities | `bulk-rnaseq-activity-inference` | Parallel analysis (results appear in pathway explorer) |
 | Standalone interactive UMAP pathway explorer | `bulk-rnaseq-pathway-explorer` | Next step (consumes master_gsea_table.csv) |
 | Signature-based GEO dataset ranking and hypothesis generation | `coresh-signature-search` | Alternative question (data-driven, not prior-knowledge) |
+| TE family/class geneset GSEA (TE-subfamily ranked lists, TE GMT databases) | `te-geneset-gsea` | Handoff — use when gene sets are TE families/classes, not gene symbols |
 
 ---
 
