@@ -22,8 +22,8 @@ Run featureCounts **3x on the SAME BAM** (`-s0` / `-s2` / `-s1`), **identical ke
   on the fragment ID, NOT a positional `paste`.** Read-ID order differs across threaded runs;
   a `paste` silently misaligns the three passes and fabricates the triple.
 - Classify each fragment's `(s0, s2, s1)` status triple into a regime: conserved `(1,0)/(0,1)`
-  → excess 0; antiparallel `(1,1)` → +2 (double-presence); asymmetric `(2,1)/(1,2)` → +1
-  (single reclaim = recovery); parallel-silent `(n,0)` → 0 (SILENT LOSS); bilateral
+  → excess 0; antiparallel `(1,1)` → +2 (**AP**; double-presence); asymmetric `(2,1)/(1,2)` → +1
+  (**M**; single reclaim = recovery); parallel-silent `(n,0)` → 0 (**P**; SILENT LOSS); bilateral
   `(>=2,>=2)` → 0 (silent loss); and the **A/A/A leak** (s0 Assigned but both stranded passes
   Assign a *different* feature) → +1 each.
 - **Mechanism gate:** reconstruct excess and assert **per-fragment excess ∈ {0, +1, +2}**.
