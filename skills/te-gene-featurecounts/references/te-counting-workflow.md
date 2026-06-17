@@ -3,13 +3,13 @@
 The operational runbook for going **from nf-core/rnaseq STAR BAMs → gene + TE subfamily
 count matrices**, run inside the **locked `te-fc:2.0.2` container** (featureCounts/subread
 2.0.2). SKILL.md owns the env contract and the QC gate; this file is the step-by-step
-procedure. Provenance: generalized from the proven 14839-DM / 13036-DM runs
+procedure. Provenance: generalized from the in-house production runs
 (`/scratch/nf-core/14839-DM/run_te_counting.sh` + `te_counting_record.md`). The
 upstream STAR "Random-One" alignment recipe + SAF *construction* are owned by
 `star-te-preprocessing` and `te-reference-saf-build`; this skill begins at the BAMs and
 a pre-built SAF.
 
-Reference paths below are the exact mm39 assets from the 14839-DM run; substitute the
+Reference paths below are real mm39 assets from an in-house run; substitute the
 project's own outdir/paths.
 
 ---
@@ -23,8 +23,8 @@ IMAGE = te-fc:2.0.2        # minimal: featureCounts v2.0.2 only (no R, no Python
 Build once: `bash env/build.sh` (or `docker build -t te-fc:2.0.2 env/`). The image installs
 the **official subread-2.0.2 Linux binary** (bioconda skipped packaging 2.0.2; the pin can
 only be satisfied from the SourceForge release — same standalone binary the precedent image
-`scdock-r-dev:v0.2` shipped). featureCounts v2.0.2 is the exact version 13036-DM and 14839-DM
-ran (verified from raw output headers `# Program:featureCounts v2.0.2`).
+`scdock-r-dev:v0.2` shipped). featureCounts v2.0.2 is the exact version the in-house production
+runs used (verified from raw output headers `# Program:featureCounts v2.0.2`).
 
 > **Image lineage note:** the *legacy* `scdock-r-dev:v0.2` also contains featureCounts v2.0.2
 > and was used for the original runs. The newer `scdock-r-dev:v0.5.x` images do **NOT** contain
@@ -38,7 +38,7 @@ Salmon quant. Depending on the nf-core run:
 
 - **Full run** (`save_align_intermeds = true`): `star_salmon/<sample>/Aligned.out.bam` (unsorted)
   and `Aligned.sortedByCoord.out.bam` are available.
-- **Lean run** (`save_align_intermeds = false`, e.g. 14839-DM): only the published
+- **Lean run** (`save_align_intermeds = false`, as in the in-house run): only the published
   `star_salmon/<sample>.markdup.sorted.bam` survives. **This is valid TE input** — `markdup`
   *marks* (does not remove) duplicates, and featureCounts counts them by default. Use the
   `.markdup.sorted.bam` path.
@@ -95,8 +95,9 @@ scripts/run_te_counting.sh \
 
 The two passes (contract enforced by the vendored driver):
 
-- **Gene pass:** GTF, `-t exon -g gene_id`, strandedness **`-S` per verified library** (14839/13036
-  = `-s 2` reverse; AdaW = `-s 1` forward), multi-mappers **excluded** (featureCounts default),
+- **Gene pass:** GTF, `-t exon -g gene_id`, strandedness **`-S` per verified library** (in-house
+  dUTP/TruSeq libraries ran `-s 2` reverse; a forward library runs `-s 1`), multi-mappers
+  **excluded** (featureCounts default),
   `-p --countReadPairs -B -C`. **Never assume 1 vs 2** — confirm against MultiQC inferred
   strandedness, RSeQC/Salmon, and the featureCounts header (`Strand specific : ...`).
 - **TE pass:** SAF, `-M` (multi-mappers **counted** — REQUIRED under Random-One; without `-M`
@@ -139,8 +140,8 @@ Random-One (`-M`, no `--fraction`): one kernel everywhere, integer because STAR 
 alignment/read. The fractional route (`-M --fraction` → non-integer → round()/limma-voom before
 DESeq2) is a labeled **non-default alternative** (Strategy B; requires STAR `--outSAMmultNmax 100`).
 
-(The TE `-s 0` line above is the exact 14839-DM run — a defensible standalone choice that matches
-TEtranscripts' default, not retroactively wrong; for the definitive joint analysis the
+(The TE `-s 0` line above is the in-house production run — a defensible standalone choice that
+matches TEtranscripts' default and stays valid in hindsight; for the definitive joint analysis the
 sense/antisense lines matched to gene `-s 2` are the more principled best-practice, grade B.)
 
 ## 5. Outputs, QC gate, handoff
@@ -154,7 +155,7 @@ Outputs land under `<OUT_DIR>`:
 | Combined (row-bind) | `combined_gene_TE_counts.tsv` |
 | TE/gene raw + `.summary` | `featurecounts_TE/te_counts_raw.txt`, `fc_genes/raw_fc_output/counts_matrix.txt` |
 
-14839-DM dims: TE 1,243 × 45; gene 78,317 × 45; combined 79,560 × 45.
+Representative dims (one mm39 cohort): TE 1,243 × 45; gene 78,317 × 45; combined 79,560 × 45.
 
 **QC gate** before handing off:
 
@@ -165,13 +166,13 @@ Outputs land under `<OUT_DIR>`:
 - **No zero-libsize samples** — every per-sample gene and TE total is nonzero.
 - **TE proportion = a LIBRARY-SPECIFIC sanity band, NOT a hard threshold.** TE% =
   TE_total / (gene_total + TE_total) per sample. Expect internal consistency across replicates;
-  flag *wild* outliers, not an absolute number. The AdaW reference (~3.8–6.0%) is a *different*
-  library/tissue, so an offset is expected. When TEs are counted **`-s 0` (unstranded) against a
+  flag *wild* outliers, not an absolute number. A different-tissue reference library runs lower,
+  so an offset is expected. When TEs are counted **`-s 0` (unstranded) against a
   reverse-stranded gene denominator**, the mismatch inflates TE% (the gene denominator drops
-  antisense/ambiguous reads the unstranded TE pass keeps): 14839-DM measured 5.5–12.5% (mean 8.7%)
-  under standalone `-s 0`, internally consistent — a QC *observation*, not an error. So "TE %" is a
-  QC sanity band, **not a biological transcriptome fraction**; a stranded TE recount removes the
-  mismatch.
+  antisense/ambiguous reads the unstranded TE pass keeps): an in-house dataset sat in the
+  high-single-digit percent range under standalone `-s 0`, internally consistent — a QC
+  *observation*, not an error. So "TE %" is a QC sanity band, **not a biological transcriptome
+  fraction**; a stranded TE recount removes the mismatch.
 
 **Handoff:** the gene + TE matrices are the inputs to **`annotate-bulk-rnaseq-data`** (Ensembl→Symbol
 gene annotation, `parse_te_id` TE parsing, combined annotated `DGEList`) → then DE/GSEA. Do not
@@ -189,7 +190,7 @@ never compare gene-vs-TE magnitude within a sample, and emit no TPM/FPKM for TE 
 
 ---
 
-## Reference paths cited (14839-DM run)
+## Reference paths cited (real in-house run; paths verbatim)
 
 | Asset | Path |
 |---|---|

@@ -6,9 +6,9 @@ This is the **parameterized, operator-invoked** strand-split QC suite for the
 values. The frozen regression that guards this suite's own logic lives separately in
 `tests/strand_qc/` (it imports tool 05, the shared classifier).
 
-Canonical doctrine — the strand-split invariant, the directional meter, axioms A1–A9, the
-GREEN/RED gate thresholds, and every flag's definition — lives in the toolkit `docs/QC.md`. This
-README is the runbook; flags are cited **by name**, deferring to `docs/QC.md`.
+Canonical doctrine — the strand-split invariant, the directional meter, the working principles,
+the GREEN/RED gate thresholds, and every flag's definition — lives in the toolkit `docs/QC.md`.
+This README is the runbook; flags are cited **by name**, deferring to `docs/QC.md`.
 
 ---
 
@@ -57,29 +57,32 @@ Run order in `run_qc.sh` (04 first because it is the engine):
    positional `paste`** (read-ID order differs across threaded runs) → `joint_counts_<sample>.json`
    (14-cell crosstab) + the `s0/s2/s1` CORE files. GREEN when the 3-pass join completes.
 2. **`tools/05_classify_triples.py`** (the SHARED module — also imported by `tests/strand_qc/`) —
-   re-derives the regime ledger from `joint_counts`: AP (antiparallel `+2`), M (asymmetric `+1`),
-   P (parallel/bilateral silent `0`), the A/A/A leak. GREEN when the s0_Amb identity closes and
+   re-derives the regime ledger from `joint_counts`. The three fates of a strand-ambiguous fragment:
+   **AP — antiparallel** (both channels, different subfamilies — double-presence; excess `+2`),
+   **M — asymmetric** (strand breaks the tie, genuine reclaim; excess `+1`),
+   **P — parallel / same-strand** (silently lost in all three passes, the dominant fate; excess `0`,
+   bilateral folded in); plus the A/A/A leak. GREEN when the ambiguous-pile identity closes and
    per-fragment excess violations < 0.1%. The `2·AP+M` solve is a meter — `FLAG-METER-NOT-ESTIMATOR`,
    never report it as the split.
 3. **`tools/06_closure_audit.py`** — proves the ledger **closes to the read**: identity (1)
-   `excess = 2·AP + M + AAA − violations`, identity (2) `s0_Amb = AP + M + P + bilateral`, sense/anti
-   sanity, and the full 14-cell contingency **sum vs N_fragments**. GREEN iff every identity residual
-   < 0.5% and the table sums exactly to N — else a **hidden fifth bucket** exists, investigate.
-   Prints the per-sample vs library-summed denominator table — `FLAG-DENOM-SCALE` (never mix scales;
-   A/A/A is s0-Assigned, so `A/A/A ÷ s0_Amb` is not a real fraction).
+   `excess = 2·AP + M + AAA − violations`, identity (2) `ambiguous = AP + M + P + bilateral`,
+   sense/antisense sanity, and the full 14-cell contingency **sum vs N_fragments**. GREEN iff every
+   identity residual < 0.5% and the table sums exactly to N — else a **hidden fifth bucket** exists,
+   investigate. Prints the per-sample vs library-summed denominator table — `FLAG-DENOM-SCALE` (never
+   mix scales; A/A/A is unstranded-Assigned, so `A/A/A ÷ ambiguous` is not a real fraction).
 4. **`tools/02_weighting_check.sh`** — is the SENSE integer matrix fragment- or alignment-weighted?
-   Joins each s2-Assigned fragment to its true `NH` from the BAM; GREEN iff `matrix == nfrag` for
-   every subfamily (fragment-weighted). Reports the young-set `meanNH` = **the counterfactual fold an
-   alignment-weighted run WOULD have inflated young families by** (e.g. IAPEz ~16.6×). RED →
-   `FLAG-ALIGNMENT-WEIGHTED`.
-5. **`tools/01_random_one_check.sh`** — BAM-witness Random-One: restricted to `NH>1` fragments,
-   GREEN iff **0** emit >1 locus. RED → `FLAG-ALIGNMENT-WEIGHTED`.
-6. **`tools/07_silent_attribution.sh` + `.py`** — the `-O` target-revealer. `.sh` re-runs the s0 pass
-   **kernel-identical + `-O`** (reheader BAM `chr1→1` with `--reheader` if the SAF is unprefixed) to
-   emit candidate GeneID lists; `.py` identifies the silent set (fixed by the default-kernel
-   statuses), looks up each silent fragment's target list, and reports the young share
+   Joins each sense-pass-Assigned fragment to its true `NH` from the BAM; GREEN iff `matrix == nfrag`
+   for every subfamily (fragment-weighted). Reports the young-set `meanNH` = **the counterfactual fold
+   an alignment-weighted run WOULD have inflated young families by** (a large fold for the youngest,
+   highest-copy families). RED → `FLAG-ALIGNMENT-WEIGHTED`.
+5. **`tools/01_random_one_check.sh`** — Random-One confirmed by direct inspection of the alignments:
+   restricted to `NH>1` fragments, GREEN iff **0** emit >1 locus. RED → `FLAG-ALIGNMENT-WEIGHTED`.
+6. **`tools/07_silent_attribution.sh` + `.py`** — the `-O` target-revealer. `.sh` re-runs the
+   unstranded pass **kernel-identical + `-O`** (reheader BAM `chr1→1` with `--reheader` if the SAF is
+   unprefixed) to emit candidate GeneID lists; `.py` identifies the silent set (fixed by the
+   default-kernel statuses), looks up each silent fragment's target list, and reports the young share
    (contains-young = upper bound, exclusively-young = floor). **`-O` is a target-revealer ONLY — it
-   does NOT redefine the silent set and is never used on the production matrix** (A7). GREEN at ≥99%
+   does NOT redefine the silent set and is never used on the production matrix.** GREEN at ≥99%
    `-O` coverage of the silent set.
 7. **`tools/08_young_gate.py`** — young-autonomous **assignable-evidence** gate: conserved-fraction
    of the young set (`--young-regex`, default `^(L1MdT|L1MdGf|L1MdA|IAPEz)`). **GREEN ≥90% conserved**
@@ -89,9 +92,10 @@ Run order in `run_qc.sh` (04 first because it is the engine):
    (double-presence) vs parallel (silent-loss) overlap geometry, per subfamily + young bin. Builds
    `geometry_vs_witness.tsv`: **concordance corroborates** the gate; **divergence flags** — resolve
    as read-density (expression × geometry) or a bin-definition artifact (the documented broad-L1Md
-   2.5× → OLD-L1Md resolution) before trusting. Skips gracefully if bedtools is absent.
-9. **`tools/03_strand_invariant.py`** — per-sample scalars + the `excess/s0_Amb` directional meter
-   (mean ≈ 0.78, `FLAG-METER-NOT-ESTIMATOR`) + (optionally) the per-subfamily residual table. The
+   bin running high → resolved by restricting to the gate-young set) before trusting. Skips
+   gracefully if bedtools is absent.
+9. **`tools/03_strand_invariant.py`** — per-sample scalars + the `excess/ambiguous` directional meter
+   (mean ≈ 0.8, `FLAG-METER-NOT-ESTIMATOR`) + (optionally) the per-subfamily residual table. The
    residual must be one-sided: a **positive** subfamily residual signals a bug, not loss
    (`FLAG-RESIDUAL-NOT-LOSS`). Writes `per_sample_strand_qc.tsv` for the DE_precheck handoff.
 10. **`de_precheck/`** — the 3-metric (silent-loss / multimapper-rate / strand-capture) ×
@@ -123,5 +127,6 @@ are defined in `docs/QC.md §5` (and named in `references/strand-split-qc.md`).
 | Geometry concordance (09) | witness within band of geometry | divergent → diagnose |
 | DE_precheck (de_precheck) | no metric × design association | a fraction tilts with the design |
 
-The mechanism gate and the AP/M/P ledger are grade A (witnessed); the directional meter is grade C
-(directional-only). See `docs/QC.md` for the full grade scale and the open GAPs.
+The mechanism gate and the AP/M/P ledger are grade A (per-read audit); the directional meter is
+grade C (directional-only). The grade scale's single source of truth is the `## Evidence & open
+questions` block in `SKILL.md`; see `docs/QC.md` for the full GREEN/RED gates and the open GAPs.

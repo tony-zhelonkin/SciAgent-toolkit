@@ -25,15 +25,16 @@ All three gate on the same test — *is the fraction associated with the design?
 
 **The three fractions.**
 
-1. **Silent-loss.** Same-strand overlap "silent loss" — reads dropped identically by the `-s0`,
-   `-s2` and `-s1` passes and therefore invisible to the `s0 − sense − anti` residual — is the
-   dominant fate of the strand-ambiguous pile: **≈ 68% of it, ≈ 9–10% of assigned TE signal**
-   (per-read witnessed, sample-stable). Flat-tax on the variance criterion (silent-loss
-   fraction-of-signal SD = **0.0028** < net-offset SD = **0.0081**), but its per-sample burden
-   **co-varies with the net strand-offset (r = −0.50)** — so if a condition rides that axis it
-   stops being flat. Tracked by `net_offset_frac` (PRIMARY), `s0_amb_rate`, `P_pct_s0A`.
+1. **Silent-loss.** Same-strand overlap "silent loss" — reads dropped identically by the
+   unstranded, sense and antisense passes and therefore invisible to the
+   `unstranded − sense − antisense` residual — is the dominant fate of the strand-ambiguous pile:
+   **roughly two-thirds of it, ≈ 9–10% of assigned TE signal** (per-read audit, sample-stable).
+   Flat-tax on the variance criterion (its fraction-of-signal varies less, sample to sample, than
+   the net strand-offset does), but its per-sample burden **co-varies with the net strand-offset**
+   — so if a condition rides that axis it stops being flat. Tracked by `net_offset_frac` (PRIMARY),
+   `s0_amb_rate`, `P_pct_s0A`.
 
-2. **Multimapper-rate.** The **gene pass ran without `-M`** (unique-only; ~112M multimappers
+2. **Multimapper-rate.** The **gene pass ran without `-M`** (unique-only; a large multimapper pile
    dropped library-wide) while the **TE pass ran with `-M`** (multimappers counted, Random-One).
    That kernel mismatch means a per-sample shift in the multimapper rate tilts gene vs TE signal
    differently; if it lines up with a condition it confounds any gene-vs-TE comparison or shared
@@ -58,10 +59,11 @@ cp design_matrix.TEMPLATE.tsv design_matrix.tsv     # fill in real condition/bat
 python3 check_silentloss_vs_design.py design_matrix.tsv --qc per_sample_strand_qc.tsv
 ```
 - `per_sample_strand_qc.tsv` — the per-sample data the check uses (all 45 samples). Key columns:
-  `net_offset_frac` (witness-independent, the r=−0.50 driver — PRIMARY axis; also the strand-capture
-  axis), `s0_amb_rate` (derived in-script), `P_pct_s0A` (scalar-solve silent-loss proxy; relative
-  tracker only — it **understates** absolute silent loss, witnessed ≈9–10% vs scalar ≈7–8%),
-  `multimapper_rate` (gene-no-`-M` vs TE-`-M` mismatch size), `strand_capture` (sense capture fraction).
+  `net_offset_frac` (read-independent, the axis silent loss co-varies with — PRIMARY; also the
+  strand-capture axis), `s0_amb_rate` (derived in-script), `P_pct_s0A` (scalar-solve silent-loss
+  proxy; relative tracker only — it **understates** absolute silent loss, which the per-read audit
+  puts higher), `multimapper_rate` (gene-no-`-M` vs TE-`-M` mismatch size), `strand_capture`
+  (sense capture fraction).
 - The script runs a dependency-free, deterministic permutation test of **each** QC metric against
   **each** design column (ANOVA for categorical, Spearman for continuous) and prints, **per technical
   fraction**, **GREEN** (no association → that fraction is a flat tax → safe) or **FLAG** with a
@@ -76,18 +78,19 @@ python3 check_silentloss_vs_design.py design_matrix.tsv --qc per_sample_strand_q
   - If all three GREEN, the technical fractions are flat taxes and cancel.
 
 **Scope (not alarmist).** The young full-length autonomous-candidate subfamilies (L1Md_T/Gf/A,
-IAPEz) are the LEAST affected (96.65% conserved at read level; IAPEz-int 99.8%) — the overlap
-burden sits on old SINE/MaLR-LTR (silent loss) and ERVK-LTR/satellite (double-presence). This check
-is about whether these residual technical taxes tilt with your specific design, not about the
-headline young-element signal.
+IAPEz) are the LEAST affected — well past the conservation gate at read level (IAPEz-int essentially
+immune) — the overlap burden sits on old SINE/MaLR-LTR (silent loss) and ERVK-LTR/satellite
+(double-presence). This check is about whether these residual technical taxes tilt with your
+specific design, not about the headline young-element signal.
 
 ---
 
 ## OPEN ITEM 2 — definitive young-silent-loss attribution  (GAP, optional / Rung-2)
 
 Silently-lost reads carry **no GeneID** in `-R CORE` output, so the young-element GREEN above rests
-on assignable evidence plus read-independent annotation geometry (~1% of silent loss localizes to
-young L1Md, ~0.6% to IAP/ETn). A *definitive* per-subfamily silent-loss attribution would need
+on assignable evidence plus read-independent annotation geometry (only a small fraction of a percent
+of silent loss localizes to the young L1Md / IAP-ETn gate set). A *definitive* per-subfamily
+silent-loss attribution would need
 `-R SAM`/BAM (or coordinate intersection) on a **genic-context-stratified SAF** (loci tagged
 intron / intergenic). That is the Rung-2 step (see `docs/LIMITATIONS.md`); only pursue it if a young
 autonomous subfamily becomes a load-bearing claim.
@@ -97,8 +100,9 @@ autonomous subfamily becomes a load-bearing claim.
 ## Foot-guns these matrices inherit (full list in the per-matrix sidecars and `docs/QC.md`)
 
 - **Never sum** `te_sense` + `te_antisense` — the antiparallel pile double-counts (100% cross-family).
-- **Never `s0`-denominate** the LTR/ERV/satellite/DNA tail — `s0` drops their antiparallel reads to
-  ambiguity (pathologically low denominator); denominate on the **sense** channel.
-- **Gene vs TE are different kernels** — gene = unique-only (no `-M`, 112M multimappers dropped),
+- **Never use unstranded as the denominator** for the LTR/ERV/satellite/DNA tail — the unstranded
+  pass drops their antiparallel reads to ambiguity (pathologically low denominator); denominate on
+  the **sense** channel.
+- **Gene vs TE are different kernels** — gene = unique-only (no `-M`, the multimapper pile dropped),
   TE = `-M` Random-One. Do not apply gene size factors to the TE matrix unqualified; no gene-vs-TE
   magnitude / "fraction of library."

@@ -88,12 +88,12 @@ Have star_salmon BAMs + a grouped TE SAF, need count matrices?
 
 - **Image:** `te-fc:2.0.2` — minimal Debian-slim + **only** featureCounts **v2.0.2**
   (subread). No R, no Python. Built from `env/Dockerfile` via `env/build.sh`.
-- **Why v2.0.2 from the official binary:** v2.0.2 is the exact version 13036-DM and 14839-DM
-  ran (verified from raw headers `# Program:featureCounts v2.0.2`). bioconda **skipped**
+- **Why v2.0.2 from the official binary:** v2.0.2 is the exact version the in-house production
+  runs used (verified from raw headers `# Program:featureCounts v2.0.2`). bioconda **skipped**
   packaging subread 2.0.2 (it jumps 2.0.1 → 2.0.3), so the pin is satisfied by installing the
   official subread-2.0.2 Linux release binary (the same standalone binary the precedent image
   `scdock-r-dev:v0.2` shipped). Build fails closed if the banner is not `v2.0.2`.
-- **Image lineage:** legacy `scdock-r-dev:v0.2` also has v2.0.2 (original runs). The newer
+- **Image lineage:** legacy `scdock-r-dev:v0.2` also has v2.0.2 (the original runs). The newer
   `scdock-r-dev:v0.5.x` images do **NOT** contain featureCounts (only MultiQC's parser). Use
   the locked `te-fc:2.0.2` for all new runs.
 
@@ -155,8 +155,8 @@ mode-switching is not required.
 
 The **gene** `-s` is **library-specific and must be verified per dataset** — never hardcode.
 Confirm against MultiQC inferred strandedness, RSeQC/Salmon, AND the featureCounts header
-(`Strand specific : reversely stranded`). 14839-DM and 13036-DM were `-s 2` (reverse, dUTP/
-TruSeq); AdaW was `-s 1` (forward).
+(`Strand specific : reversely stranded`). In-house dUTP/TruSeq libraries ran `-s 2` (reverse);
+a forward library would run `-s 1`.
 
 **TE strandedness is context-dependent and the field is SPLIT — `-s 0` is neither a universal
 rule nor retroactively wrong.** Two myths to avoid in *both* directions:
@@ -191,11 +191,11 @@ Choose by goal (options with grades, not a mandate):
   separates autonomous from passive TE transcription, but NOT proven superior for TE DE.**
   Mode-switching (unstranded TEs + stranded genes) is **not required**.
 
-**Standalone vs joint (gene+TE) strandedness — short note.** For 14839-DM the actual run used TE
-`-s 0`. That remains a **defensible standalone choice** — it matches TEtranscripts' default — and
-is **not** retroactively wrong. For the *definitive joint* gene+TE analysis, a stranded recount
+**Standalone vs joint (gene+TE) strandedness — short note.** The in-house production runs used TE
+`-s 0`. That remains a **defensible standalone choice**: it matches TEtranscripts' default and
+stays valid in hindsight. For the *definitive joint* gene+TE analysis, a stranded recount
 (`-s 2` / sense+antisense) is the more principled option (grade B; see the evidence-graded
-reconciliation, note 13). When you do combine gene+TE for joint normalization/DE, the caveats
+reconciliation, note 13). When you combine gene+TE for joint normalization/DE, the caveats
 below are **graded options**, not mandates (see "Evidence & open questions"):
 
 - **Size factors from genes only** (DESeq2 `estimateSizeFactors(dds, controlGenes = isGene)`, or
@@ -263,7 +263,7 @@ The full end-to-end runbook (inputs, lean BAM path, staging recipe, QC gate, han
 | Gene matrix | `<OUT>/fc_genes/count_matrices_fc/sorted_counts_matrix.txt` |
 | Combined (row-bind) | `<OUT>/combined_gene_TE_counts.tsv` |
 
-14839-DM dims: TE 1,243 × 45; gene 78,317 × 45; combined 79,560 × 45.
+Representative dims (one mm39 cohort): TE 1,243 × 45; gene 78,317 × 45; combined 79,560 × 45.
 
 ---
 
@@ -280,9 +280,10 @@ After running, confirm before handoff:
       consistency across replicates; flag *wild* outliers, not an absolute number. When TEs are
       counted `-s 0` (unstranded) against a stranded gene denominator, the mismatch **inflates**
       TE% (the gene denominator drops antisense/ambiguous reads the unstranded TE pass keeps), so
-      "TE %" is a QC sanity band, **not a biological transcriptome fraction** — 14839-DM saw
-      5.5–12.5% (mean 8.7%) under standalone `-s 0`, internally consistent vs the AdaW ~3.8–6.0%
-      reference (different tissue). A stranded TE recount (`--te-strand sense_antisense`) puts TE
+      "TE %" is a QC sanity band, **not a biological transcriptome fraction** — an in-house dataset
+      sat in the high-single-digit percent range under standalone `-s 0`, internally consistent
+      across replicates and offset from a different-tissue reference (a different tissue runs
+      lower, as expected). A stranded TE recount (`--te-strand sense_antisense`) puts TE
       and gene rows on one orientation convention (the more principled best-practice for a joint
       matrix, grade B); it still does not license gene-vs-TE within-sample magnitude comparison
       (grade C — see "Evidence & open questions").
@@ -323,8 +324,8 @@ Explicit gaps (do not paper over):
 - **TE strandedness is under-benchmarked** — exactly one both-mode study, FDR-only.
 - **Gene–TE disambiguation is unsolved** — intron retention / exonized fragments / read-through
   inflate TE counts; no consensus fix.
-- **The in-house gene `s0/s2 ≈ 0.95` figure is an EMPIRICAL in-house measurement** (14839-DM, note
-  08), not a literature value.
+- **The in-house gene `s0/s2 ≈ 0.95` figure is an EMPIRICAL in-house measurement** (one dataset,
+  internal note), not a literature value.
 
 Long-read note: short-read **subfamily-level** quant (this skill) is **current**, not legacy
 (new tools still baseline against TEtranscripts). Long-read (ONT/PacBio) **complements** — it owns
@@ -369,5 +370,5 @@ The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **
 - **Smoke tests:** `tests/run_skill_tests.sh` (image present, v2.0.2, synthetic integer matrix).
 - **Strand-split QC + regression:** `tests/strand_qc/run_regression.sh` (synthetic truth table in `te-fc:2.0.2` + regime-classifier fixture, importing the suite's shared classifier); reference `references/strand-split-qc.md`.
 - **Runnable QC suite:** `qc/run_qc.sh BAM_DIR SAF STRAND OUTDIR` — the parameterized, operator-invoked "QC a new TE dataset end-to-end" suite (the `-R CORE` regime witness, closure-table audit, `-O` silent-loss attribution, young gate, SAF-geometry concordance, DE_precheck). Container/bedtools tools skip gracefully when absent. See `qc/README.md`.
-- **QC doctrine:** the strand-split invariant, the `excess/s0_Amb` directional meter, axioms A1–A6, the warning-flag taxonomy, and the GREEN/RED gate live in the toolkit `docs/QC.md`.
+- **QC doctrine:** the strand-split invariant, the `excess/ambiguous` directional meter, the working principles, the warning-flag taxonomy, and the GREEN/RED gate live in the toolkit `docs/QC.md`.
 - **subread/featureCounts:** https://subread.sourceforge.net/ (release 2.0.2).
