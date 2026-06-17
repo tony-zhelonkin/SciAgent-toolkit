@@ -7,12 +7,14 @@ metadata:
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-06-11
-  # CHANGELOG: 1.1.1 — added joint gene+TE analysis caveats at the combined-matrix handoff
+  # CHANGELOG: 1.2.0 — update Resources to real pins (RNAseq-toolkit v0.2.0 / TE-RNAseq-toolkit v0.1.0);
+  #            point TE helpers at rich R/ factory files; add te-geneset-gsea complementary edge.
+  #            1.1.1 — added joint gene+TE analysis caveats at the combined-matrix handoff
   #            (genes-only size factors, within-feature-type-only validity, no gene-vs-TE
   #            magnitude comparison, no TPM for TEs).
   #            1.1.0 — split into thin router + references/{gene,te}-annotation.md;
   #            fixed TE-ID label to Subfamily:Family:Class; added star-te-preprocessing back-edge.
-  version: 1.1.1
+  version: 1.2.0
   category: workflow
   tier: standard
   tags: []
@@ -91,8 +93,9 @@ If TE rows were counted stranded with a sense/antisense split upstream (`--te-st
 | Produce the integer TE + gene count matrices this skill annotates (STAR Random-One, SAF, featureCounts) | `star-te-preprocessing` | Prerequisite (upstream step) |
 | Single-cell scRNA-seq QC and annotation | `single-cell-rna-qc` | Alternative (different modality) |
 | Downstream DE → GSEA on the annotated DGEList | `bulk-rnaseq-gsea` | Next step |
+| Run GSEA on TE family/class gene-sets produced by this skill | `te-geneset-gsea` | Next step (TE path) |
 
-The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`.
+The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea` (gene path) or `→ te-geneset-gsea` (TE path).
 
 ---
 
@@ -100,5 +103,5 @@ The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-d
 
 - **Gene path detail:** `references/gene-annotation.md`
 - **TE path detail:** `references/te-annotation.md`
-- **Gene helpers:** RNAseq-toolkit **v2.0.0** — `scripts/General/{io_helpers,annotate_genes,dge_helpers}.R`
-- **TE helpers:** TE-RNAseq-toolkit **v2.0.0** — `scripts/te_utils.R`, TE-ID parser `R/te_utils.R::parse_te_id`
+- **Gene helpers:** RNAseq-toolkit **v0.2.0** — `scripts/General/{io_helpers,annotate_genes,dge_helpers,provenance}.R`
+- **TE helpers:** TE-RNAseq-toolkit **v0.1.0** — `R/te_utils.R`, `R/validate_te_input.R`, `R/create_combined_dge.R`, `R/create_te_genesets.R`
