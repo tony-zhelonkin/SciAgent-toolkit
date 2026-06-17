@@ -263,7 +263,7 @@ Fate probabilities & terminal states? → CellRank
 | `anndatar-seurat-scanpy-conversion.md` | R/Python data format conversion |
 | `louper-seurat-conversion.md` | Seurat to 10x Loupe Browser (.cloupe) |
 | `single-cell-vector-search.md` | Semantic search over cell embeddings |
-| `annotate-te-rnaseq-data.md` | Transposable element quantification |
+| `annotate-bulk-rnaseq-data.md` | Annotate bulk RNA-seq count matrices (gene-symbol + TE) before edgeR/limma DE — router skill |
 
 ---
 
