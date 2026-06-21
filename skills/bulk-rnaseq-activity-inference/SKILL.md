@@ -202,6 +202,26 @@ limma-voom DE results (gene symbols as rownames, t-statistic)
 
 For full pitfall walkthroughs → see the relevant reference document.
 
+### Gotcha: report the FULL regulon as TF membership, never a top-N slice
+
+The TF gene-set membership (`genes_full_set`) handed downstream to the **pathway-explorer**
+(or any similarity/embedding layer) must be the **FULL CollecTRI regulon for that TF,
+intersected with the shared gene universe** — *not* a top-N (e.g. top-50) slice of targets.
+
+- A `slice_head(n = 50)` cap on the reported targets understates TF↔pathway gene overlap.
+  Similarity-based UMAP embeddings compute distances from `genes_full_set` overlap, so a
+  truncated regulon makes every TF look artificially dissimilar from the pathways it actually
+  drives, pushing all TFs into a **spurious distant cluster** in the embedding.
+- The fix is to report the complete atlas-intersected regulon as membership. This does **not**
+  touch the activity score: ULM/`run_ulm` (and MLM/`run_mlm` for PROGENy) already infer the
+  score from the full network — the slice only ever affected which targets were *reported*,
+  never the `nes`/`score`/`padj` statistic.
+- Keep a top-N list only for **display/tooltips** if a UI needs a short preview — never for
+  overlap, similarity, or embedding computation.
+
+The same principle holds for PROGENy footprints and GATOM modules: the reported membership
+fed to the geometry layer is the full set ∩ universe, decoupled from the per-contrast score.
+
 ---
 
 ## Complementary Skills
