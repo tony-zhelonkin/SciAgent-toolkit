@@ -312,6 +312,7 @@ _inject_named_entry() {
 
     # Re-render the AGENTS.md managed block to reflect injection.
     block_render_and_write AGENTS.md || return 1
+    craft_render_and_write AGENTS.md || return 1
 
     echo "injected: $name (into $target_overlay)"
     return 0

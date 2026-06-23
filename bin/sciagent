@@ -64,6 +64,7 @@ verb="$1"; shift
 # centralised here, so source-time cycles are impossible by construction):
 #
 #   block.sh            leaf: managed-block file I/O + hashing, no sciagent deps
+#   craft.sh            CRAFT block renderer (depends on block.sh)
 #   frontmatter.sh      leaf: YAML frontmatter parser, no sciagent deps
 #   roles.sh            leaf: role/skill YAML reads
 #   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
@@ -81,10 +82,10 @@ verb="$1"; shift
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 # ---------------------------------------------------------------------------
 declare -A VERB_MODULES=(
-    [activate]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
-    [deactivate]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
-    [inject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
-    [eject]="block.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
+    [activate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
+    [deactivate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
+    [inject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
+    [eject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
     [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh skill_deps.sh status.sh"
     [validate]="skill_deps.sh collisions.sh validate.sh"

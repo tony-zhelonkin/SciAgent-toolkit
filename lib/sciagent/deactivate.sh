@@ -12,6 +12,7 @@ cmd_deactivate() {
         claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
+        craft_remove AGENTS.md 2>/dev/null || true
         echo "deactivated"
         return 0
     fi
@@ -38,6 +39,7 @@ cmd_deactivate() {
         claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
+        craft_remove AGENTS.md 2>/dev/null || true
         echo "deactivated (removed base implies overlay too)"
         return 0
     fi

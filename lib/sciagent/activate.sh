@@ -202,6 +202,7 @@ cmd_activate() {
         claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
+        craft_remove AGENTS.md 2>/dev/null || true
     fi
 
     # Start the manifest staging buffer before creating any symlinks.
@@ -253,6 +254,12 @@ cmd_activate() {
     unset SCIAGENT_INHERITED
     block_write AGENTS.md "$body" || {
         echo "sciagent activate: failed to write managed block" >&2
+        return 1
+    }
+    # Render the toolkit-owned CRAFT block (standing craft conventions) next to
+    # ROLES. No-op when the toolkit ships no craft.yaml.
+    craft_render_and_write AGENTS.md || {
+        echo "sciagent activate: failed to write CRAFT block" >&2
         return 1
     }
     manifest_finalize "$(block_stored_hash AGENTS.md)" || {

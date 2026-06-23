@@ -456,5 +456,6 @@ _eject_maybe_collapse_injected_overlay() {
 # _eject_rewrite_block — rebuild AGENTS.md block from current manifest + role YAMLs.
 # Thin wrapper over the shared block_render_and_write recipe (stack.sh).
 _eject_rewrite_block() {
-    block_render_and_write AGENTS.md
+    block_render_and_write AGENTS.md || return 1
+    craft_render_and_write AGENTS.md
 }

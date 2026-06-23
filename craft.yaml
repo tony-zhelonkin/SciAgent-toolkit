@@ -1,0 +1,44 @@
+# craft.yaml — single source of truth for the SCIAGENT:CRAFT managed block.
+#
+# Rendered into each repo's AGENTS.md by `sciagent activate/inject/eject`
+# (lib/sciagent/craft.sh) as the <!-- BEGIN SCIAGENT:CRAFT --> block, next to
+# SCIAGENT:ROLES. Edit here once; re-`activate` (or `sciagent update`) to
+# propagate to every repo. The block states the standing conventions; numeric
+# values an analysis reads live in analysis_config.yaml (figures:). Keep the
+# rendered block terse (<=25 lines) — depth belongs in skills, not always-on text.
+#
+# `floors:` are display values substituted into {{tokens}} in body below.
+# `body:` MUST be the last top-level key (block.sh reads it as a block scalar).
+
+version: 1
+
+floors:
+  figure_base_size: 16          # screen/projected base font floor (pt)
+  figure_print_base_size: 9     # print-column base font floor (pt)
+  context_budget_pct: 35        # one phase ~= this share of a 200k context
+  review_every: 3               # Opus review cadence (phases)
+
+body: |
+  # Craft standards
+
+  Standing conventions for this repo (toolkit-managed; do not hand-edit).
+
+  - **Figures.** Legible shrunk in a journal column AND projected to the back of
+    a room: bigger, fewer, bolder (base >= {{figure_base_size}}pt screen,
+    >= {{figure_print_base_size}}pt print). Style only via the project theme
+    entry point — no inline `theme()`/`ggsave(width=)`/raw hex. Cap to top-N,
+    never truncate axis labels, prefer the residualized channel.
+  - **Results placement.** Every artifact under
+    `03_results/<stage>/{figures,tables}/` with `by_contrast/<c>/` + `_overview/`;
+    a figure's source table is its same-stem neighbor. Compute never plots; viz
+    never computes.
+  - **README adjacency.** A task is not done until the sibling `README.md`
+    captions every `03_results/` file you touched, including *how to read* it
+    (glyphs, sign convention, claim tier).
+  - **Planning.** Plans live in `docs/_internal/plans/{date-slug}/` as
+    `00_INDEX.md` + `NN_<slug>.md`. One phase == one script == one implementer
+    (~{{context_budget_pct}}% of context); review every {{review_every}} phases,
+    checking the code runs and produces its artifacts.
+  - **Reproducibility.** No ephemeral scripts: every `03_results/` artifact is
+    reproducible from a committed `02_analysis/scripts/NN_*`. Log non-trivial
+    decisions to `docs/_internal/reasoning/` before proceeding.
