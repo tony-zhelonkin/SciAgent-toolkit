@@ -233,16 +233,21 @@ _new_project_next_steps() {
         echo "Hint: re-run with --with-submodules to attach toolkits under 01_modules/."
     fi
 
-    # Create the canonical docs/ tree.
+    # Create the canonical docs/ tree. research/ is an analysis-only namespace
+    # (software keeps reasoning/design/benchmarks from _dirs_for_type).
     mkdir -p "$dir/docs/stages" "$dir/docs/reference"
-    mkdir -p "$dir/docs/_internal/reasoning" "$dir/docs/_internal/research"
+    mkdir -p "$dir/docs/_internal/reasoning"
     mkdir -p "$dir/docs/_internal/plans" "$dir/docs/_internal/reports" "$dir/docs/_internal/handoffs"
 
     touch "$dir/docs/_internal/reasoning/.gitkeep"
-    touch "$dir/docs/_internal/research/.gitkeep"
     touch "$dir/docs/_internal/plans/.gitkeep"
     touch "$dir/docs/_internal/reports/.gitkeep"
     touch "$dir/docs/_internal/handoffs/.gitkeep"
+
+    if [[ "$type" == "analysis" ]]; then
+        mkdir -p "$dir/docs/_internal/research"
+        touch "$dir/docs/_internal/research/.gitkeep"
+    fi
 
     if [[ ! -e "$dir/docs/README.md" ]]; then
         _subst <(cat <<'TMPL'
