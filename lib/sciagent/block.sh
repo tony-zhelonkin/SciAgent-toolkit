@@ -1,8 +1,10 @@
 # lib/sciagent/block.sh — AGENTS.md managed-block primitives.
 #
-# Markers (literal):
-#   <!-- BEGIN SCIAGENT:ROLES v1 hash=<sha1> -->
-#   <!-- END SCIAGENT:ROLES -->
+# Markers (parametric, default id=ROLES):
+#   <!-- BEGIN SCIAGENT:<ID> v1 hash=<sha1> -->
+#   <!-- END SCIAGENT:<ID> -->
+#
+# For id=ROLES this is byte-identical to the original hard-coded markers.
 #
 # Exit conventions:
 #   block_read         0=ok, 1=no markers, 2=one marker only
@@ -11,9 +13,22 @@
 
 # shellcheck shell=bash
 
-# Plain substrings we search for. grep -F avoids regex-escape pain.
-_BLOCK_BEGIN_PREFIX='<!-- BEGIN SCIAGENT:ROLES v1 hash='
-_BLOCK_END='<!-- END SCIAGENT:ROLES -->'
+# Marker-string helpers. Both functions live ONLY in block.sh so the
+# "managed-block framing must not leak" invariant (test_block_marker_boundary)
+# is maintained. Callers outside block.sh always go through the public API.
+_block_begin_prefix() {
+    # Emit the fixed portion of the BEGIN marker for a given block id.
+    # Format: <!-- BEGIN SCIAGENT:<id> v1 hash=
+    local id="${1:-ROLES}"
+    printf '<!-- BEGIN SCIAGENT:%s v1 hash=' "$id"
+}
+
+_block_end_marker() {
+    # Emit the full END marker for a given block id.
+    # Format: <!-- END SCIAGENT:<id> -->
+    local id="${1:-ROLES}"
+    printf '<!-- END SCIAGENT:%s -->' "$id"
+}
 
 _sha1() {
     sha1sum | awk '{print $1}'
@@ -33,17 +48,20 @@ _count_lines() {
 
 block_read() {
     local file="$1"
+    local id="${2:-ROLES}"
     [[ -f "$file" ]] || return 1
-    local has_begin has_end
-    has_begin=$(_count_lines "$_BLOCK_BEGIN_PREFIX" "$file")
-    has_end=$(_count_lines "$_BLOCK_END" "$file")
+    local beg_prefix end_marker has_begin has_end
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
+    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
     fi
     if (( has_begin == 0 || has_end == 0 )); then
         return 2
     fi
-    awk -v BEG="$_BLOCK_BEGIN_PREFIX" -v END_MARK="$_BLOCK_END" '
+    awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" '
         index($0, BEG) == 1 { inblock=1; next }
         $0 == END_MARK     { inblock=0; next }
         inblock { print }
@@ -56,33 +74,44 @@ block_read() {
 # block_write, so canonicalisation rules live in exactly one place.
 block_stored_hash() {
     local file="$1"
+    local id="${2:-ROLES}"
+    local beg_prefix end_marker
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
     # Strip prefix and trailing " -->" from the BEGIN line.
-    grep -F -- "$_BLOCK_BEGIN_PREFIX" "$file" 2>/dev/null \
+    grep -F -- "$beg_prefix" "$file" 2>/dev/null \
         | head -n1 \
-        | sed -e "s|^$_BLOCK_BEGIN_PREFIX||" -e 's| -->$||'
+        | sed -e "s|^$beg_prefix||" -e 's| -->$||'
 }
 
-# block_line_range <file>
+# block_line_range <file> [id]
 # Print "<begin-line> <end-line>" (1-based) for the managed block, or nothing
 # (return 1) when there is no complete block. Keeps marker-string knowledge in
 # block.sh so consumers (e.g. status.sh) never grep the literals themselves.
 block_line_range() {
     local file="$1"
+    local id="${2:-ROLES}"
     [[ -f "$file" ]] || return 1
-    grep -qF -- "$_BLOCK_BEGIN_PREFIX" "$file" 2>/dev/null || return 1
+    local beg_prefix end_marker
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
+    grep -qF -- "$beg_prefix" "$file" 2>/dev/null || return 1
     local lb le
-    lb=$(grep -nF -- "$_BLOCK_BEGIN_PREFIX" "$file" | head -n1 | cut -d: -f1)
-    le=$(grep -nF -- "$_BLOCK_END" "$file" | head -n1 | cut -d: -f1)
+    lb=$(grep -nF -- "$beg_prefix" "$file" | head -n1 | cut -d: -f1)
+    le=$(grep -nF -- "$end_marker" "$file" | head -n1 | cut -d: -f1)
     [[ -n "$lb" && -n "$le" ]] || return 1
     printf '%s %s\n' "$lb" "$le"
 }
 
 block_hash_check() {
     local file="$1"
+    local id="${2:-ROLES}"
     [[ -f "$file" ]] || return 1
-    local has_begin has_end
-    has_begin=$(_count_lines "$_BLOCK_BEGIN_PREFIX" "$file")
-    has_end=$(_count_lines "$_BLOCK_END" "$file")
+    local beg_prefix end_marker has_begin has_end
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
+    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
     fi
@@ -90,8 +119,8 @@ block_hash_check() {
         return 2
     fi
     local stored actual
-    stored=$(block_stored_hash "$file")
-    actual=$(block_read "$file" | _sha1)
+    stored=$(block_stored_hash "$file" "$id")
+    actual=$(block_read "$file" "$id" | _sha1)
     if [[ "$stored" == "$actual" ]]; then
         return 0
     else
@@ -99,32 +128,35 @@ block_hash_check() {
     fi
 }
 
-# block_write <file> <body>
+# block_write <file> <body> [id]
 # Idempotent. Preserves bytes outside markers.
 block_write() {
     local file="$1"
     local body="$2"
+    local id="${3:-ROLES}"
     # INVARIANT: body must be hashed AFTER trailing-newline canonicalisation,
     # so the stored hash matches block_read's awk-based reconstruction (awk
     # `print` always emits a trailing \n).
     [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | _sha1)
-    local begin="${_BLOCK_BEGIN_PREFIX}${hash} -->"
-    local end="$_BLOCK_END"
+    local beg_prefix end_marker
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
+    local begin="${beg_prefix}${hash} -->"
 
     if [[ ! -f "$file" ]]; then
-        printf '%s\n%s%s\n' "$begin" "$body" "$end" > "$file"
+        printf '%s\n%s%s\n' "$begin" "$body" "$end_marker" > "$file"
         return 0
     fi
 
     local has_begin has_end
-    has_begin=$(_count_lines "$_BLOCK_BEGIN_PREFIX" "$file")
-    has_end=$(_count_lines "$_BLOCK_END" "$file")
+    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin > 0 && has_end > 0 )); then
         local tmp
         tmp=$(mktemp)
-        awk -v BEG="$_BLOCK_BEGIN_PREFIX" -v END_MARK="$_BLOCK_END" \
+        awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" \
             -v NEWBEG="$begin" -v BODY="$body" '
             BEGIN { state=0 }
             state==0 && index($0, BEG) == 1 {
@@ -150,19 +182,23 @@ block_write() {
         [[ "$last_byte" == "0a" ]] || printf '\n' >> "$file"
         printf '\n' >> "$file"
     fi
-    printf '%s\n%s%s\n' "$begin" "$body" "$end" >> "$file"
+    printf '%s\n%s%s\n' "$begin" "$body" "$end_marker" >> "$file"
 }
 
-# block_remove <file>
+# block_remove <file> [id]
 # Removes block plus the single blank line immediately preceding BEGIN
 # (the separator block_write inserts). Bytes elsewhere unchanged.
 block_remove() {
     local file="$1"
+    local id="${2:-ROLES}"
     [[ -f "$file" ]] || return 0
-    grep -qF -- "$_BLOCK_BEGIN_PREFIX" "$file" || return 0
+    local beg_prefix end_marker
+    beg_prefix=$(_block_begin_prefix "$id")
+    end_marker=$(_block_end_marker "$id")
+    grep -qF -- "$beg_prefix" "$file" || return 0
     local tmp
     tmp=$(mktemp)
-    awk -v BEG="$_BLOCK_BEGIN_PREFIX" -v END_MARK="$_BLOCK_END" '
+    awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" '
         {
             lines[NR] = $0
         }
