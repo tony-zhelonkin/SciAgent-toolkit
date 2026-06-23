@@ -77,20 +77,51 @@ colors:
     Treatment: "#E69F00"
 
 # =============================================================================
-# VISUALIZATION SETTINGS
+# FIGURES — the figure-style contract (read by figure_helpers.{R,py})
 # =============================================================================
+# Dual-context legibility: every figure must be readable BOTH shrunk in a
+# journal column AND projected to the back of a conference room. The figure-
+# style helper library reads this block; it renders a `screen` variant (big,
+# bold, projected) and a `print` variant (column width) from one code path.
+# The font sizes below are FLOORS — raise them, do not go under them.
 
-visualization:
-  width: 10
+figures:
+  # --- screen / projected variant (default): bigger, fewer, bolder ----------
+  base_size: 16                       # base font (pt) FLOOR for screen
+  title_size: 18
+  axis_title_size: 15
+  axis_text_size: 13
+  strip_size: 14                      # facet strip labels
+  legend_text_size: 13
+  label_size: 5                       # geom_text/geom_label size (ggplot mm)
+  line_width: 0.8                     # base line/segment width
+  point_size: 2.0
+
+  # --- print-column variant: Nature ~89mm; smaller, still >= ~5-7pt rendered -
+  base_size_column: 9                 # base font (pt) FLOOR for print column
+
+  # --- geometry (inches) ----------------------------------------------------
+  width: 10                           # screen default
   height: 8
-  width_narrow: 6                     # single column
-  width_wide: 14                      # two columns
-  dpi: 300                            # print quality
-  base_size: 12
-  title_size: 14
-  label_size: 11
-  n_top_pathways: 20                  # top pathways to show
+  width_column: 3.5                   # print single column (~89mm)
+  height_column: 3.0
+  dpi: 300                            # raster dpi (print quality)
+
+  # --- anti-clutter / comparability ----------------------------------------
+  top_n: 20                           # cap categorical axes to top-N
   volcano_label_top: 10               # top genes to label
+  z_clamp: 2.5                        # clamp z-scores for shared color scales
+  nes_cap: 3.5                        # clamp NES for comparable bar lengths
+  caption_wrap_column: 70             # README caption wrap width
+
+  # --- which variants save_figure() emits by default ------------------------
+  variants:
+    - print
+    - screen
+
+  # --- results sub-layout directory names (results placement contract) ------
+  by_contrast_dir: "by_contrast"      # 03_results/<stage>/figures/by_contrast/<c>/
+  overview_dir: "_overview"           # 03_results/<stage>/figures/_overview/
 
 # =============================================================================
 # DATABASES TO ANALYZE
