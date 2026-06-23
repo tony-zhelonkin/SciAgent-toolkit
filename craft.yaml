@@ -21,24 +21,10 @@ floors:
 body: |
   # Craft standards
 
-  Standing conventions for this repo (toolkit-managed; do not hand-edit).
+  Toolkit-managed standing conventions for this repo — do not hand-edit.
 
-  - **Figures.** Legible shrunk in a journal column AND projected to the back of
-    a room: bigger, fewer, bolder (base >= {{figure_base_size}}pt screen,
-    >= {{figure_print_base_size}}pt print). Style only via the project theme
-    entry point — no inline `theme()`/`ggsave(width=)`/raw hex. Cap to top-N,
-    never truncate axis labels, prefer the residualized channel.
-  - **Results placement.** Every artifact under
-    `03_results/<stage>/{figures,tables}/` with `by_contrast/<c>/` + `_overview/`;
-    a figure's source table is its same-stem neighbor. Compute never plots; viz
-    never computes.
-  - **README adjacency.** A task is not done until the sibling `README.md`
-    captions every `03_results/` file you touched, including *how to read* it
-    (glyphs, sign convention, claim tier).
-  - **Planning.** Plans live in `docs/_internal/plans/{date-slug}/` as
-    `00_INDEX.md` + `NN_<slug>.md`. One phase == one script == one implementer
-    (~{{context_budget_pct}}% of context); review every {{review_every}} phases,
-    checking the code runs and produces its artifacts.
-  - **Reproducibility.** No ephemeral scripts: every `03_results/` artifact is
-    reproducible from a committed `02_analysis/scripts/NN_*`. Log non-trivial
-    decisions to `docs/_internal/reasoning/` before proceeding.
+  - **Figures** — legible both shrunk in a journal column and projected to the back of a room: bigger, fewer, bolder (base >= {{figure_base_size}}pt screen, >= {{figure_print_base_size}}pt print). Style only via the project theme entry point (no inline `theme()`/`ggsave(width=)`/raw hex); cap to top-N; never truncate axis labels; disambiguate glyphs; prefer the residualized channel.
+  - **Results** — every artifact under `03_results/<stage>/{figures,tables}/` with `by_contrast/<c>/` + `_overview/`; a figure's source table is its same-stem neighbor. Compute never plots; viz never computes.
+  - **README** — a task is unfinished until the sibling `README.md` captions every `03_results/` file you create/edit/delete, including *how to read* it (glyphs, sign convention, Δρ, claim tier).
+  - **Planning** — plans in `docs/_internal/plans/{date-slug}/` as `00_INDEX.md` + `NN_<slug>.md`; one phase == one script == one implementer (~{{context_budget_pct}}% of context); review every {{review_every}} phases that code runs and produces its artifacts.
+  - **Reproducibility** — no ephemeral scripts: every `03_results/` artifact reproducible from a committed `02_analysis/scripts/NN_*`; log non-trivial decisions to `docs/_internal/reasoning/` before proceeding (`_scratch/` is the only sanctioned throwaway zone).
