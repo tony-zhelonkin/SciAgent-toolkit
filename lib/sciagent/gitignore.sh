@@ -14,6 +14,7 @@ docs/_internal/
 .agents/
 .gemini/
 .sciagent/
+02_analysis/helpers/figure-style
 .mcp.json
 .env
 .env.*
