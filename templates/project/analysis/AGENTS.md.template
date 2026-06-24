@@ -58,6 +58,18 @@ shows, not what it is), then a `Script | Function | Config | Input` table. Funct
 name read from the script (never guessed); Config is the active `key = value`. Never cite
 `docs/_internal/` in these READMEs.
 
+## Figures
+
+Viz scripts source `02_analysis/helpers/figure_style.{R,py}` (the project shim, which loads the
+toolkit-symlinked `figure-style` lib) and save figures via `save_overview()` or
+`save_figure(variant="both")` — never inline `ggsave`/`plt.savefig` or `theme()`. See the
+`figure-style` skill for the full contract (dual print+screen variants, font floors, captioning).
+
+## Craft conventions
+
+Standing craft conventions for this repo are toolkit-managed in the `<!-- SCIAGENT:CRAFT -->`
+block rendered by `sciagent activate`. That block is authoritative — do not hand-edit it.
+
 ---
 
 ## Documentation namespace
@@ -70,7 +82,7 @@ name read from the script (never guessed); Config is the active `key = value`. N
 | research note | `docs/_internal/research/` |
 | decision log | `docs/_internal/reasoning/` |
 | scientific framing | `docs/_internal/scientific-context.md` |
-| public phased plan | `docs/plan/` |
+| public phased plan | `docs/_internal/plans/{date-slug}/` |
 
 Naming conventions: see `docs/_internal/README.md`.
 
