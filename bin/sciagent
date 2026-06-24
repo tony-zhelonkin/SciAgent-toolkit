@@ -88,7 +88,7 @@ declare -A VERB_MODULES=(
     [eject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
     [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh skill_deps.sh status.sh"
-    [validate]="skill_deps.sh collisions.sh validate.sh"
+    [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
     [gitignore]="gitignore.sh"
 )
