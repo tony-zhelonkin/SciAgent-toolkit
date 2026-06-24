@@ -44,6 +44,8 @@ Usage:
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
   sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
+  sciagent update [--to <ref>] [--no-pin] [--quiet]
+                                       Re-pin toolkit submodule + re-activate current stack
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
@@ -78,6 +80,7 @@ verb="$1"; shift
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
 #   eject.sh            depends on inject.sh + stack.sh + block.sh + collisions.sh
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh; lazy-loads frontmatter.sh
+#   update.sh           depends on activate.sh closure + craft.sh (re-pin + re-activate)
 #
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 # ---------------------------------------------------------------------------
@@ -91,6 +94,7 @@ declare -A VERB_MODULES=(
     [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
     [gitignore]="gitignore.sh"
+    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
 )
 
 # Verb → cmd_* entrypoint.
@@ -104,6 +108,7 @@ declare -A VERB_ENTRY=(
     [validate]=cmd_validate
     [new]=cmd_new
     [gitignore]=cmd_gitignore
+    [update]=cmd_update
 )
 
 case "$verb" in
