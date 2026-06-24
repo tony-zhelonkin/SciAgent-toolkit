@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.2.0] - 2026-06-23
+
+Reproducible agentic science: centralize, inject, and enforce the owner's five
+standing conventions (figure legibility, results placement, README adjacency,
+planning decomposition, reproducibility) so a dropped-in agent follows them
+without hand-steering. Three-layer model — centralized rule (CRAFT block),
+capability (skill/helper/agent/command), guardrail (validate check + hook).
+
+### Added
+- **`SCIAGENT:CRAFT` managed block.** `block.sh` is parameterized by block id; `craft.yaml` is the single source of truth for the five-convention craft text + numeric floors; `lib/sciagent/craft.sh` renders it into AGENTS.md alongside `SCIAGENT:ROLES` on `activate`/`inject`/`eject`, SHA1 drift-detected and idempotently re-rendered. ROLES bytes unchanged.
+- **Cross-language figure-style contract.** `lib/figure-style/figure_helpers.{R,py}` (parity-checked): `project_theme`/`set_paper_style`, `save_figure(variant="both")` (print+screen from one plot), `save_overview` (atomic figure+table+caption), `contrast_path`/`overview_path`, `style_series`, `purge_figures`, `write_caption`, `append_master_table`, `round_numeric_cols`, `direction_cue`. Symlinked into analysis repos by `activate` (relative, portable) with a per-project shim + fallback. `analysis_config.yaml:figures` carries dual-context floors (base ≥16 screen / ≥9 print). New `figure-style` skill + `figure-audit` agent.
+- **Opt-in `sciagent validate --check` guardrails** (soft-warn default, `--strict` hard-fail): `figure-style`, `results-layout`, `captions`, `provenance`, `freshness` (CRAFT hash staleness + submodule-commit ancestry). `_scratch/`/`$TMPDIR` always exempt; default + activate-internal behavior unchanged.
+- **Claude Code hooks** (scaffolded, project-scoped): PreToolUse no-ephemeral + figure-save nudge; Stop caption-sweep. `SCIAGENT_STRICT` toggles warn→block.
+- **`sciagent update`** — re-pin the toolkit submodule + re-activate (re-render both blocks, re-link helpers) + report.
+- **Planning suite:** gold-standard plan templates (`templates/plan/{00_INDEX,NN_slug}.md.template`); `reasoning-trace` skill; `science-architect` overlay role; orchestration commands `/pipeline-plan`, `/explore-and-plan`, `/add-figure-variant`, `/interpret-storm`.
+- New tags `figure`, `provenance`, `planning`.
+
+### Changed
+- `scrna-pipeline-conventions` rewritten to the stage-based `03_results/<stage>/{figures,tables}/` layout (flat `plots/`/`checkpoints/` layout removed) and defers to the figure-style contract.
+- `captions`, `doc-curator` (C3 path-qualified + C4 committed-script provenance), `handoff` (scripts/artifacts/decisions), `bio-interpreter`/`insight-explorer` (persist before returning) extended.
+- Analysis `AGENTS.md.template` references the CRAFT block, figure-style shim, and `docs/_internal/plans/` namespace.
+
+### Fixed
+- `sciagent new project --type software` no longer creates an `analysis`-only `research/` namespace.
+
+### Removed
+- `docs/guidelines/visualization.md` `base_size=12`/`theme_publication` dead-end superseded by the figure-style contract (file kept as a redirect stub).
+
 ## [3.1.0] - 2026-06-02
 
 ### Changed
