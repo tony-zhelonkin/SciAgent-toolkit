@@ -148,4 +148,82 @@ if [[ "$bad_rc" -eq 0 ]]; then
     exit 1
 fi
 
+# -------------------------------------------------------------------------
+# Test E: injected-stack — update --no-pin succeeds, manifest stack stays
+# "base _injected", and the injected agent is still recorded + re-applied.
+# -------------------------------------------------------------------------
+cd "$TMPDIR_TEST"
+mkdir inject-project && cd inject-project
+
+# Activate solo base stack.
+"$SCIAGENT" activate base >/dev/null
+
+# Inject an agent (ag_b is in the fake toolkit but NOT in base role).
+inject_out=$("$SCIAGENT" inject --agent ag_b 2>&1)
+inject_rc=$?
+if [[ "$inject_rc" -ne 0 ]]; then
+    echo "FAIL [$_TEST_NAME] sciagent inject --agent ag_b failed (rc=$inject_rc)" >&2
+    echo "output: $inject_out" >&2
+    exit 1
+fi
+
+# Verify the manifest stack is now "base _injected".
+. "$FAKE/lib/sciagent/symlinks.sh"
+stack_before_e=$(manifest_stack)
+if [[ "$stack_before_e" != "base _injected" ]]; then
+    echo "FAIL [$_TEST_NAME] expected manifest stack 'base _injected' after inject, got '$stack_before_e'" >&2
+    exit 1
+fi
+
+# Verify the injected entry is recorded in the manifest.
+inj_before=$(manifest_injected)
+if ! printf '%s\n' "$inj_before" | grep -q "ag_b"; then
+    echo "FAIL [$_TEST_NAME] ag_b not found in manifest injected entries before update" >&2
+    echo "injected: $inj_before" >&2
+    exit 1
+fi
+
+# Run update --no-pin — must succeed despite _injected in the stack.
+update_out_e=$("$SCIAGENT" update --no-pin 2>&1)
+update_rc_e=$?
+if [[ "$update_rc_e" -ne 0 ]]; then
+    echo "FAIL [$_TEST_NAME] sciagent update --no-pin on injected stack exited $update_rc_e" >&2
+    echo "output: $update_out_e" >&2
+    exit 1
+fi
+
+# ROLES block must be valid.
+. "$FAKE/lib/sciagent/block.sh"
+if ! block_hash_check AGENTS.md; then
+    echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin (injected stack)" >&2
+    exit 1
+fi
+
+# CRAFT block must be valid.
+if ! block_hash_check AGENTS.md CRAFT; then
+    echo "FAIL [$_TEST_NAME] CRAFT block hash invalid after update --no-pin (injected stack)" >&2
+    exit 1
+fi
+
+# Manifest stack must still be "base _injected".
+stack_after_e=$(manifest_stack)
+if [[ "$stack_after_e" != "base _injected" ]]; then
+    echo "FAIL [$_TEST_NAME] manifest stack changed after update --no-pin: expected 'base _injected', got '$stack_after_e'" >&2
+    exit 1
+fi
+
+# The injected agent must still be recorded.
+inj_after=$(manifest_injected)
+if ! printf '%s\n' "$inj_after" | grep -q "ag_b"; then
+    echo "FAIL [$_TEST_NAME] ag_b not found in manifest injected entries after update --no-pin" >&2
+    echo "injected after: $inj_after" >&2
+    exit 1
+fi
+
+# The symlink for the injected agent must be present on disk.
+if [[ ! -L ".claude/agents/ag_b.md" ]]; then
+    echo "FAIL [$_TEST_NAME] .claude/agents/ag_b.md symlink missing after update --no-pin" >&2
+    exit 1
+fi
+
 pass

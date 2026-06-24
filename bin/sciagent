@@ -94,7 +94,7 @@ declare -A VERB_MODULES=(
     [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
     [gitignore]="gitignore.sh"
-    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
+    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh inject.sh update.sh"
 )
 
 # Verb → cmd_* entrypoint.

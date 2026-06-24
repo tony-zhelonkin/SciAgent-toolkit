@@ -11,18 +11,26 @@
 # process already sourced the old code.  Rather than trying to re-source
 # selectively (fragile: global variables, associative arrays, already-declared
 # functions), we exec the dispatcher binary from the NEW toolkit path with
-# `activate <stack>`.  The new process starts clean, sources the new lib, and
-# runs cmd_activate.  This is safe because exec replaces the process image;
-# no output or state from the current process is lost (we print the update
-# summary before exec'ing).
+# `update --no-pin`.  The new process starts clean, sources the new lib, and
+# runs cmd_update --no-pin, which does the correct re-activate+re-inject
+# in-process.  This is safe because exec replaces the process image; no output
+# or state from the current process is lost (we print the update summary
+# before exec'ing).
 #
-# --no-pin mode: skip the submodule step and only re-activate.  This is
-# useful when the toolkit is not a submodule (PATH install, dev symlink, etc.).
-# In --no-pin mode the re-activate runs in THIS process (lib is already current)
-# so no re-exec is needed.
+# Injected-stack handling: when the manifest stack contains the synthetic
+# `_injected` token (written by `sciagent inject` on a solo-base repo), passing
+# `cmd_activate base _injected` fails because `_injected` is not a real role.
+# Fix: strip `_injected` from the stack before calling cmd_activate, then
+# re-apply each recorded injection via cmd_inject.
+#
+# --no-pin mode: skip the submodule step and only re-activate + re-inject.
+# This is useful when the toolkit is not a submodule (PATH install, dev
+# symlink, etc.).  In --no-pin mode the re-activate runs in THIS process
+# (lib is already current) so no re-exec is needed.
 #
 # Depends on: block.sh craft.sh symlinks.sh roles.sh skill_deps.sh
 #             collisions.sh validate.sh stack.sh claude_settings.sh activate.sh
+#             inject.sh
 
 # shellcheck shell=bash
 
@@ -131,23 +139,47 @@ EOF
     fi
 
     # -----------------------------------------------------------------------
-    # Step 3 (re-activate):
-    #   --no-pin path: lib is already current; call cmd_activate in-process.
-    #   re-pin path:   on-disk lib may have changed; re-exec the dispatcher so
-    #                  the new process sources the fresh lib.
+    # Capture recorded injections BEFORE re-activating (re-activate tears down
+    # the manifest).  We need these to re-apply after re-activation.
+    # Format per line: overlay|skill|via|kind  (pipe-separated, from manifest_injected).
     # -----------------------------------------------------------------------
+    local _injected_tuples=""
+    _injected_tuples=$(manifest_injected 2>/dev/null || true)
 
-    # Determine base and optional overlay from the stack string.
-    local _base _overlay=""
-    read -r _base _overlay <<< "$_stack"
+    # -----------------------------------------------------------------------
+    # Compute the REAL stack: drop the synthetic `_injected` token so that
+    # cmd_activate is never called with a non-role argument.
+    # e.g. "base _injected" → base="_base" real_overlay=""
+    #      "base reviewer"  → base="base"  real_overlay="reviewer"
+    #      "base"           → base="base"  real_overlay=""
+    # -----------------------------------------------------------------------
+    local _base _overlay_raw="" _real_overlay=""
+    read -r _base _overlay_raw <<< "$_stack"
+    if [[ "$_overlay_raw" != "_injected" ]]; then
+        _real_overlay="$_overlay_raw"
+    fi
+    # The real stack (without _injected) for display purposes.
+    local _real_stack="$_base"
+    [[ -n "$_real_overlay" ]] && _real_stack="$_base $_real_overlay"
+
+    # -----------------------------------------------------------------------
+    # Step 3 (re-activate + re-inject):
+    #   --no-pin path: lib is already current; call cmd_activate in-process,
+    #                  then re-apply injections via cmd_inject.
+    #   re-pin path:   on-disk lib may have changed; exec `update --no-pin`
+    #                  on the freshly-loaded dispatcher so the new process
+    #                  sources the fresh lib and performs the combined
+    #                  re-activate+re-inject in one place.
+    # -----------------------------------------------------------------------
 
     # Print the summary BEFORE exec so it is visible even when exec replaces us.
     [[ "$_quiet" == "false" ]] && echo "re-activating stack: $_stack"
 
     if [[ "$_no_pin" == "true" ]]; then
         # In-process re-activate: lib is already sourced and current.
+        # Activate the REAL stack (never pass _injected to cmd_activate).
         local _activate_args=("$_base")
-        [[ -n "$_overlay" ]] && _activate_args+=("$_overlay")
+        [[ -n "$_real_overlay" ]] && _activate_args+=("$_real_overlay")
         if [[ "$_quiet" == "true" ]]; then
             cmd_activate "${_activate_args[@]}" >/dev/null
         else
@@ -157,6 +189,48 @@ EOF
         if [[ $_rc -ne 0 ]]; then
             echo "sciagent update: re-activation failed (exit $_rc)" >&2
             return $_rc
+        fi
+
+        # Re-apply recorded injections.  For each tuple:
+        #   via="tag:<name>"  → re-inject via --tag <name>
+        #   via="requires:*"  → skip (re-injecting the root skill will pull deps)
+        #   via=""            → re-inject by name+kind
+        # Tolerate "nothing to inject" / "already mounted" exits (rc 0) from
+        # cmd_inject — those are idempotent no-ops, not failures.
+        if [[ -n "$_injected_tuples" ]]; then
+            local _inj_ov _inj_sk _inj_via _inj_kind
+            while IFS='|' read -r _inj_ov _inj_sk _inj_via _inj_kind; do
+                [[ -z "$_inj_ov" ]] && continue
+
+                # Skip requires-closure deps — they are pulled in automatically
+                # when their root skill is re-injected.
+                if [[ "$_inj_via" == requires:* ]]; then
+                    continue
+                fi
+
+                local _inject_rc=0
+                if [[ "$_inj_via" == tag:* ]]; then
+                    local _tag_name="${_inj_via#tag:}"
+                    if [[ "$_quiet" == "true" ]]; then
+                        cmd_inject --tag "$_tag_name" >/dev/null 2>&1 || _inject_rc=$?
+                    else
+                        cmd_inject --tag "$_tag_name" || _inject_rc=$?
+                    fi
+                else
+                    # Named skill/agent/command injection.
+                    local _kind_flag="--${_inj_kind:-skill}"
+                    if [[ "$_quiet" == "true" ]]; then
+                        cmd_inject "$_kind_flag" "$_inj_sk" >/dev/null 2>&1 || _inject_rc=$?
+                    else
+                        cmd_inject "$_kind_flag" "$_inj_sk" || _inject_rc=$?
+                    fi
+                fi
+
+                # rc 0 = injected or idempotent no-op; any other rc = real failure.
+                if [[ $_inject_rc -ne 0 ]]; then
+                    echo "sciagent update: warning — re-inject of '$_inj_sk' exited $_inject_rc (continuing)" >&2
+                fi
+            done <<< "$_injected_tuples"
         fi
     else
         # Re-exec path: the dispatcher binary in the POTENTIALLY-UPDATED toolkit.
@@ -173,17 +247,18 @@ EOF
             _dispatcher="$SCIAGENT_TOOLKIT/bin/sciagent"
         fi
 
-        local -a _exec_args=("activate")
-        [[ "$_quiet" == "true" ]] && _exec_args+=("--quiet-unsupported-placeholder")
-        _exec_args+=("$_base")
-        [[ -n "$_overlay" ]] && _exec_args+=("$_overlay")
-
         # Print step 4 summary now — exec will replace us.
         _update_print_summary "$_sub_status" "$_stack"
 
-        exec "$_dispatcher" activate "$_base" ${_overlay:+"$_overlay"}
+        # Exec `update --no-pin` on the fresh dispatcher: the new process sources
+        # the updated lib and performs the combined re-activate+re-inject in-process.
+        # This correctly handles _injected stacks (no _injected passed to activate).
+        local -a _reexec_args=("update" "--no-pin")
+        [[ "$_quiet" == "true" ]] && _reexec_args+=("--quiet")
+
+        exec "$_dispatcher" "${_reexec_args[@]}"
         # exec only returns on error.
-        echo "sciagent update: exec failed — $_dispatcher activate $_base${_overlay:+ $_overlay}" >&2
+        echo "sciagent update: exec failed — $_dispatcher update --no-pin" >&2
         return 1
     fi
 
