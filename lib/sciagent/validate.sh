@@ -770,7 +770,10 @@ USAGE
     local skill_dir skill_name skill_file
     for skill_dir in "$skills_dir"/*/; do
         skill_name="$(basename "$skill_dir")"
-        [[ "$skill_name" == "_TEMPLATE" ]] && continue
+        # Skip non-skill scaffolding: _TEMPLATE (copy-target), _attic (retired,
+        # reference-only — see docs/skill-lifecycle.md), and any other
+        # underscore-prefixed holding dir (_archive backups, etc.).
+        [[ "$skill_name" == _* ]] && continue
         skill_file="$skill_dir/SKILL.md"
         [[ -f "$skill_file" ]] || continue
 

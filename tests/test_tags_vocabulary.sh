@@ -5,8 +5,8 @@
 # Per kickoff.md §9 (2026-05-24) ADR-001 tag vocabulary: tags.yaml is the
 # single source of truth; unknown tags in skill frontmatter are a FAIL.
 #
-# The _TEMPLATE skill is exempt (it carries placeholder values that are not
-# real tags).
+# Underscore-prefixed scaffolding dirs are exempt (_TEMPLATE carries placeholder
+# values that are not real tags; _attic holds retired/reference-only skills).
 
 set -u
 . "$(dirname "$0")/_lib.sh"
@@ -47,7 +47,9 @@ declare -i tagref_count=0
 
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
-    [[ "$name" == "_TEMPLATE" ]] && continue
+    # Skip underscore-prefixed scaffolding: _TEMPLATE (placeholder values),
+    # _attic (retired/reference-only), _archive backups.
+    [[ "$name" == _* ]] && continue
 
     file="$skill_dir/SKILL.md"
     [[ -f "$file" ]] || continue

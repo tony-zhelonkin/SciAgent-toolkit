@@ -379,6 +379,30 @@ _status_render_notes() {
         done < <(collisions_enumerate)
     fi
 
+    # --- (3) Deprecated active skills (soft lifecycle nudge) ---
+    # An active skill carrying metadata.status: deprecated earns a one-line
+    # nudge to migrate off / retire it. Never an error; exit code unchanged.
+    # See docs/skill-lifecycle.md.
+    if declare -F skill_frontmatter_path >/dev/null 2>&1; then
+        declare -A _seen_dep=()
+        local _dn _dpath
+        local -a _dep_skills=()
+        for _dn in "${SKILL_ORDER[@]:-}" "${INJECTED_SKILLS[@]:-}" "${INHERITED_SKILLS[@]:-}"; do
+            [[ -n "$_dn" ]] || continue
+            [[ -n "${_seen_dep[$_dn]:-}" ]] && continue
+            _seen_dep[$_dn]=1
+            _dpath="$(skill_frontmatter_path "$_dn" 2>/dev/null)" || continue
+            [[ -f "$_dpath" ]] || continue
+            if [[ "$(_skill_status "$_dpath")" == "deprecated" ]]; then
+                _dep_skills+=("$_dn")
+            fi
+        done
+        for _dn in "${_dep_skills[@]:-}"; do
+            [[ -n "$_dn" ]] || continue
+            _active_lines+=("  - skill '$_dn' is deprecated (see docs/skill-lifecycle.md); consider migrating off it")
+        done
+    fi
+
     (( ${#_active_lines[@]} == 0 )) && return 0
 
     printf '\nNotes:\n'
@@ -715,7 +739,7 @@ _list_dependents() {
     for d in "$SCIAGENT_TOOLKIT"/skills/*/; do
         [[ -f "$d/SKILL.md" ]] || continue
         name=$(basename "$d")
-        [[ "$name" == "_TEMPLATE" ]] && continue
+        [[ "$name" == _* ]] && continue
         [[ "$name" == "$target" ]] && continue
         if skill_read_requires "$name" 2>/dev/null | grep -Fxq "$target"; then
             results+=("$name")
@@ -767,14 +791,53 @@ _list_role_detail() {
     return 0
 }
 
+# _skill_status <SKILL.md path>
+# Print the skill's lifecycle status from `metadata.status:`
+# (experimental | stable | deprecated). Defaults to "stable" when the field
+# is absent or empty — see docs/skill-lifecycle.md. Soft convention only;
+# nothing fails on an unexpected value (it is surfaced verbatim).
+_skill_status() {
+    local file="$1" st
+    _status_load_frontmatter
+    st="$(_fm_nested_scalar metadata status < <(_fm_extract "$file"))"
+    printf '%s\n' "${st:-stable}"
+}
+
 _list_skills() {
-    local d name
+    local d name st tag
+    # Active skills: flat dirs at skills/<name>/. Underscore-prefixed dirs
+    # (_TEMPLATE, _attic, _archive) are scaffolding, not active skills.
     for d in "$SCIAGENT_TOOLKIT"/skills/*/; do
         [[ -f "$d/SKILL.md" ]] || continue
         name=$(basename "$d")
-        [[ "$name" == "_TEMPLATE" ]] && continue
-        printf '  %s\n' "$name"
+        [[ "$name" == _* ]] && continue
+        st="$(_skill_status "$d/SKILL.md")"
+        # Tag only non-stable statuses to keep the common case tidy.
+        # Pad to the longest current skill name (~38) so the [status] tags align.
+        if [[ "$st" == "stable" ]]; then
+            printf '  %s\n' "$name"
+        else
+            printf '  %-40s [%s]\n' "$name" "$st"
+        fi
     done
+
+    # Attic: retired, reference-only skills (skills/_attic/<name>/). Listed
+    # separately so they are never mistaken for active/available skills.
+    local attic_dir="$SCIAGENT_TOOLKIT/skills/_attic"
+    if [[ -d "$attic_dir" ]]; then
+        local a aname
+        local -a attic=()
+        for a in "$attic_dir"/*/; do
+            [[ -f "$a/SKILL.md" ]] || continue
+            attic+=("$(basename "$a")")
+        done
+        if (( ${#attic[@]} > 0 )); then
+            printf '\n  Attic (retired, reference-only — not installed by any role):\n'
+            for aname in "${attic[@]}"; do
+                printf '    _attic/%s\n' "$aname"
+            done
+        fi
+    fi
 }
 
 _list_agents() {

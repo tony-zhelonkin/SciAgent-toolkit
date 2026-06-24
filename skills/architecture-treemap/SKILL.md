@@ -9,7 +9,7 @@ metadata:
   upstream-docs: https://d3js.org/
   category: practice
   tier: rich
-  status: probationary
+  status: experimental
   prune-review-at: 2026-11-20
   tags:
   - architecture

@@ -450,7 +450,9 @@ _inject_by_tag() {
 
     for skill_dir in "$skills_dir"/*/; do
         skill_name="$(basename "$skill_dir")"
-        [[ "$skill_name" == "_TEMPLATE" ]] && continue
+        # Skip underscore-prefixed scaffolding: _TEMPLATE (copy-target), _attic
+        # (retired/reference-only — see docs/skill-lifecycle.md), _archive backups.
+        [[ "$skill_name" == _* ]] && continue
         skill_file="$skill_dir/SKILL.md"
         [[ -f "$skill_file" ]] || continue
 

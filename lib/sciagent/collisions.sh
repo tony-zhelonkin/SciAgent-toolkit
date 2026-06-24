@@ -60,7 +60,9 @@ collisions_enumerate() {
             for d in "$tk_root"/skills/*/; do
                 [[ -d "$d" ]] || continue
                 name="$(basename "$d")"
-                [[ "$name" == "_TEMPLATE" ]] && continue
+                # Skip underscore-prefixed scaffolding: _TEMPLATE, _attic
+                # (retired/reference-only), _archive backups.
+                [[ "$name" == _* ]] && continue
                 [[ -f "$d/SKILL.md" ]] || continue
                 printf '%s skill\n' "$name"
             done

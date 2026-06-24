@@ -64,11 +64,11 @@ declare -i fail_count=0
 declare -i warn_count=0
 declare -i pass_count=0
 
-# Skip the _TEMPLATE skill — it has no frontmatter and is intentionally
-# excluded from linting (it's literally a copy-target).
+# Skip underscore-prefixed scaffolding: _TEMPLATE (copy-target, no frontmatter),
+# _attic (retired/reference-only — see docs/skill-lifecycle.md), _archive backups.
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
-    [[ "$name" == "_TEMPLATE" ]] && continue
+    [[ "$name" == _* ]] && continue
 
     file="$skill_dir/SKILL.md"
     [[ -f "$file" ]] || continue

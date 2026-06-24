@@ -33,6 +33,8 @@ sciagent-toolkit/
 │   ├── roles.sh              # role YAML parser
 │   └── symlinks.sh           # dual-track symlink helpers
 ├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format)
+│                             #   frontmatter metadata.status: experimental|stable|deprecated (default stable)
+├── skills/_attic/<name>/     # retired skills — reference-only, off the resolver path (see docs/skill-lifecycle.md)
 ├── agents/<name>.md          # canonical sub-agents (Claude format)
 ├── commands/<name>.md        # canonical slash commands (Claude format)
 ├── output-styles/<name>.md   # canonical output styles
