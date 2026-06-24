@@ -84,8 +84,9 @@ skills:
   - scrna-cxg-host                     # CellxGene schema prep + Docker Compose deployment (nginx + htpasswd)
   - shinymultiome-uio-host             # Signac multiome → ShinyMultiome.UiO Shiny app (object preflight + Docker deploy)
   - consensus-nmf-multirun             # Multi-run consensus cNMF: full ± QC × subset ± QC, merge, annotate, ANOVA
-  # Meta — skill authoring
+  # Meta — skill authoring + provenance
   - skill-creator                       # Meta-skill: create, evaluate, improve Claude Code skills
+  - reasoning-trace                     # Persist decisions/findings to disk; no-ephemeral-scripts discipline
 
 # === Universal addons ===
 commands:
