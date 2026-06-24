@@ -42,12 +42,13 @@ agents: []
 skills: []
 
 # Commands — orchestration commands are wired in by phases P19-P22:
-#   /pipeline-plan      (P19) — plan + orchestrate a multi-phase pipeline
+#   /pipeline-plan      (P19) — plan + orchestrate a multi-phase pipeline   [WIRED]
 #   /explore-and-plan   (P20) — research fan-out → synthesis → pipeline-plan
 #   /add-figure-variant (P21) — new figure family with its own namespace
 #   /interpret-storm    (P22) — multi-wave interpretation + information-graphic design
-# Leave empty until those files exist so `sciagent activate base science-architect`
-# resolves cleanly NOW.
-# orchestration commands (/pipeline-plan, /explore-and-plan, /add-figure-variant, /interpret-storm) are wired in by phases P19-P22
+# resolve_canonical recursively finds commands/science/<name>.md, so the role
+# lists the bare command name (no subdir). P20-P22 commands are added here as
+# their files land.
 commands:
+  - pipeline-plan   # P19 — Opus-decompose → Sonnet-impl → Opus-review-every-N + runnable artifacts gate (commands/science/)
   - commit          # clean atomic commits with brief messages, no AI attribution
