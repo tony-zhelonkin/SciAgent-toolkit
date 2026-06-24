@@ -78,6 +78,10 @@ tags:
     description: Knit/render, publication-figure pipelines, captions, README/Methods generation, skill documentation.
     since: 2026-05-24
 
+  - name: figure
+    description: "Publication-figure craft: the figure-style contract, dual print/screen legibility, top-N capping, caption craft. (Narrower than `viz`, which is plotting-generic.)"
+    since: 2026-06-23
+
   - name: hosting
     description: Interactive data hosting and exploration apps (cellxgene/CXG hosts, ShinyMultiome and similar browsers).
     since: 2026-05-30
@@ -85,6 +89,14 @@ tags:
   - name: architecture
     description: Software architecture — design patterns, refactoring guidance, system structure.
     since: 2026-05-24
+
+  - name: planning
+    description: "Plan decomposition & orchestration: phase/INDEX plan templates, the orchestration-recipe commands, model-tiered review cadence."
+    since: 2026-06-23
+
+  - name: provenance
+    description: "Reproducibility & provenance: reasoning-trace persistence, no-ephemeral-scripts discipline, decision logs, session continuity."
+    since: 2026-06-23
 
   - name: tooling
     description: General-purpose tool/utility building (CLIs, MCP servers, file-handling helpers, dev workflows, skill authoring).

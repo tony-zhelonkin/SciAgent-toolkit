@@ -113,4 +113,65 @@ if [[ "$fail_count" -gt 0 ]]; then
     exit 1
 fi
 
+# Positive vocabulary assertions: confirm that the three P09 tags are declared
+# and well-formed (parseable by the awk reader above).  Each must appear in
+# $known_tags exactly once and have a non-empty `description:` and `since:`.
+_assert_tag_present() {
+    local tag="$1"
+    # 1. name is known (parseable by the awk reader)
+    if ! printf '%s\n' "$known_tags" | grep -qxF "$tag"; then
+        echo "FAIL [$_TEST_NAME] required tag '$tag' is missing from tags.yaml" >&2
+        return 1
+    fi
+    # 2. description field exists and is non-empty
+    local desc
+    desc="$(awk -v tag="$tag" '
+        /^  - name:/ {
+            n=$0; sub(/^  - name:[ \t]*/, "", n); sub(/[ \t]+$/, "", n)
+            gsub(/^["'"'"']|["'"'"']$/, "", n)
+            found=(n == tag)
+            next
+        }
+        found && /^    description:/ {
+            d=$0; sub(/^    description:[ \t]*/, "", d); sub(/[ \t]+$/, "", d)
+            gsub(/^["'"'"']|["'"'"']$/, "", d)
+            print d; exit
+        }
+        found && /^  - name:/ { exit }
+    ' "$TAGS_FILE")"
+    if [[ -z "$desc" ]]; then
+        echo "FAIL [$_TEST_NAME] tag '$tag' has no parseable description in tags.yaml" >&2
+        return 1
+    fi
+    # 3. since field exists and is non-empty
+    local since
+    since="$(awk -v tag="$tag" '
+        /^  - name:/ {
+            n=$0; sub(/^  - name:[ \t]*/, "", n); sub(/[ \t]+$/, "", n)
+            gsub(/^["'"'"']|["'"'"']$/, "", n)
+            found=(n == tag)
+            next
+        }
+        found && /^    since:/ {
+            s=$0; sub(/^    since:[ \t]*/, "", s); sub(/[ \t]+$/, "", s)
+            gsub(/^["'"'"']|["'"'"']$/, "", s)
+            print s; exit
+        }
+        found && /^  - name:/ { exit }
+    ' "$TAGS_FILE")"
+    if [[ -z "$since" ]]; then
+        echo "FAIL [$_TEST_NAME] tag '$tag' has no parseable since field in tags.yaml" >&2
+        return 1
+    fi
+    return 0
+}
+
+declare -i vocab_fail=0
+for _required_tag in figure provenance planning; do
+    _assert_tag_present "$_required_tag" || vocab_fail+=1
+done
+if [[ "$vocab_fail" -gt 0 ]]; then
+    exit 1
+fi
+
 pass
