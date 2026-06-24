@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-06-24
+
+Skill lifecycle: a natural, judgment-driven path from `experimental` through
+`stable` and `deprecated` to a reference-only attic — surfaced softly, never
+enforced. No hooks, no fail-closed `validate` check; the toolkit only shows the
+state and leaves the call to a human during practice.
+
+### Added
+- **`metadata.status:` skill field** (`experimental | stable | deprecated`, default `stable`). Absent/empty means `stable`, so only non-stable skills carry the field. `sciagent list skills` tags non-stable skills `[status]` (stable shown plain); a deprecated *active* skill earns a one-line migrate-off nudge in the `status` Notes section. Soft convention — `validate` does not hard-fail on it.
+- **`skills/_attic/` convention** for retired skills: reference-only, off the resolver path (`activate`/`inject` resolve `skills/<name>/`, never `skills/_attic/<name>/`), not walked by `validate`, and listed in a separate "Attic" section of `list skills`. `skills/_attic/README.md` documents revival.
+- `docs/skill-lifecycle.md` (the lifecycle, the field, the attic, retire/revive recipes); CONTRIBUTING "Skill lifecycle" subsection; `tests/test_skill_lifecycle.sh` asserting attic exclusion, soft status surfacing, and that `validate` ignores the attic.
+
+### Changed
+- All skill walkers — `status.sh` (`_list_skills`, `_list_dependents`), `collisions.sh`, `validate.sh`, `inject.sh` (`--tag`), and the skill-walking tests (`test_skill_scope_lint.sh`, `test_tags_vocabulary.sh`) — now skip every underscore-prefixed dir (`_*`), not just `_TEMPLATE`.
+- `architecture-treemap` status normalized `probationary` → `experimental` (documented vocabulary).
+
+### Removed
+- `shinymultiome-uio-host` retired to `skills/_attic/` and dropped from `roles/base.yaml` — reference-only; revive per the attic README.
+
 ## [3.2.0] - 2026-06-23
 
 Reproducible agentic science: centralize, inject, and enforce the owner's five
