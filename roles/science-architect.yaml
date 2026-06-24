@@ -53,4 +53,5 @@ commands:
   - pipeline-plan       # P19 — Opus-decompose → Sonnet-impl → Opus-review-every-N + runnable artifacts gate (commands/science/)
   - explore-and-plan    # P20 — research fan-out (Opus explorers) → synthesis → /pipeline-plan handoff (commands/science/)
   - add-figure-variant  # P21 — new figure family with its own namespace, compute→viz split, dual variants, namespace-isolation grep gate (commands/science/)
+  - interpret-storm     # P22 — multi-wave interpretation (web research → interpret → design → /add-figure-variant build), every wave persisted (commands/science/)
   - commit              # clean atomic commits with brief messages, no AI attribution
