@@ -1,0 +1,184 @@
+<!--
+  HOW TO USE THIS TEMPLATE
+  ========================
+  Copy to docs/_internal/plans/{{DATE}}-<plan-slug>/NN_<slug>.md, then fill every
+  <angle-bracket> placeholder. One file per phase; seq NN must match the phase
+  table in 00_INDEX.md.
+
+  The only auto-substituted token is {{DATE}}. All other <...> placeholders are
+  filled by the planner or the implementer.
+
+  Section order is FIXED — do not reorder or skip sections. Reviewers grep for
+  section headers; acceptance checks are grep-verifiable by design.
+-->
+
+# Phase <NN> — <slug>
+
+**Tier:** <Sonnet|Opus>
+**Depends on:** <seq ids from phase table, or —>
+**Downstream consumers:** <list phases that read this phase's outputs, or —>
+**Figure-style contract:** this phase is <COMPUTE-ONLY / VIZ-ONLY / MIXED> — <one sentence: e.g. "compute scripts produce .rds checkpoints only; no plotting calls permitted" or "viz scripts read checkpoints, call save_overview() for every figure, never re-run models">
+
+---
+
+## 1. Objective
+
+<One concise sentence: what this phase ships and why it matters to the plan.>
+
+<Optional second sentence clarifying the bounded scope — what "done" means here.>
+
+---
+
+## 2. Scope
+
+**In scope:**
+- <explicit item 1>
+- <explicit item 2>
+
+**Out of scope** (grep to confirm nothing leaked):
+```bash
+# Run these after implementation to confirm no out-of-scope work crept in:
+grep -rn "<out-of-scope-pattern-1>" 02_analysis/scripts/ && echo "LEAK" || echo "clean"
+grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
+```
+
+---
+
+## 3. Inputs
+
+<!-- Cite research notes and prior phases precisely. The implementer should be able to
+     act on this brief without re-exploring the codebase. -->
+
+- **Research notes:** `docs/_internal/research/<date>-<slug>/<file>.md` — <what was synthesized / which decisions it documents>
+- **Prior phase outputs:** `<exact path from Phase NN>` — <what it contains and which fields/functions matter>
+- **Config keys read:** `analysis_config.yaml:<key>` — <semantics>
+- **Toolkit helpers used:** `lib/<path>` — `<function_name>()` (<what it does>)
+
+---
+
+## 4. Outputs
+
+<!-- Exact artifact paths. Stage id must be declared in analysis_config.yaml:stages
+     before the script first writes to it. -->
+
+| Artifact | Path | Schema / description |
+|----------|------|----------------------|
+| <name> | `03_results/<stage_id>/figures/_overview/<stem>.print.pdf` | <what it shows> |
+| <name> | `03_results/<stage_id>/figures/_overview/<stem>.screen.png` | screen variant |
+| <name> | `03_results/<stage_id>/tables/_overview/<stem>.csv` | sidecar table, cols: <col1, col2, ...> |
+| <name> | `03_results/<stage_id>/README.md` | caption entry appended by `write_caption()` |
+
+**Config additions** (if any):
+```yaml
+# Append to analysis_config.yaml:
+# <key>: <value>   # <rationale>
+```
+
+---
+
+## 5. Implementation
+
+<!-- Step-by-step. Name exact helper functions and config keys. One step ≈ one logical
+     action; keep steps atomic enough that a reviewer can verify each independently. -->
+
+**Step 1 — <action>**
+- <detail>: call `<exact_function_name>(arg1, key=config_key)` from `lib/<path>`.
+- <gotcha to watch out for at this step>.
+
+**Step 2 — <action>**
+- <detail>.
+- Config key: `analysis_config.yaml:<key>` controls `<parameter>`.
+
+**Step 3 — produce outputs via figure-style contract**
+- Call `save_overview(plot=<p>, stage_id="<stage_id>", name="<stem>", table_df=<df>, finding="<one-sentence finding>", script="<NN_script.R>", fn="<function_name>", config_kv=list(...), input="<input description>")`.
+- This atomically writes figure + sidecar table + README caption.
+
+**Step 4 — acceptance smoke**
+- Run `bash tests/run-all.sh` and confirm `failed: 0`.
+- Confirm declared artifacts exist: `ls -la 03_results/<stage_id>/figures/_overview/`.
+
+---
+
+## 6. Captions
+
+<!-- Which artifacts get captioned, and what the how-to-read content should say.
+     write_caption() / save_overview() must be called for every artifact in §4. -->
+
+**`03_results/<stage_id>/README.md`** — append one block per artifact:
+```
+## figures/_overview/<stem>.print.pdf
+<Finding sentence: what the figure shows, not what it is. Lead with the scientific claim.>
+
+| Script | Function | Config | Input |
+|--------|----------|--------|-------|
+| `02_analysis/scripts/<NN_script.R>` | `<function_name>()` | `<config_key> = <value>` | `<input path or object>` |
+
+How to read: <axes, colour encoding, key glyph, what a reader should look for first>.
+```
+
+---
+
+## 7. Acceptance checks
+
+<!-- Grep-verifiable + structural. Every check must be runnable verbatim by the reviewer.
+     Biological checks are logged, not stop()-ped. -->
+
+**Structural (the script RUNS and produces its declared artifacts):**
+```bash
+# All declared output files exist:
+ls 03_results/<stage_id>/figures/_overview/<stem>.print.pdf
+ls 03_results/<stage_id>/figures/_overview/<stem>.screen.png
+ls 03_results/<stage_id>/tables/_overview/<stem>.csv
+
+# Test suite green:
+bash tests/run-all.sh | tail -3  # expect "failed: 0"
+```
+
+**Compute→viz discipline:**
+```bash
+# No plotting calls in compute scripts:
+grep -n "ggsave\|save_figure\|savefig\|plt\.show" 02_analysis/scripts/<NN_compute_script.R> && echo "VIOLATION" || echo "clean"
+
+# No model re-runs in viz scripts:
+grep -n "lmFit\|voomLmFit\|eBayes\|fgsea\|DESeq2" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+```
+
+**Figure-style compliance:**
+```bash
+# No inline theme() calls in viz scripts:
+grep -n "theme(text" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+
+# No hardcoded ggsave dimensions:
+grep -n "ggsave(width=[0-9]" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+
+# project_theme() / set_paper_style() is sourced:
+grep -n "project_theme\|set_paper_style" 02_analysis/scripts/<NN_viz_script.R> || echo "MISSING"
+```
+
+**Results placement:**
+```bash
+# Stage declared in config before first write:
+grep "<stage_id>" 02_analysis/config/analysis_config.yaml || echo "STAGE MISSING from config"
+
+# Artifacts in canonical subdirs:
+ls 03_results/<stage_id>/figures/
+ls 03_results/<stage_id>/tables/
+```
+
+**Caption completeness:**
+```bash
+# README caption exists for each figure:
+grep "## figures/_overview/<stem>" 03_results/<stage_id>/README.md || echo "CAPTION MISSING"
+```
+
+---
+
+## 8. Gotchas
+
+<!-- Named failure modes with file:line or context where they bite. -->
+
+- **<Gotcha name>:** <description of the failure mode and how to avoid or detect it>. See `<file>:<line>` for the pattern to follow.
+- **Byte-stability:** call `round_numeric_cols(sig=9)` before writing any CSV that feeds `append_master_table()`; without it, floating-point churn makes diffs noisy and idempotency checks fail spuriously.
+- **Checkpoint missing → stop():** viz scripts must call `stop("checkpoint not found: <path>")` if the `.rds` / `.h5ad` from the compute phase is absent; never silently re-compute inside a viz script.
+- **Stage not declared:** writing to `03_results/<stage_id>/` before adding the entry in `analysis_config.yaml:stages` breaks the `validate results-layout` check; declare the stage first.
+- **<Add phase-specific gotchas here.>**
