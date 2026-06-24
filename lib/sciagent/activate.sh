@@ -229,6 +229,9 @@ cmd_activate() {
         src=$(resolve_canonical commands "$n") || return 1
         symlink_create_dual commands "$n" "$src"
     done
+    # Create the helper-lib symlink for analysis-type repos (no-op if no 02_analysis/).
+    symlink_create_helper_lib
+
     local STYLE_APPLIED_TAG=""
     if [[ -n "$OUTPUT_STYLE" ]]; then
         symlink_create_dual output-styles "$OUTPUT_STYLE" "$STYLE_SRC"

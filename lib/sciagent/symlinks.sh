@@ -468,6 +468,35 @@ manifest_update_block_hash() {
     _manifest_staging=""
 }
 
+# ---------------------------------------------------------------------------
+# symlink_create_helper_lib
+# If the project has a 02_analysis/ directory (analysis-type repo), create a
+# single DIRECTORY symlink:
+#   02_analysis/helpers/figure-style  →  <SCIAGENT_TOOLKIT>/lib/figure-style
+# The symlink is RELATIVE (portable across container-mount changes) when
+# `realpath --relative-to` is available; otherwise falls back to the absolute
+# path. Records the symlink path in the manifest so symlink_teardown_all
+# removes it on deactivate. Silently skips if 02_analysis/ does not exist.
+symlink_create_helper_lib() {
+    [[ -d "02_analysis" ]] || return 0   # not an analysis-type repo — skip
+
+    local target_dir="$SCIAGENT_TOOLKIT/lib/figure-style"
+    local link_dir="02_analysis/helpers"
+    local link_path="$link_dir/figure-style"
+
+    # Compute a relative symlink target for portability.
+    local rel_target
+    if realpath --relative-to="$link_dir" "$target_dir" >/dev/null 2>&1; then
+        rel_target=$(realpath --relative-to="$link_dir" "$target_dir")
+    else
+        rel_target="$target_dir"   # absolute fallback
+    fi
+
+    mkdir -p "$link_dir"
+    ln -sfn "$rel_target" "$link_path"
+    _manifest_record_symlink "$link_path"
+}
+
 # manifest_append_symlinks_and_injected <sym1> <sym2> ... -- <overlay> <skill>
 # Appends new symlinks and one injected entry to the existing manifest in-place.
 # Call signature: manifest_append_inject <claude_sym> <agents_sym> <overlay> <skill> [via] [kind]
