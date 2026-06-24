@@ -199,8 +199,29 @@ limma-voom DE results (gene symbols as rownames, t-statistic)
 | padj = pvalue for TFs | TF | No BH correction applied | `p.adjust(tf_acts$p_value, method = "BH")` |
 | Volcano points missing | Viz | `color = NA` on shape 21 (ggplot2 4.0+) | Use `stroke = 0` or `color = "transparent"` |
 | Network download timeout | Both | OmniPath unreachable | Cache network on first download with `saveRDS()` |
+| `get_collectri`/`get_progeny` error: `argument is of length zero` | Both | OmnipathR static-table loader bug (decoupleR↔OmnipathR version skew), **not** necessarily an outage | Build networks locally (`progeny::getModel`, `dorothea::dorothea_mm`, Zenodo CollecTRI + babelgene) → **`references/known-issues.md`** |
 
 For full pitfall walkthroughs → see the relevant reference document.
+
+### Gotcha: report the FULL regulon as TF membership, never a top-N slice
+
+The TF gene-set membership (`genes_full_set`) handed downstream to the **pathway-explorer**
+(or any similarity/embedding layer) must be the **FULL CollecTRI regulon for that TF,
+intersected with the shared gene universe** — *not* a top-N (e.g. top-50) slice of targets.
+
+- A `slice_head(n = 50)` cap on the reported targets understates TF↔pathway gene overlap.
+  Similarity-based UMAP embeddings compute distances from `genes_full_set` overlap, so a
+  truncated regulon makes every TF look artificially dissimilar from the pathways it actually
+  drives, pushing all TFs into a **spurious distant cluster** in the embedding.
+- The fix is to report the complete atlas-intersected regulon as membership. This does **not**
+  touch the activity score: ULM/`run_ulm` (and MLM/`run_mlm` for PROGENy) already infer the
+  score from the full network — the slice only ever affected which targets were *reported*,
+  never the `nes`/`score`/`padj` statistic.
+- Keep a top-N list only for **display/tooltips** if a UI needs a short preview — never for
+  overlap, similarity, or embedding computation.
+
+The same principle holds for PROGENy footprints and GATOM modules: the reported membership
+fed to the geometry layer is the full set ∩ universe, decoupled from the per-contrast score.
 
 ---
 
@@ -229,3 +250,4 @@ For full pitfall walkthroughs → see the relevant reference document.
 - `references/tf-activity.md` — DecoupleR ULM + CollecTRI: input matrix prep, network loading and caching, multi-contrast matrices, DoRothEA alternative, master table schema, BH correction
 - `references/progeny.md` — PROGENy MLM: 14 pathway table, .mor="weight" pitfall, concordance analysis, comparison to GSEA, species support, master table schema
 - `references/visualization.md` — barplot/volcano/direction-summary/distribution patterns, PROGENy significance stars, target-gene scatter with concordance coloring, README generation, output organization
+- `references/known-issues.md` — OmniPath/decoupleR fetch failures (`get_collectri`/`get_progeny` "argument is of length zero") and the local-network fallback (`progeny::getModel`, `dorothea_mm`, Zenodo CollecTRI + babelgene)
