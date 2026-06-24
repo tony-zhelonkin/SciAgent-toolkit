@@ -28,6 +28,7 @@ agents:
   - insight-explorer
   # Publication & Documentation
   - captions
+  - figure-audit                          # static-figure legibility reviewer: D-theme checklist against rendered PNGs/PDFs
   - doc-curator
   # Code Review & Quality
   - code-reviewer
