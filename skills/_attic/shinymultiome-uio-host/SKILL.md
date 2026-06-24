@@ -4,6 +4,7 @@ description: 'shinymultiome-uio-host — two-phase skill for hosting a Signac-ba
 license: MIT
 metadata:
   scope: implementation
+  status: deprecated
   requires: []
   skill-author: SciAgent-toolkit
   last-reviewed: 2026-05-07
@@ -28,6 +29,8 @@ metadata:
 ---
 
 # ShinyMultiome.UiO Host
+
+> **Deprecated (v3.3.0).** Moved to the attic — reference-only; not installed by any role. Revive by moving back to `skills/` and setting `status: stable`.
 
 ## Limitations
 
