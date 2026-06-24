@@ -1,0 +1,53 @@
+# science-architect.yaml — Analysis orchestration overlay role
+#
+# Purpose
+#   Overlay for orchestrating multi-phase analysis pipelines: Opus decomposes a
+#   plan into bite-sized phases (one script == one implementer), Sonnet
+#   implementers execute them, and Opus reviews every N phases that code RUNS
+#   and produces its declared artifacts. Adds the planning / figure / interpretation
+#   orchestration commands on top of base.
+#
+# Use when
+#   - Planning or orchestrating a multi-phase analysis pipeline
+#   - Running /pipeline-plan, /explore-and-plan, /add-figure-variant, or
+#     /interpret-storm to drive Opus/Sonnet model-tiered execution
+#   - Producing durable docs/_internal/plans/{date-slug}/ + research/ artifacts
+#     for a reproducible analysis workflow
+#
+# Do NOT use when
+#   - Software design or architecture work (use architect)
+#   - Day-to-day analysis at the keyboard without pipeline orchestration (use base)
+#   - Pure pathway / TF interpretation (use pathway-signature)
+#
+# Activation
+#   sciagent activate base science-architect
+#
+# Composes with
+#   - base — provides the full analysis agent suite, figure-style, reasoning-trace,
+#     scrna-pipeline-conventions and all scverse/bulk/ATAC skills
+
+name: science-architect
+description: Overlay for orchestrating multi-phase analysis pipelines — Opus-decomposes a plan into bite-sized phases (one script == one implementer), runs Sonnet implementers, reviews every N phases that code RUNS and produces artifacts. Adds the planning/figure/interpretation orchestration commands on top of base.
+
+# Agents — base already ships the full day-to-day analysis suite (docs-librarian,
+# bio-interpreter, insight-explorer, captions, figure-audit, doc-curator,
+# code-reviewer, handoff). No additional agents are available for this role yet;
+# orchestration-specific subagents (pipeline planner, phase reviewer, etc.) will
+# be wired in by later phases alongside the commands they serve.
+agents: []
+
+# Skills — base already provides reasoning-trace, figure-style,
+# scrna-pipeline-conventions, and the full scverse/bulk/ATAC suite.
+# Orchestration-specific skills will be added here by phases P19-P22 if needed.
+skills: []
+
+# Commands — orchestration commands are wired in by phases P19-P22:
+#   /pipeline-plan      (P19) — plan + orchestrate a multi-phase pipeline
+#   /explore-and-plan   (P20) — research fan-out → synthesis → pipeline-plan
+#   /add-figure-variant (P21) — new figure family with its own namespace
+#   /interpret-storm    (P22) — multi-wave interpretation + information-graphic design
+# Leave empty until those files exist so `sciagent activate base science-architect`
+# resolves cleanly NOW.
+# orchestration commands (/pipeline-plan, /explore-and-plan, /add-figure-variant, /interpret-storm) are wired in by phases P19-P22
+commands:
+  - commit          # clean atomic commits with brief messages, no AI attribution
