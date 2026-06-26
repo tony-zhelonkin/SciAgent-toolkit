@@ -15,7 +15,7 @@ Consult these three sources — they are the only authoritative references:
 |------|-------|
 | Contract skill (usage, anti-patterns, done-when) | `skills/figure-style/SKILL.md` |
 | Contract implementation (R + Python helpers) | `lib/figure-style/figure_helpers.{R,py}` |
-| Per-project geometry + font floors | `02_analysis/config/analysis_config.yaml` under `figures:` (`base_size` floor 16 pt screen, 9 pt print) |
+| Per-project geometry + font floors | `02_analysis/config/analysis_config.yaml` under `figures:` (`base_size` floor 14 pt — one legible tier) |
 
 The per-project shim (`02_analysis/helpers/figure_style.{R,py}`) is the import entry point
 for every viz script. Run `sciagent activate` to symlink the lib into a project.
