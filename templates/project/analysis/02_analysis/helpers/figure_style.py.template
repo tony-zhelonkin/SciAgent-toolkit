@@ -67,13 +67,13 @@ else:
             warnings.warn(f"[figure_style] Could not load config: {exc}", stacklevel=2)
             return {}
 
-    def set_paper_style(base_size=None, variant="screen", config=None):  # type: ignore[misc]
-        """Fallback: no-op stub — warns if matplotlib is available."""
+    def set_paper_style(base_size=None, variant=None, config=None):  # type: ignore[misc]
+        """Fallback: no-op stub (`variant` accepted-but-ignored) — warns if lib absent."""
         warnings.warn("[figure_style] set_paper_style is a no-op stub (toolkit lib absent).",
                       stacklevel=2)
 
-    def project_theme(base_size=None, legend=True, variant="screen", config=None):  # type: ignore[misc]
-        """Fallback: no-op stub."""
+    def project_theme(base_size=None, legend=True, variant=None, config=None):  # type: ignore[misc]
+        """Fallback: no-op stub (`variant` accepted-but-ignored)."""
         warnings.warn("[figure_style] project_theme is a no-op stub (toolkit lib absent).",
                       stacklevel=2)
 

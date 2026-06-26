@@ -36,17 +36,14 @@ if (file.exists(.HELPERS_LIB)) {
         if (requireNamespace("yaml", quietly = TRUE)) yaml::read_yaml(path)
         else { warning("[figure_style] yaml unavailable; using empty config."); list() }
     }
-    project_theme <- function(base_size = NULL, legend = TRUE, variant = "screen",
-                               config = NULL) {
+    # `variant` accepted-but-ignored (drop-in compat with old call sites).
+    project_theme <- function(base_size = NULL, legend = TRUE, variant = NULL,
+                               config = NULL, ...) {
         if (!requireNamespace("ggplot2", quietly = TRUE))
             stop("[figure_style] ggplot2 required for project_theme().")
-        ggplot2::theme_minimal(base_size = base_size %||% 16)
+        ggplot2::theme_minimal(base_size = base_size %||% 14)
     }
-    set_paper_style <- function(base_size = NULL, legend = TRUE, variant = "screen",
-                                 config = NULL) {
-        project_theme(base_size = base_size, legend = legend, variant = variant,
-                      config = config)
-    }
+    set_paper_style <- function(...) project_theme(...)
 }
 
 ## ---------------------------------------------------------------------------

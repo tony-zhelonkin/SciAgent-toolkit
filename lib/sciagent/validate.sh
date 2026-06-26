@@ -20,7 +20,7 @@
 # Opt-in PROJECT guardrail checks (--check, the (c) GUARDRAIL layer):
 #   figure-style    inline theme()/ggsave(width=)/figsize/raw-hex in viz
 #                   scripts; missing project_theme()/set_paper_style(); config
-#                   figures.base_size below the 16pt screen floor.
+#                   figures.base_size below the 14pt base font floor.
 #   results-layout  artifacts must sit under <stage>/{figures,tables}/; stage
 #                   must be a known stages: id; no artifact at 03_results/ root;
 #                   each figure needs a same-stem table neighbor.
@@ -278,15 +278,15 @@ _validate_check_figure_style() {
     local rc=0
     local scripts_dir="$projdir/02_analysis/scripts"
 
-    # --- config floor: figures.base_size < 16 ------------------------------
+    # --- config floor: figures.base_size < 14 ------------------------------
     local cfg
     cfg=$(_vcheck_config_path "$projdir")
     if [[ -n "$cfg" ]]; then
         local bs
         bs=$(_vcheck_config_figures_int "$cfg" "base_size")
-        if [[ -n "$bs" && "$bs" -lt 16 ]]; then
+        if [[ -n "$bs" && "$bs" -lt 14 ]]; then
             _vcheck_emit "$strict" "$quiet" figure-style \
-                "analysis_config.yaml:figures.base_size = $bs (< 16 screen floor) — raise to >= 16" || rc=1
+                "analysis_config.yaml:figures.base_size = $bs (< 14 base font floor) — raise to >= 14" || rc=1
         fi
     fi
 

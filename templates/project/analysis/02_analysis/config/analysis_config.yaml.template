@@ -81,43 +81,43 @@ colors:
 # =============================================================================
 # Dual-context legibility: every figure must be readable BOTH shrunk in a
 # journal column AND projected to the back of a conference room. The figure-
-# style helper library reads this block; it renders a `screen` variant (big,
-# bold, projected) and a `print` variant (column width) from one code path.
-# The font sizes below are FLOORS — raise them, do not go under them.
+# style helper library reads this block. It is UNIFIED — ONE legible style tier
+# (no print/screen split) emitted in BOTH formats: every figure is written as
+# <name>.pdf (vector, cairo) AND <name>.png (raster) from one code path, same
+# geometry, same theme. The font sizes below are FLOORS — raise, don't go under.
 
 figures:
-  # --- screen / projected variant (default): bigger, fewer, bolder ----------
-  base_size: 16                       # base font (pt) FLOOR for screen
-  title_size: 18
-  axis_title_size: 15
-  axis_text_size: 13
-  strip_size: 14                      # facet strip labels
-  legend_text_size: 13
-  label_size: 5                       # geom_text/geom_label size (ggplot mm)
-  line_width: 0.8                     # base line/segment width
-  point_size: 2.0
+  # --- fonts (pt) — single tier (legible shrunk to a column AND projected) ---
+  base_size: 14                       # base font (pt) FLOOR
+  title_size: 16
+  subtitle_size: 11
+  axis_title_size: 13                 # plain (not bold)
+  axis_text_size: 11
+  strip_size: 12                      # facet strip labels (bold)
+  legend_text_size: 11
+  caption_size: 9
+  label_size: 4                       # geom_text/geom_label size (ggplot mm)
+  cue_size: 4                         # in-panel direction-cue text size
+  line_width: 1.0                     # base line/segment width
+  point_size: 2.4
 
-  # --- print-column variant: Nature ~89mm; smaller, still >= ~5-7pt rendered -
-  base_size_column: 9                 # base font (pt) FLOOR for print column
-
-  # --- geometry (inches) ----------------------------------------------------
-  width: 10                           # screen default
-  height: 8
-  width_column: 3.5                   # print single column (~89mm)
-  height_column: 3.0
-  dpi: 300                            # raster dpi (print quality)
+  # --- geometry (inches) — ONE canvas shared by the pdf + png ----------------
+  width: 8.5                          # default canvas
+  height: 6.5
+  width_wide: 13                      # two-column preset: save_figure(..., wide = TRUE)
+  width_narrow: 6                     # single-column preset
+  dpi: 300                            # raster dpi (png export)
+  formats: [pdf, png]                 # both emitted for every figure
 
   # --- anti-clutter / comparability ----------------------------------------
   top_n: 20                           # cap categorical axes to top-N
   volcano_label_top: 10               # top genes to label
   z_clamp: 2.5                        # clamp z-scores for shared color scales
   nes_cap: 3.5                        # clamp NES for comparable bar lengths
+  running_sum_ylim: [-1.0, 1.0]       # shared running-ES y-range (comparable curves)
+  running_sum_top: 5                  # # of curves per running-sum panel (top-N by |NES|)
+  running_sum_heights: [2.4, 0.7, 0.9] # ES : rug : metric panel-height proportions
   caption_wrap_column: 70             # README caption wrap width
-
-  # --- which variants save_figure() emits by default ------------------------
-  variants:
-    - print
-    - screen
 
   # --- results sub-layout directory names (results placement contract) ------
   by_contrast_dir: "by_contrast"      # 03_results/<stage>/figures/by_contrast/<c>/
