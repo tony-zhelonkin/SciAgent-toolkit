@@ -6,13 +6,27 @@
 ## `analysis_config.yaml:figures` block. Centralizing styling here is the load-bearing capability
 ## behind the owner's #1 recurring pain point (figure legibility) and #2 (results placement).
 ##
+## UNIFIED single-variant, dual-FORMAT contract (promoted from the in-project Wave-0 prototype):
+##   * project_theme()  — ONE legible theme (no print/screen variant); sizes from the `figures:`
+##                        block; legible BOTH shrunk to a journal column AND projected to a room.
+##   * save_figure()    — ONE themed plot -> <name>.pdf AND <name>.png (same geometry, NO
+##                        .print/.screen suffix). cairo_pdf for Unicode glyphs. NEVER re-themes
+##                        (the CALLER owns ALL theming). Purges stale same-stem files first.
+##   * save_overview()  — figure + sibling table + README caption, atomic. Caption -> <name>.png.
+##   * style_series()   — alignment-safe running-sum normalizer (`style_running_sum` alias).
+##   * scale_color_okabe / scale_fill_okabe — Okabe-Ito colorblind-safe palette helpers.
+## The `variant` parameter is ACCEPTED on project_theme/save_figure/set_paper_style but IGNORED
+## (drop-in compat: old call sites that pass "screen"/"print"/"both" still work).
+##
 ## Config keys read (from `analysis_config.yaml:figures`):
-##   base_size, title_size, axis_title_size, axis_text_size, strip_size, legend_text_size,
-##   label_size, line_width, point_size, base_size_column, width, height, width_column,
-##   height_column, dpi, top_n, volcano_label_top, z_clamp, nes_cap, caption_wrap_column,
-##   variants, by_contrast_dir, overview_dir
+##   base_size, title_size, subtitle_size, axis_title_size, axis_text_size, strip_size,
+##   legend_text_size, caption_size, label_size, cue_size, line_width, point_size,
+##   width, height, width_wide, width_narrow, dpi, formats, top_n, volcano_label_top,
+##   z_clamp, nes_cap, running_sum_ylim, running_sum_top, running_sum_heights,
+##   caption_wrap_column, by_contrast_dir, overview_dir
 ## Plus, from elsewhere in the config: `paths.results` (results root), `paths.master`
-## (master-table root), `paths.stage_tables_subdir` / `paths.stage_figures_subdir`.
+## (master-table root), `paths.stage_tables_subdir` / `paths.stage_figures_subdir`, and
+## `colors.okabe_ito` (the categorical palette).
 ##
 ## LAZY HEAVY-DEP DESIGN (important — read before editing):
 ##   This file MUST be `source()`-able and its path / caption / table / config functions callable
@@ -34,14 +48,17 @@
 
 `%||%` <- function(a, b) if (is.null(a) || length(a) == 0) b else a
 
-## Per-variant fallback FLOORS, used only when a key is absent from the project config; the
-## project config is authoritative. Keep in sync with figure_helpers.py:_FIG_DEFAULTS + template.
+## Fallback FLOORS, used only when a key is absent from the project config; the project config is
+## authoritative. Keep in sync with figure_helpers.py:_FIG_DEFAULTS + the config template.
 .FIG_DEFAULTS <- list(
-  base_size = 16, title_size = 18, axis_title_size = 15, axis_text_size = 13, strip_size = 14,
-  legend_text_size = 13, label_size = 5, line_width = 0.8, point_size = 2.0,
-  base_size_column = 9, width = 10, height = 8, width_column = 3.5, height_column = 3.0,
-  dpi = 300, top_n = 20, volcano_label_top = 10, z_clamp = 2.5, nes_cap = 3.5,
-  caption_wrap_column = 70, variants = c("print", "screen"),
+  base_size = 14, title_size = 16, subtitle_size = 11, axis_title_size = 13,
+  axis_text_size = 11, strip_size = 12, legend_text_size = 11, caption_size = 9,
+  label_size = 4, cue_size = 4, line_width = 1.0, point_size = 2.4,
+  width = 8.5, height = 6.5, width_wide = 13, width_narrow = 6,
+  dpi = 300, formats = c("pdf", "png"),
+  top_n = 20, volcano_label_top = 10, z_clamp = 2.5, nes_cap = 3.5,
+  running_sum_ylim = c(-1, 1), running_sum_top = 5, running_sum_heights = c(2.4, 0.7, 0.9),
+  caption_wrap_column = 70,
   by_contrast_dir = "by_contrast", overview_dir = "_overview")
 
 .DEFAULT_CONFIG_PATH <- "02_analysis/config/analysis_config.yaml"
@@ -114,154 +131,199 @@ overview_path <- function(stage, kind = "figures", config = NULL) {
 }
 
 ## =====================================================================================
-## 2. THEME — the SINGLE style entry point. project_theme() is the R canonical name;
-##    set_paper_style() is the thin same-named alias so a cross-language parity grep finds BOTH
-##    contract names in this file (and the Python file likewise defines both).
+## 2. THEME — the SINGLE style entry point (one unified, legible tier; no print/screen variant).
+##    project_theme() is the R canonical name; set_paper_style() is the thin same-named alias so a
+##    cross-language parity grep finds BOTH contract names here (the Python file likewise has both).
+##    Sizes come from the `figures:` block. `variant` is accepted but IGNORED (drop-in compat with
+##    old call sites that pass "screen"/"print"/"both").
 ## =====================================================================================
-project_theme <- function(base_size = NULL, legend = TRUE, variant = "screen", config = NULL) {
-  ## Return a ggplot2 theme built from the `figures:` config (LAZY ggplot2 load).
-  ## Bold axis titles, no top/right spines, decluttered minor grid. Sizes come from the
-  ## per-variant font tier (base_size for screen, base_size_column for print) and are enforced as
-  ## FLOORS (clamped up + warned if a passed base_size is below). Use cairo on PDF export (see
-  ## save_figure) so Unicode direction glyphs render. stop()s with context if ggplot2 is absent.
+project_theme <- function(base_size = NULL, legend = TRUE, variant = NULL, config = NULL, ...) {
+  ## Return ONE legible ggplot2 theme built from the `figures:` config (LAZY ggplot2 load). Legible
+  ## BOTH shrunk to a journal column AND projected to the back of a room — there is no per-variant
+  ## tier. Plain (non-bold) axis titles; bold title/legend-title/strip; decluttered minor grid;
+  ## bottom/left spines only; right legend with a little inter-row air. cairo on PDF export (see
+  ## save_figure) so Unicode glyphs render. stop()s with context if ggplot2 is absent.
   if (!requireNamespace("ggplot2", quietly = TRUE))
     stop("project_theme() needs ggplot2 (the plotting backend). Install ggplot2, or call only ",
          "the path/caption/table helpers (which need no backend).")
-  f <- .figures(config)
-  floor <- .variant_base_floor(variant, config)
-  bs <- .enforce_floor(base_size %||% floor, floor, "base_size", variant)
-  base <- ggplot2::theme_minimal(base_size = bs)
-  base + ggplot2::theme(
-    text             = ggplot2::element_text(size = bs),
-    plot.title       = ggplot2::element_text(size = f$title_size, face = "bold"),
-    axis.title       = ggplot2::element_text(size = f$axis_title_size, face = "bold"),  # bold axes
-    axis.text        = ggplot2::element_text(size = f$axis_text_size),
-    legend.text      = ggplot2::element_text(size = f$legend_text_size),
-    legend.title     = ggplot2::element_text(size = f$legend_text_size),
-    strip.text       = ggplot2::element_text(size = f$strip_size),
-    legend.position  = if (isTRUE(legend)) "right" else "none",
-    panel.grid.minor = ggplot2::element_blank(),               # declutter
-    axis.line        = ggplot2::element_line(),                # keep bottom/left
-    panel.border     = ggplot2::element_blank(),               # no top/right box (spine removal)
-    plot.title.position = "plot")
+  f  <- .figures(config)
+  bs <- as.numeric(base_size %||% f$base_size %||% 14)
+  ggplot2::theme_minimal(base_size = bs) +
+    ggplot2::theme(
+      text             = ggplot2::element_text(size = bs),
+      plot.title       = ggplot2::element_text(size = f$title_size    %||% 16, face = "bold"),
+      plot.subtitle    = ggplot2::element_text(size = f$subtitle_size %||% 11, colour = "grey25"),
+      plot.caption     = ggplot2::element_text(size = f$caption_size  %||% 9,  colour = "grey45",
+                                               hjust = 0, lineheight = 1.05),
+      axis.title       = ggplot2::element_text(size = f$axis_title_size %||% 13),  # plain (not bold)
+      axis.text        = ggplot2::element_text(size = f$axis_text_size  %||% 11),
+      legend.text      = ggplot2::element_text(size = f$legend_text_size %||% 11),
+      legend.title     = ggplot2::element_text(size = f$legend_text_size %||% 11, face = "bold"),
+      strip.text       = ggplot2::element_text(size = f$strip_size %||% 12, face = "bold"),
+      legend.key.spacing.y = ggplot2::unit(3, "pt"),     # a little air between legend rows
+      legend.position  = if (isTRUE(legend)) "right" else "none",
+      panel.grid.minor = ggplot2::element_blank(),       # declutter
+      axis.line        = ggplot2::element_line(linewidth = 0.4),  # keep bottom/left
+      panel.border     = ggplot2::element_blank(),       # no top/right box (spine removal)
+      plot.title.position = "plot",
+      plot.margin      = ggplot2::margin(8, 12, 8, 8))
 }
 
-set_paper_style <- function(base_size = NULL, legend = TRUE, variant = "screen", config = NULL) {
+set_paper_style <- function(...) {
   ## Cross-language alias of project_theme() (the Python-side canonical name). Present so a parity
-  ## grep finds `set_paper_style` in BOTH files. Returns the same ggplot2 theme object.
-  project_theme(base_size = base_size, legend = legend, variant = variant, config = config)
+  ## grep finds `set_paper_style` in BOTH files. Returns the same ggplot2 theme object. Forwards
+  ## every argument (including the accepted-but-ignored `variant`).
+  project_theme(...)
 }
 
 ## =====================================================================================
-## 2b. Per-variant font floors — the legibility contract (clamp up, warn; never silently shrink)
+## 3. EXPORT — ONE plot -> <name>.pdf + <name>.png, ONE geometry, ONE theme.
+##    `variant` accepted but IGNORED (drop-in compat). `name` may carry a subdir (e.g.
+##    "Hallmark/dotplot"); the subdir is created. Output dir resolved via .resolve_fig_dir()
+##    (contrast_path/overview_path/the plain stage figures dir). NEVER re-themes — the CALLER owns
+##    ALL theming (project_theme() is a COMPLETE theme; re-applying it would clobber per-figure
+##    tweaks the caller added afterwards). `void = TRUE` strips axis chrome + grid AFTER theming.
 ## =====================================================================================
-.variant_base_floor <- function(variant, config) {
-  if (identical(variant, "print")) as.numeric(.fig_get(config, "base_size_column"))
-  else                             as.numeric(.fig_get(config, "base_size"))
+## Borderless-panel override layer: strips axis chrome + panel grid so a network graph / centred
+## info panel does not leak 0–1 axes, literal x/y axis titles, and a grid. Applied only when
+## save_figure(..., void = TRUE) is requested. Lazy ggplot2 (only reached from inside save_figure,
+## which already guards the namespace).
+.void_overlay <- function() {
+  ggplot2::theme(
+    axis.title   = ggplot2::element_blank(),
+    axis.text    = ggplot2::element_blank(),
+    axis.ticks   = ggplot2::element_blank(),
+    axis.line    = ggplot2::element_blank(),
+    panel.grid   = ggplot2::element_blank(),
+    ## borderless-panel presentation (centred title, left-flush caption with headroom).
+    plot.title   = ggplot2::element_text(hjust = 0.5, face = "bold", lineheight = 1.1),
+    plot.caption = ggplot2::element_text(hjust = 0, margin = ggplot2::margin(t = 5)),
+    plot.margin  = ggplot2::unit(c(0.4, 0.6, 0.7, 0.8), "cm"))
 }
 
-.enforce_floor <- function(value, floor, what, variant) {
-  ## Clamp `value` up to `floor` if below it, warning. Legibility is never silently lost.
-  value <- as.numeric(value)
-  if (value < floor) {
-    warning(sprintf("[figure-style] %s=%g below %s floor %g; clamping up to %g (legibility contract).",
-                    what, value, variant, floor, floor), call. = FALSE)
-    return(floor)
-  }
-  value
+.fig_geom <- function(config, width, height, wide) {
+  ## c(width, height) inches for the ONE shared canvas. `wide` selects width_wide; per-call
+  ## width/height override. Default 8.5 x 6.5.
+  f <- .figures(config)
+  w <- as.numeric(width  %||% (if (isTRUE(wide)) (f$width_wide %||% 13) else (f$width %||% 8.5)))
+  h <- as.numeric(height %||% (f$height %||% 6.5))
+  c(w, h)
 }
 
-.variant_geometry <- function(variant, config) {
-  ## c(width, height) inches for a variant: width/height (screen) / *_column (print).
-  if (identical(variant, "print"))
-    c(as.numeric(.fig_get(config, "width_column")), as.numeric(.fig_get(config, "height_column")))
-  else
-    c(as.numeric(.fig_get(config, "width")), as.numeric(.fig_get(config, "height")))
+.purge_stem <- function(out_dir, stem) {
+  ## Delete every same-stem <stem>.{png,pdf} (incl. stale .screen/.print dual-variant leftovers)
+  ## under out_dir so a fresh write owns its namespace. Base R only (no plotting backend).
+  if (!dir.exists(out_dir)) return(invisible(0L))
+  all <- list.files(out_dir, full.names = FALSE)
+  hit <- startsWith(all, paste0(stem, ".")) &
+         (endsWith(all, ".png") | endsWith(all, ".pdf"))
+  if (any(hit)) file.remove(file.path(out_dir, all[hit]))
+  invisible(sum(hit))
 }
 
-.normalize_variants <- function(variant, config) {
-  vs <- if (identical(variant, "both")) (.fig_get(config, "variants") %||% c("print", "screen"))
-        else variant
-  vs <- as.character(unlist(vs))
-  bad <- setdiff(vs, c("print", "screen"))
-  if (length(bad)) stop(sprintf("variant must be print/screen/both, got %s", paste(bad, collapse = ",")))
-  vs
-}
-
-## =====================================================================================
-## 3. EXPORT — one plot object, two variant artifacts, from ONE config-driven code path
-## =====================================================================================
-save_figure <- function(plot, stage, name, variant = "both", contrast = NULL,
-                        overview = FALSE, config = NULL) {
-  ## Render ONE ggplot object to dual variants from one call (LAZY ggplot2/cairo load).
-  ##   print  -> <stem>.print.pdf  : vector PDF via cairo_pdf, column geometry
-  ##             (width_column x height_column), print font tier (base_size_column) so Unicode
-  ##             glyphs render and text stays editable.
-  ##   screen -> <stem>.screen.png : raster PNG @ dpi, screen geometry (width x height),
-  ##             screen font tier (base_size).
-  ## variant in {print, screen, both}. Output dir resolved via contrast_path()/overview_path()/
-  ## the plain stage figures dir. Stale <name>*.{png,pdf} are purged first so the run owns its
-  ## namespace. The SAME plot object is re-themed + re-sized per variant -> both files from one plot.
-  ## Returns a named list (variant -> filepath).
+save_figure <- function(plot, stage, name, variant = NULL, contrast = NULL,
+                        overview = FALSE, config = NULL,
+                        width = NULL, height = NULL, wide = FALSE, void = FALSE) {
+  ## Render ONE plot object to BOTH formats from one call (LAZY ggplot2/cairo load):
+  ##   <name>.pdf  — vector PDF via cairo_pdf (editable, Unicode direction glyphs render)
+  ##   <name>.png  — raster PNG @ dpi
+  ## Same geometry + same theme for both — NO .print/.screen suffix. `variant` is accepted for
+  ## drop-in compat with old call sites but has NO effect. Output dir resolved via
+  ## .resolve_fig_dir(); `name` may carry a subdir which is created. Stale same-stem files are
+  ## purged first. void = TRUE strips axis chrome + grid AFTER theming (ggraph networks / info
+  ## panels) WITHOUT a raw theme() in the caller. Returns a named list (format -> filepath).
   if (!requireNamespace("ggplot2", quietly = TRUE))
     stop("save_figure() needs ggplot2 to render. On a backend-less box call the path/caption/",
          "table helpers instead, which need no plotting backend.")
-  variants <- .normalize_variants(variant, config)
-  out_dir  <- .resolve_fig_dir(stage, contrast, overview, config)
-  purge_figures(stage, name, contrast = contrast, overview = overview, config = config)
+  cfg <- config
+  f   <- .figures(cfg)
+  geo <- .fig_geom(cfg, width, height, wide)
 
-  f <- .figures(config)
+  base_dir <- .resolve_fig_dir(stage, contrast, overview, cfg)
+  sub  <- dirname(name); stem <- basename(name)
+  out_dir <- if (identical(sub, ".")) base_dir else file.path(base_dir, sub)
+  dir.create(out_dir, recursive = TRUE, showWarnings = FALSE)
+  .purge_stem(out_dir, stem)
+
+  ## Theming is entirely the CALLER's job (every viz call site already adds
+  ## project_theme()/style_series()). save_figure must NOT re-theme: project_theme is a COMPLETE
+  ## theme (theme_minimal base), so a second application RESETS every element the caller set AFTER
+  ## their own project_theme() — plot.tag.position, legend.position="bottom", axis.text.x angle,
+  ## style_series's legend pin — silently clobbering per-figure tweaks. The exporter only writes.
+  styled <- plot
+  if (isTRUE(void)) styled <- styled + .void_overlay()
+
   written <- list()
-  for (v in variants) {
-    ext   <- if (identical(v, "print")) "pdf" else "png"
-    out   <- file.path(out_dir, sprintf("%s.%s.%s", name, v, ext))
-    geom  <- .variant_geometry(v, config)
-    ## Re-theme the SAME plot object with this variant's font tier.
-    styled <- tryCatch(plot + project_theme(variant = v, config = config),
-                       error = function(e) plot)
-    ## cairo_pdf for the print/PDF variant so Unicode direction glyphs (arrows, Delta) render;
-    ## the default pdf() device substitutes "." for them. device = NULL lets ggsave infer for png.
-    dev <- if (identical(v, "print") && isTRUE(capabilities()[["cairo"]]))
+  for (ext in c("pdf", "png")) {
+    out <- file.path(out_dir, paste0(stem, ".", ext))
+    dev <- if (identical(ext, "pdf") && isTRUE(capabilities()[["cairo"]]))
              grDevices::cairo_pdf else NULL
-    ggplot2::ggsave(out, styled, width = geom[1], height = geom[2],
-                    dpi = as.numeric(f$dpi), device = dev)
-    written[[v]] <- out
-    message(sprintf("  [figure-style] save_figure: %s (%gx%gin, base>= %gpt)",
-                    basename(out), geom[1], geom[2], .variant_base_floor(v, config)))
+    ggplot2::ggsave(out, styled, width = geo[1], height = geo[2],
+                    dpi = as.numeric(f$dpi %||% 300), device = dev)
+    written[[ext]] <- out
   }
+  message(sprintf("  [figure-style] save_figure: %s.{pdf,png} (%gx%gin)", stem, geo[1], geo[2]))
   invisible(written)
 }
 
 ## =====================================================================================
-## 3b. SERIES POST-STYLER — fix axis/legend for cross-panel comparability (was style_running_sum)
+## 3b. SERIES POST-STYLER — alignment-safe running-sum normalizer (was style_running_sum).
+##    The toolkit gsea_running_sum_plot() owns panel construction AND alignment; it returns a
+##    patchwork carrying a `grs_restyle` closure (the clean extension interface). We re-skin the
+##    running-sum via NAMED knobs — ES y clamped to `ylim`, a SINGLE legend collected OUTSIDE on
+##    the right + TOP-justified, x ticks ONLY on the bottom panel, hidden rug y-index labels,
+##    project panel_heights, and project_theme as the base — WITHOUT ever indexing styled[[i]] (the
+##    old desync-prone path). Non-closure + non-patchwork fallbacks are retained.
 ## =====================================================================================
 style_series <- function(plot, ylim = NULL, config = NULL) {
-  ## Pin a shared y-range + a fixed inside legend so a SERIES of figures stays comparable.
-  ## Ported from 14839's style_running_sum: across a family of figures (e.g. one running-sum per
-  ## database) a name-length-dependent outside legend silently resizes the plotting panel, so the
-  ## curves stop being comparable. This clamps the y-axis to a fixed range via coord_cartesian
-  ## (zoom, never drops data) and pins the legend INSIDE (zero layout width) so every figure in
-  ## the series has identical panel proportions. `ylim` defaults to a symmetric clamp from config
-  ## (z_clamp) when not given. LAZY ggplot2 load. Returns the styled plot.
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("style_series() needs ggplot2.")
-  if (is.null(ylim)) {
-    z <- .fig_get(config, "z_clamp")
-    if (!is.null(z)) ylim <- c(-as.numeric(z), as.numeric(z))
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("style_series() needs ggplot2.")
+  f    <- .figures(config)
+  ylim <- as.numeric(unlist(ylim %||% (f$running_sum_ylim %||% c(-1, 1))))
+  stopifnot(length(ylim) == 2, all(is.finite(ylim)))
+  ph <- as.numeric(unlist(f$running_sum_heights %||% c(2.4, 0.7, 0.9)))
+
+  ## Clean toolkit interface: re-skin via the attached composer closure (no indexing).
+  restyle <- attr(plot, "grs_restyle")
+  if (is.function(restyle)) {
+    styled <- restyle(
+      es_ylim         = ylim,                          # clamp ES y for comparability
+      legend_position = "right",                       # ONE legend, outside-right
+      xticks          = "bottom",                      # x ticks only on the bottom panel
+      rug_ylabels     = FALSE,                          # hide rug y-index labels
+      panel_heights   = ph,                             # ES : rug : metric proportions
+      base_theme      = project_theme(config = config)) # project base; chrome re-asserted on top
+    ## Top-align the collected outside-right legend so it sits at the level of the
+    ## top (ES) panel rather than vertically centred across all three panels.
+    return(styled & ggplot2::theme(
+      legend.justification.right = "top",
+      legend.justification       = "top"))
   }
-  styled <- tryCatch(plot + project_theme(config = config), error = function(e) plot)
-  if (!is.null(ylim)) {
-    ylim <- as.numeric(unlist(ylim))
-    stopifnot(length(ylim) == 2, all(is.finite(ylim)))
-    styled <- styled + ggplot2::coord_cartesian(ylim = ylim)
+
+  if (!inherits(plot, "patchwork")) {
+    ## non-patchwork series figure: simple shared-y + inside legend
+    styled <- tryCatch(plot + project_theme(config = config), error = function(e) plot)
+    return(styled + ggplot2::coord_cartesian(ylim = ylim) +
+             ggplot2::theme(legend.position = "inside",
+                            legend.position.inside = c(0.98, 0.98),
+                            legend.justification = c(1, 1),
+                            legend.background = ggplot2::element_rect(fill = "white", colour = "grey90")))
   }
-  styled <- styled + ggplot2::theme(
-    legend.position        = "inside",
-    legend.position.inside = c(0.98, 0.98),
-    legend.justification   = c(1, 1),
-    legend.background      = ggplot2::element_rect(fill = "white", colour = "grey90"))
-  styled
+
+  ## Fallback: a patchwork WITHOUT the toolkit closure (e.g. a non-toolkit series figure). Theme +
+  ## collect a single right legend at the figure level via `&` (no panel indexing). We deliberately
+  ## do NOT clamp y here — a global `&` ylim would wrongly squash the rug/metric panels; ES clamping
+  ## is the toolkit's job.
+  styled <- tryCatch(plot & project_theme(config = config), error = function(e) plot)
+  styled <- tryCatch(styled + patchwork::plot_layout(heights = ph, guides = "collect"),
+                     error = function(e) styled)
+  styled & ggplot2::theme(
+    legend.position      = "right",
+    legend.key.spacing.y = ggplot2::unit(3, "pt"),
+    legend.background    = ggplot2::element_rect(fill = "white", colour = "grey90"),
+    legend.key.size      = ggplot2::unit(0.8, "lines"))
 }
+## Canonical name for the same operation (so a viz script can call either).
+style_running_sum <- function(plot, ylim = NULL, config = NULL) style_series(plot, ylim = ylim, config = config)
 
 ## =====================================================================================
 ## 4. PURGE — delete stale figures before a fresh write so a run OWNS its figure namespace
@@ -361,38 +423,37 @@ write_caption <- function(stage, filename, finding, script, fn, config_kv, input
 ## 6. OVERVIEW — the ATOMIC adjacency mechanism: figure + sibling table + caption in ONE call
 ## =====================================================================================
 save_overview <- function(plot, stage, name, table, finding, script, fn, config_kv, input,
-                          how_to_read, contrast = NULL, config = NULL) {
+                          how_to_read, contrast = NULL, config = NULL,
+                          width = NULL, height = NULL, wide = FALSE, void = FALSE) {
   ## Write a figure AND its same-stem source table AND its README caption in one call. The only
   ## sanctioned path for an overview/by-contrast figure: you cannot make the figure without its
   ## neighbor table + caption (source-table-adjacency + README-adjacency contracts, enforced
   ## mechanically). Writes:
-  ##   figures/_overview/<name>.<variant>.<ext>   (via save_figure; or by_contrast/<c>/ if contrast)
-  ##   tables/_overview/<name>.csv                 (data behind the figure; round_numeric_cols)
-  ##   03_results/<stage>/README.md caption        (via write_caption, path-qualified, idempotent)
+  ##   figures/_overview/<name>.{pdf,png}   (via save_figure; or by_contrast/<c>/ if contrast)
+  ##   tables/_overview/<name>.csv          (data behind the figure; round_numeric_cols)
+  ##   03_results/<stage>/README.md caption (via write_caption, keyed on <name>.png, idempotent)
   ## Returns list(figures = <named list>, table = <path>, readme = <path>).
   overview <- is.null(contrast)
-  figs <- save_figure(plot, stage, name, variant = "both", contrast = contrast,
-                      overview = overview, config = config)
-
+  figs <- save_figure(plot, stage, name, contrast = contrast, overview = overview,
+                      config = config, width = width, height = height, wide = wide, void = void)
+  bcd <- .fig_get(config, "by_contrast_dir")
+  ovd <- .fig_get(config, "overview_dir")
   if (!is.null(contrast)) {
     tdir    <- contrast_path(stage, contrast, "tables", config)
-    rel_sub <- file.path("tables", .fig_get(config, "by_contrast_dir"), contrast)
-    fig_rel <- file.path("figures", .fig_get(config, "by_contrast_dir"), contrast,
-                         sprintf("%s.screen.png", name))
+    rel_sub <- file.path("tables", bcd, contrast)
+    fig_rel <- file.path("figures", bcd, contrast, sprintf("%s.png", name))
   } else {
     tdir    <- overview_path(stage, "tables", config)
-    rel_sub <- file.path("tables", .fig_get(config, "overview_dir"))
-    fig_rel <- file.path("figures", .fig_get(config, "overview_dir"),
-                         sprintf("%s.screen.png", name))
+    rel_sub <- file.path("tables", ovd)
+    fig_rel <- file.path("figures", ovd, sprintf("%s.png", name))
   }
-  table_path <- file.path(tdir, sprintf("%s.csv", name))
+  table_path <- file.path(tdir, sprintf("%s.csv", basename(name)))
   if (!is.null(table)) utils::write.csv(round_numeric_cols(table), table_path, row.names = FALSE)
-
   readme <- write_caption(stage, fig_rel, finding = finding, script = script, fn = fn,
                           config_kv = config_kv, input = input, how_to_read = how_to_read,
                           config = config)
   message(sprintf("  [figure-style] save_overview: figure + %s/%s.csv + README caption",
-                  rel_sub, name))
+                  rel_sub, basename(name)))
   invisible(list(figures = figs, table = table_path, readme = readme))
 }
 
@@ -454,6 +515,27 @@ direction_cue <- function(value) {
   if (is.na(v)) return("· n/a")
   if (!is.finite(v) || v == 0) return("· n.s.")
   if (v > 0) "↑ up" else "↓ down"
+}
+
+## =====================================================================================
+## 10. PALETTE — Okabe-Ito colorblind-safe scales sourced from `colors.okabe_ito` (semantic keys).
+##     Fall back to the canonical 8-colour Okabe-Ito palette when the config carries no colors.
+## =====================================================================================
+.OKABE_ITO_DEFAULT <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442",
+                        "#0072B2", "#D55E00", "#CC79A7", "#000000")
+
+.okabe <- function(config = NULL) {
+  oi <- (config %||% list())$colors$okabe_ito %||% list()
+  vals <- unname(unlist(oi))
+  if (length(vals) == 0) .OKABE_ITO_DEFAULT else vals
+}
+scale_color_okabe <- function(..., config = NULL) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("scale_color_okabe() needs ggplot2.")
+  ggplot2::scale_color_manual(values = .okabe(config), ...)
+}
+scale_fill_okabe <- function(..., config = NULL) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) stop("scale_fill_okabe() needs ggplot2.")
+  ggplot2::scale_fill_manual(values = .okabe(config), ...)
 }
 
 ## =====================================================================================

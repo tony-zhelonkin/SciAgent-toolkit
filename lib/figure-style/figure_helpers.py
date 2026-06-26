@@ -7,13 +7,19 @@ has FUNCTION PARITY — identical public names, equivalent semantics — and bot
 `analysis_config.yaml:figures` block. Centralizing styling here is the load-bearing capability
 behind the owner's #1 recurring pain point (figure legibility) and #2 (results placement).
 
+UNIFIED single-variant, dual-FORMAT contract: set_paper_style() applies ONE legible tier; save_figure
+emits `<name>.pdf` + `<name>.png` (NO .print/.screen suffix); `variant` is accepted but IGNORED on
+set_paper_style/project_theme/save_figure (drop-in compat with old call sites).
+
 Config keys read (from `analysis_config.yaml:figures`):
-  base_size, title_size, axis_title_size, axis_text_size, strip_size, legend_text_size,
-  label_size, line_width, point_size, base_size_column, width, height, width_column,
-  height_column, dpi, top_n, volcano_label_top, z_clamp, nes_cap, caption_wrap_column,
-  variants, by_contrast_dir, overview_dir
+  base_size, title_size, subtitle_size, axis_title_size, axis_text_size, strip_size,
+  legend_text_size, caption_size, label_size, cue_size, line_width, point_size,
+  width, height, width_wide, width_narrow, dpi, formats, top_n, volcano_label_top,
+  z_clamp, nes_cap, running_sum_ylim, running_sum_top, running_sum_heights,
+  caption_wrap_column, by_contrast_dir, overview_dir
 Plus, from elsewhere in the config: `paths.results` (results root), `paths.master`
-(master-table root), `paths.stage_tables_subdir` / `paths.stage_figures_subdir`.
+(master-table root), `paths.stage_tables_subdir` / `paths.stage_figures_subdir`, and
+`colors.okabe_ito` (the categorical palette, via okabe_palette()).
 
 LAZY HEAVY-IMPORT DESIGN (important — read before editing):
   This module MUST import cleanly with ONLY the Python standard library + pyyaml. Bare analysis
@@ -48,35 +54,45 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 import yaml  # stdlib-adjacent (pyyaml); the ONLY non-stdlib top-level import allowed here.
 
 # ---------------------------------------------------------------------------------------------
-# Per-variant defaults mirroring the shipped analysis_config.yaml:figures block. These are the
-# fallback FLOORS used only when a key is absent from the project config; the project config is
+# Unified single-tier defaults mirroring the shipped analysis_config.yaml:figures block. These are
+# the fallback FLOORS used only when a key is absent from the project config; the project config is
 # authoritative. Keep in sync with the R file's `.FIG_DEFAULTS` and the config template.
 # ---------------------------------------------------------------------------------------------
 _FIG_DEFAULTS: Dict[str, Any] = {
-    "base_size": 16,
-    "title_size": 18,
-    "axis_title_size": 15,
-    "axis_text_size": 13,
-    "strip_size": 14,
-    "legend_text_size": 13,
-    "label_size": 5,
-    "line_width": 0.8,
-    "point_size": 2.0,
-    "base_size_column": 9,
-    "width": 10,
-    "height": 8,
-    "width_column": 3.5,
-    "height_column": 3.0,
+    "base_size": 14,
+    "title_size": 16,
+    "subtitle_size": 11,
+    "axis_title_size": 13,
+    "axis_text_size": 11,
+    "strip_size": 12,
+    "legend_text_size": 11,
+    "caption_size": 9,
+    "label_size": 4,
+    "cue_size": 4,
+    "line_width": 1.0,
+    "point_size": 2.4,
+    "width": 8.5,
+    "height": 6.5,
+    "width_wide": 13,
+    "width_narrow": 6,
     "dpi": 300,
+    "formats": ["pdf", "png"],
     "top_n": 20,
     "volcano_label_top": 10,
     "z_clamp": 2.5,
     "nes_cap": 3.5,
+    "running_sum_ylim": [-1.0, 1.0],
+    "running_sum_top": 5,
+    "running_sum_heights": [2.4, 0.7, 0.9],
     "caption_wrap_column": 70,
-    "variants": ["print", "screen"],
     "by_contrast_dir": "by_contrast",
     "overview_dir": "_overview",
 }
+
+# Canonical 8-colour Okabe-Ito colorblind-safe palette (fallback when config carries no colors).
+_OKABE_ITO_DEFAULT: List[str] = [
+    "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7", "#000000",
+]
 
 # Default location of the project config, relative to the project root.
 _DEFAULT_CONFIG_PATH = "02_analysis/config/analysis_config.yaml"
@@ -177,20 +193,19 @@ def _resolve_fig_dir(stage: str, contrast: Optional[str], overview: bool,
 
 
 # =============================================================================================
-# 2. THEME — the SINGLE style entry point. set_paper_style() is the Python canonical name;
-#    project_theme() is the thin same-named alias so a cross-language parity grep finds BOTH
-#    contract names in this file (and the R file likewise defines both).
+# 2. THEME — the SINGLE style entry point (one unified, legible tier; no print/screen variant).
+#    set_paper_style() is the Python canonical name; project_theme() is the thin same-named alias
+#    so a cross-language parity grep finds BOTH contract names in this file (and the R file likewise
+#    defines both). `variant` is accepted but IGNORED (drop-in compat with old call sites).
 # =============================================================================================
-def set_paper_style(base_size: Optional[float] = None, variant: str = "screen",
+def set_paper_style(base_size: Optional[float] = None, variant: Optional[str] = None,
                     config: Optional[Dict[str, Any]] = None) -> None:
-    """Apply matplotlib rcParams from the `figures:` config (LAZY matplotlib import).
+    """Apply ONE legible set of matplotlib rcParams from the `figures:` config (LAZY matplotlib).
 
-    Bold axis titles, no top/right spines, Illustrator-editable text (`pdf.fonttype=42`). Sizes
-    come from the config's per-variant font tier (`base_size` for screen, `base_size_column` for
-    print) and are enforced as FLOORS (clamped up + warned if a passed `base_size` is below).
-    Call ONCE near the top of a viz script. Raises a clear ImportError if matplotlib is absent.
-
-    `variant` ∈ {"screen", "print"} selects which font-tier floor governs.
+    Bold title/strip, PLAIN (non-bold) axis titles, no top/right spines, Illustrator-editable text
+    (`pdf.fonttype=42`). There is no per-variant tier — the sizes are legible BOTH shrunk to a
+    journal column AND projected to a room. Call ONCE near the top of a viz script. Raises a clear
+    ImportError if matplotlib is absent. `variant` is accepted for drop-in compat but IGNORED.
     """
     try:
         import matplotlib
@@ -202,9 +217,8 @@ def set_paper_style(base_size: Optional[float] = None, variant: str = "screen",
             "call only the path/caption/table helpers (which need no backend)."
         ) from exc
 
-    floor = float(_variant_base_floor(variant, config))
-    bs = _enforce_floor(base_size if base_size is not None else floor, floor, "base_size", variant)
     f = _figures(config)
+    bs = float(base_size if base_size is not None else f["base_size"])
     plt.rcParams.update({
         "figure.dpi": 100,                                  # on-screen; save dpi set in save_figure
         "savefig.dpi": float(f["dpi"]),
@@ -212,7 +226,7 @@ def set_paper_style(base_size: Optional[float] = None, variant: str = "screen",
         "axes.titlesize": float(f["title_size"]),
         "axes.titleweight": "bold",
         "axes.labelsize": float(f["axis_title_size"]),
-        "axes.labelweight": "bold",                          # bold axis titles (contract)
+        "axes.labelweight": "normal",                        # plain axis titles (unified contract)
         "xtick.labelsize": float(f["axis_text_size"]),
         "ytick.labelsize": float(f["axis_text_size"]),
         "legend.fontsize": float(f["legend_text_size"]),
@@ -228,62 +242,56 @@ def set_paper_style(base_size: Optional[float] = None, variant: str = "screen",
 
 
 def project_theme(base_size: Optional[float] = None, legend: bool = True,
-                  variant: str = "screen", config: Optional[Dict[str, Any]] = None) -> None:
+                  variant: Optional[str] = None, config: Optional[Dict[str, Any]] = None) -> None:
     """Cross-language alias of set_paper_style() (the R-side canonical name).
 
     Present so a parity grep finds `project_theme` in BOTH files. `legend` is accepted for R
-    signature parity (matplotlib legends are placed per-axes, so it is a no-op here).
+    signature parity (matplotlib legends are placed per-axes, so it is a no-op here); `variant`
+    is accepted for drop-in compat but IGNORED.
     """
     set_paper_style(base_size=base_size, variant=variant, config=config)
 
 
 # =============================================================================================
-# 2b. Per-variant font floors — the legibility contract (clamp up, warn; never silently shrink)
+# 2b. Geometry — the ONE shared canvas (no per-variant tier). `wide`/per-call override supported.
 # =============================================================================================
-def _variant_base_floor(variant: str, config: Optional[Dict[str, Any]]) -> float:
-    """The base-font FLOOR for a variant: base_size (screen) / base_size_column (print)."""
-    if variant == "print":
-        return float(_fig_get(config, "base_size_column"))
-    return float(_fig_get(config, "base_size"))
+def _fig_geometry(config: Optional[Dict[str, Any]], width: Optional[float] = None,
+                  height: Optional[float] = None, wide: bool = False) -> "tuple[float, float]":
+    """(width, height) inches for the ONE shared canvas. `wide` selects width_wide; per-call
+    width/height override. Default 8.5 x 6.5."""
+    f = _figures(config)
+    w = float(width) if width is not None else float(f["width_wide"] if wide else f["width"])
+    h = float(height) if height is not None else float(f["height"])
+    return w, h
 
 
-def _enforce_floor(value: float, floor: float, what: str, variant: str) -> float:
-    """Clamp `value` up to `floor` if below it, printing a warning. Legibility never silently lost."""
-    value = float(value)
-    if value < floor:
-        print(f"  [figure-style] WARNING — {what}={value:g} below {variant} floor {floor:g}; "
-              f"clamping up to {floor:g} (legibility contract).")
-        return floor
-    return value
-
-
-def _variant_geometry(variant: str, config: Optional[Dict[str, Any]]) -> "tuple[float, float]":
-    """(width, height) inches for a variant: width/height (screen) / *_column (print)."""
-    if variant == "print":
-        return float(_fig_get(config, "width_column")), float(_fig_get(config, "height_column"))
-    return float(_fig_get(config, "width")), float(_fig_get(config, "height"))
+def okabe_palette(config: Optional[Dict[str, Any]] = None) -> List[str]:
+    """Return the Okabe-Ito colorblind-safe palette from `colors.okabe_ito` (config) or the
+    canonical 8-colour default. The matplotlib analog of the R `scale_color_okabe`/`scale_fill_okabe`
+    helpers (matplotlib has no scale objects, so a viz script passes this list to `color=`/`cmap`)."""
+    colors = ((config or {}).get("colors", {}) or {}).get("okabe_ito", {}) or {}
+    vals = list(colors.values()) if isinstance(colors, dict) else list(colors)
+    return vals if vals else list(_OKABE_ITO_DEFAULT)
 
 
 # =============================================================================================
-# 3. EXPORT — one plot object, two variant artifacts, from ONE config-driven code path
+# 3. EXPORT — one plot object -> <name>.pdf + <name>.png, ONE geometry, ONE config-driven path
 # =============================================================================================
-def save_figure(plot: Any, stage: str, name: str, variant: str = "both",
+def save_figure(plot: Any, stage: str, name: str, variant: Optional[str] = None,
                 contrast: Optional[str] = None, overview: bool = False,
-                config: Optional[Dict[str, Any]] = None) -> Dict[str, Path]:
-    """Render ONE matplotlib Figure to dual variants from one call (LAZY matplotlib import).
+                config: Optional[Dict[str, Any]] = None, width: Optional[float] = None,
+                height: Optional[float] = None, wide: bool = False) -> Dict[str, Path]:
+    """Render ONE matplotlib Figure to BOTH formats from one call (LAZY matplotlib import):
+      `<name>.pdf`  — vector PDF, `pdf.fonttype=42` so text stays Illustrator-editable; dense
+                      `rasterized=True` layers stay raster while text/axes vectorize.
+      `<name>.png`  — raster PNG @ dpi.
+    Same geometry + same style for both — NO .print/.screen suffix. `variant` is accepted for
+    drop-in compat with old call sites but has NO effect. The output dir is resolved via
+    contrast_path() (if `contrast`) / overview_path() (if `overview`) / the plain stage figures
+    dir. `name` may carry a subdir (e.g. "Hallmark/dotplot"), which is created. Stale same-stem
+    `<name>.{png,pdf}` are purged first so the run owns its namespace.
 
-    Variants (default "both"):
-      print  → `<stem>.print.pdf`  — vector PDF, column geometry (width_column x height_column),
-               print font tier (base_size_column), `pdf.fonttype=42` so text stays Illustrator-
-               editable; any `rasterized=True` dense layers stay raster while text/axes vectorize.
-      screen → `<stem>.screen.png` — raster PNG @ dpi, screen geometry (width x height),
-               screen font tier (base_size).
-    `variant` ∈ {"print", "screen", "both"}. The output dir is resolved via contrast_path()
-    (if `contrast` given) / overview_path() (if `overview`) / the plain stage figures dir.
-    Stale `<name>*.{png,pdf}` are purged first so the run owns its namespace. The same plot
-    object is re-sized + re-styled per variant, so one figure yields both print and screen files.
-
-    Returns {variant: Path} of the files written.
+    Returns {format: Path} of the files written.
     """
     try:
         import matplotlib.pyplot as plt  # noqa: F401  (validates backend presence)
@@ -293,53 +301,42 @@ def save_figure(plot: Any, stage: str, name: str, variant: str = "both",
             "caption / table helpers instead, which need no plotting backend."
         ) from exc
 
-    variants = _normalize_variants(variant, config)
-    out_dir = _resolve_fig_dir(stage, contrast, overview, config)
-    purge_figures(stage, name, contrast=contrast, overview=overview, config=config)
+    base_dir = _resolve_fig_dir(stage, contrast, overview, config)
+    sub = Path(name).parent
+    stem = Path(name).name
+    out_dir = base_dir / sub if str(sub) != "." else base_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+    _purge_stem(out_dir, stem)
+
+    f = _figures(config)
+    w, h = _fig_geometry(config, width=width, height=height, wide=wide)
+    # ONE geometry applied to the SAME figure object; the caller owns all styling.
+    try:
+        plot.set_size_inches(w, h)
+    except AttributeError:
+        pass  # not a Figure with set_size_inches (e.g. a seaborn FacetGrid) — size via savefig
+    dpi = float(f["dpi"])
 
     written: Dict[str, Path] = {}
-    f = _figures(config)
-    for v in variants:
-        ext = "pdf" if v == "print" else "png"
-        out = out_dir / f"{name}.{v}.{ext}"
-        w, h = _variant_geometry(v, config)
-        floor = _variant_base_floor(v, config)
-        # Re-apply the per-variant font tier + geometry to the SAME figure object.
-        try:
-            plot.set_size_inches(w, h)
-        except AttributeError:
-            pass  # not a Figure with set_size_inches (e.g. a seaborn FacetGrid) — size via savefig
-        _apply_variant_fonts(plot, floor, v)
-        dpi = float(f["dpi"]) if v == "screen" else float(f.get("dpi", 300))
+    for ext in ("pdf", "png"):
+        out = out_dir / f"{stem}.{ext}"
         plot.savefig(out, dpi=dpi, bbox_inches="tight")
-        written[v] = out
-        print(f"  [figure-style] save_figure: {out.name} ({w:g}x{h:g}in, base>= {floor:g}pt)")
+        written[ext] = out
+    print(f"  [figure-style] save_figure: {stem}.{{pdf,png}} ({w:g}x{h:g}in)")
     return written
 
 
-def _normalize_variants(variant: str, config: Optional[Dict[str, Any]]) -> List[str]:
-    """Expand the `variant` arg to a concrete list; "both" => the config's `figures.variants`."""
-    if variant == "both":
-        vs = list(_fig_get(config, "variants") or ["print", "screen"])
-    else:
-        vs = [variant]
-    for v in vs:
-        if v not in ("print", "screen"):
-            raise ValueError(f"variant must be print/screen/both, got {v!r}")
-    return vs
-
-
-def _apply_variant_fonts(fig: Any, floor: float, variant: str) -> None:
-    """Bump every text artist on the figure up to the per-variant floor (legibility contract)."""
-    try:
-        for txt in fig.findobj(match=lambda o: hasattr(o, "get_fontsize")):
-            try:
-                if txt.get_fontsize() < floor:
-                    txt.set_fontsize(floor)
-            except (TypeError, ValueError):
-                continue
-    except Exception:  # pragma: no cover - defensive; never let font-bump break a save
-        pass
+def _purge_stem(out_dir: Path, stem: str) -> int:
+    """Delete every same-stem `<stem>.{png,pdf}` (incl. stale .screen/.print dual-variant
+    leftovers) under out_dir so a fresh write owns its namespace. Returns the count removed."""
+    n = 0
+    if out_dir.is_dir():
+        for fp in out_dir.iterdir():
+            nm = fp.name
+            if nm.startswith(f"{stem}.") and (nm.endswith(".png") or nm.endswith(".pdf")):
+                fp.unlink()
+                n += 1
+    return n
 
 
 # =============================================================================================
@@ -362,9 +359,13 @@ def style_series(plot: Any, ylim: Optional[Sequence[float]] = None,
         raise ImportError("style_series() needs matplotlib.") from exc
 
     if ylim is None:
-        z = _fig_get(config, "z_clamp")
-        if z is not None:
-            ylim = (-float(z), float(z))
+        rs = _fig_get(config, "running_sum_ylim")
+        if rs is not None:
+            ylim = (float(rs[0]), float(rs[1]))
+        else:
+            z = _fig_get(config, "z_clamp")
+            if z is not None:
+                ylim = (-float(z), float(z))
     axes = getattr(plot, "axes", None) or []
     for ax in axes:
         if ylim is not None:
@@ -420,7 +421,7 @@ def write_caption(stage: str, filename: str, finding: str, script: str, fn: str,
     `figures.caption_wrap_column`. Needs NO plotting backend (stdlib only).
 
     `filename` should be the path-qualified artifact name relative to the stage dir, e.g.
-    "figures/_overview/gsea_hallmark_heatmap.screen.png".
+    "figures/_overview/gsea_hallmark_heatmap.png".
     """
     readme = _results_root(config) / stage / "README.md"
     readme.parent.mkdir(parents=True, exist_ok=True)
@@ -500,22 +501,23 @@ def _replace_section(text: str, heading: str, new_section: str) -> str:
 # =============================================================================================
 def save_overview(plot: Any, stage: str, name: str, table: Any, finding: str, script: str,
                   fn: str, config_kv: str, input: str, how_to_read: str,
-                  contrast: Optional[str] = None,
-                  config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+                  contrast: Optional[str] = None, config: Optional[Dict[str, Any]] = None,
+                  width: Optional[float] = None, height: Optional[float] = None,
+                  wide: bool = False) -> Dict[str, Any]:
     """Write a figure AND its same-stem source table AND its README caption in one call.
 
     This is the only sanctioned path for an overview/by-contrast figure: you cannot make the
     figure without its neighbor table + caption (the source-table-adjacency + README-adjacency
     contracts, enforced mechanically). Writes:
-      figures/_overview/<name>.<variant>.<ext>   (via save_figure; or by_contrast/<c>/ if contrast)
-      tables/_overview/<name>.csv                 (the data behind the figure; round_numeric_cols)
-      03_results/<stage>/README.md caption        (via write_caption, path-qualified, idempotent)
+      figures/_overview/<name>.{pdf,png}   (via save_figure; or by_contrast/<c>/ if contrast)
+      tables/_overview/<name>.csv          (the data behind the figure; round_numeric_cols)
+      03_results/<stage>/README.md caption (via write_caption, keyed on <name>.png, idempotent)
 
-    Returns {"figures": {variant: Path}, "table": Path, "readme": Path}.
+    Returns {"figures": {format: Path}, "table": Path, "readme": Path}.
     """
     overview = contrast is None
-    figs = save_figure(plot, stage, name, variant="both", contrast=contrast,
-                       overview=overview, config=config)
+    figs = save_figure(plot, stage, name, contrast=contrast, overview=overview,
+                       config=config, width=width, height=height, wide=wide)
 
     # Same-stem source table, adjacent under tables/<sub-layout>/.
     if contrast is not None:
@@ -524,19 +526,19 @@ def save_overview(plot: Any, stage: str, name: str, table: Any, finding: str, sc
     else:
         tdir = overview_path(stage, "tables", config)
         rel_sub = f"tables/{_fig_get(config, 'overview_dir')}"
-    table_path = tdir / f"{name}.csv"
+    table_path = tdir / f"{Path(name).name}.csv"
     if table is not None:
         _write_table_csv(round_numeric_cols(table), table_path)
 
-    # Path-qualified caption keyed on the SCREEN artifact (the representative deliverable).
+    # Path-qualified caption keyed on the PNG artifact (the representative deliverable).
     if contrast is not None:
-        fig_rel = f"figures/{_fig_get(config, 'by_contrast_dir')}/{contrast}/{name}.screen.png"
+        fig_rel = f"figures/{_fig_get(config, 'by_contrast_dir')}/{contrast}/{name}.png"
     else:
-        fig_rel = f"figures/{_fig_get(config, 'overview_dir')}/{name}.screen.png"
+        fig_rel = f"figures/{_fig_get(config, 'overview_dir')}/{name}.png"
     readme = write_caption(stage, fig_rel, finding=finding, script=script, fn=fn,
                            config_kv=config_kv, input=input, how_to_read=how_to_read,
                            config=config)
-    print(f"  [figure-style] save_overview: figure + {rel_sub}/{name}.csv + README caption")
+    print(f"  [figure-style] save_overview: figure + {rel_sub}/{Path(name).name}.csv + README caption")
     return {"figures": figs, "table": table_path, "readme": readme}
 
 
