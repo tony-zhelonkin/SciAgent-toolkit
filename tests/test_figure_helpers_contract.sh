@@ -54,14 +54,11 @@ cp "$PY_FILE" "$TMPDIR_TEST/figure_helpers.py"
 
 cat > "$TMPDIR_TEST/analysis_config.yaml" <<'EOF'
 figures:
-  base_size: 16
-  base_size_column: 9
+  base_size: 14
   caption_wrap_column: 70
   by_contrast_dir: "by_contrast"
   overview_dir: "_overview"
-  variants:
-    - print
-    - screen
+  formats: [pdf, png]
 stages:
   - id: "04_gsea"
 paths:
@@ -98,7 +95,7 @@ assert op.is_dir() and op.name == "_overview", f"overview_path wrong: {op}"
 assert cp.is_dir() and "by_contrast" in str(cp) and cp.name == "Treatment_vs_Control", f"contrast_path wrong: {cp}"
 
 # --- write_caption x2 same file: idempotent (ONE section) -------------------
-fname = "figures/_overview/gsea_hallmark_heatmap.screen.png"
+fname = "figures/_overview/gsea_hallmark_heatmap.png"
 for _ in range(2):
     rm = fh.write_caption(
         "04_gsea", fname,
@@ -114,11 +111,11 @@ assert "How to read" in txt, "caption missing 'How to read' section"
 assert "| Script | Function | Config | Input |" in txt, "caption missing Script/Function/Config/Input table"
 
 # a DIFFERENT file must not clobber the first
-fh.write_caption("04_gsea", "figures/_overview/other.screen.png", finding="Second artifact.",
+fh.write_caption("04_gsea", "figures/_overview/other.png", finding="Second artifact.",
                  script="s.py", fn="f", config_kv="k=v", input="i", how_to_read="hr", config=cfg)
 txt = rm.read_text()
 assert txt.count("## " + fname) == 1, "first caption lost after writing a second"
-assert txt.count("## figures/_overview/other.screen.png") == 1, "second caption missing"
+assert txt.count("## figures/_overview/other.png") == 1, "second caption missing"
 
 # --- append_master_table x2 same database: rows REPLACED not duplicated -----
 fh.append_master_table([{"pathway": "A", "nes": 1.5}, {"pathway": "B", "nes": -2.0}],

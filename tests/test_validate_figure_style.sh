@@ -43,12 +43,12 @@ cfg = load_figure_config()
 set_paper_style(config=cfg)
 save_overview(fig, "01_qc", "qc_counts", table=rows, config=cfg)
 PY
-    touch "$p/03_results/01_qc/figures/_overview/qc_counts.screen.png"
+    touch "$p/03_results/01_qc/figures/_overview/qc_counts.png"
     touch "$p/03_results/01_qc/tables/_overview/qc_counts.csv"
     cat > "$p/03_results/01_qc/README.md" <<'MD'
 # 01_qc — artifact captions
 
-## figures/_overview/qc_counts.screen.png
+## figures/_overview/qc_counts.png
 
 Counts per cell.
 
