@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Unified figure style: the figure-style contract drops the dual print/screen
+variant model in favor of ONE legible tier emitted in BOTH formats. Promoted
+from the in-project Wave-0 prototype that proved it across a full results tree.
+
+### Changed
+- **`lib/figure-style/figure_helpers.R` — unified single-variant, dual-format contract.** `project_theme()` is now ONE legible tier (no per-variant font floors; plain non-bold axis titles, bold title/legend-title/strip, right legend with inter-row air, `axis.line` 0.4, `plot.title.position` "plot", config-driven margins) read from the `figures:` block. `save_figure()` emits exactly `<name>.pdf` (cairo, Unicode glyphs) + `<name>.png` (no `.print`/`.screen` suffix), shares ONE geometry, purges stale same-stem files, and NEVER re-themes (the caller owns all theming); `name` may carry a subdir. `save_overview()` keys its README caption on `<name>.png`. `style_series()` is the alignment-safe running-sum normalizer (via the `grs_restyle` closure: ES-clamp, single top-justified right legend, bottom-only xticks, config `running_sum_heights`), with `style_running_sum` as an alias. The `variant` parameter is retained on `project_theme`/`set_paper_style`/`save_figure` but IGNORED (drop-in compat); `void=TRUE` borderless-panel behavior preserved.
+- **`lib/figure-style/figure_helpers.py` — contract parity.** `set_paper_style()`/`project_theme()` single tier (plain axis titles, `variant` accepted-but-ignored); `save_figure()` emits `<name>.pdf` + `<name>.png` (no suffix), one shared geometry (`wide`/`width`/`height` overrides), purges stale same-stem files; `save_overview()` keys the caption on `<name>.png`. Removed the per-variant font-bump/geometry/normalize helpers.
+- **`analysis_config.yaml:figures` template + `figure_style.{R,py}` shim templates** rewritten to the unified keys (`base_size` 14, `title_size`, `subtitle_size`, `axis_title_size`, `axis_text_size`, `strip_size`, `legend_text_size`, `caption_size`, `label_size`, `cue_size`, `line_width`, `point_size`, `width`/`height`, `width_wide`/`width_narrow`, `dpi`, `formats: [pdf, png]`, `top_n`, `running_sum_ylim`/`running_sum_top`/`running_sum_heights`, `nes_cap`, `caption_wrap_column`, sub-layout dirs). Dropped `base_size_column`/`width_column`/`height_column`/`variants`.
+- **`validate --check figure-style`** base-font floor lowered 16 → 14 to match the unified single tier (the new template default no longer trips the toolkit's own guardrail).
+- **`skills/figure-style/SKILL.md`** rewritten for the unified single-variant, dual-format style (removed `.print`/`.screen` language).
+- **`craft.yaml` (SCIAGENT:CRAFT single source)** — the always-on Figures craft standard rendered into every repo's `AGENTS.md` now states ONE legible tier: `figure_base_size` floor 16 → 14, the `figure_print_base_size` floor removed, and the body line reworded to "one legible tier, base >= 14pt; emit a vector PDF + raster PNG from one plot object" (no print/screen split). Propagated via `sciagent update`.
+- **Craft / contract prose swept to the unified model** — the `figure-audit` and `captions` agents, the `add-figure-variant` and `interpret-storm` commands, the plan + project `AGENTS.md` templates, `docs/guidelines/visualization.md`, and the `base` role comment now reference `<stem>.pdf` + `<stem>.png` (no `.print`/`.screen`), a single 14 pt tier, and `save_figure()`/`save_overview()` (dropped `save_figure(variant="both")`, `base_size_column`, dual-variant language).
+- **`tests/test_validate_figure_style.sh`** conformant fixture uses the unified `<name>.png` naming.
+
+### Added
+- **Okabe-Ito palette helpers**: `scale_color_okabe()`/`scale_fill_okabe()` (R) and `okabe_palette()` (Python), sourced from `colors.okabe_ito` with a canonical 8-colour fallback.
+
 ## [3.3.0] - 2026-06-24
 
 Skill lifecycle: a natural, judgment-driven path from `experimental` through
