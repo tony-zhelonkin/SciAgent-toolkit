@@ -43,6 +43,11 @@ skills:
   - iterative-peak-merging                     # Summit-preserving peak set construction
   - pycistopic-atac-topic-modeling             # ATAC topic modeling
 
+  # === Consensus Peak Atlas (peak-atlas-* family) ===
+  - peak-atlas-framework                       # Concept router: CALL->MERGE->FILTER->TIER->VALIDATE spine
+  - peak-atlas-multiome                        # Paired 10x Multiome consensus peak set
+  - peak-atlas-unpaired                        # Unpaired RNA+ATAC consensus peak set (identity transfer)
+
   # === Differential Accessibility & TF Activity ===
   - crescendo-scatac-cre-analysis              # Sub-peak CRE differential analysis
   - chromvar-motif-accessibility               # TF motif activity (bias-corrected deviations)

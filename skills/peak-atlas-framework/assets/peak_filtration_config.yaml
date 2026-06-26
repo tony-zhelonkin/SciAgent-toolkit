@@ -1,0 +1,95 @@
+# peak_filtration_config.yaml - parameterized template for the FILTER + VALIDATE stages
+#
+# Provenance:
+#   Adapted from /data2/users/JCRLab/JBader/JBader_scHFD/02_analysis/config/
+#     peak_filtration_config.yaml
+#   Project-specific genome/marker specifics are kept as EXAMPLES; replace
+#   rare_markers with your own panel and re-tune thresholds per dataset.
+#
+# These values drive scripts/support_voting.R + the rare-cell-type protection
+# described in references/rare-celltype-protection.md, and the gates in
+# checks/check_peak_atlas.R and checks/check_frip_retention.R.
+
+# ==============================================================================
+# Filtration strategy
+# ==============================================================================
+strategy:
+  name: "quantify_then_prune"
+  # First principle: chase FRiP and marker coverage, NOT a target peak count.
+  philosophy: "Don't chase a target count if it means losing biology. Chase FRiP and marker coverage; protect rare cell types."
+
+# ==============================================================================
+# Phase 1: metadata pre-filter (cheap, before any quantification)
+#   keep if n_strategies >= 2  OR  score > this percentile (singleton rescue)
+# ==============================================================================
+metadata_filter:
+  score_percentile: 0.85   # top-15% singletons survive; consensus (>=2 strategies) always survives
+
+# ==============================================================================
+# Phase 2: stratified cell sampling (protects rare types during quantification)
+#   cells_per_type = max(min_cells_per_type, sample_fraction * n_type)
+# ==============================================================================
+cell_sampling:
+  min_cells_per_type: 100  # floor per type so rare types are not sampled away
+  sample_fraction: 0.10    # abundant types contribute ~10%
+
+# ==============================================================================
+# Phase 3-4: sparsity filtering
+# ==============================================================================
+# Simple (v1) sparsity floor on the subsample - retained for reference.
+sparsity_filter:
+  min_cells_subsample: 3   # peak must be present in >3 cells in the subsample
+  projects_to_full: 20     # roughly ~20-50 cells in the full dataset
+
+# Primary + Rescue (v2) - the recommended adaptive scheme.
+sparsity_filter_v2:
+  strategy: "primary_rescue"
+  # PRIMARY: adaptive per-cluster threshold = max(floor, min(rate*n, cap)).
+  # Keep a peak if it clears the bar in ANY one cluster.
+  primary_filter:
+    min_cells_floor: 15    # absolute floor; rare types (e.g. HSC n=147 -> 15 cells = 10.2%)
+    prevalence_rate: 0.02  # 2% within-cluster prevalence for abundant types
+    max_cells_cap: 200     # cap so abundant types (e.g. Neutrophil n=4500 -> 90 cells) don't over-filter
+  # RESCUE: replicated rare biology near the threshold boundary.
+  rescue_mechanism:
+    require_n_strategies: 4 # must be full cross-strategy consensus
+    min_global_cells: 10    # and present in >= 10 cells globally
+
+# ==============================================================================
+# Parallelization (tune to your machine)
+# ==============================================================================
+parallel:
+  workers: 8
+  memory_gb: 32
+
+# ==============================================================================
+# Rare cell-type markers for VALIDATION (EXAMPLE panel - replace per dataset)
+# Promoter-peak retention of these is the marker_retention check.
+# ==============================================================================
+rare_markers:
+  pDC: [Tcf4, Irf8, Flt3, Siglech, Bst2]
+  HSC: [Procr, Hlf, Slamf1, Gata2, Meis1]
+  CyclingProg: [Mki67, Top2a, Pcna, Ccnb1]
+
+# ==============================================================================
+# Validation thresholds (see references/validation-battery.md)
+# ==============================================================================
+validation:
+  frip_retention_min: 0.90    # FAIL if filtered median FRiP < 0.90 of original
+  frip_retention_warning: 0.95
+  tss_enrichment_min: 1.0     # FLOOR only; TSS is invariant across peak sets
+  tss_enrichment_warning: 1.5 # 1.0-1.5 normal for complex tissue; >2 for cell lines
+  min_peaks_per_cell: 500     # median peaks per cell
+  marker_retention_min: 0.95  # rare-marker promoter-peak retention
+  frip_sample_size: 1000      # cells sampled for FRiP (speed)
+  tss_sample_size: 2000
+
+# ==============================================================================
+# Recovery options (use if standard filtering is too aggressive / permissive)
+# ==============================================================================
+recovery_options:
+  relaxed_min_cells: 3        # more permissive
+  strict_min_cells: 10        # more stringent
+  promoter_window:
+    upstream: 2000            # promoter = TSS -2000 / +500 for marker retention
+    downstream: 500
