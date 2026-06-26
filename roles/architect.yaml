@@ -74,7 +74,7 @@ commands:
   - design
   - architect       # standalone architect gate — re-run consistency/completeness review without re-entering /design
   - plan
-  - implement
+  - implement       # multi-agent, multi-pass implementation campaign driven by a SOLIDIFIED plan (continues /decompose)
   - verify          # mechanical drift check: plan + design vs current code (main-agent only; produces verify.md)
   - status          # one-page portfolio-state summary (main-agent only; read-only; <30s)
   - diagram         # feature-level diagram renderer: collects Mermaid from design artifacts into diagrams.md (main-agent; read-only; <10s)
@@ -90,3 +90,4 @@ commands:
   - meta-plan
   # === Universal addons ===
   - commit          # clean atomic commits with brief messages, no AI attribution
+  - decompose       # multi-agent, multi-pass planning campaign over large multi-artifact problems (planning only; precedes /plan|/implement)
