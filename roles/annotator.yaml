@@ -40,3 +40,5 @@ skills:
 # === Universal addons ===
 commands:
   - commit          # clean atomic commits with brief messages, no AI attribution
+  - decompose       # multi-agent, multi-pass planning campaign over large multi-artifact problems (planning only)
+  - implement       # multi-agent, multi-pass implementation campaign driven by a SOLIDIFIED plan (continues /decompose)
