@@ -63,8 +63,8 @@ grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 
 | Artifact | Path | Schema / description |
 |----------|------|----------------------|
-| <name> | `03_results/<stage_id>/figures/_overview/<stem>.print.pdf` | <what it shows> |
-| <name> | `03_results/<stage_id>/figures/_overview/<stem>.screen.png` | screen variant |
+| <name> | `03_results/<stage_id>/figures/_overview/<stem>.pdf` | <what it shows> (vector PDF) |
+| <name> | `03_results/<stage_id>/figures/_overview/<stem>.png` | raster PNG (same plot object) |
 | <name> | `03_results/<stage_id>/tables/_overview/<stem>.csv` | sidecar table, cols: <col1, col2, ...> |
 | <name> | `03_results/<stage_id>/README.md` | caption entry appended by `write_caption()` |
 
@@ -106,7 +106,7 @@ grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 
 **`03_results/<stage_id>/README.md`** — append one block per artifact:
 ```
-## figures/_overview/<stem>.print.pdf
+## figures/_overview/<stem>.png
 <Finding sentence: what the figure shows, not what it is. Lead with the scientific claim.>
 
 | Script | Function | Config | Input |
@@ -126,8 +126,8 @@ How to read: <axes, colour encoding, key glyph, what a reader should look for fi
 **Structural (the script RUNS and produces its declared artifacts):**
 ```bash
 # All declared output files exist:
-ls 03_results/<stage_id>/figures/_overview/<stem>.print.pdf
-ls 03_results/<stage_id>/figures/_overview/<stem>.screen.png
+ls 03_results/<stage_id>/figures/_overview/<stem>.pdf
+ls 03_results/<stage_id>/figures/_overview/<stem>.png
 ls 03_results/<stage_id>/tables/_overview/<stem>.csv
 
 # Test suite green:

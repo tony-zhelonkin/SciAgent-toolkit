@@ -153,7 +153,7 @@ Write/update caption sections in README.md. Each section MUST follow the canonic
 Every caption section in `03_results/<stage>/README.md` MUST follow this exact shape (matching what `write_caption`/`save_overview` produce):
 
 ```markdown
-## figures/_overview/<name>.screen.png
+## figures/_overview/<name>.png
 
 <One-sentence scientific finding stating what the figure shows.>
 
@@ -166,11 +166,11 @@ Every caption section in `03_results/<stage>/README.md` MUST follow this exact s
 
 **Path-qualified headings** are mandatory. The `## ` heading uses the artifact's path relative to the stage dir, not a bare filename:
 
-- Overview figures: `## figures/_overview/<name>.screen.png`
-- By-contrast figures: `## figures/by_contrast/<contrast>/<name>.screen.png`
+- Overview figures: `## figures/_overview/<name>.png`
+- By-contrast figures: `## figures/by_contrast/<contrast>/<name>.png`
 - Tables: `## tables/_overview/<name>.csv` or `## tables/by_contrast/<contrast>/<name>.csv`
 
-This ensures distinct sub-layout files never collide in the README (e.g., a file named `heatmap.screen.png` in `_overview/` and one in `by_contrast/ISD90/` get separate non-colliding sections).
+This ensures distinct sub-layout files never collide in the README (e.g., a file named `heatmap.png` in `_overview/` and one in `by_contrast/ISD90/` get separate non-colliding sections).
 
 **Re-running for the same artifact REPLACES that artifact's section in place (idempotent — never duplicate).** Match is exact on the heading line.
 
@@ -226,7 +226,7 @@ The stage README.md collects all artifact caption sections. On first creation, i
 ```markdown
 # <stage> — artifact captions
 
-## figures/_overview/<first_artifact>.screen.png
+## figures/_overview/<first_artifact>.png
 
 <finding>
 

@@ -1,6 +1,6 @@
 # Add Figure Variant
 
-Add a new figure family with its own grep-isolable namespace, strict compute→viz split, dual print+screen variants, and a gated PDF-open review. Opus designs the mini-plan and runs the review gate; Sonnet implements compute and viz; the acceptance gate runs `figure-audit` and verifies namespace isolation before the mandatory `captions` cleanup pass.
+Add a new figure family with its own grep-isolable namespace, strict compute→viz split, dual-format output (one vector PDF + one raster PNG per stem, from a single plot object), and a gated PDF-open review. Opus designs the mini-plan and runs the review gate; Sonnet implements compute and viz; the acceptance gate runs `figure-audit` and verifies namespace isolation before the mandatory `captions` cleanup pass.
 
 ## Phase 0: Parse arguments
 
@@ -85,7 +85,7 @@ Dispatch **one Opus planner**. The planner reads:
 
 1. `docs/_internal/research/{date}-{slug}/01_rationale.md` — the data contract and acceptance criteria.
 2. `02_analysis/config/analysis_config.yaml` — stage ids, `figures:` block (geometry, font floors, sub-layout names).
-3. `skills/figure-style/SKILL.md` + `lib/figure-style/figure_helpers.{R,py}` — the figure-style contract (helper functions, anti-patterns, dual-variant semantics).
+3. `skills/figure-style/SKILL.md` + `lib/figure-style/figure_helpers.{R,py}` — the figure-style contract (helper functions, anti-patterns, single-tier dual-format semantics).
 4. Existing `02_analysis/scripts/` file listing — to determine the next available `NN` script index.
 
 The planner writes `docs/_internal/research/{date}-{slug}/02_miniplan.md`:
@@ -110,10 +110,11 @@ The planner writes `docs/_internal/research/{date}-{slug}/02_miniplan.md`:
 
 ## VIZ outputs
 - Figure stems and sub-layout (`_overview/` or `by_contrast/<c>/`).
-- Dual variants per stem: `<stem>.print.pdf` (vector PDF, column geometry) + `<stem>.screen.png`
-  (raster PNG, screen geometry) — both produced by `save_figure(variant="both")` or `save_overview()`.
+- Dual formats per stem: `<stem>.pdf` (vector PDF, cairo, Unicode glyphs) + `<stem>.png`
+  (raster PNG) — same geometry, same theme, both produced from one plot object by
+  `save_figure()` or `save_overview()`.
 - Same-stem source table: `tables/<sub-layout>/<stem>.csv`.
-- README caption: path-qualified `## figures/<sub-layout>/<stem>.screen.png` section with
+- README caption: path-qualified `## figures/<sub-layout>/<stem>.png` section with
   non-empty `**How to read:**` block — written atomically by `save_overview()`.
 
 ## Acceptance gate
@@ -175,11 +176,11 @@ Only after the checkpoint is verified on disk, dispatch **one Sonnet implementer
 - Import the per-project figure-style shim:
   - R: `source("02_analysis/helpers/figure_style.R")` — exposes `FIG_CFG`, `project_theme()`, `save_figure()`, `save_overview()`, `contrast_path()`, `overview_path()`.
   - Python: `from helpers.figure_style import set_paper_style, save_overview, FIG_CFG` then `set_paper_style(config=FIG_CFG)`.
-- Call `save_overview()` or `save_figure(variant="both")` for every figure stem — **never** `ggsave()` / `plt.savefig()` directly. The `variant="both"` parameter produces both variants from one call:
-  - `<stem>.print.pdf` — vector PDF, column geometry (`width_column` × `height_column`), print font tier (`base_size_column`). Illustrator-editable text (`pdf.fonttype=42`).
-  - `<stem>.screen.png` — raster PNG at `dpi`, screen geometry (`width` × `height`), screen font tier (`base_size`).
-- `save_overview()` writes three things atomically: the dual-variant figure files, the same-stem source table (`tables/<sub-layout>/<stem>.csv`), and the path-qualified README caption with `**How to read:**`. This is the only sanctioned path for a figure + table + caption.
-- **No inline `theme()` / `element_text(size=<num>)` / `ggsave(width=<literal>)` / raw hex color strings.** All style decisions go through `project_theme(config=FIG_CFG)` (R) or `set_paper_style(config=FIG_CFG)` (Python). Inline overrides break the dual-variant font floors silently.
+- Call `save_overview()` or `save_figure()` for every figure stem — **never** `ggsave()` / `plt.savefig()` directly. One call emits both formats from one plot object:
+  - `<stem>.pdf` — vector PDF via cairo, the shared geometry (`width` × `height`). Illustrator-editable text (`pdf.fonttype=42`), Unicode direction glyphs render.
+  - `<stem>.png` — raster PNG at `dpi`, the same geometry and the same theme.
+- `save_overview()` writes three things atomically: the dual-format figure files, the same-stem source table (`tables/<sub-layout>/<stem>.csv`), and the path-qualified README caption with `**How to read:**`. This is the only sanctioned path for a figure + table + caption.
+- **No inline `theme()` / `element_text(size=<num>)` / `ggsave(width=<literal>)` / raw hex color strings.** All style decisions go through `project_theme(config=FIG_CFG)` (R) or `set_paper_style(config=FIG_CFG)` (Python). Inline overrides break the single-tier font floors silently.
 - Every new identifier MUST begin with `{namespace-token}`.
 - Cap categorical axes to `FIG_CFG$figures$top_n` (R) / `FIG_CFG["figures"]["top_n"]` (Python) before plotting.
 - Use `direction_cue(value)` for signed labeling — never a bare `*` or raw colored dot.
@@ -196,8 +197,8 @@ grep -n "## figures/" 03_results/{stage-id}/README.md | grep {namespace-token}
 
 ```
 One or more viz artifacts are absent or empty:
-  - <stem>.print.pdf missing            → dual-variant contract violated
-  - <stem>.screen.png missing           → dual-variant contract violated
+  - <stem>.pdf missing                  → dual-format contract violated
+  - <stem>.png missing                  → dual-format contract violated
   - <stem>.csv missing                  → source-table adjacency violated
   - README.md caption section missing   → README-adjacency violated
 Fix the viz script. Do not proceed to review.
@@ -215,11 +216,11 @@ docs/_internal/reasoning/{date}_{slug}_review.md
 
 ### (a) Open the produced PDFs — confirm non-empty panels
 
-Open each `<stem>.print.pdf` under `03_results/{stage-id}/figures/`. Confirm that:
+Open each `<stem>.pdf` under `03_results/{stage-id}/figures/`. Confirm that:
 
 - Every panel contains visible data (not blank axes).
 - Text is present and not overlapping with panel borders.
-- The print variant uses column geometry.
+- The figure uses the shared canvas geometry.
 
 If any PDF is blank or unreadable, FAIL the review and stop.
 
@@ -231,7 +232,7 @@ Invoke the `figure-audit` subagent on `03_results/{stage-id}/`:
 figure-audit  stage={stage-id}
 ```
 
-`figure-audit` runs the D-theme legibility checklist (all ten criteria: dual-scale legibility, font-size floors, no truncated labels, top-N capping, line/point weight, unambiguous glyphs, row/column clustering, residualized channel, both variants present, path-qualified caption with How-to-read). The reviewer reads the verdict table and confirms:
+`figure-audit` runs the D-theme legibility checklist (all ten criteria: dual-scale legibility, font-size floors, no truncated labels, top-N capping, line/point weight, unambiguous glyphs, row/column clustering, residualized channel, both formats present, path-qualified caption with How-to-read). The reviewer reads the verdict table and confirms:
 
 - All new `{namespace-token}_*` figures have a `figure-audit` verdict of **PASS** on all ten criteria.
 - Any **FAIL** is surfaced with the criterion letter and the exact fix required before the family is accepted.
@@ -266,7 +267,7 @@ This gate is non-negotiable — it is the primary mechanism that makes the figur
 
 For every new figure stem, confirm `03_results/{stage-id}/README.md` contains:
 
-- A `## figures/<sub-layout>/<stem>.screen.png` heading (path-qualified, exact path).
+- A `## figures/<sub-layout>/<stem>.png` heading (path-qualified, exact path).
 - A non-empty `**How to read:**` block covering glyph semantics, sign convention, and claim tier.
 
 A figure with a missing or empty `**How to read:**` is an **automatic FAIL** on this gate.
@@ -344,8 +345,8 @@ Scripts:
   02_analysis/scripts/NN_{slug}_viz.{R,py}        — VIZ only (reads checkpoint, calls save_overview)
 
 Artifacts produced:
-  03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.print.pdf  (print variant)
-  03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.screen.png (screen variant)
+  03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.pdf        (vector PDF)
+  03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.png        (raster PNG)
   03_results/{stage-id}/tables/<sub-layout>/{namespace-token}_*.csv         (source tables)
   03_results/{stage-id}/README.md                                            (captions, updated)
 
@@ -353,7 +354,7 @@ Review:
   docs/_internal/reasoning/{date}_{slug}_review.md   (Opus verdict — all 4 checks PASS)
 
 Namespace isolation: grep "{namespace-token}" — confined to intended scripts/artifacts ✓
-Dual variants:       both .print.pdf + .screen.png present for every stem ✓
+Dual formats:        both .pdf + .png present for every stem ✓
 Caption completeness: all stems have path-qualified README section + How-to-read ✓
 ```
 
@@ -361,13 +362,13 @@ If stopped at a failed phase, report the failing phase, the missing or offending
 
 ## Rules
 
-1. **Compute never plots; viz never computes.** The compute script writes only checkpoints/tables. The viz script reads only the checkpoint and calls `save_overview()`/`save_figure(variant="both")`. Any crossover is a hard violation.
+1. **Compute never plots; viz never computes.** The compute script writes only checkpoints/tables. The viz script reads only the checkpoint and calls `save_overview()`/`save_figure()`. Any crossover is a hard violation.
 2. **Checkpoint verified before viz starts.** The `ls -lh` checkpoint check after Phase 3 is mandatory. A viz that starts without a verified checkpoint is not reproducible.
-3. **Dual variants from one call.** Every figure stem must have both `<stem>.print.pdf` and `<stem>.screen.png`. These are produced by `save_figure(variant="both")` or `save_overview()` — never by two separate save calls with different parameters.
+3. **Dual formats from one call.** Every figure stem must have both `<stem>.pdf` and `<stem>.png`. These are produced from one plot object by `save_figure()` or `save_overview()` — never by two separate save calls with different parameters.
 4. **Namespace token prefixes everything new.** Every new identifier in both scripts, every checkpoint filename, every figure/table stem uses `{namespace-token}` as a prefix. The grep gate in Phase 5(c) is the enforcement mechanism.
 5. **Namespace isolation is non-negotiable.** If the token appears in sibling scripts or unrelated artifacts, the review fails. A leaking namespace corrupts the audit trail and makes the family non-removable.
 6. **`save_overview()` is the only sanctioned figure+table+caption path.** It writes three things atomically. `save_figure()` alone is permitted only when the source table and caption are written separately in the same script call. Never ship a figure without its same-stem CSV and its `## figures/...` README section.
-7. **No inline style overrides.** No `ggsave(width=<literal>)`, `element_text(size=<num>)`, `theme(...)` blocks, or raw hex color strings in the viz script. All style decisions go through `project_theme(config=FIG_CFG)` / `set_paper_style(config=FIG_CFG)`. Inline overrides silently break the font floors on the print variant.
+7. **No inline style overrides.** No `ggsave(width=<literal>)`, `element_text(size=<num>)`, `theme(...)` blocks, or raw hex color strings in the viz script. All style decisions go through `project_theme(config=FIG_CFG)` / `set_paper_style(config=FIG_CFG)`. Inline overrides silently break the single-tier font floors.
 8. **Persist every decision before proceeding.** Research rationale → `01_rationale.md`. Mini-plan → `02_miniplan.md`. Review verdict → `{date}_{slug}_review.md`. A decision with no trace is non-reproducible.
 9. **Model tiering is explicit.** Mini-planner = **Opus**. Compute implementer = **Sonnet**. Viz implementer = **Sonnet**. Reviewer = **Opus**. `captions` cleanup = `captions` agent (Sonnet). State the tier at every dispatch.
 10. **Mandatory `captions` pass always runs.** Even when `save_overview()` wrote captions at creation time, run the `captions` agent as the final cleanup pass — it is the backstop for README-adjacency.

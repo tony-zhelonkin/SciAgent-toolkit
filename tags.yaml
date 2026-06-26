@@ -79,7 +79,7 @@ tags:
     since: 2026-05-24
 
   - name: figure
-    description: "Publication-figure craft: the figure-style contract, dual print/screen legibility, top-N capping, caption craft. (Narrower than `viz`, which is plotting-generic.)"
+    description: "Publication-figure craft: the figure-style contract, one unified legible style emitted as PDF + PNG, top-N capping, caption craft. (Narrower than `viz`, which is plotting-generic.)"
     since: 2026-06-23
 
   - name: hosting
