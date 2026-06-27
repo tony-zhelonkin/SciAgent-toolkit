@@ -55,6 +55,9 @@ SCANVI.load_query_data implements ArchesMixin (the surgery).
 **Classification half** — install scHPL standalone:
 ```bash
 pip install --no-deps scHPL newick==1.0.0
+# --no-deps: a plain install pulls a pandas downgrade
+# newick==1.0.0: scHPL 1.0.5 breaks with newick >= 1.1
+#   ('list' object has no attribute 'startswith'), silent until learn_tree()
 ```
 The `scarches` package is optional — install it only for models NOT in scvi-tools
 (trVAE, scGen, scPoli). For scVI/scANVI-based treeArches it is not required.
@@ -725,6 +728,8 @@ print(f"Rejection rate: {(~mask).mean():.1%}")
 | FAISS errors | Install correct version: `faiss-gpu` (Linux+GPU) or `faiss-cpu` |
 | Slow hierarchy learning | Subsample data, use FAISS, reduce n_neighbors |
 | Inconsistent predictions | Use same classifier settings for tree and prediction |
+| AttributeError: 'list' object has no attribute 'startswith' in learn_tree() | newick >= 1.1 breaks scHPL 1.0.5 tree parsing | pip install newick==1.0.0 |
+| pandas downgraded / version conflicts after installing scHPL | scHPL/scarches pull an old pandas transitively | pip install --no-deps scHPL |
 
 ---
 
