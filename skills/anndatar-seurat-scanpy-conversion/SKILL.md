@@ -154,6 +154,23 @@ colnames(obj[["RNA"]]@meta.data)      # only var.features / var.features.rank �
 
 Full recipe — including HVG handling, scale.data + PCA-loading rename, and the reasons not to recompute PCA — at [`references/ensembl-vs-symbol-rownames.md`](references/ensembl-vs-symbol-rownames.md).
 
+### 7. Seurat5 feature metadata requires a NAMED vector
+
+Assigning a plain vector to an assay's feature metadata errors with
+"No feature overlap between new meta data and assay". The value must be a
+NAMED vector whose names equal rownames(assay):
+
+```r
+# Fails: "No feature overlap between new meta data and assay"
+assay[["gene_id"]] <- var_df$gene_id
+
+# Works: names must equal rownames(assay)
+feat <- rownames(assay)
+assay[["gene_id"]]   <- setNames(var_df[feat, "gene_id"],   feat)
+assay[["gene_name"]] <- setNames(var_df[feat, "gene_name"], feat)
+obj[["RNA"]] <- assay   # re-attach after modifying the assay
+```
+
 ## Inspection
 ```r
 # AnnData structure
