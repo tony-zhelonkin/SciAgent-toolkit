@@ -11,6 +11,7 @@
 | OOM on a normally-sized dataset | CSC or dense `.X` | Convert to CSR: `adata.X = scipy.sparse.csr_matrix(adata.X)` |
 | DataLoader hang / zombie workers | `dl_num_workers > 0` in some containers | `scvi.settings.dl_num_workers = 0` |
 | scArches query won't load | Reference was trained without scArches flags | Reference needs `use_layer_norm="both"`, `use_batch_norm="none"`, `encode_covariates=True` |
+| `_pickle.UnpicklingError: Weights only load failed ... GLOBAL numpy.core.multiarray._reconstruct` | torch >= 2.6 changed `torch.load()` default to `weights_only=True`; scvi-tools 1.2.0 checkpoints embed numpy globals | Monkeypatch `torch.load` to `setdefault weights_only=False` for trusted local checkpoints; do NOT use for untrusted third-party checkpoints |
 | Latent collapses to ~1–2 effective dimensions | `n_latent` too small or training too short | Raise `n_latent` to 20–30; ensure `max_epochs ≥ 200` |
 
 ## Extending this list
