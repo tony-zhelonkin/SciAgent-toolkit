@@ -262,6 +262,25 @@ query_adata.obsm["X_scVI"] = query_model.get_latent_representation()
 | Poor mapping | Use `weight_decay=0.0` to preserve reference embedding |
 | New batches wrong | Ensure `encode_covariates=True` in reference |
 | Wrong var_names order | Query genes reordered automatically by `prepare_query_anndata` |
+| `UnpicklingError: Weights only load failed / GLOBAL numpy.core.multiarray._reconstruct` | torch >= 2.6 defaults `weights_only=True`; scvi 1.2.0 checkpoints contain numpy globals | Monkeypatch `torch.load` (snippet below); trusted checkpoints only |
+
+**Environment compatibility — torch >= 2.6 / scvi-tools 1.2.0**
+
+torch 2.6 changed `torch.load()` to default `weights_only=True`. scvi-tools 1.2.0 checkpoints embed numpy globals, so every `SCVI.load()` / `SCANVI.load()` / `load_query_data()` raises `UnpicklingError`. For **your own trusted** checkpoints, restore pre-2.6 behavior before any model load:
+
+```python
+# torch >= 2.6 / scvi-tools 1.2.0 incompatibility
+# torch 2.6+ made torch.load() default weights_only=True; scvi 1.2.0 checkpoints embed
+# numpy globals -> UnpicklingError on every SCVI.load() / SCANVI.load() / load_query_data().
+# For YOUR OWN trusted checkpoints, restore pre-2.6 behavior BEFORE any model load:
+import torch
+_torch_load_orig = torch.load
+def _torch_load_trusted(*args, **kwargs):
+    kwargs.setdefault("weights_only", False)
+    return _torch_load_orig(*args, **kwargs)
+torch.load = _torch_load_trusted
+# Do NOT use for untrusted third-party checkpoints.
+```
 
 ---
 
