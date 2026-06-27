@@ -64,6 +64,11 @@ seurat <- adata$as_Seurat(
   ),
   graph_mapping = TRUE  # or FALSE to skip
 )
+# NOTE — reduction key format: the key string (e.g. "PC_") must be purely alphanumeric
+# with a trailing underscore (e.g. "umapunsup_"), NOT "umap_unsup_" or "umap.unsup_".
+# Embedded underscores or dots in the key fragment corrupt the resulting dimension column
+# names (e.g. "umap_unsup_1" splits incorrectly). The reduction SLOT NAME (e.g. "umap.unsup")
+# may contain dots — only the key is restricted.
 
 # Write with mapping
 adata <- as_AnnData(seurat,
@@ -154,6 +159,21 @@ colnames(obj[["RNA"]]@meta.data)      # only var.features / var.features.rank �
 
 Full recipe — including HVG handling, scale.data + PCA-loading rename, and the reasons not to recompute PCA — at [`references/ensembl-vs-symbol-rownames.md`](references/ensembl-vs-symbol-rownames.md).
 
+**When to skip as_Seurat():** if the h5ad was pre-finalized (symbols as var_names, Ensembl in
+var['gene_id'], lognorm X, raw counts layer), the two-source collapse is unnecessary — build manually:
+
+```r
+adata  <- read_h5ad("finalized.h5ad")
+genes  <- as.character(adata$var_names)   # already symbols
+cells  <- as.character(adata$obs_names)
+to_gc  <- function(m) { m <- as(Matrix::t(m), "CsparseMatrix"); rownames(m) <- genes; colnames(m) <- cells; m }
+counts <- to_gc(adata$layers[["counts"]])
+data   <- to_gc(adata$X)
+rna    <- CreateAssay5Object(counts = counts); LayerData(rna, "data") <- data
+obj    <- CreateSeuratObject(counts = rna, meta.data = `rownames<-`(as.data.frame(adata$obs), cells))
+```
+This guarantees h5ad/rds identity and sidesteps as_Seurat() version differences.
+
 ### 7. Seurat5 feature metadata requires a NAMED vector
 
 Assigning a plain vector to an assay's feature metadata errors with
@@ -210,6 +230,10 @@ BiocManager::install("anndataR")
 install.packages("pak")
 pak::pak("scverse/anndataR", dependencies = TRUE)
 ```
+
+**Version note:** this skill targets anndataR >= 1.1.0. On R 4.4.x, `BiocManager::install('anndataR')`
+may resolve 1.0.2, which has different `as_Seurat()` parameter names. Check with
+`packageVersion('anndataR')`; if locked to 1.0.2, use the manual build pattern described in Issue 6.
 
 ## Multi-Assay / Multimodal Conversion
 
