@@ -119,6 +119,36 @@ if (!isTRUE(check$success)) stop(check$msg)
 Always preserve the original IDs as a cluster metadata column so cells remain
 traceable in the Loupe Browser.
 
+### 5. Empty-string `""` category values crash the louper binary
+
+NA or empty-string `""` levels in a cluster factor cause a hard failure in the louper
+binary with no informative R error. Recode before building the clusters list. (We hit
+this on `treearches_status` / `novel_subcluster`, which carry empty strings for
+unassigned cells.)
+
+```r
+chr <- as.character(val)
+chr[is.na(chr) | chr == ""] <- "unassigned"
+fac <- factor(chr)
+names(fac) <- loupe_barcodes
+clusters[[col]] <- fac
+```
+
+### 6. EULA acceptance blocks headless / CI runs
+
+`loupeR::setup()` prompts for interactive 10x EULA acceptance on first run; in
+non-interactive shells (Rscript, CI, devcontainers) it blocks forever. Set the env var
+before setup():
+
+```r
+Sys.setenv(AUTO_ACCEPT_EULA = "true")
+loupeR::setup()
+```
+
+Or from the shell: `AUTO_ACCEPT_EULA=true Rscript your_export.R`. (This accepts the
+10x EULA at https://10xgen.com/EULA programmatically — be aware you are agreeing on
+the user's behalf.)
+
 ---
 
 ## Barcode Formats
