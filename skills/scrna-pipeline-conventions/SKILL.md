@@ -9,7 +9,7 @@ metadata:
   last-reviewed: 2026-06-23
   category: practice
   tier: simple
-  version: 0.2.0
+  version: 0.3.0
   upstream-docs: ''
   tags: []
   complementary-skills:
@@ -17,6 +17,8 @@ metadata:
   - scrna-cxg-host
   - consensus-nmf-multirun
   - architecture-first-dev
+  - anndatar-seurat-scanpy-conversion
+  - louper-seurat-conversion
   contraindications:
   - Do not use for software-design discipline (ADRs, design reviews, refactor planning). Use architecture-first-dev.
   - Do not enforce on throwaway exploration notebooks or one-off scratch analyses. The conventions are for production analysis pipelines that will run more than once.
@@ -39,7 +41,7 @@ A small set of patterns that make scRNA-seq pipelines restartable, debuggable, a
 
 ---
 
-## The five conventions
+## Conventions
 
 ### 1. Numbered scripts
 
@@ -184,7 +186,8 @@ The canonical layout is stage-based, matching `analysis_config.yaml::stages:` an
 │   │   ├── _overview/
 │   │   └── by_contrast/<c>/
 │   └── README.md            # captions (how-to-read) for THIS stage's artifacts
-├── objects/                 # .h5ad / .rds checkpoints (gitignored, never deleted)
+├── objects/                 # finalized milestone deliverables (e.g. <project>_annotated.h5ad); source of truth — .rds / .cloupe / CXG derive from this
+├── checkpoints/             # intermediate stage .h5ad files keyed by stage (gitignored, never deleted)
 ├── master/                  # cross-stage accumulator tables (append_master_table)
 ├── interactive/             # HTML dashboards
 └── _scratch/                # sanctioned ephemeral zone (gitignored)
@@ -197,6 +200,18 @@ Lower-case `03_results/` (not `03_Results/`) is the convention. Existing project
 **Why.** Each stage owns its artifacts. Anyone walking into the project sees what kind of output is where — per stage — without a flat namespace collision. `objects/` and `interactive/` at the results root are project-wide resources, not tied to a single stage.
 
 **How to apply.** `PATHS` (Convention 3) auto-creates these directories. A new analysis output goes into the stage directory by purpose; never at the project root. Register the stage in `analysis_config.yaml::stages:` first.
+
+#### `objects/` vs `checkpoints/`
+
+`objects/` holds **finalized milestone deliverables** — a single file named `<project>_annotated.h5ad`, not stage-prefixed — from which all derived formats are generated. Cell order is guaranteed identical across derived formats because they all originate from this file.
+
+`checkpoints/` holds **intermediate stage files** keyed by stage (`01_qc.h5ad`, `02_embedding.h5ad`, etc.); consumed by the next stage and never delivered externally.
+
+Derivation chain: `<project>_annotated.h5ad` → `.rds` (via `anndatar-seurat-scanpy-conversion`) → `.cloupe` (via `louper-seurat-conversion`) → CXG (via `scrna-cxg-host`).
+
+**Rule:** Change the `.h5ad` first; regenerate downstream formats from it. Never patch a derived format directly — the next regeneration overwrites the patch.
+
+**Evidence:** `03_results/objects/README.md`; `02_analysis/scripts/08a_finalize_annotated_h5ad.py:1–9` docstring.
 
 ---
 
@@ -218,6 +233,79 @@ Each module has ≤300 lines and covers one concern. Functions exported from the
 **Why.** Numbered scripts stay procedural and readable end-to-end. Recurring logic is named, testable, and reusable. The skill `cellranger-multi-to-anndata` ships a `build_anndata.py` whose helpers came from this layer; `scrna-cxg-host` ships `prepare_for_cxg.py` from `cxg_utils.py`. The convention makes skills portable.
 
 **How to apply.** First time a piece of logic is needed in a numbered script, it can live inline. Second time, extract into a `*_utils.py` module. Name modules by *what they touch* (anndata, cxg, geneset, biomart), not by the stage that called them first.
+
+---
+
+### 6. Milestone gene naming — symbols active, Ensembl preserved
+
+Build scripts keep Ensembl IDs as `var_names` throughout (stable identifiers, no duplicates, safe for biomart lookups and gene-set matching). At the **packaging milestone** the convention flips: `var_names` becomes gene symbols (made unique with `-1`/`-2` suffixes), and Ensembl is preserved in `var['gene_id']`.
+
+```python
+a.var["gene_id"] = a.var_names.copy()          # preserve before switch
+a.var_names      = a.var["gene_name"].values    # symbols become active
+a.var_names_make_unique(join="-")               # Symbol-1, Symbol-2 for dups
+a.uns["var_names_note"] = (
+    "var_names are gene symbols (make-unique). Ensembl IDs preserved in "
+    "var['gene_id']. To switch back: adata.var_names = adata.var['gene_id']."
+)
+```
+
+R/Seurat equivalent at packaging: `rownames(obj) <- obj[["RNA"]][[]]$gene_name`; `gene_id` stays in feature metadata.
+
+**Why.** Collaborators query `adata[:, ['Gzmk','Cd3e']]` and gene-set tools use symbols. Ensembl stays as the machine-readable backup. Flipping at build time would silently break intermediate scripts that join on Ensembl; flipping once at the finalize script is safe and discoverable (the `uns` note documents the round-trip).
+
+**How to apply.** The switch happens ONCE, in the finalize script (e.g., `08a_finalize_annotated_h5ad.py`). Never flip mid-pipeline. The `analysis_config.yaml` key `var_name_strategy: ensembl` governs build stages only; packaging always delivers symbols. Confirm symbols carry through when exporting to `.rds` or `.cloupe` — see `anndatar-seurat-scanpy-conversion` and `louper-seurat-conversion`.
+
+**Evidence:** `02_analysis/scripts/08a_finalize_annotated_h5ad.py:104–113`; `02_analysis/config/analysis_config.yaml:78`.
+
+---
+
+### 7. Dual-embedding deliverable — unsupervised + integrated
+
+When a pipeline produces both a de-novo unsupervised embedding (state discovery) and a supervised/batch-corrected integrated embedding (label transfer), carry **both** in the packaged object, renamed at packaging:
+
+| Key | Basis | Primary question |
+|-----|-------|-----------------|
+| `X_umap_unsupervised` | `X_pca` | What **cell states** exist? (sub-states, continua) |
+| `X_umap_integrated` | `X_scANVI` | What **cell types** are these? (label transfer, condition comparison) |
+
+```python
+# verify before writing — all cells including query/treated
+for emb in ("X_umap_unsupervised", "X_umap_integrated"):
+    assert not np.isnan(a.obsm[emb]).any(), f"NaN in {emb}"
+
+a.uns["embeddings"] = {
+    "X_umap_unsupervised": "de novo PCA->UMAP; cell-STATE discovery",
+    "X_umap_integrated":   "scANVI-corrected UMAP; cell-TYPE comparison across conditions",
+}
+```
+
+Carry the naming into derived formats: Seurat `.rds` as `umap.unsup`/`umap.integrated`; Loupe as `umap_unsupervised`/`umap_integrated` (see `louper-seurat-conversion`).
+
+**Why.** The supervised latent space is optimized to separate coarse training labels, which compresses within-label substructure. The unsupervised space keeps all variance so sub-states stay resolved. Empirical basis: GZMK⁺ effector kNN-purity is 0.817 in `X_pca` vs 0.767 in `X_scANVI` (base 0.213) — the population is present and distinguishable in both, but crisper in the unsupervised space. Dropping either embedding destroys one axis of interpretability.
+
+**How to apply.** Do NOT drop the unsupervised embedding after annotation. Assert all cells — including query or treated cohort — carry valid (non-NaN) coordinates in both embeddings before writing. Document both in `uns['embeddings']`.
+
+**Evidence:** `02_analysis/scripts/08a_finalize_annotated_h5ad.py:130–147`; `docs/_internal/reasoning/2026-06-27_gzmk_oldspace_validation_and_dual_embedding.md`.
+
+---
+
+### 8. Milestone packaging pass — one deliberate obs cleanup
+
+Do **not** prune `obs` columns mid-pipeline. Intermediate stages join on original column names; a rename in script `02c` breaks `02d`. Instead, perform ONE cleanup pass at the finalize script:
+
+1. **Dedup identity columns** to canonical `sample_id` / `mouse_id` / `pool`; drop aliases
+2. **Drop derivable QC columns** (`log1p_*`, `outlier_*`); keep base metrics + `qc_pass`
+3. **Move single-valued columns** (`Project`, `Organ`, `Sex`) to `uns`
+4. **Apply collaborator-agreed naming** here and nowhere else (e.g., `Group == "Young"` → `age_group == "Adult"`; condition label `"Y_C"` → `"Adult ctrl"`)
+
+The delivered obs schema must be documented in `objects/README.md`.
+
+**Why.** Each stage safely joins on original names. Cleanup is correct only at the known-final point; it also halves the in-memory obs footprint for the delivered object.
+
+**How to apply.** A single `cleanup_obs(adata)` call at the top of the finalize script. Never rename obs columns in numbered scripts before the finalize stage. If a downstream step needs a renamed column, add an alias column — do not rename the source.
+
+**Evidence:** `02_analysis/scripts/08a_finalize_annotated_h5ad.py:62–99`; `docs/_internal/reasoning/2026-06-27_metadata_naming_and_cleanup.md`.
 
 ---
 
@@ -307,6 +395,26 @@ After adopting the conventions, confirm:
 
 ---
 
+## Appendix: Annotation consensus — flag, don't force
+
+When fusing multiple label-transfer methods (CellTypist, scANVI, Seurat), bias toward **flagging** uncertain cells rather than coercing them into the nearest coarse label.
+
+```yaml
+# analysis_config.yaml — annotation block
+annotation:
+  confidence_min: 0.5          # Seurat prediction.score.max floor; below this, abstain
+  consensus_policy: conservative  # 'conservative' | 'balanced' | 'permissive'
+  treearches_threshold: 0.7    # scHPL posterior threshold
+```
+
+Use `consensus_policy: conservative` whenever the perturbation may induce novel cell states. A weak `prediction.score.max` below `confidence_min` should **abstain** (`Uncertain`) or propagate `Novel:<subcluster>` rather than absorbing the cell into the nearest training label.
+
+Report the confidently-unplaceable fraction per condition as a QC deliverable. Reference recall on known coarse types is **not** the success metric — it only confirms the classifier reproduces its training categories. The guard's job is to protect genuinely distinct treated-condition states from silent absorption.
+
+**Evidence:** `docs/_internal/reasoning/2026-06-27_rare-type-reframe-flag-not-force.md`; `02_analysis/scripts/02f_consensus_finalize.py:12–19`; `02_analysis/config/analysis_config.yaml:167–170`.
+
+---
+
 ## Complementary Skills
 
 | When you need... | Use skill | Relationship |
@@ -317,6 +425,8 @@ After adopting the conventions, confirm:
 | Discipline for software-design changes (ADRs, reviews) | `architecture-first-dev` | Different scope (software design, not data-pipeline scaffolding) |
 | Run MAD-based QC filtering on the produced AnnData | `single-cell-rna-qc` | Adjacent (consumes `00_raw.h5ad` from this convention's Stage 0) |
 | Figure placement, captions, source-table adjacency | `figure-style` | Governs all `03_results/<stage>/figures/` output; this skill defers to it |
+| Export the packaged `.h5ad` to Seurat `.rds` (Convention 6, 7) | `anndatar-seurat-scanpy-conversion` | Downstream of milestone packaging; preserves `gene_id` and both embeddings |
+| Export to Loupe `.cloupe` (Convention 7) | `louper-seurat-conversion` | Carries `umap_unsupervised`/`umap_integrated` embedding names |
 
 ---
 
