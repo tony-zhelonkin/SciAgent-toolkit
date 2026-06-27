@@ -253,6 +253,12 @@ if "pct_counts_ribo" in adata.obs:
 adata.write("data_filtered.h5ad")
 ```
 
+**Note on QC columns in the deliverable:** `log1p_*` and `outlier_*` columns are intermediate
+diagnostics — useful for downstream checkpoint joins and audit trails, but prune them from the
+final milestone deliverable to save memory. At packaging, keep only the base metrics
+(`n_genes_by_counts`, `total_counts`, `pct_counts_mt`, `qc_pass`) and drop the derived
+`log1p_*` / `outlier_*`. See `scrna-pipeline-conventions` Convention 8 (milestone packaging pass).
+
 ---
 
 ## Key Parameters Reference
