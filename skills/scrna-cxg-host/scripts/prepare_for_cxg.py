@@ -272,7 +272,7 @@ def ensure_umap(adata: ad.AnnData, n_pcs: int = 50) -> None:
                 and all(k in adata.obsp for k in ("distances", "connectivities")))
     if not has_nbrs:
         sc.pp.neighbors(adata)
-    if not ("X_umap" in adata.obsm and adata.obsm["X_umap"].shape == (adata.n_obs, 2)):
+    if not any(k.startswith("X_umap") and adata.obsm[k].shape == (adata.n_obs, 2) for k in adata.obsm):
         sc.tl.umap(adata)
 
 
@@ -281,7 +281,11 @@ def final_checks(adata: ad.AnnData) -> None:
     assert adata.obs_names.is_unique, "obs index not unique"
     assert adata.var_names.is_unique, "var names not unique"
     assert "barcode" in adata.obs and adata.obs["barcode"].is_unique, "obs['barcode'] missing or not unique"
-    assert "X_umap" in adata.obsm and adata.obsm["X_umap"].shape[1] == 2, "X_umap missing or wrong shape"
+    umap_keys = [k for k in adata.obsm if k.startswith("X_umap")]
+    assert umap_keys, "no X_umap* embedding present — cellxgene will show an empty panel"
+    for k in umap_keys:
+        assert adata.obsm[k].shape == (adata.n_obs, 2), \
+            f"obsm['{k}'] is shape {adata.obsm[k].shape}, expected ({adata.n_obs}, 2)"
     assert pd.api.types.infer_dtype(adata.obs.index) == "string", \
         f"obs index dtype must infer as 'string' (got {pd.api.types.infer_dtype(adata.obs.index)})"
     assert pd.api.types.infer_dtype(adata.var.index) == "string", \
