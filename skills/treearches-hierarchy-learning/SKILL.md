@@ -653,6 +653,9 @@ tree, mp = learn.learn_tree(
     classifier="knn",
     useRE=True  # Add reconstruction error rejection
 )
+# useRE=True: flags cells whose embedding cannot be reconstructed from their kNN neighbours in
+# the latent space (high residual = out-of-distribution). This does NOT call the scVI decoder —
+# it operates entirely on the embedding matrix, so prediction needs only the latents, not the model.
 # Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 ```
 
