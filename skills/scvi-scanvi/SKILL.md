@@ -59,6 +59,13 @@ scvi.model.SCVI.setup_anndata(adata, layer="counts", batch_key="batch")
 scvi_model = scvi.model.SCVI(adata, n_layers=2, n_latent=30)
 scvi_model.train()
 
+# PLANNING TO USE THIS AS A SURGERY REFERENCE? The base scVI MUST set:
+#   use_layer_norm="both"   (LayerNorm stays valid for unseen query batches; BatchNorm does not)
+#   use_batch_norm="none"   (frozen BatchNorm stats are wrong for new batches)
+#   encode_covariates=True  (batch covariate must enter the encoder for surgery to graft on)
+# Omitting any one makes load_query_data() fail or produce a degenerate projection.
+# See scvi-scarches-reference-mapping.
+
 # 2. Initialize scANVI from scVI
 scanvi_model = scvi.model.SCANVI.from_scvi_model(
     scvi_model,
@@ -170,7 +177,9 @@ scanvi_model = scvi.model.SCANVI.from_scvi_model(
 
 scanvi_model.train(
     max_epochs=20,
-    n_samples_per_label=100,  # Balance rare types
+    n_samples_per_label=100,  # SET when any class has <500 cells: otherwise a minibatch may draw
+                              # 0-1 cells from a rare class per step, starving its classifier head.
+                              # Rule of thumb: use when min(class_count) < 500.
     plan_kwargs={
         "classification_ratio": 50  # Weight of classification loss (default)
         # Low (1-10): prioritize reconstruction
