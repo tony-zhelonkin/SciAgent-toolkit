@@ -189,6 +189,13 @@ Cells with low confidence may be novel types:
 probs = scanvi_model.predict(soft=True)
 max_prob = probs.max(axis=1)
 
+# NOTE: scANVI confidence (max softmax probability) is a poor novelty detector.
+# Cross-entropy training drives the winning logit far above the rest, so well-trained
+# scANVI models routinely report >0.9 for transcriptionally ambiguous or out-of-distribution
+# cells. The threshold below is a rough filter only when labels are well-separated in the
+# reference; it does NOT reliably detect cells from conditions/states absent during training.
+# For open-set novel-cell detection against a reference, use scHPL (treearches-hierarchy-learning)
+# — it has an explicit reject class.
 # Flag uncertain cells
 uncertain = max_prob < 0.5
 adata.obs["is_uncertain"] = uncertain
