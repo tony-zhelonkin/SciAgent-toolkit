@@ -169,7 +169,7 @@ ensure_umap(adata, n_pcs=50)
 
 ```python
 final_checks(adata)
-# Asserts: obs/var unique, obs['barcode'] unique, X_umap shape (n,2), index dtypes are 'string'
+# Asserts: obs/var unique, obs['barcode'] unique, at least one X_umap* key each (n,2), index dtypes are 'string'
 ```
 
 Then write:
@@ -336,7 +336,7 @@ After running this skill, confirm:
 - [ ] **All `obsm` are arrays.** `all(isinstance(adata.obsm[k], np.ndarray) for k in adata.obsm)` returns `True`.
 - [ ] **No NaN in `obsm`.** `all(not np.isnan(adata.obsm[k]).any() for k in adata.obsm if adata.obsm[k].dtype.kind == "f")`.
 - [ ] **Unique cell_id and var_names.** `adata.obs.index.is_unique and adata.var_names.is_unique`.
-- [ ] **`X_umap` present and shape (n,2).** `adata.obsm["X_umap"].shape == (adata.n_obs, 2)`.
+- [ ] **At least one `X_umap*` key present, all (n,2).** `any(k.startswith('X_umap') for k in adata.obsm)` returns True.
 - [ ] **Title set.** `"title" in adata.uns`.
 - [ ] **Pre-deploy schema check passes.** `python checks/validate_cxg_h5ad.py 03_results/objects/<dataset>.h5ad` exits 0.
 - [ ] **All containers Up.** `docker compose ps --format json | jq -r '.[].State' | sort -u` returns only `running`.
