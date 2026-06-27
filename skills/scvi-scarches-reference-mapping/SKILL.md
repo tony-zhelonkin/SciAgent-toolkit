@@ -183,15 +183,24 @@ query_adata.obs["knn_proba"] = knn.predict_proba(query_latent).max(axis=1)
 
 ## Detecting Novel Cell Types
 
-Low prediction confidence may indicate novel populations:
+Confidence scores are worth computing, but they are NOT a novelty detector after scArches surgery:
 
 ```python
-# From scANVI
+# WARNING: scANVI confidence is NOT a novelty detector after scArches surgery.
+# The softmax is a closed simplex over N known classes; with the classifier frozen,
+# the reference decision surface is unchanged. Novel treated cells land in the nearest
+# known region with near-1.0 confidence (observed: median conf=1.000, <0.5 fraction=0.4%
+# across 89k cells). For genuine open-set rejection, use scHPL (treearches-hierarchy-learning).
+# Still worth computing as a self-consistency score — but it is not calibrated P(correct).
 probs = query_scanvi.predict(soft=True)
-query_adata.obs["confidence"] = probs.max(axis=1)
-query_adata.obs["is_novel"] = query_adata.obs["confidence"] < 0.5
+conf    = probs.max(axis=1)
+entropy = -(probs * np.log(probs + 1e-10)).sum(axis=1)
+query_adata.obs["confidence"] = conf
+query_adata.obs["entropy"]    = entropy
 
-# Subcluster novel cells
+# Subcluster the FLAGGED cells to characterize candidate novel states. Get the flag from
+# scHPL open-set rejection (see treearches-hierarchy-learning), NOT a confidence threshold:
+#     query_adata.obs["is_novel"] = scHPL_rejected_mask
 novel_adata = query_adata[query_adata.obs["is_novel"]]
 sc.pp.neighbors(novel_adata, use_rep="X_scANVI")
 sc.tl.leiden(novel_adata, resolution=0.3)
