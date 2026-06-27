@@ -165,6 +165,21 @@ ensure_umap(adata, n_pcs=50)
 # Computes PCA → neighbors → UMAP only if missing.
 ```
 
+### A.5b — Drop non-2D obsm entries
+
+cellxgene exposes every obsm key as a layout option; any array with shape[1] > 2 renders
+as a meaningless scatter of its first two components. Run this AFTER A.5: `ensure_umap` may
+(re)compute `X_pca` via neighbors, so drop the high-dim latents last.
+
+```python
+HIGH_DIM = ["X_pca", "X_scANVI", "X_lsi", "X_nmf"]   # add any project latents
+for k in HIGH_DIM:
+    if k in adata.obsm and adata.obsm[k].shape[1] > 2:
+        del adata.obsm[k]
+```
+
+Expose only the 2D embeddings (e.g. `X_umap_unsupervised`, `X_umap_integrated`).
+
 ### A.6 — Final checks
 
 ```python
@@ -441,6 +456,12 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 - **Symptom:** A user labels cells in CXG, the container is restarted, the labels are gone.
 - **Cause:** `--annotations-dir` flag is missing or pointing at a path that is not a Docker-volume-mounted host directory.
 - **Fix:** Both must be true: cellxgene is launched with `--annotations-dir /annotations`, and the compose mount has `<host>:/annotations` (read-write). Verify with `docker compose exec cellxgene-full ls /annotations`.
+
+### Pitfall: `BlockingIOError: [Errno 11]` writing h5ad on NFS
+
+- **Symptom:** `adata.write_h5ad(out)` raises `BlockingIOError: [Errno 11] Resource temporarily unavailable`.
+- **Cause:** HDF5 default file-locking fails on NFS / network filesystems (advisory locks are unreliable). Common in devcontainers where the project directory is a network mount.
+- **Fix:** `export HDF5_USE_FILE_LOCKING=FALSE` before the write (single-writer only).
 
 ---
 

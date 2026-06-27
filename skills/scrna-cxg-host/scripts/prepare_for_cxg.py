@@ -161,6 +161,30 @@ def convert_obsm_to_arrays(adata: ad.AnnData, verbose: bool = True) -> None:
                 print(f"  obsm[{key!r}] DataFrame -> float32 array {adata.obsm[key].shape}")
 
 
+# obsm keys that are not 2-D layouts. CellxGene exposes every obsm key as a
+# layout option; any array with shape[1] > 2 renders as a meaningless scatter
+# of its first two components. Extend this list with any project-specific
+# high-dim latents (e.g. "X_scVI", "X_harmony").
+_HIGH_DIM_OBSM = ["X_pca", "X_scANVI", "X_lsi", "X_nmf"]
+
+
+def drop_high_dim_obsm(adata: ad.AnnData, verbose: bool = True) -> None:
+    """A.4b — Remove high-dimensional obsm entries that are not 2-D layouts.
+
+    CellxGene exposes every obsm key as a layout option. Any array with
+    shape[1] > 2 renders as a meaningless scatter of its first two components.
+    Only 2-D embeddings (e.g. X_umap_unsupervised, X_umap_integrated) should
+    remain after write. Does not touch any key starting with 'X_umap'.
+    """
+    dropped = []
+    for k in _HIGH_DIM_OBSM:
+        if k in adata.obsm and adata.obsm[k].shape[1] > 2:
+            del adata.obsm[k]
+            dropped.append(k)
+    if verbose and dropped:
+        print(f"  drop_high_dim_obsm: removed {dropped}")
+
+
 def ensure_unique_varnames(adata: ad.AnnData) -> None:
     """Set var_names from gene_name → gene_id → existing index, with __N dedup.
 
@@ -323,6 +347,7 @@ def prepare(
     ensure_unique_barcode_and_index(adata, joiner="_", debug=debug)
     realign_aligned_mappings(adata, debug=debug)
     ensure_umap(adata)
+    drop_high_dim_obsm(adata)   # after ensure_umap: neighbors may (re)compute X_pca
     final_checks(adata)
 
     adata.uns["title"] = title
@@ -429,6 +454,7 @@ def prepare_subsets(
         ensure_unique_barcode_and_index(adata_sub, joiner="_")
         realign_aligned_mappings(adata_sub)
         ensure_umap(adata_sub)
+        drop_high_dim_obsm(adata_sub)   # after ensure_umap: neighbors may (re)compute X_pca
         final_checks(adata_sub)
 
         adata_sub.uns["title"] = f"{project_name} • {ct} Subset — {adata_sub.n_obs} cells"
