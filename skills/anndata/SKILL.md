@@ -64,12 +64,26 @@ AnnData object:  n_obs × n_vars  (cells × genes)
 
 **Mental model**: Think of `.obs` as your cell-level metadata spreadsheet, `.var` as your gene metadata spreadsheet, `.X` as the expression matrix that links them, and everything else as additional matrices that hang off cells (`.obsm`) or genes (`.varm`) or pairs-of-cells (`.obsp`).
 
+**var_names convention:** During build, keep Ensembl IDs as var_names (no duplicates, stable
+for gene-set tools). At the deliverable milestone, switch to gene symbols — preserve Ensembl in
+var['gene_id'] for a one-line switch-back:
+
+```python
+adata.var["gene_id"] = adata.var_names.copy()    # preserve before switch
+adata.var_names = adata.var["gene_name"].values   # symbols become active
+adata.var_names_make_unique(join="-")             # Symbol-1 for any duplicate
+# Switch back any time: adata.var_names = adata.var['gene_id']
+```
+
+See `scrna-pipeline-conventions` Convention 6 for when and why.
+
 ### Where tools store their outputs
 
 | Tool | Output | Location |
 |------|--------|----------|
 | `sc.tl.pca()` | PCA coordinates | `adata.obsm['X_pca']` |
 | `sc.tl.umap()` | UMAP coordinates | `adata.obsm['X_umap']` |
+| multiple UMAP sources (unsupervised + integration) | `X_umap_unsupervised`, `X_umap_integrated` | `adata.obsm` |
 | `scvi_model.get_latent_representation()` | scVI embedding | `adata.obsm['X_scVI']` |
 | `sc.pp.neighbors()` | kNN graph | `adata.obsp['connectivities']`, `adata.uns['neighbors']` |
 | `sc.tl.leiden()` | Cluster labels | `adata.obs['leiden']` |
@@ -77,6 +91,11 @@ AnnData object:  n_obs × n_vars  (cells × genes)
 | `sc.tl.score_genes()` | Cell scores | `adata.obs['<score_name>']` |
 | `scv.tl.velocity()` | Velocity vectors | `adata.layers['velocity']` |
 | `scv.tl.latent_time()` | Pseudotime | `adata.obs['latent_time']` |
+
+**Multiple UMAPs tip:** If the pipeline produces both an unsupervised UMAP (PCA-based) and an
+integrated UMAP (scANVI/Harmony-based), do not overwrite the single `X_umap` key — rename both
+with a purpose suffix at packaging so collaborators select the right one by name. Document each
+in `uns['embeddings']`. See `scrna-pipeline-conventions` Convention 7.
 
 ---
 
