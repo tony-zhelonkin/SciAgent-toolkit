@@ -43,8 +43,10 @@ This file covers only the advanced parts: architectural surgery, weighted-KNN la
 - Collaborative atlas building
 
 **Two options:**
-- `scvi-tools` (native): scVI, scANVI, totalVI, MultiVI
-- `scarches` package: trVAE, scGen, expiMap, treeArches, scPoli
+- `scvi-tools` (native): scVI, scANVI, totalVI, MultiVI — surgery via `load_query_data()`
+- `scarches` package: trVAE, scGen, expiMap, scPoli — models not in scvi-tools
+
+treeArches is a workflow (scArches surgery + scHPL), not a separate model — see treearches-hierarchy-learning.
 
 ---
 
