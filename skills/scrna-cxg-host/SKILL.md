@@ -62,6 +62,8 @@ Need to share single-cell data with the wet lab?
 
 Two phases. Run Phase A interactively; Phase B is a one-shot `docker compose up` after templates render.
 
+> **Pre-finalized deliverable h5ad** (symbols already active as `var_names`, cleaned obs, named 2D UMAPs already present): A.2 (`ensure_unique_varnames`) is a no-op and A.5 (`ensure_umap`) is replaced by A.5b (drop high-dim obsm); the input path is `03_results/objects/<project>_annotated.h5ad`, not a stage checkpoint. Steps A.0, A.1, A.3, A.4, and A.6 still apply.
+
 ```python
 # Phase A — schema prepare on the full dataset
 from prepare_for_cxg import prepare, prepare_subsets
@@ -120,7 +122,7 @@ enforce_cxg_dtypes(adata, sanitize_column_names=True)
 # Applied to obs, var, AND raw.var.  Also renames columns containing '.' -> '_'.
 ```
 
-CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the pinned Dockerfile) and **cannot decode pandas-nullable extension arrays at load time**. A single `Int64` column with `pd.NA` survives the .h5ad write through anndata's MaskedArray codec and crashes the cellxgene server with `TypeError: did not understand one of the types; 'None' not accepted`. The most common source is Seurat→AnnData conversion via `anndataR` (integer columns with NA → `Int64`), but pandas ≥ 1.0 will also produce these from any read with nullable inference. This step must run **before** every other Phase A step because some helpers (e.g. `final_checks`) themselves choke on `pd.NA`.
+CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the pinned Dockerfile) and **cannot decode pandas-nullable extension arrays at load time**. A single `Int64` column with `pd.NA` survives the .h5ad write through anndata's MaskedArray codec and crashes the cellxgene server with `TypeError: did not understand one of the types; 'None' not accepted`. The most common source is Seurat→AnnData conversion via `anndataR` (integer columns with NA → `Int64`), but pandas ≥ 1.0 will also produce these from any read with nullable inference. This step must run **before** every other Phase A step because some helpers (e.g. `final_checks`) themselves choke on `pd.NA`. **Provenance note:** this step is critical when the h5ad came from anndataR / R-origin conversion (which produces `Int64`/`boolean`/`string` extension dtypes); for Python-native h5ads built with explicit dtype assignments throughout, A.0 is a no-op — harmless to run, not required.
 
 ### A.1 — Convert obsm DataFrames to numpy arrays
 
