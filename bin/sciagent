@@ -111,6 +111,60 @@ declare -A VERB_ENTRY=(
     [update]=cmd_update
 )
 
+# ---------------------------------------------------------------------------
+# Mutating verbs — those that write symlinks/blocks into the project. Guarded
+# by _guard_toolkit_locality (see below). deactivate is intentionally NOT
+# guarded: it only removes what its own manifest owns, so it is safe (and
+# desirable) to run even against an external toolkit to clean up.
+# ---------------------------------------------------------------------------
+declare -A MUTATING_VERB=(
+    [activate]=1
+    [inject]=1
+    [eject]=1
+)
+
+# _guard_toolkit_locality
+# Reproducibility guard: if this project ships its own toolkit at
+# ./01_modules/SciAgent-toolkit, refuse to mutate it using an EXTERNAL/global
+# toolkit (e.g. a checkout under /data1 or a container /workspaces path). Doing
+# so would symlink the project against — and pin its .claude/.agents links to —
+# the wrong toolkit, silently escaping the submodule pin and breaking
+# portability. "In-repo" is decided by real-path equality between
+# $SCIAGENT_TOOLKIT and ./01_modules/SciAgent-toolkit.
+#
+# Escape hatches for intentional cross-toolkit use:
+#   --allow-external-toolkit            (per-invocation flag, stripped here)
+#   SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1   (env var)
+_guard_toolkit_locality() {
+    local in_repo="./01_modules/SciAgent-toolkit"
+    # No in-repo toolkit → nothing to protect; any resolution is fine.
+    [[ -d "$in_repo" ]] || return 0
+
+    local in_repo_real active_real
+    if command -v realpath >/dev/null 2>&1; then
+        in_repo_real="$(realpath "$in_repo" 2>/dev/null || printf '%s' "$in_repo")"
+        active_real="$(realpath "$SCIAGENT_TOOLKIT" 2>/dev/null || printf '%s' "$SCIAGENT_TOOLKIT")"
+    else
+        in_repo_real="$(cd "$in_repo" 2>/dev/null && pwd -P || printf '%s' "$in_repo")"
+        active_real="$(cd "$SCIAGENT_TOOLKIT" 2>/dev/null && pwd -P || printf '%s' "$SCIAGENT_TOOLKIT")"
+    fi
+
+    # Resolved toolkit already IS the in-repo one → allowed.
+    [[ "$active_real" == "$in_repo_real" ]] && return 0
+
+    # Mismatch: external toolkit while an in-repo one exists.
+    echo "sciagent: refusing to $verb against an external toolkit" >&2
+    echo "  active toolkit : $active_real" >&2
+    echo "  in-repo toolkit: $in_repo_real" >&2
+    echo "  This project ships its own toolkit; using an external one would symlink" >&2
+    echo "  .claude/.agents against the wrong copy and escape the submodule pin." >&2
+    echo "  Fix by one of:" >&2
+    echo "    - run ./01_modules/SciAgent-toolkit/bin/sciagent $verb ..." >&2
+    echo "    - export SCIAGENT_TOOLKIT=$in_repo_real" >&2
+    echo "    - pass --allow-external-toolkit (or set SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1) to override" >&2
+    return 1
+}
+
 case "$verb" in
     -h|--help|help)
         usage; exit 0 ;;
@@ -120,6 +174,25 @@ case "$verb" in
             usage
             exit 1
         fi
+
+        # Strip the toolkit-locality override flag from the arg list (it is not
+        # a verb argument) and record whether the override was requested.
+        _allow_external="${SCIAGENT_ALLOW_EXTERNAL_TOOLKIT:-0}"
+        _verb_args=()
+        for _a in "$@"; do
+            if [[ "$_a" == "--allow-external-toolkit" ]]; then
+                _allow_external=1
+            else
+                _verb_args+=("$_a")
+            fi
+        done
+        set -- "${_verb_args[@]+"${_verb_args[@]}"}"
+
+        # Toolkit-locality guard runs before any mutating verb touches the FS.
+        if [[ -n "${MUTATING_VERB[$verb]:-}" && "$_allow_external" != "1" ]]; then
+            _guard_toolkit_locality || exit 1
+        fi
+
         # shellcheck source=/dev/null
         for _mod in ${VERB_MODULES[$verb]}; do
             . "$LIB/$_mod"

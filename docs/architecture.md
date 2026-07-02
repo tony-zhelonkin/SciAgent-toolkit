@@ -240,7 +240,8 @@ A role MAY declare empty arrays. A minimal role is just `name` + `description`.
 
 Every `activate` walks the union of declared `skills + agents + commands + output_style` across the stack (last-wins) and creates symlinks in BOTH `.claude/<category>/` AND `.agents/<category>/` (skills, agents, commands — *not* output-styles, which is Claude-only).
 
-- Symlinks are absolute paths back into the toolkit. This survives toolkit being a submodule.
+- Symlinks are **relative** paths back into the toolkit when the toolkit lives inside the project tree (e.g. a submodule under `01_modules/SciAgent-toolkit`): each link is relativized to its own directory (via `realpath -ms --relative-to`), so the committed `.claude/*`/`.agents/*` links stay portable across host/container/machine and travel with the submodule pin. When the toolkit is an **external/global** checkout outside the project tree, the target falls back to an **absolute** path (a relative link would be a fragile `../../../…` chain that breaks when either tree moves). The helper-lib link (`02_analysis/helpers/figure-style`) follows the same relativization rule.
+- A toolkit-locality guard refuses `activate`/`inject`/`eject` when the project ships its own `./01_modules/SciAgent-toolkit` but the resolved `$SCIAGENT_TOOLKIT` is a *different* (external) toolkit — this prevents silently symlinking against, and pinning to, the wrong copy. Override with `--allow-external-toolkit` or `SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1`. `deactivate` is not guarded (it only removes what its own manifest owns).
 - Existing symlinks are removed before new ones are created (clean slate per activate).
 - A name appearing in both base and overlay results in one symlink pointing at the overlay's canonical file (last-wins). The shadowed entry is recorded in the managed block, not in symlinks.
 

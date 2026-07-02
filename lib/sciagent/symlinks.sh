@@ -200,6 +200,57 @@ manifest_finalize() {
 }
 
 # ---------------------------------------------------------------------------
+# symlink_target_for <link_path> <canonical>
+# Compute the target string to store in a symlink at <link_path> pointing at
+# <canonical> (an absolute path into the toolkit).
+#
+# Portability rule (mirrors symlink_create_helper_lib): when the toolkit lives
+# INSIDE the project tree (the activation CWD — where .claude/, .agents/,
+# AGENTS.md, .sciagent/ are written), emit a RELATIVE target computed relative
+# to the link's OWN directory. A relative link then resolves identically on any
+# host/container and travels with the committed submodule pin, instead of
+# hard-coding whatever absolute path $SCIAGENT_TOOLKIT happened to be at
+# activation time.
+#
+# When the toolkit is NOT within the project tree (an external/global checkout,
+# e.g. under /data1 or a container /workspaces path), fall back to the ABSOLUTE
+# path. A relative link in that case would be a long, fragile
+# `../../../../data1/...` chain that breaks the moment the project or the
+# external checkout moves — the absolute path is the more robust choice there.
+#
+# Prints the target string on stdout.
+symlink_target_for() {
+    local link_path="$1"
+    local canonical="$2"
+    local link_dir
+    link_dir="$(dirname "$link_path")"
+
+    # Project root is the activation CWD. The toolkit is "in-repo" when the
+    # canonical target path lies at or below it. We test the canonical path AS
+    # GIVEN (via $SCIAGENT_TOOLKIT) rather than its realpath-resolved form:
+    # this mirrors symlink_create_helper_lib and, crucially, keeps links
+    # relative even when the in-repo toolkit is itself reached through a symlink
+    # (e.g. a submodule surfaced under 01_modules/). Relativizing against a
+    # symlink-resolved path could instead point outside the project and defeat
+    # portability. The relative target is computed with `realpath -ms
+    # --relative-to`: -s (no-symlinks) keeps it a purely lexical path
+    # computation so a symlink-surfaced toolkit (e.g. a submodule reached via a
+    # symlink under 01_modules/) still yields an in-project `../../…` target
+    # rather than escaping to the symlink's resolved location; -m tolerates
+    # not-yet-existing path components.
+    local proj_root
+    proj_root="$(pwd)"
+
+    if [[ "$canonical" == "$proj_root"/* ]] \
+        && command -v realpath >/dev/null 2>&1 \
+        && realpath -ms --relative-to="$link_dir" "$canonical" >/dev/null 2>&1; then
+        realpath -ms --relative-to="$link_dir" "$canonical"
+    else
+        printf '%s' "$canonical"
+    fi
+}
+
+# ---------------------------------------------------------------------------
 # symlink_create_dual
 # ---------------------------------------------------------------------------
 
@@ -237,12 +288,12 @@ symlink_create_dual() {
     esac
 
     mkdir -p "$(dirname "$claude_path")"
-    ln -sfn "$canonical" "$claude_path"
+    ln -sfn "$(symlink_target_for "$claude_path" "$canonical")" "$claude_path"
     _manifest_record_symlink "$claude_path"
 
     if [[ -n "$agents_path" ]]; then
         mkdir -p "$(dirname "$agents_path")"
-        ln -sfn "$canonical" "$agents_path"
+        ln -sfn "$(symlink_target_for "$agents_path" "$canonical")" "$agents_path"
         _manifest_record_symlink "$agents_path"
     fi
 }

@@ -287,11 +287,11 @@ _inject_named_entry() {
         echo "sciagent inject: failed to create symlink dirs for '$name'" >&2
         return 1
     }
-    ln -sfn "$src" "$claude_path" || {
+    ln -sfn "$(symlink_target_for "$claude_path" "$src")" "$claude_path" || {
         echo "sciagent inject: failed to symlink $claude_path" >&2
         return 1
     }
-    ln -sfn "$src" "$agents_path" || {
+    ln -sfn "$(symlink_target_for "$agents_path" "$src")" "$agents_path" || {
         echo "sciagent inject: failed to symlink $agents_path" >&2
         return 1
     }
@@ -358,11 +358,11 @@ _inject_mount_requires_deps() {
             echo "sciagent inject: failed to create symlink dirs for dep '$dep'" >&2
             return 1
         }
-        ln -sfn "$src" "$claude_path" || {
+        ln -sfn "$(symlink_target_for "$claude_path" "$src")" "$claude_path" || {
             echo "sciagent inject: failed to symlink $claude_path" >&2
             return 1
         }
-        ln -sfn "$src" "$agents_path" || {
+        ln -sfn "$(symlink_target_for "$agents_path" "$src")" "$agents_path" || {
             echo "sciagent inject: failed to symlink $agents_path" >&2
             return 1
         }

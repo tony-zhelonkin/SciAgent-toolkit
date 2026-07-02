@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+Reproducibility: portable, pin-respecting symlinks + a toolkit-locality guard,
+so a dropped-in agent activates against the copy the project actually ships.
+
+### Fixed
+- **Skill/agent/command symlinks are now RELATIVE when the toolkit lives inside the project tree.** `symlink_create_dual` (used by `activate`) and the `inject` symlink sites previously wrote every `.claude/*`/`.agents/*` link as an absolute path into whatever `$SCIAGENT_TOOLKIT` happened to be at activation time — breaking portability across host/container/machine and escaping the submodule pin. A new `symlink_target_for` helper (mirroring `symlink_create_helper_lib`) relativizes each link to its own directory via `realpath -ms --relative-to` when the toolkit is at/below the activation CWD, and falls back to the absolute path for external/global checkouts (where a relative `../../../…` chain would be fragile). Applies to all three namespaces (skills, agents, commands) and both mirrors (`.claude` and `.agents`); the manifest still records link *paths*, so `deactivate` teardown round-trips unchanged.
+
+### Added
+- **Toolkit-locality guard for mutating verbs.** `activate`/`inject`/`eject` now refuse to run when the project ships its own `./01_modules/SciAgent-toolkit` but the resolved `$SCIAGENT_TOOLKIT` is a *different* (external/global) toolkit — the footgun where a global `sciagent` silently symlinks a project against, and pins it to, the wrong copy. In-repo vs external is decided by real-path equality against `./01_modules/SciAgent-toolkit`. Override with the `--allow-external-toolkit` flag or `SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1`. `deactivate` is deliberately unguarded (it only removes what its own manifest owns). New tests: `tests/test_relative_symlinks.sh`, `tests/test_toolkit_locality_guard.sh`.
+
 Unified figure style: the figure-style contract drops the dual print/screen
 variant model in favor of ONE legible tier emitted in BOTH formats. Promoted
 from the in-project Wave-0 prototype that proved it across a full results tree.
