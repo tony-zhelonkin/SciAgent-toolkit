@@ -14,12 +14,14 @@
 03_results/objects/*.parquet
 
 # Ignore data artifacts within phase dirs at any depth, keep the skeleton.
-# Decided to leave for now
-#03_results/**/figures/**/*.pdf
-#03_results/**/figures/**/*.png
-#03_results/**/figures/**/*.svg
-#03_results/**/tables/**/*.csv
-#03_results/**/tables/**/*.tsv
+# Regenerable from code + data; every rerun otherwise churns hundreds of binary diffs with
+# nothing meaningful to review. The README.md caption in each stage dir is the tracked,
+# citable record of what a figure/table shows (see the project's AGENTS.md "Artifact captions").
+03_results/**/figures/**/*.pdf
+03_results/**/figures/**/*.png
+03_results/**/figures/**/*.svg
+03_results/**/tables/**/*.csv
+03_results/**/tables/**/*.tsv
 
 # Scratch: throwaway artifacts, never committed
 03_results/_scratch/*

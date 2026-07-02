@@ -27,6 +27,11 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
    `03_results/objects/` before any visualization step.
 3. **Read-only input data.** `00_data/` is read-only. Outputs go to `03_results/`.
 4. **Cache expensive operations.** Anything over a minute goes through a checkpoint object.
+5. **Figures/tables are gitignored, captions are not.** `03_results/<stage>/{figures,tables}/**`
+   artifacts (PDF/PNG/SVG/CSV/TSV) are regenerable from code + data and untracked — reruns would
+   otherwise churn hundreds of binary diffs. Each stage's `README.md` (the captions) is the
+   tracked, citable record; it's what a collaborator without the compute to rerun the pipeline
+   actually reads.
 
 ## Directory structure
 
@@ -56,7 +61,8 @@ Every file in `03_results/<stage>/` needs a caption entry in that stage's `READM
 as the artifact is produced: `## <filename>`, a one-sentence scientific **finding** (what it
 shows, not what it is), then a `Script | Function | Config | Input` table. Function is the exact
 name read from the script (never guessed); Config is the active `key = value`. Never cite
-`docs/_internal/` in these READMEs.
+`docs/_internal/` in these READMEs. The artifact itself is gitignored (rule 5) — the caption is
+the durable record.
 
 ## Figures
 
