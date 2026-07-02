@@ -111,7 +111,11 @@ Stack (in order, last-wins on name collisions):
 
 ## 5. CLI surface
 
-Binary: `bin/sciagent`. Alias: `si`. Both installable via symlink into PATH.
+Binary: `bin/sciagent`. Alias: `si`. Install as a relative-path shell alias
+(`alias si='./01_modules/SciAgent-toolkit/bin/sciagent'`) once more than one project on
+the host vendors its own toolkit copy — a PATH symlink bakes one fixed checkout as the
+resolution target and misfires across projects. See README § Install and §13
+below.
 
 ### Verbs
 
@@ -352,7 +356,9 @@ analysis stack. Instead:
   emits an informational note pointing at `cd <dir> && sciagent activate architect`.
 
 Cross-root awareness (auto-switching context on `cd`) is a future shell-hook concern, out of
-scope for sciagent-core.
+scope for sciagent-core. In the meantime, a CWD-relative `si` alias (§5, README § Install)
+gets the practical benefit without a shell hook: it targets whichever root's toolkit copy
+you're currently in, safely, in an umbrella with several sibling copies mounted at once.
 
 ### `docs/_internal/` namespace by type
 

@@ -32,7 +32,36 @@ context management process. So this tool has been an exploration of the process
 
 ## Install
 
-The CLI is one bash script at `bin/sciagent`. To call `sciagent` (or its short alias `si`) from anywhere, symlink it into a directory on your `PATH`.
+The CLI is one bash script at `bin/sciagent`. How you put `sciagent` (or its short alias
+`si`) on your `PATH` depends on whether you work against one checkout or many.
+
+### Working across multiple projects (recommended default)
+
+Most projects vendor their own copy at `01_modules/SciAgent-toolkit/` (submodule pin) so
+activation is reproducible. If you work across several such projects — or inside an
+**umbrella** that nests several sibling projects, each with its own toolkit copy, under
+one workspace (`docs/architecture.md` §13) — do **not** symlink `si` to one fixed
+checkout. `bin/sciagent` derives `$SCIAGENT_TOOLKIT` from its own file location when the
+env var isn't set, so a PATH symlink bakes a single absolute checkout as the target for
+every invocation, no matter which project's directory you're actually in. Run it from a
+different project and mutating verbs get refused by `_guard_toolkit_locality`
+("refusing to activate against an external toolkit") — or, with
+`--allow-external-toolkit`, silently activate that project against the wrong copy.
+
+Define `si` as a relative-path shell alias instead:
+
+```bash
+alias si='./01_modules/SciAgent-toolkit/bin/sciagent'
+```
+
+Relative to `$PWD`, this always resolves to whichever project's own in-repo toolkit
+you're currently `cd`'d into — correct standalone, and correct inside an umbrella
+container that vendors several sibling copies at once. No `SCIAGENT_TOOLKIT` export, no
+per-project symlink, and it can't mutate the wrong project's `.claude`/`.agents`.
+
+### Single checkout, single project
+
+If you only ever work against one toolkit checkout, a `PATH` symlink is simpler:
 
 `PATH` is the colon-separated list shell searches when a command is typed — `echo $PATH` prints it. 
 `~/.local/bin` is the conventional spot for user-installed binaries and is already on `PATH` in most modern shells; if it isn't, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc (`~/.bashrc`, `~/.zshrc`). 
@@ -45,7 +74,7 @@ ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/si
 sciagent --help     # verify it resolves
 ```
 
-`ln -sf` is idempotent — re-run to repoint at a different checkout. Uninstall with `rm ~/.local/bin/sciagent ~/.local/bin/si`; the toolkit itself is untouched. 
+`ln -sf` is idempotent — re-run to repoint at a different checkout. Uninstall with `rm ~/.local/bin/sciagent ~/.local/bin/si`; the toolkit itself is untouched. Once a second vendored project enters the picture, switch to the alias form above.
 
 ## Quick start
 
