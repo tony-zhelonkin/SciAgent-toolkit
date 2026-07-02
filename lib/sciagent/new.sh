@@ -169,6 +169,14 @@ _new_project() {
     _render_tree "$proj_tpl/_common" "$dir" "$force" || return 1
     _render_tree "$proj_tpl/$type"   "$dir" "$force" || return 1
 
+    # 2.5. statusline.sh must be executable — _render_tree/_subst only ever
+    # writes file content (via sed > dst) and never preserves/sets modes, so
+    # the rendered copy loses the template's execute bit. Assert it here
+    # rather than teaching _render_tree about per-file modes for one file.
+    if [[ -f "$dir/.claude/statusline.sh" ]]; then
+        chmod +x "$dir/.claude/statusline.sh"
+    fi
+
     # 3. seed the shared .gitignore (non-.template source) if absent.
     local gi_seed="$proj_tpl/_common/.gitignore-seed"
     if [[ -f "$gi_seed" && ( ! -e "$dir/.gitignore" || "$force" == "true" ) ]]; then
