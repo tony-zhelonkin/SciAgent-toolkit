@@ -1,0 +1,27 @@
+# decisions-config-snippet.yaml — append under a top-level `decisions:` key in
+# 02_analysis/config/analysis_config.yaml. One block per gated inflection point.
+#
+# The review notebook READS these keys and shows the human exactly what `status: APPROVED`
+# would freeze. The downstream stage GUARDS on `status` and refuses to run until APPROVED:
+#
+#   dcn <- yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decisions$projection
+#   if (!identical(dcn$status, "APPROVED"))
+#     stop("Stage 18 is gated: set decisions.projection.status: APPROVED after review.")
+
+decisions:
+
+  # ---- example: the signature-projection gate (rename `projection` per stage) --------------
+  projection:
+    status: PROPOSED            # PROPOSED | APPROVED — the gate the next stage checks
+
+    # ---- the actual calls the notebook asks the human to make (edit to your decision) ----
+    contrasts_primary: [WT_heat, KO_heat, Interaction]
+    gate: fdr_logfc            # which significance gate to freeze
+    ortholog_ambiguity:
+      drop_interaction_if_trivial: false
+      trivial_min_genes: 10
+
+    # ---- audit trail (filled when the human flips status to APPROVED) ----
+    decided_by: ""             # who approved
+    decided_on: ""             # ISO date, e.g. 2026-07-03
+    note: ""                   # one line of rationale

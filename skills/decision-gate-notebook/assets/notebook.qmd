@@ -1,0 +1,109 @@
+---
+title: "[Stage] review"
+subtitle: "Stage [NN]_[stage] · [dataset / cohort]"
+format:
+  html:
+    toc: true
+    toc-location: left
+    df-print: paged
+    embed-resources: true
+---
+
+```{r setup, include=FALSE}
+# --- Rendering + root resolution (the load-bearing chunk — see the decision-gate-notebook
+#     skill's references/root-resolution.md before "simplifying" any of it) ------------------
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
+                      # crisper, more compact figures; ragg_png is a headless raster device
+                      # (no X11) so this renders on the container and commits real PNGs.
+                      fig.align = "center", out.width = "80%",
+                      dev = "ragg_png", dpi = 150)
+options(bitmapType = "cairo")   # any bare png()/ggsave() in a chunk also stays headless-safe
+
+# This notebook only READS what the stage wrote — it never computes anything a later stage
+# leans on. Resolve the compartment root by (1) the notebook's own dir when knitr/quarto
+# knows it (render), else (2) walking up from the wd to a sentinel (interactive line-by-line).
+# Bind here() to the resolved root — NOT getwd() — so source()/readRDS() work whether this is
+# knitted, quarto-rendered, or pasted into radian from any directory.
+.find_root <- function(sentinel = "02_analysis/config/analysis_config.yaml") {
+  start <- tryCatch(dirname(knitr::current_input(dir = TRUE)), error = function(e) NA_character_)
+  if (is.na(start) || !nzchar(start)) start <- getwd()
+  d <- normalizePath(start, mustWork = FALSE)
+  while (!file.exists(file.path(d, sentinel))) {
+    parent <- dirname(d)
+    if (identical(parent, d))
+      stop("compartment root (", sentinel, ") not found above ", start,
+           "\n  -> launch radian from inside the compartment, or render via notebooks/render.R")
+    d <- parent
+  }
+  d
+}
+.root <- .find_root()
+knitr::opts_knit$set(root.dir = .root)   # render pass runs from the compartment root
+if (interactive()) setwd(.root)          # line-by-line runs agree with render
+here <- function(...) file.path(.root, ...)   # anchored to root, never getwd()
+```
+
+```{r libs}
+suppressPackageStartupMessages({ library(dplyr); library(ggplot2); library(knitr) })
+# Re-plot live from the checkpoint/tables through the project style, so this review always
+# reflects the current config rather than a baked-in PNG. Canonical publication figures still
+# live in 03_results/[stage]/figures/ (written by the numbered viz script).
+source(here("02_analysis/helpers/figure_style.R"))
+```
+
+*Notebook run `r format(Sys.time(), '%Y-%m-%d %H:%M UTC', tz='UTC')`.*
+
+## Where we are
+
+<!-- One paragraph: what the stage just produced, and the N calls this notebook exists to make.
+     e.g. "Stage NN reshaped X into projectable pieces. Here I look at what I'm about to freeze
+     and make three calls: (1) which contrasts, (2) which gate, (3) how to handle ambiguity." -->
+
+```{r load}
+# Read only. Load the stage's outputs + the proposed decision from config.
+# ... readRDS(here("03_results/objects/...")) ; read.csv(here("03_results/[stage]/tables/...")) ...
+dcn <- yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decisions$projection
+# What APPROVED would freeze — read from config so the prose tracks whatever you tweak.
+# EXPORT <- unlist(dcn$contrasts_primary); GATE <- dcn$gate
+```
+
+## 1. [First question the human must answer]
+
+<!-- Framing: the decision in one or two sentences. -->
+
+```{r q1-fig}
+# a plot re-built live from the checkpoint, through project_theme()
+```
+
+**What we see.**
+<!-- the reading that informs the call -->
+
+## 2. [Second question]
+
+```{r q2-fig}
+```
+
+**What we see.**
+
+## 3. [Third question]
+
+```{r q3-check}
+# Live consistency check: does anything in the proposed decision clash with a downstream rule?
+# Surface it here so the human sees it before flipping the gate.
+```
+
+## Where are we?
+
+1. **[Call 1]** → ...
+2. **[Call 2]** → ...
+3. **[Call 3]** → ...
+
+> **Green light:**
+> set `decisions.projection.status: APPROVED` in `analysis_config.yaml`,
+> then run `[NN+1]_[next_stage].R`.
+> Until then `[NN+1]` refuses to run and nothing is frozen.
+
+```{r decisions-echo, echo=TRUE}
+# What the next stage will use once status flips to APPROVED:
+str(yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decisions$projection)
+```

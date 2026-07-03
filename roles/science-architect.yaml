@@ -40,7 +40,8 @@ agents: []
 # scrna-pipeline-conventions, and the full scverse/bulk/ATAC suite.
 # Orchestration-specific skills layered on top of base:
 skills:
-  - delegate-cli        # hand off / consult work to the local codex (GPT-5.x) & agy (Gemini) headless CLIs — implementation → codex, web-research/large-context → agy
+  - delegate-cli            # hand off / consult work to the local codex (GPT-5.x) & agy (Gemini) headless CLIs — implementation → codex, web-research/large-context → agy
+  - decision-gate-notebook  # at a pipeline inflection point, scaffold a read-only Quarto review notebook that re-plots the stage output and gates the next stage on decisions.<stage>.status: APPROVED in analysis_config.yaml
 
 # Commands — orchestration commands are wired in by phases P19-P22:
 #   /pipeline-plan      (P19) — plan + orchestrate a multi-phase pipeline   [WIRED]
