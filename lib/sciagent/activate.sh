@@ -58,6 +58,39 @@ _activate_read_complementary() {
     '
 }
 
+# ---------------------------------------------------------------------------
+# ensure_claude_md_shim
+# Guarantee the project CLAUDE.md carries the `@AGENTS.md` import line so Claude
+# Code — which does not read AGENTS.md natively — picks up the canonical
+# context. Idempotent + non-clobbering:
+#   - absent      → create CLAUDE.md containing just `@AGENTS.md`
+#   - present, has import → no-op
+#   - present, no import  → prepend the import, preserving existing content
+# ---------------------------------------------------------------------------
+ensure_claude_md_shim() {
+    local f="CLAUDE.md"
+    local import="@AGENTS.md"
+    if [[ ! -f "$f" ]]; then
+        printf '%s\n' "$import" > "$f" || {
+            echo "sciagent activate: failed to write $f" >&2
+            return 1
+        }
+        echo "wrote: $f (@AGENTS.md import shim)"
+        return 0
+    fi
+    # Already imports AGENTS.md (a bare `@AGENTS.md` line) → nothing to do.
+    if grep -qE '^[[:space:]]*@AGENTS\.md[[:space:]]*$' "$f"; then
+        return 0
+    fi
+    # Present but missing the import — prepend it, preserving existing bytes.
+    local tmp
+    tmp=$(mktemp)
+    printf '%s\n\n' "$import" > "$tmp"
+    cat "$f" >> "$tmp"
+    mv "$tmp" "$f"
+    echo "updated: $f (added @AGENTS.md import shim)"
+}
+
 cmd_activate() {
     if [[ $# -lt 1 ]]; then
         echo "usage: sciagent activate <base> [overlay]" >&2
@@ -274,6 +307,9 @@ cmd_activate() {
         echo "sciagent activate: failed to write CRAFT block" >&2
         return 1
     }
+    # AGENTS.md is the canonical context surface; Claude Code does not read it
+    # natively, so guarantee the project CLAUDE.md = @AGENTS.md import shim.
+    ensure_claude_md_shim
     manifest_finalize "$(block_stored_hash AGENTS.md)" || {
         echo "sciagent activate: failed to finalize manifest" >&2
         return 1

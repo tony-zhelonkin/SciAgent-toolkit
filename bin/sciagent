@@ -46,6 +46,8 @@ Usage:
   sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
   sciagent update [--to <ref>] [--no-pin] [--quiet]
                                        Re-pin toolkit submodule + re-activate current stack
+  sciagent provision [--harness <csv|all>] [--user] [--context] [--settings] [--dry-run]
+                                       Seed user-level / global context + settings per harness
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
@@ -95,6 +97,7 @@ declare -A VERB_MODULES=(
     [new]="new.sh"
     [gitignore]="gitignore.sh"
     [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh inject.sh update.sh"
+    [provision]="block.sh harness.sh claude_settings.sh provision.sh"
 )
 
 # Verb → cmd_* entrypoint.
@@ -109,6 +112,7 @@ declare -A VERB_ENTRY=(
     [new]=cmd_new
     [gitignore]=cmd_gitignore
     [update]=cmd_update
+    [provision]=cmd_provision
 )
 
 # ---------------------------------------------------------------------------
