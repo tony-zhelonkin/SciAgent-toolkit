@@ -107,6 +107,8 @@ figures:
   width_wide: 13                      # two-column preset: save_figure(..., wide = TRUE)
   width_narrow: 6                     # single-column preset
   dpi: 300                            # raster dpi (png export)
+  rasterized_dpi: 600                 # dpi for rasterized dense layers embedded in the vector PDF
+                                      #   (mark them via rasterize_axes(); text/axes stay vector)
   formats: [pdf, png]                 # both emitted for every figure
 
   # --- anti-clutter / comparability ----------------------------------------

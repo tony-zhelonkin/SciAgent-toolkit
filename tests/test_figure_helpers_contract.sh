@@ -30,6 +30,7 @@ CONTRACT_NAMES=(
     project_theme set_paper_style save_figure save_overview
     contrast_path overview_path style_series purge_figures
     write_caption append_master_table round_numeric_cols direction_cue
+    rasterize_axes
 )
 
 for name in "${CONTRACT_NAMES[@]}"; do

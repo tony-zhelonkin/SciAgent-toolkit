@@ -76,6 +76,7 @@ _FIG_DEFAULTS: Dict[str, Any] = {
     "width_wide": 13,
     "width_narrow": 6,
     "dpi": 300,
+    "rasterized_dpi": 600,
     "formats": ["pdf", "png"],
     "top_n": 20,
     "volcano_label_top": 10,
@@ -283,8 +284,9 @@ def save_figure(plot: Any, stage: str, name: str, variant: Optional[str] = None,
                 height: Optional[float] = None, wide: bool = False) -> Dict[str, Path]:
     """Render ONE matplotlib Figure to BOTH formats from one call (LAZY matplotlib import):
       `<name>.pdf`  — vector PDF, `pdf.fonttype=42` so text stays Illustrator-editable; dense
-                      `rasterized=True` layers stay raster while text/axes vectorize.
-      `<name>.png`  — raster PNG @ dpi.
+                      `rasterized=True` layers (see rasterize_axes) embed as raster at
+                      `figures.rasterized_dpi` (default 600) while text/axes vectorize.
+      `<name>.png`  — raster PNG @ `figures.dpi` (default 300).
     Same geometry + same style for both — NO .print/.screen suffix. `variant` is accepted for
     drop-in compat with old call sites but has NO effect. The output dir is resolved via
     contrast_path() (if `contrast`) / overview_path() (if `overview`) / the plain stage figures
@@ -316,14 +318,39 @@ def save_figure(plot: Any, stage: str, name: str, variant: Optional[str] = None,
     except AttributeError:
         pass  # not a Figure with set_size_inches (e.g. a seaborn FacetGrid) — size via savefig
     dpi = float(f["dpi"])
+    raster_dpi = float(f.get("rasterized_dpi", dpi))
 
     written: Dict[str, Path] = {}
-    for ext in ("pdf", "png"):
+    # PDF at rasterized_dpi so any `rasterized=True` dense layer (mark scanpy/scatter collections
+    # via rasterize_axes) embeds as a CRISP raster while text/axes/lines stay vector — small,
+    # projector-legible PDFs. PNG at dpi. matplotlib auto-embeds rasterized artists as raster.
+    for ext, out_dpi in (("pdf", raster_dpi), ("png", dpi)):
         out = out_dir / f"{stem}.{ext}"
-        plot.savefig(out, dpi=dpi, bbox_inches="tight")
+        plot.savefig(out, dpi=out_dpi, bbox_inches="tight")
         written[ext] = out
-    print(f"  [figure-style] save_figure: {stem}.{{pdf,png}} ({w:g}x{h:g}in)")
+    print(f"  [figure-style] save_figure: {stem}.{{pdf@{raster_dpi:g},png@{dpi:g}}} ({w:g}x{h:g}in)")
     return written
+
+
+def rasterize_axes(*axes: Any) -> None:
+    """Mark the dense artists (scatter / point-cloud collections) on each Axes as rasterized.
+
+    Use after a plotting call that does NOT expose `rasterized=` — notably scanpy embeddings::
+
+        ax = sc.pl.umap(adata, color="geno", show=False)   # returns the Axes
+        rasterize_axes(ax)
+        save_figure(fig, "02_eda", "umap_geno", config=config)
+
+    The dot layer becomes a raster (embedded at `figures.rasterized_dpi` in the PDF by
+    save_figure) while axis text / lines / ticks stay vector — so a 100k-cell UMAP PDF is a few
+    hundred KB and opens instantly, instead of embedding 100k vector points. `None` axes are
+    skipped. Operates on already-built Axes, so it needs no import of its own.
+    """
+    for ax in axes:
+        if ax is None:
+            continue
+        for coll in getattr(ax, "collections", []):
+            coll.set_rasterized(True)
 
 
 def _purge_stem(out_dir: Path, stem: str) -> int:

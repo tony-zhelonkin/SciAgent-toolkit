@@ -70,10 +70,32 @@ All geometry, font sizes, and sub-layout names are read from `02_analysis/config
 
 `save_figure(plot, stage, name)` writes two files from one plot object:
 
-- `<name>.pdf` — vector PDF via cairo, the shared geometry (`width` × `height`). Unicode direction glyphs (↑ ↓) render correctly; text stays Illustrator-editable.
+- `<name>.pdf` — vector PDF via cairo, the shared geometry (`width` × `height`). Unicode direction glyphs (↑ ↓) render correctly; text stays Illustrator-editable. Dense layers marked rasterized (see below) embed as raster at `rasterized_dpi`; everything else stays vector.
 - `<name>.png` — raster PNG at `dpi`, the same geometry and the same style.
 
 There is no `.print`/`.screen` suffix and no per-variant tier — both files share one geometry and one theme. The caller owns ALL theming: `save_figure` never re-themes the plot, it only writes (so per-figure `theme()` tweaks you add after `project_theme()` survive). Stale same-stem `<name>.{png,pdf}` are purged before writing so the run owns its namespace. Use `wide = TRUE` for the two-column canvas. The legacy `variant=` argument is still accepted but ignored.
+
+### Rasterize dense layers — small, openable PDFs
+
+A vector PDF of a 100k-cell UMAP embeds one vector glyph per cell: tens of MB, slow to open, and it chokes Illustrator. The fix is to rasterize *only the dense dot layer* while keeping axes, ticks, and text vector. `save_figure` writes the PDF at `figures.rasterized_dpi` (default 600) so any rasterized layer stays crisp on a projector; the PNG stays at `figures.dpi` (300).
+
+Mark the dense layer with `rasterize_axes()` — essential for scanpy embeddings, whose plotting calls do not expose a `rasterized=` argument:
+
+**Python**
+```python
+ax = sc.pl.umap(adata, color="geno", size=POINT_SIZE, show=False)  # returns the Axes
+rasterize_axes(ax)                                                 # dot layer → raster in the PDF
+save_figure(fig, "02_eda", "umap_geno", config=FIG_CFG)
+```
+
+**R** (via `ggrastr`; a no-op with a note if `ggrastr` is absent):
+```r
+p <- ggplot(df, aes(UMAP1, UMAP2, colour = geno)) + geom_point() + project_theme(config = FIG_CFG)
+p <- rasterize_axes(p, config = FIG_CFG)   # rasterise the Point layer
+save_figure(p, "02_eda", "umap_geno", config = FIG_CFG)
+```
+
+For matplotlib artists you build yourself, pass `rasterized=True` directly (`ax.scatter(..., rasterized=True)`) — `rasterize_axes` is the convenience for plotting calls (scanpy) that hide the artist.
 
 **R**
 ```r

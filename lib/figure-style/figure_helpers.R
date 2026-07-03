@@ -55,7 +55,7 @@
   axis_text_size = 11, strip_size = 12, legend_text_size = 11, caption_size = 9,
   label_size = 4, cue_size = 4, line_width = 1.0, point_size = 2.4,
   width = 8.5, height = 6.5, width_wide = 13, width_narrow = 6,
-  dpi = 300, formats = c("pdf", "png"),
+  dpi = 300, rasterized_dpi = 600, formats = c("pdf", "png"),
   top_n = 20, volcano_label_top = 10, z_clamp = 2.5, nes_cap = 3.5,
   running_sum_ylim = c(-1, 1), running_sum_top = 5, running_sum_heights = c(2.4, 0.7, 0.9),
   caption_wrap_column = 70,
@@ -253,17 +253,42 @@ save_figure <- function(plot, stage, name, variant = NULL, contrast = NULL,
   styled <- plot
   if (isTRUE(void)) styled <- styled + .void_overlay()
 
+  base_dpi   <- as.numeric(f$dpi %||% 300)
+  raster_dpi <- as.numeric(f$rasterized_dpi %||% f$dpi %||% 600)
   written <- list()
   for (ext in c("pdf", "png")) {
     out <- file.path(out_dir, paste0(stem, ".", ext))
     dev <- if (identical(ext, "pdf") && isTRUE(capabilities()[["cairo"]]))
              grDevices::cairo_pdf else NULL
+    ## PDF at rasterized_dpi so ggrastr-rasterised dense layers (see rasterize_axes) embed as a
+    ## crisp raster while text/axes stay vector; PNG at dpi.
+    out_dpi <- if (identical(ext, "pdf")) raster_dpi else base_dpi
     ggplot2::ggsave(out, styled, width = geo[1], height = geo[2],
-                    dpi = as.numeric(f$dpi %||% 300), device = dev)
+                    dpi = out_dpi, device = dev)
     written[[ext]] <- out
   }
-  message(sprintf("  [figure-style] save_figure: %s.{pdf,png} (%gx%gin)", stem, geo[1], geo[2]))
+  message(sprintf("  [figure-style] save_figure: %s.{pdf@%g,png@%g} (%gx%gin)",
+                  stem, raster_dpi, base_dpi, geo[1], geo[2]))
   invisible(written)
+}
+
+## =====================================================================================
+## 3a. RASTERIZE — R analog of the Python rasterize_axes(): rasterize the dense (point-cloud)
+##     LAYERS of a ggplot so they embed as a raster in the vector PDF (crisp text/axes, small
+##     file) — the ggplot2 route to matplotlib's set_rasterized(TRUE) on scatter collections.
+## =====================================================================================
+rasterize_axes <- function(plot, dpi = NULL, config = NULL, layers = c("Point", "Sf")) {
+  ## Rasterize the dense point/scatter layers of a ggplot for a small, openable vector PDF (dense
+  ## UMAP/embedding overlays otherwise embed one vector glyph per cell). Uses ggrastr if available;
+  ## otherwise returns `plot` unchanged with a one-time note (dense layers stay vector). `dpi`
+  ## defaults to figures.rasterized_dpi. Returns the (possibly rasterised) plot.
+  if (!requireNamespace("ggrastr", quietly = TRUE)) {
+    message("  [figure-style] rasterize_axes(): ggrastr not installed — returning plot unchanged ",
+            "(dense layers stay vector in the PDF). install.packages('ggrastr') to enable.")
+    return(plot)
+  }
+  d <- as.numeric(dpi %||% .fig_get(config, "rasterized_dpi") %||% 600)
+  ggrastr::rasterise(plot, layers = layers, dpi = d)
 }
 
 ## =====================================================================================
