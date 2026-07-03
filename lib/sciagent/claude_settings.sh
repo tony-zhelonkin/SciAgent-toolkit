@@ -232,6 +232,91 @@ claude_settings_ensure_project_defaults() {
     fi
 }
 
+# ----- User-level ~/.claude/settings.json + statusline.sh ------------------
+#
+# Root cause (see CHANGELOG / plans/2026-07-02-provider-agnostic): nothing ever
+# seeds the container's USER-level ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json.
+# claude_settings_ensure_project_defaults only ever writes the PROJECT file
+# (.claude/settings.json), and even that only lands on `activate` inside a project
+# cwd. A fresh container home is ephemeral, so Claude's first-run writes only bare
+# `{"theme":"dark"}`-class defaults and the gold power-user settings (editorMode
+# vim, effortLevel, alwaysThinkingEnabled, autoMemoryEnabled false, …) are missing
+# everywhere outside an activated project dir.
+#
+# Fix: mirror the project functions at USER level, from a hooks-free user template
+# (templates/user/.claude/settings.json.template) whose statusLine.command is the
+# user-level `~/.claude/statusline.sh` path (NOT $CLAUDE_PROJECT_DIR, which is
+# undefined at user scope). Hooks stay a project-activate concern. Same
+# non-clobbering guarantees as the project versions:
+#   - settings.json: written verbatim if absent; if present, missing top-level keys
+#     are backfilled via the same reverse `jq` merge that always lets the EXISTING
+#     file's values win — never overwrites a user-set value. jq missing → warn +
+#     skip (no lossy fallback).
+#   - statusline.sh: written only if absent; executable bit (re-)asserted either way.
+
+# claude_settings_ensure_user_statusline
+# Materialize ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/statusline.sh from the toolkit
+# template if absent, and make sure it is executable either way. No-op (besides
+# chmod) if the file already exists — a user's customized status line is never
+# overwritten.
+claude_settings_ensure_user_statusline() {
+    local dst="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/statusline.sh"
+    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/statusline.sh.template"
+    [[ -f "$src" ]] || return 0   # template missing (e.g. stripped install): silent no-op
+
+    mkdir -p "$(dirname "$dst")"
+    if [[ ! -f "$dst" ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        chmod +x "$dst"
+        echo "wrote: $dst"
+    else
+        chmod +x "$dst" 2>/dev/null || true
+    fi
+}
+
+# claude_settings_ensure_user_defaults
+# Materialize ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json from the hooks-free
+# user template if absent. If present, backfill any top-level keys missing from the
+# user's file with the template's gold-standard defaults (statusLine, editorMode,
+# effortLevel, alwaysThinkingEnabled, autoMemoryEnabled, …) without touching any
+# key the user already set.
+claude_settings_ensure_user_defaults() {
+    local dst="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
+    local src="$SCIAGENT_TOOLKIT/templates/user/.claude/settings.json.template"
+    [[ -f "$src" ]] || return 0   # template missing: silent no-op
+
+    mkdir -p "$(dirname "$dst")"
+    if [[ ! -f "$dst" ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        echo "wrote: $dst"
+        return 0
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "sciagent: warning — jq not found; cannot backfill missing keys into $dst" >&2
+        echo "  (statusLine + gold defaults not merged; install jq or add manually)" >&2
+        return 0
+    fi
+
+    # Reverse merge: template first, existing file second — `*` is a
+    # recursive merge where the RIGHT side wins on any key present on both
+    # sides, so existing user values are always preserved; only keys absent
+    # from the user's file are filled in from the template.
+    local tmp
+    tmp=$(mktemp)
+    if jq -s '.[0] * .[1]' "$src" "$dst" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
+        if ! cmp -s "$tmp" "$dst"; then
+            mv "$tmp" "$dst"
+            echo "updated: $dst (backfilled missing default keys)"
+        else
+            rm -f "$tmp"
+        fi
+    else
+        rm -f "$tmp"
+        echo "sciagent: warning — could not merge defaults into $dst (invalid JSON?)" >&2
+    fi
+}
+
 _claude_settings_remove_key() {
     local f="$1"
     if command -v jq >/dev/null 2>&1; then

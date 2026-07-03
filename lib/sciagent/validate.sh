@@ -173,6 +173,35 @@ _validate_docs_layout() {
     return $_docs_fail
 }
 
+# _validate_env_hygiene [--quiet]
+# Environment-hygiene check (soft warn only; never hard-fails by default).
+# Warns when CLAUDE_CODE_SKIP_PROMPT_HISTORY is set/truthy in the environment:
+# in current Claude Code builds this flag does not merely drop up-arrow input
+# history — it forces the whole "session persistence is disabled" state, which
+# in turn disables backgrounding and the agents/teams panel ("this conversation
+# cannot be backgrounded"). This is exactly why a host session couldn't be
+# backgrounded (a stray `export CLAUDE_CODE_SKIP_PROMPT_HISTORY=1` in ~/.bashrc).
+# Use ~/.claude/settings.json `cleanupPeriodDays` for bounded retention instead.
+# --quiet suppresses the soft-warn stdout (mirrors _validate_docs_layout).
+_validate_env_hygiene() {
+    local _quiet=0
+    if [[ "${1:-}" == "--quiet" ]]; then
+        _quiet=1
+    fi
+
+    # Truthy = set and not one of the empty/0/false/off spellings.
+    local v="${CLAUDE_CODE_SKIP_PROMPT_HISTORY:-}"
+    case "$v" in
+        ""|0|false|FALSE|off|OFF|no|NO) ;;
+        *)
+            [[ "$_quiet" -eq 0 ]] && \
+                echo "WARN session-persistence: CLAUDE_CODE_SKIP_PROMPT_HISTORY is set — this disables Claude Code session persistence, which also disables backgrounding + agents/teams (a session cannot be backgrounded). Unset it (use settings.json cleanupPeriodDays for bounded retention instead)."
+            ;;
+    esac
+
+    return 0
+}
+
 # ===========================================================================
 # PROJECT GUARDRAIL CHECKS (opt-in via --check). The (c) GUARDRAIL layer.
 #
@@ -884,6 +913,15 @@ USAGE
     fi
     local _docs_rc=$?
     (( _docs_rc != 0 )) && fail=$(( fail + 1 ))
+
+    # Environment-hygiene check (soft warn only; never touches the exit code).
+    # Warns on CLAUDE_CODE_SKIP_PROMPT_HISTORY (silently disables session
+    # persistence + backgrounding/agents). Quiet-aware like the docs linter.
+    if [[ "$quiet" -eq 1 ]]; then
+        _validate_env_hygiene --quiet
+    else
+        _validate_env_hygiene
+    fi
 
     [[ "$fail" -eq 0 ]] && return 0 || return 1
 }
