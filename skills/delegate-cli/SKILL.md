@@ -15,12 +15,8 @@ metadata:
   category: workflow
   tier: standard
   tags:
-  - delegation
-  - multi-model
-  - headless-cli
-  - codex
-  - gemini
-  - orchestration
+  - tooling
+  - planning
   complementary-skills:
   - reasoning-trace
   - architecture-first-dev
