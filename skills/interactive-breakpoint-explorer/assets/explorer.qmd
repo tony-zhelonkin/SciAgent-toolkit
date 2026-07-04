@@ -1,0 +1,119 @@
+---
+title: "[Stage] explorer — looking at the cells before I sign off (BREAKPOINT [NN])"
+subtitle: "jscatter · [embedding] · 03_results/interactive/[NN]_[stage]_explore.parquet"
+format: html
+jupyter: python3
+---
+
+::: {.callout-important}
+**Live tool — needs a running Python kernel** (VS Code + Jupyter, or JupyterLab). This is not a
+`quarto render` artifact: brushing/lassoing only works in a live kernel. Rebuild the compact data
+first with `python 02_analysis/scripts/export_explorers.py` (never open the multi-GB `.h5ad`
+here). This explorer FEEDS the decision gate — it ends in a `## Decision — decisions.[stage]`
+note that the static `decision-gate-notebook` sibling records as `status: APPROVED`.
+:::
+
+## Where we are
+
+<!-- One paragraph: what the stage produced, and what I want to LOOK at before signing off.
+     e.g. "Stage [NN] kept ~Xk cells. The static review has the kept/dropped numbers; here I
+     just look at the cells — do the populations separate, and what's in that high-mito
+     corner I keep noticing." -->
+
+```{python}
+#| label: setup
+import sys, os
+from pathlib import Path
+
+# Resolve the compartment root by walking up to the sentinel config, then put 02_analysis on
+# the path so `from helpers...` works whether this is opened from the notebook dir or the root.
+d = Path.cwd().resolve()
+while not (d / "02_analysis/config/analysis_config.yaml").exists():
+    d = d.parent
+os.chdir(d)
+sys.path.insert(0, str(d / "02_analysis"))
+
+from helpers.interactive_style.interactive_helpers import (
+    load_interactive_config, load_explorer, grid, close_panels,
+    first_selection, save_selection, snapshot)
+import jscatter  # noqa: F401  (the live widget backend)
+
+config = load_interactive_config()
+df = load_explorer("[NN]_[stage]", config=config)   # <- compact parquet name (no _explore suffix)
+print(df.shape, "cells")
+df.head(3)
+```
+
+## Color by an annotation
+
+Edit `CHANNELS` and re-run the grid to recolor. `cat=` forces categorical (else inferred by
+dtype); `interactive.categorical_obs` in config is always categorical.
+
+```{python}
+#| label: grid
+CHANNELS = ["[gene_or_score]", "[qc_metric]", "[label]", "[batch_or_tissue]"]
+
+PANELS = grid(df, CHANNELS)   # grid() closes any prior panels FIRST — OOM-safe, never a raw loop
+PANELS
+```
+
+Four linked panels — brush or lasso any one, the rest highlight the same cells. Look for the
+pocket you want to characterize, then run the next cell.
+
+```{python}
+#| label: close-escape-hatch
+# ESCAPE HATCH — run this standalone if a grid ever lags. grid() calls it for you on every
+# re-run; this is here for the manual case (ipywidgets keep every panel alive until closed).
+close_panels()
+```
+
+## Characterize the selection
+
+```{python}
+#| label: characterize
+import pandas as pd
+sel = first_selection()          # reads the LIVE panels grid() registered — no variable traps
+sub = df.iloc[sel]
+if len(sub) == 0:
+    print("Brush or lasso a cluster in the grid above, then re-run.")
+else:
+    cols = [c for c in CHANNELS if pd.api.types.is_numeric_dtype(df[c])]
+    print(f"{len(sub)} cells selected")
+    display(pd.DataFrame({"selected": sub[cols].mean(),
+                          "all": df[cols].mean()}).round(3))
+```
+
+**What we see.**
+<!-- the reading that informs the call — what IS this pocket -->
+
+## Save — barcodes + a labelled snapshot
+
+jscatter's own export grabs only the points (no legend/axes). `save_selection` writes the
+barcodes (re-loadable later); `snapshot` writes a labelled figure. Both land under the
+notebook's `eda/`.
+
+```{python}
+#| label: save
+LABEL = "[name_the_pocket]"                       # <- name it
+sel = first_selection()
+save_selection(df, sel, label=LABEL, subdir="[NN]_[stage]_explore", config=config)
+snapshot(df, "[gene_or_score]", name=LABEL, subdir="[NN]_[stage]_explore",
+         indices=sel, config=config)
+```
+
+```{python}
+#| label: reload
+# Barcodes are the durable currency — re-derive indices in a later session from the saved CSV.
+saved = pd.read_csv(f"02_analysis/notebooks/[NN]_[stage]_explore/eda/selection_{LABEL}.csv",
+                    index_col=0)
+sel_reloaded = df.index.get_indexer(saved.index)
+sel_reloaded = sel_reloaded[sel_reloaded >= 0]
+print(f"reloaded {len(sel_reloaded)} of {len(saved)} barcodes")
+```
+
+## Decision — `decisions.[stage]`
+
+<!-- One paragraph: what looking at the cells told me, and what I'm proposing to freeze. This
+     FEEDS the gate — the auditable `status: APPROVED` flip lives in the decision-gate-notebook
+     sibling (02_analysis/notebooks/[NN]_[stage]_review/), which records it in
+     analysis_config.yaml under decisions.[stage]. Nothing is frozen until then. -->

@@ -126,6 +126,37 @@ figures:
   overview_dir: "_overview"           # 03_results/<stage>/figures/_overview/
 
 # =============================================================================
+# INTERACTIVE — the interactive breakpoint explorer contract
+# =============================================================================
+# Read by lib/interactive-style/interactive_helpers.py and by the project's
+# export_explorers.py. At a pipeline inflection point, a live-kernel Python .qmd
+# drives jscatter linked panels to brush/lasso cells, then persists barcodes + a
+# labelled snapshot that FEEDS the decision gate (see skill:
+# interactive-breakpoint-explorer). All lists are EMPTY by default — fill per
+# project; the helper lib hardcodes no project-specific columns. Export-first:
+# the exporter materializes compact parquet under 03_results/interactive/ so the
+# live kernel never opens the multi-GB .h5ad.
+
+interactive:
+  # --- exporter: which checkpoints to materialize + which embedding is x,y ---
+  export_stages: []          # stage ids to build <stage>_explore.parquet for
+  load_coords_obsm: ""       # obsm key read as x,y, e.g. "X_umap"
+
+  # --- exporter: overlays added as explorer columns --------------------------
+  marker_genes: []           # marker genes added per cell, e.g. [FOXP3, CD8A]
+  signatures: {}             # named gene sets scored per cell, e.g. {score_x: [G1, G2]}
+
+  # --- notebook grid: panel layout + coloring --------------------------------
+  categorical_obs: []        # obs columns grid() ALWAYS treats categorical
+  grid_rows: 2               # rows in the composed panel layout
+  grid_height: 340           # per-panel pixel height
+  cmap: magma                # continuous colormap for grid() + snapshot()
+
+  # --- save_selection: what to persist + how to summarize a selection --------
+  save_selection_cols: [x, y]  # columns written per selection CSV (extend; do not shrink)
+  summary_stats: []          # composition stats: {name, column, value?} (value -> fraction; else modal level)
+
+# =============================================================================
 # DATABASES TO ANALYZE
 # =============================================================================
 

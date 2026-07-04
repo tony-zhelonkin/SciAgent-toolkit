@@ -42,6 +42,7 @@ agents: []
 skills:
   - delegate-cli            # hand off / consult work to the local codex (GPT-5.x) & agy (Gemini) headless CLIs — implementation → codex, web-research/large-context → agy
   - decision-gate-notebook  # at a pipeline inflection point, scaffold a read-only Quarto review notebook that re-plots the stage output and gates the next stage on decisions.<stage>.status: APPROVED in analysis_config.yaml
+  - interactive-breakpoint-explorer  # the live-kernel sibling: a Python .qmd drives jscatter linked panels to brush/lasso cells, persists barcodes + a labelled snapshot, and feeds the decision gate (export-first parquet; grid()/close_panels() OOM hygiene)
 
 # Commands — orchestration commands are wired in by phases P19-P22:
 #   /pipeline-plan      (P19) — plan + orchestrate a multi-phase pipeline   [WIRED]
