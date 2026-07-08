@@ -160,7 +160,8 @@ _LIVE_PANELS: List[Any] = []
 
 
 def _mk(df: "pd.DataFrame", channel: str, *, categorical: bool, height: int,
-        cmap: str, config: Optional[Dict[str, Any]]) -> Any:
+        cmap: str, config: Optional[Dict[str, Any]],
+        tooltip_properties: Optional[Sequence[str]] = None) -> Any:
     """Build ONE jscatter Scatter panel colored by `channel`. Internal — use grid()."""
     import jscatter  # lazy
     s = jscatter.Scatter(data=df, x="x", y="y", height=height)
@@ -170,6 +171,13 @@ def _mk(df: "pd.DataFrame", channel: str, *, categorical: bool, height: int,
         lo, hi = float(df[channel].min()), float(df[channel].max())
         s.color(by=channel, map=cmap, norm=[lo, hi if hi > lo else lo + 1e-9])
     s.legend(True)
+    # Hover readout. Without an explicit `.tooltip(True, ...)` jscatter shows NOTHING on hover —
+    # `sync_hover` in compose() only propagates WHICH point is hovered, it does not create tooltip
+    # content. Default to showing every grid channel for the hovered cell (falls back to this
+    # panel's own channel) so a linked hover reads out all panels at once.
+    props = list(tooltip_properties) if tooltip_properties else [channel]
+    props = [p for p in props if p in df.columns]
+    s.tooltip(True, properties=props or [channel])
     return s
 
 
@@ -206,7 +214,8 @@ def grid(df: "pd.DataFrame", channels: Sequence[str], *, cat: Optional[Sequence[
     panels: List[Any] = []
     for c in channels:
         categorical = c in forced_cat or not pd.api.types.is_numeric_dtype(df[c])
-        panels.append(_mk(df, c, categorical=categorical, height=height, cmap=cmap, config=config))
+        panels.append(_mk(df, c, categorical=categorical, height=height, cmap=cmap,
+                          config=config, tooltip_properties=channels))
     _LIVE_PANELS.extend(panels)
 
     return jscatter.compose(
