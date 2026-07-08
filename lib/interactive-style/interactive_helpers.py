@@ -344,6 +344,11 @@ def snapshot(df: "pd.DataFrame", color: str, name: str, subdir: str,
     to capture those. Colors by `color`; if `indices` is given, non-selected cells are greyed and
     the selection drawn on top. EDA-tier (not a 03_results deliverable), so if figure-style's
     `save_figure` is importable it is used, else it saves directly. LAZY matplotlib import.
+
+    The dense point cloud is rasterized (via figure-style's `rasterize_axes`) before saving, so
+    the PDF embeds the dots as a crisp raster at `figures.rasterized_dpi` while the title / axes /
+    legend stay vector — keeping the file small and fast to open even at 100k+ cells, the same
+    contract `save_figure` applies to 03_results figures.
     """
     import matplotlib  # lazy
     matplotlib.use("Agg")
@@ -385,13 +390,61 @@ def snapshot(df: "pd.DataFrame", color: str, name: str, subdir: str,
     ax.set_ylabel("dim-2")
     fig.tight_layout()
 
+    # Rasterize the dense point cloud BEFORE saving: the embedding is thousands-to-millions of
+    # scatter dots, which as pure vector make the PDF enormous and slow to open. Marking the dot
+    # collections rasterized embeds them as a crisp raster (at figures.rasterized_dpi) in the PDF
+    # while title/axes/legend stay vector — the same contract save_figure applies to 03_results
+    # figures. Routed through figure-style's rasterize_axes so the idea lives in ONE place.
+    _rasterize_dense(ax)
+
     d = _eda_dir(subdir)
     saved = _save_via_figure_style(fig, subdir, name, config)
     if not saved:
-        for ext in ("png", "pdf"):
-            fig.savefig(d / f"{name}.{ext}", dpi=200, bbox_inches="tight")
+        raster_dpi = _raster_dpi(config)
+        fig.savefig(d / f"{name}.png", dpi=200, bbox_inches="tight")
+        fig.savefig(d / f"{name}.pdf", dpi=raster_dpi, bbox_inches="tight")
     print(f"saved snapshot -> {(d / f'{name}.png').relative_to(find_root())}")
     return fig
+
+
+def _raster_dpi(config: Optional[Dict[str, Any]]) -> float:
+    """DPI at which rasterized layers embed into the PDF (`figures.rasterized_dpi`, default 600).
+
+    Mirrors save_figure's PDF behaviour so an explorer snapshot and a 03_results figure embed
+    their dense dot layer at the same crisp-but-cheap resolution.
+    """
+    figures = (config or {}).get("figures", {}) or {}
+    try:
+        return float(figures.get("rasterized_dpi", 600))
+    except (TypeError, ValueError):
+        return 600.0
+
+
+def _rasterize_dense(*axes: Any) -> None:
+    """Mark each Axes' dense scatter collections rasterized (prefer figure-style's rasterize_axes).
+
+    Owns the fallback so the behaviour holds even on a box where figure-style is not importable:
+    when the shared helper is present the idea lives in ONE place (figure_helpers.rasterize_axes),
+    otherwise we set `rasterized=True` on the collections directly. Best-effort — never fatal.
+    """
+    try:
+        from helpers.figure_style import rasterize_axes  # per-project shim
+    except Exception:
+        try:
+            from figure_helpers import rasterize_axes  # symlinked lib, no shim
+        except Exception:
+            rasterize_axes = None
+    if rasterize_axes is not None:
+        try:
+            rasterize_axes(*axes)
+            return
+        except Exception:
+            pass
+    for ax in axes:
+        if ax is None:
+            continue
+        for coll in getattr(ax, "collections", []):
+            coll.set_rasterized(True)
 
 
 def _save_via_figure_style(fig, subdir: str, name: str,
@@ -412,8 +465,10 @@ def _save_via_figure_style(fig, subdir: str, name: str,
     try:
         set_paper_style(config=config)  # apply the legible tier to the already-built figure
         d = _eda_dir(subdir)
-        for ext in ("png", "pdf"):
-            fig.savefig(d / f"{name}.{ext}", dpi=200, bbox_inches="tight")
+        # PNG at screen dpi; PDF at figures.rasterized_dpi so any rasterized dot layer embeds
+        # crisp (text/axes stay vector) — matches save_figure's dual-variant contract.
+        fig.savefig(d / f"{name}.png", dpi=200, bbox_inches="tight")
+        fig.savefig(d / f"{name}.pdf", dpi=_raster_dpi(config), bbox_inches="tight")
         return True
     except Exception:
         return False
