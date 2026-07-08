@@ -165,12 +165,19 @@ def _mk(df: "pd.DataFrame", channel: str, *, categorical: bool, height: int,
     """Build ONE jscatter Scatter panel colored by `channel`. Internal — use grid()."""
     import jscatter  # lazy
     s = jscatter.Scatter(data=df, x="x", y="y", height=height)
+    # `labeling={'variable': channel}` names the legend. Passing color via a raw `map` leaves
+    # jscatter's legend title (`legend_encoding['color']['variable']`) as None, so the legend
+    # renders swatches next to bare values with no indication of WHICH channel — unreadable.
     if categorical:
-        s.color(by=channel, map=color_key(df, channel, config=config))
+        s.color(by=channel, map=color_key(df, channel, config=config),
+                labeling={"variable": channel})
     else:
         lo, hi = float(df[channel].min()), float(df[channel].max())
-        s.color(by=channel, map=cmap, norm=[lo, hi if hi > lo else lo + 1e-9])
-    s.legend(True)
+        s.color(by=channel, map=cmap, norm=[lo, hi if hi > lo else lo + 1e-9],
+                labeling={"variable": channel})
+    # Legend at top-right (the point cloud's high-mito/low-gene mass sits bottom-left, so a
+    # top-left legend would overlap it) and `size="medium"` so it is not an easy-to-miss overlay.
+    s.legend(True, position="top-right", size="medium")
     # Hover readout. Without an explicit `.tooltip(True, ...)` jscatter shows NOTHING on hover —
     # `sync_hover` in compose() only propagates WHICH point is hovered, it does not create tooltip
     # content. Default to showing every grid channel for the hovered cell (falls back to this
