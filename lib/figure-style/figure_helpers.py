@@ -342,9 +342,9 @@ def rasterize_axes(*axes: Any) -> None:
         save_figure(fig, "02_eda", "umap_geno", config=config)
 
     The dot layer becomes a raster (embedded at `figures.rasterized_dpi` in the PDF by
-    save_figure) while axis text / lines / ticks stay vector — so a 100k-cell UMAP PDF is a few
-    hundred KB and opens instantly, instead of embedding 100k vector points. `None` axes are
-    skipped. Operates on already-built Axes, so it needs no import of its own.
+    save_figure) while axis text / lines / ticks stay vector, so the PDF stays cheap to render
+    regardless of cell count. `None` axes are skipped. Operates on already-built Axes, so it
+    needs no import of its own.
     """
     for ax in axes:
         if ax is None:
