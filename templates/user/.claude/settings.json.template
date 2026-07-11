@@ -11,6 +11,8 @@
 
   "teammateMode": "auto",
 
+  "cleanupPeriodDays": 90,
+
   "attribution": {
     "commit": "",
     "pr": "",
