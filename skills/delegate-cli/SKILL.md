@@ -165,3 +165,45 @@ agy -p "$(cat "$SCRATCHPAD/prompt.txt")" \
 | Attach image(s) | add `-i /abs/image.png` (repeat per file) |
 | Consult agy | `agy -p "…"` |
 | agy web research | `agy -p "research …; cite sources"` |
+
+## Fan-out orchestration defaults (multi-agent delegation)
+
+When fanning out real work across these CLIs plus Claude subagents (verified 2026-07-14 on the JIA
+heat-vs-hypoxia stage), these defaults hold up:
+
+- **Keep fan-out bounded and independent.** Default to two or three workers with one concrete
+  deliverable each. Parallelize read-only reviews/research freely within policy, but never let writers
+  edit the same file or overlapping directories. Give each writer an exclusive path/worktree or ask
+  for a patch-only deliverable, then integrate serially.
+- **Separate permissions.** Network-enabled research, workspace writes, and unsandboxed execution are
+  distinct authorizations; approval for one does not imply either of the others. Give every run unique
+  prompt/output paths and do not reuse `agy --continue` across independent workers.
+
+- **Split by model strength, and keep reviewer ≠ author.** codex (GPT) implements → a *different*
+  model family (a Claude/Opus subagent) reviews the code → agy (Gemini) does the domain-knowledge /
+  large-context interpretation (e.g. classifying gene-set biology) → the orchestrator integrates,
+  RE-RUNS to verify, and commits. Cross-model review only adds signal when the reviewer did not write
+  the code — never have one Claude both author and review.
+- **Probe before the long job.** A tiny read-only call (`codex exec … -s read-only -o probe.txt "say
+  CODEX_OK" < /dev/null`, or `agy -p "reply OK"`) confirms the CLI runs here before you launch a
+  multi-minute unattended job. Caveat: in the devcontainer a passing `read-only` probe does NOT prove
+  `workspace-write` works (see the bwrap section) — read-only dies as soon as it shells out.
+- **Self-contained prompts, composed from files, piped via stdin.** These CLIs don't see your chat:
+  state the task, absolute quoted paths, the infra to reuse, the exact output contract, the house
+  rules, and where to save reasoning. Keep a reusable spec file and prepend a small per-run note:
+  `cat prepend.md spec.md | codex exec … -`.
+- **Clean capture + orchestrator owns the artifacts.** codex: `-o OUT.txt` (final message only) and
+  redirect the noisy stream separately (`> stream.log 2>&1`). agy: `-p` prints clean to stdout →
+  redirect to a file (do NOT ask agy to write files — triggers agentic mode / permission hangs). For
+  stateful research, have the orchestrator save each agent's stdout under `docs/_internal/reasoning/`
+  (or tell codex, which can write, to save there) so the multi-model chain is traceable and replayable.
+- **Background the slow ones** (`run_in_background`), each with its own scratch OUT path; read the OUT
+  file on the completion notification, then relay — don't dump the raw stream.
+- **codex must never run git.** Under `workspace-write`, Git metadata writes are denied and can waste
+  the run while leaving worktree edits behind; under `danger-full-access` it genuinely could commit or
+  push. Put "do NOT run git" in the prompt and commit yourself after reviewing
+  the diff. Under `danger-full-access`, re-assert ALL guardrails in the prompt (no git, no network,
+  scope to one dir) — the sandbox is no longer enforcing them.
+- **Verify, don't trust.** Headless codex prints `reasoning effort: none` by default; for hard tasks
+  that is thin — consider a higher-reasoning model (`-m gpt-5.6-sol`) and always re-run the produced
+  artifact yourself before believing its numbers or committing.
