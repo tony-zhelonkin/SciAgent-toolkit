@@ -24,9 +24,31 @@ metadata:
 
 # Delegating to codex & agy (headless)
 
-Two peer coding CLIs live on this Mac. Run them non-interactively, capture their output, relay the result.
+These peer coding CLIs may be available on the current host. Run them non-interactively, capture their
+output, and relay the result. The account/model and devcontainer notes below are a verified **local
+profile**, not assumptions to make on other operating systems or environments.
 Pick by strength: **codex** = OpenAI GPT-5.x, sharp implementer/reviewer. **agy** = Gemini 3.x, large
 context + strong web research.
+
+## Preflight and installation
+
+Check the requested CLI before preparing a long run (`command -v codex` / `command -v agy` on POSIX;
+use the shell's equivalent executable lookup elsewhere). If it is missing, do not silently substitute a
+different agent. Tell the user what is unavailable and offer the official installer:
+
+```bash
+# OpenAI Codex CLI
+curl -fsSL https://chatgpt.com/codex/install.sh | sh
+
+# Google Antigravity CLI (`agy`)
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+Fetching and executing a remote installer changes the user's system and uses the network: ask before
+running it. Afterward, verify with `codex --version` or `agy --version`; if the executable is not on
+`PATH`, ask the user to reload/restart their shell. Follow the CLI's own sign-in flow and never ask the
+user to paste credentials into chat. The commands above are POSIX-shell examples; give PowerShell or
+other OS-appropriate instructions when that is the user's environment.
 
 ## codex (OpenAI) — `codex exec`
 
@@ -80,6 +102,11 @@ agy -p [--model "Gemini 3.1 Pro (High)"] [--sandbox] [--add-dir DIR] "PROMPT"
 - **Long prompts: use stdin.** `codex exec … - < /abs/prompt.md` (the `-` reads from stdin). Avoids shell-escaping hell for multi-paragraph prompts. Use `< /dev/null` only when the full prompt is in the inline arg and you just want to stop it blocking on stdin.
 
 ## devcontainer bwrap restriction (observed 2026-06-29)
+
+This is one observed Linux/devcontainer failure mode, not a universal diagnosis. On another host,
+preserve and report the exact sandbox error (for example namespace/bwrap, seatbelt, or container-policy
+denials) and offer that platform's supported environment fix rather than prescribing Linux kernel or
+Docker settings blindly.
 
 **Problem:** In this devcontainer (Docker, seccomp filter active), `read-only` and `workspace-write` both fail completely. Every shell command and `apply_patch` exits with:
 ```
