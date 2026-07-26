@@ -118,9 +118,18 @@ Codex uses bwrap (bundled at `~/.codex/packages/standalone/.../codex-resources/b
 
 **Workaround until rebuild:** Use `-s danger-full-access` — this skips bwrap entirely and runs without any sandbox. File writes work, shell commands work. **Anton's preference:** run `danger-full-access` commands himself via `! codex exec ...` in the Claude Code prompt, then tell me so I monitor artifact creation. The auto-mode classifier blocks me from invoking `danger-full-access` autonomously (it matches the `DANGEROUSLY_*` pattern and requires explicit user authorization).
 
+Asking to “use codex” authorizes Codex, **not** disabling its sandbox. Never infer approval for
+`danger-full-access`; require the user to run the exact command or explicitly approve that unsandboxed
+retry. Do not change host security settings, container privileges, kernel settings, or sandbox mode
+without approval. When unsandboxed execution is approved, prepend the allowed working directory/files
+and re-forbid git, network, credentials/secrets, dependency installation, destructive commands, and
+out-of-scope writes. Prompt constraints reduce risk but do not recreate a sandbox.
+
 **Pattern for Anton to run:** `! codex exec --skip-git-repo-check -m gpt-5.5 -s danger-full-access - < /abs/prompt.md` — Anton runs in the `!` prefix; I prepare the prompt file and monitor output.
 
 **After rebuild:** All three modes (`read-only`, `workspace-write`, `danger-full-access`) should work normally.
+
+**Still failing 2026-07-14** — the `--security-opt seccomp=unconfined` runArg is present in `devcontainer.json` but the running container was not rebuilt with it, so `workspace-write` still bwrap-fails on first shell-out (`read-only` answers pure Q&A but dies the moment it inspects a file). `danger-full-access` (run by Anton via `!`, or explicitly authorized in-turn) remains the working path. Note: a `read-only` probe passing does NOT prove `workspace-write` will run.
 
 ## agy --add-dir quirk (observed 2026-06-29)
 
