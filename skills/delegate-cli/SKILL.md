@@ -5,13 +5,14 @@ description: >-
   Trigger when Anton says "implement/do X via codex/agy", "consult codex/agy", "have codex/agy do/write
   X", "have agy web-research X", or similar. Tells you the exact flags, the working models (codex
   `-codex` variants are REJECTED on this account — must pass `-m gpt-5.5`), and that this vault is NOT
-  a git repo so codex needs `--skip-git-repo-check`.
+  a git repo so codex needs `--skip-git-repo-check`. Also covers the Linux devcontainer, where
+  codex's sandbox is unavailable and `agy --model` is ignored.
 license: MIT
 metadata:
   scope: concept
   requires: []
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-02
+  last-reviewed: 2026-07-28
   category: workflow
   tier: standard
   tags:
@@ -24,9 +25,13 @@ metadata:
 
 # Delegating to codex & agy (headless)
 
-Two peer coding CLIs live on this Mac. Run them non-interactively, capture their output, relay the result.
+Two peer coding CLIs. Run them non-interactively, capture their output, relay the result.
 Pick by strength: **codex** = OpenAI GPT-5.x, sharp implementer/reviewer. **agy** = Gemini 3.x, large
 context + strong web research.
+
+**Two environments, different flags.** The macOS vault is the default described below. The Linux
+devcontainers (`/workspaces/<project>`) differ on sandboxing, model selection, and git — see
+`§Linux devcontainer` before delegating there.
 
 ## codex (OpenAI) — `codex exec`
 
@@ -57,6 +62,80 @@ agy -p [--model "Gemini 3.1 Pro (High)"] [--sandbox] [--add-dir DIR] "PROMPT"
   display name>"`.
 - `--sandbox` restricts the terminal; `--dangerously-skip-permissions` auto-approves; `-c`/`--continue`
   resumes the last conversation; `--print-timeout` default 5m.
+
+## Linux devcontainer (`/workspaces/<project>`)
+
+Verified 2026-07-28 in the Meta-Aging containers. Four differences, each found by execution.
+
+**codex — the sandbox does not work.** The container disallows unprivileged user namespaces, so
+codex's bwrap sandbox fails to start under any `-s` value. Use
+`--dangerously-bypass-approvals-and-sandbox`, and get the safety back by writing the prohibitions
+into the prompt and verifying afterwards:
+
+```
+codex exec -m gpt-5.6-sol -c model_reasoning_effort="high" \
+  --dangerously-bypass-approvals-and-sandbox \
+  -C /workspaces/<project> --skip-git-repo-check \
+  -o /tmp/<unit>_last.md < /tmp/<unit>_prompt.md > /tmp/<unit>_run.log 2>&1
+```
+
+The projects **are** git repos here, so `--skip-git-repo-check` is belt-and-braces rather than
+required. Because nothing sandboxes git, forbid write verbs in the prompt and confirm afterwards
+with `grep -cE '\bgit (add|commit|push|checkout|restore|reset|stash|branch)' <log>` plus a
+`rev-parse HEAD` / `reflog` check in **every** repo the agent could reach — a submodule is its own
+repo.
+
+**codex — usage limits kill runs instantly.** A limit-exhausted launch exits 1 within seconds having
+written nothing. Agents also die mid-write on session limits, usually *after* verification. Always
+check what landed on disk before relaunching, and remember a gitignored tree shows nothing in
+`git status`.
+
+**agy — headless auto-denies every tool.** Without `--dangerously-skip-permissions`, tool calls are
+refused because headless mode cannot prompt, and the model answers from its own knowledge instead.
+The failure is quiet: you get a fluent, plausible, entirely un-grounded reply. If an `agy` answer
+never cites a file it was asked to read, suspect this first.
+
+**agy — `--model` is ignored.** `agy models` advertises `gemini-3.1-pro-high` and the server
+confirms the entitlement, yet every run logs
+`Propagating selected model override to backend: label="Gemini 3.6 Flash (High)"` regardless of the
+flag. No model key exists in `~/.gemini/antigravity-cli/settings.json` or
+`~/.gemini/config/config.json`. Check which model you actually got:
+
+```
+grep 'Propagating selected model' ~/.gemini/antigravity-cli/cli.log | tail -2
+```
+
+Changing it likely needs one interactive `agy` session, after which headless runs inherit the
+selection. **Verify the model before trusting a delegated result**, and say which model produced it
+when relaying.
+
+```
+agy --print --model=<id> --effort=high --dangerously-skip-permissions \
+    --print-timeout 25m --prompt "$(cat /tmp/<unit>_prompt.md)" > /tmp/<unit>.log 2>&1
+```
+
+`--print` buffers: the log stays 0 bytes until the run ends. Watch `git status` for progress.
+
+## Sizing the hand-off to the model
+
+Match task size to the implementer. A unit sized for codex is too coarse for Flash.
+
+- **Flash-class** (`gemini-3.6-flash-*`) — fast and capable, and it strays on style and on subtle
+  assertion strength. Decompose further, state goals tightly, and fan out **more often** with
+  verification between hops rather than handing over one large autonomous unit.
+- **Pro / GPT-5.x-class** — can hold a multi-part unit with thirty discrete items.
+
+Three rules that hold for every implementer, learned the expensive way:
+
+1. **Put exact numeric targets in the prompt** (test counts, ledger sizes) and say *report a
+   deviation rather than editing the artifact to match*. This is what surfaces an honest
+   disagreement instead of a silent adjustment.
+2. **Forbid weakening or deleting a test to make a change fit.** When an implementer relaxes an
+   assertion, the relaxation is the finding. Ask explicitly for the disposition of every test it
+   removed, by name.
+3. **Review is not optional.** An independent reviewer on a stronger model has caught a Tier-1 in
+   work whose own suite was green, more than once. Delegation replaces the typing, never the
+   verification: re-run the tests yourself and check what the agent actually touched.
 
 ## How to drive them from here
 
