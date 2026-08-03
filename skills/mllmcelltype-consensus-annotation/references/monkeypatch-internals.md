@@ -1,37 +1,44 @@
-# Monkeypatch internals — the four version-sensitive seams
+# Monkeypatch internals — the version-sensitive seams
 
 > Deep notes for when I (or whoever inherits this) need to understand *why* `mllmct`
 > reaches into `mllmcelltype`'s guts, where exactly it binds, and what silently rots if a
 > dependency moves. If you just want to *run* annotation, this file is not for you — read
 > `cell-state-annotation.md` or the SKILL.md instead.
 
-`mllmcelltype==2.0.5` does its job (multi-LLM consensus over marker lists) but throws away
-four things I care about: token usage, sampling determinism, the ability to inject my own
-prompt template, and the raw model responses. None are exposed through a public API, so I
-recover them by wrapping internal seams *without editing the vendored package*. Every wrapper
-binds to an **attribute name + call signature**, not a stable public contract — which is why
-all four target packages are pinned `==` and gated by `checks/smoke_check_versions.py`.
+`mllmcelltype==2.0.7` does its job (multi-LLM consensus over marker lists) but throws away
+three things I care about: token usage, sampling determinism, and the raw model responses.
+None are exposed through a public API, so I recover them by wrapping internal seams *without
+editing the vendored package*. Every wrapper binds to an **attribute name + call signature**,
+not a stable public contract — which is why the target packages are pinned `==` and gated by
+`checks/smoke_check_versions.py`.
+
+A fourth concern — injecting a custom (cell-STATE) prompt template — *used* to need a
+monkeypatch (seam (i), the `DEFAULT_PROMPT_TEMPLATE` global swap) but is **native since 2.0.7**:
+`interactive_consensus_annotation` now accepts `prompt_template=` and threads it to
+`create_prompt`. The engine passes the filled template through directly (`engine.py`), so seam
+(i) is retired; the smoke-check now asserts the native parameter instead of the global.
 
 The wrappers live in:
-- `core/prompt.py` — prompt-template install
 - `core/capture.py` — Gemini `generate_content` wrap + OpenRouter `requests.post` wrap
 - `core/debug_capture.py` — logger DEBUG survival
+- `core/prompt.py` — **no longer a monkeypatch**; renders the byte-faithful prompt preview via
+  the library's own `create_prompt(prompt_template=…)`
 
-All four were lifted from the original real-world implementation in
-`02_Analysis/helpers/cellstate_llm.py` / `cellstate_obs.py`, which cite the exact
-`mllmcelltype-2.0.5` internals. Line numbers below are verified against the locked
-`.venv` copy of the package; treat them as "true as of 2.0.5" and re-verify on any bump.
+The three surviving wrappers were lifted from the original real-world implementation in
+`02_Analysis/helpers/cellstate_llm.py` / `cellstate_obs.py`. Line numbers below are verified
+against the locked `.venv` copy of `mllmcelltype 2.0.7`; treat them as "true as of 2.0.7" and
+re-verify on any bump.
 
 ---
 
 ## Version-sensitivity table
 
-| # | Seam (module.attr) | Verified location (2.0.5) | Pin that guards it | If the seam moves… |
+| # | Seam (module.attr) | Verified location (2.0.7) | Pin that guards it | If the seam moves… |
 |---|---|---|---|---|
-| i | `mllmcelltype.prompts.DEFAULT_PROMPT_TEMPLATE` (module global, read at call time by `create_prompt`) | `prompts.py:32` (global), `prompts.py:140` (read) | `mllmcelltype==2.0.5` | custom template silently ignored → models get the stock cell-TYPE prompt; no error |
-| ii | `google.genai.models.Models.generate_content`; `GenerateContentResponse.usage_metadata`; `GenerateContentConfig.{temperature,seed}` | provider call at `gemini.py:81`; usage discarded at `gemini.py:14`; hardcoded config at `gemini.py:84` | `google-genai==2.6.0` (+`pydantic==2.13.3`) | tokens lost (cost=$0 everywhere) and/or determinism lost (re-runs drift); no error |
-| iii | `mllmcelltype.providers.openrouter.requests.post`; the chat-completions parser that drops `usage`/`cost` | `openrouter.py:5` (`import requests`), `openrouter.py:52` (`post_func=requests.post`); parser at `common.py:177` | `requests==2.33.1` | OpenRouter tokens + native USD lost; `temperature=0`/`seed` not injected → non-deterministic; no error |
-| iv | `mllmcelltype.logger.setup_logging` "just update level" fast path; logger name `"llmcelltype"` | fast path `logger.py:54-60`; logger name `logger.py:17` | `mllmcelltype==2.0.5` | raw-response DEBUG lines never land (empty `llmcelltype_debug.log`); no error |
+| i | ~~`mllmcelltype.prompts.DEFAULT_PROMPT_TEMPLATE` global swap~~ **RETIRED — native since 2.0.7** | native param `consensus.py:2598` (`prompt_template=`), validated `:2651`, threaded `:2676` | `mllmcelltype==2.0.7` | custom template silently ignored → models get the stock cell-TYPE prompt; smoke-check asserts the param exists |
+| ii | `google.genai.models.Models.generate_content`; `GenerateContentResponse.usage_metadata`; `GenerateContentConfig.{temperature,seed}` | hardcoded config `providers/gemini.py:128`; native usage now at `gemini.py:34`/`:136` (unsurfaced via the consensus entrypoint) | `google-genai==2.6.0` (+`pydantic==2.13.3`) | tokens lost (cost=$0 everywhere) and/or determinism lost (re-runs drift); no error |
+| iii | `mllmcelltype.providers.openrouter.requests.post`; the chat-completions body/parser that omits `temperature` and drops `usage`/`cost` | `providers/openrouter.py:5` (`import requests`), `:61` (`post_func=requests.post`); body `providers/common.py:270` (`data=json.dumps`, `request_json=False` default `:448`); no temperature sent (`common.py:89,102-103`) | `requests==2.33.1` | OpenRouter tokens + native USD lost; `temperature=0`/`seed` not injected → non-deterministic; no error |
+| iv | `mllmcelltype.logger.setup_logging` "just update level" fast path; logger name `"llmcelltype"` | fast path `logger.py:75-78`; logger name `logger.py:9` | `mllmcelltype==2.0.7` | raw-response DEBUG lines never land (empty `llmcelltype_debug.log`); no error |
 
 The unifying failure mode: **every one fails *silently***. The run completes, labels come out,
 nothing throws — you just quietly lose tokens, reproducibility, your prompt, or your debug trace.
@@ -39,40 +46,45 @@ That's why the gate is structural-assertion-on-lock, not a runtime try/except.
 
 ---
 
-## (i) Prompt-template install
+## (i) Prompt-template injection — RETIRED (native since 2.0.7)
 
-**What the library does/discards.** `interactive_consensus_annotation` does not thread a
-`prompt_template` argument through to `create_prompt`; it effectively passes `None`.
-`create_prompt` (`prompts.py:110`) then falls back to the module global at
-`prompts.py:140` (`prompt_template = DEFAULT_PROMPT_TEMPLATE`). Crucially that read happens
-**at call time**, against the live module attribute — not captured at import. So there is no
-supported way to inject a cell-STATE prompt; the stock cell-TYPE template is baked in.
+**History.** In `2.0.5`, `interactive_consensus_annotation` did not thread a `prompt_template`
+argument; `create_prompt` fell back to the module global
+`mllmcelltype.prompts.DEFAULT_PROMPT_TEMPLATE`, read *at call time*. The skill injected its
+cell-STATE prompt by swapping that global (`install_prompt_template` / `restore_prompt_template`
+in `core/prompt.py`, wrapped in a try/finally around the call).
 
-**The seam we bind to.** `core/prompt.py` is the *sole owner* of a snapshot sentinel
-(`_ORIGINAL_TEMPLATE`). `install_prompt_template(template)` snapshots the real default once,
-then assigns `mllmcelltype.prompts.DEFAULT_PROMPT_TEMPLATE = template`. Because `create_prompt`
-reads that global per call, the next consensus call renders my template verbatim.
-`restore_prompt_template()` puts the original back. The engine wraps the call in
-`install … try/finally restore` (`engine.py:218,224`). For previews, `render_prompt_preview`
-passes `prompt_template=template` *explicitly* to `create_prompt`, so it is byte-faithful
-without mutating the global.
+**What 2.0.7 gives natively.** `interactive_consensus_annotation(prompt_template=…)`
+(`consensus.py:2598`) validates the template (`validate_prompt_template`, `:2651`) and threads
+it to `create_prompt` (`:2676`). The engine now sets `call_kwargs["prompt_template"] = template`
+and calls straight through — no global swap, no restore. `core/prompt.py` keeps only
+`render_prompt_preview`, which passes `prompt_template=` to the library's own `create_prompt`
+for the byte-faithful trace.
 
-**Silent breakage.** If `create_prompt` ever captures the default at import, stops reading
-`DEFAULT_PROMPT_TEMPLATE`, or the attribute is renamed/made read-only → my template is ignored
-and every cluster gets the stock prompt (markers-only, cell-type framing). No exception.
+**One behavioral note from the bump.** `create_prompt` (and `validate_prompt_template`) now run
+`_get_prompt_template_fields`, which rejects any `{placeholder}` outside
+`SUPPORTED_PROMPT_PLACEHOLDERS = (species, tissue, markers, context)` (`prompts.py:72`). The
+engine fills its own `<<…>>` slots *before* the library sees the template, leaving only
+`{species}/{tissue}/{markers}`, so the shipped templates validate — but any literal `{`/`}`
+injected via evidence or guardrail text would now raise `Invalid prompt_template format` (it did
+not in 2.0.5). This applies to the native and the (removed) global-swap paths equally; it is a
+property of the 2.0.7 bump, caught by `test_end_to_end.py`.
 
-**Guarded by:** `mllmcelltype==2.0.5`. Smoke-check asserts `DEFAULT_PROMPT_TEMPLATE` is a
-`str` global and `create_prompt` is callable.
+**Guarded by:** `mllmcelltype==2.0.7`. Smoke-check asserts `create_prompt` **and**
+`interactive_consensus_annotation` each accept a `prompt_template` parameter.
 
 ---
 
 ## (ii) Gemini `generate_content` wrap
 
-**What the library does/discards.** The Gemini provider (`gemini.py`) calls
-`client.models.generate_content(...)` at `gemini.py:81` with a hardcoded
-`config=types.GenerateContentConfig(temperature=0.7, max_output_tokens=4096)` (`gemini.py:84`)
-— **no seed**, so re-runs drift. It then reads only `response.text` (`gemini.py:14`) and
-**discards `response.usage_metadata`** entirely, so token counts vanish and cost is unknowable.
+**What the library does/discards.** The Gemini provider (`providers/gemini.py`) calls
+`client.models.generate_content(...)` with a hardcoded
+`config=types.GenerateContentConfig(temperature=0.7, max_output_tokens=4096)` (`gemini.py:128`)
+— **no seed**, so re-runs drift. 2.0.7 added native usage extraction (`extract_gemini_usage`,
+`gemini.py:34`; `capture_usage(response, usage_sink, …)`, `gemini.py:136`), but `usage_sink` is
+**not** threaded through `interactive_consensus_annotation`, so a caller on the consensus
+entrypoint still cannot retrieve tokens without the wrap. Determinism is still hardcoded to
+`temperature=0.7` with no public knob.
 
 **The seam we bind to.** `GeminiTokenCapture` (`core/capture.py`) monkeypatches the class
 method `google.genai.models.Models.generate_content`. The wrapper does two things:
@@ -87,7 +99,7 @@ method `google.genai.models.Models.generate_content`. The wrapper does two thing
    - a plain `dict` (`GenerateContentConfigDict`) → copy + key override (checked **first**,
      because dict also has `.copy`);
    - `None` / anything unrecognised → returned unchanged (never break the call).
-   The config travels as a kwarg in 2.0.5, but the wrapper also handles a positional
+   The config travels as a kwarg in 2.0.7, but the wrapper also handles a positional
    `config` (signature `generate_content(model, contents, config)`).
 2. **Token capture.** After the real call, it reads `response.usage_metadata` and accumulates
    `prompt_token_count` / `candidates_token_count` / `total_token_count` per model into
@@ -112,14 +124,16 @@ and `GenerateContentResponseUsageMetadata` has the three token-count fields.
 ## (iii) OpenRouter `requests.post` wrap
 
 **What the library does/discards.** The OpenRouter provider posts via plain HTTP. At
-`openrouter.py:52` it passes `post_func=requests.post` into the shared
-`call_openai_compatible_api` helper. That helper (`common.py`) sends the body as
+`providers/openrouter.py:61` it passes `post_func=requests.post` into the shared
+`call_openai_compatible_api` helper. That helper (`providers/common.py`) sends the body as
 `data=json.dumps(body)` — **not** `json=` — because `request_json=False` is the default
-(`common.py:139`, branch at `common.py:152-156`). It then parses the response with
-`content = response.json()` followed by a parser that extracts only the message content
-(`common.py:177`), **discarding the sibling `usage` block** (tokens + OpenRouter's native USD
-`cost`). And `build_chat_completions_body(model, prompt)` sends **no `temperature`** — each
-vendor samples at its own default, with no seed.
+(`common.py:448`, branch at `common.py:263-270`). `build_chat_completions_body` (`common.py:85`)
+sends `temperature` only when it is not `None`, and the default is `None`
+(`common.py:89,102-103`) — so no temperature and no seed go out, each vendor samples at its own
+default. 2.0.7 will read a `cost`/`usage` block if present (`common.py:39-41`) and forwards a
+`usage_sink`, but — as with Gemini — `usage_sink` is not surfaced through
+`interactive_consensus_annotation`, and the provider never asks OpenRouter for cost
+(`usage:{include:true}`), so the wrap still injects both.
 
 **The seam we bind to.** `OpenRouterCapture` (`core/capture.py`) monkeypatches
 `mllmcelltype.providers.openrouter.requests.post` — which *is* the global `requests.post`,
@@ -149,7 +163,7 @@ IS requests`" assertion is the tripwire for the import-shape half; the body-shap
 caught by `test_capture.py`'s fake-`post` assertions.
 
 **Guarded by:** `requests==2.33.1` (the `requests.post` identity the patch swaps) and
-`mllmcelltype==2.0.5` (the provider's import shape + body/parse contract). Smoke-check asserts
+`mllmcelltype==2.0.7` (the provider's import shape + body/parse contract). Smoke-check asserts
 `mllmcelltype.providers.openrouter.requests is requests`.
 
 ---
@@ -160,13 +174,13 @@ caught by `test_capture.py`'s fake-`post` assertions.
 But `interactive_consensus_annotation` calls `annotate_clusters` once **per model**, and each
 of those calls `setup_logging(...)` against the same default log dir. With an already-initialized
 logger on the same dir, `setup_logging` takes the **"just update level" fast path**
-(`logger.py:54-60`): it walks the existing handlers and calls `setLevel(INFO)` on them. That
+(`logger.py:75-78`): it walks the existing handlers and calls `setLevel(INFO)` on them. That
 downgrades *any* DEBUG `FileHandler` I attached before the first provider call — so by the time
 the raw-response DEBUG line fires, my handler is at INFO and **zero** raw lines are persisted.
-(For a *different* dir it takes a different branch that removes file handlers entirely,
-`logger.py:64-66`/`:77-79` — also fatal to my handler, but the fast path is the one that bites
-in practice since the dir doesn't change mid-run.) The logger name is hardcoded `"llmcelltype"`
-(`logger.py:17`) — note the single `l`, not `llmcelltype`/`mllmcelltype`.
+(For a *different* dir it takes a different branch that removes file handlers entirely — also
+fatal to my handler, but the fast path is the one that bites in practice since the dir doesn't
+change mid-run.) The logger name is hardcoded `"llmcelltype"` (`logger.py:9`) — note the single
+`l`, not `llmcelltype`/`mllmcelltype`.
 
 **The seam we bind to.** `core/debug_capture.py`:
 - `configure_llm_logging(lens, log_dir)` attaches a DEBUG `FileHandler` (tagged
@@ -187,7 +201,7 @@ This is the only seam with **no dedicated smoke-check structural assertion beyon
 "`setup_logging` is callable"** — the per-model re-init behaviour is behavioural, not
 structural, so trust `test_*` + a real dry-run here.
 
-**Guarded by:** `mllmcelltype==2.0.5`. Smoke-check asserts `mllmcelltype.logger.setup_logging`
+**Guarded by:** `mllmcelltype==2.0.7`. Smoke-check asserts `mllmcelltype.logger.setup_logging`
 is callable (a weak guard — see above).
 
 ---
@@ -206,11 +220,12 @@ uv run --project "$SKILL" python "$SKILL/checks/smoke_check_versions.py"
 `smoke_check_versions.py` is the tripwire. It asserts, **offline, no API key, no AnnData**:
 
 1. the four exact versions in `mllmct._version.PINNED`
-   (`mllmcelltype 2.0.5 / google-genai 2.6.0 / pydantic 2.13.3 / requests 2.33.1`); and
-2. that every structural seam still *exists*: `DEFAULT_PROMPT_TEMPLATE` is a `str` global,
-   `create_prompt` callable, `interactive_consensus_annotation` + `logger.setup_logging`
-   callable, `providers.openrouter.requests IS requests`, `Models.generate_content` callable,
-   and `GenerateContentConfig`/`usage_metadata` carry the expected fields.
+   (`mllmcelltype 2.0.7 / google-genai 2.6.0 / pydantic 2.13.3 / requests 2.33.1`); and
+2. that every structural seam still *exists*: `create_prompt` and
+   `interactive_consensus_annotation` each accept a `prompt_template` parameter (the native seam
+   that replaced the retired global swap), `logger.setup_logging` callable,
+   `providers.openrouter.requests IS requests`, `Models.generate_content` callable, and
+   `GenerateContentConfig`/`usage_metadata` carry the expected fields.
 
 **If a seam check FAILs:** do **not** trust the wrappers. The run would still "succeed" and lose
 tokens/determinism/prompt/DEBUG with no error. Reconcile **this file** against the new pinned
@@ -222,7 +237,7 @@ goes green is the new lock safe to commit.
 
 | Pin | Guards |
 |---|---|
-| `mllmcelltype==2.0.5` | seams (i) prompt global + `create_prompt` call-time read, and (iv) the per-model `setup_logging` fast-path behaviour + logger name; also the OpenRouter provider's `data=json.dumps` body shape and content-only parser in seam (iii) |
+| `mllmcelltype==2.0.7` | seam (iv) the per-model `setup_logging` fast-path behaviour + logger name; the OpenRouter provider's `data=json.dumps` body shape + no-temperature body in seam (iii); and the native `prompt_template=` parameter that retired seam (i) |
 | `google-genai==2.6.0` | seam (ii): `Models.generate_content` location/signature, `usage_metadata` field names, `GenerateContentConfig.{temperature,seed}` |
 | `pydantic==2.13.3` | seam (ii) determinism path: `model_copy(update=...)` semantics + `model_fields` on the class |
 | `requests==2.33.1` | seam (iii): the `requests.post` callable identity the OpenRouter patch swaps in place |

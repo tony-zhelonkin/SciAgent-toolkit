@@ -1,22 +1,8 @@
-"""#5 — custom-prompt install/restore seam + byte-faithful render (locked mllmcelltype)."""
+"""#5 — byte-faithful custom-prompt render via the native prompt_template path."""
 
 import mllmcelltype.prompts as prompts
 
-from mllmct.core.prompt import (
-    install_prompt_template,
-    render_prompt_preview,
-    restore_prompt_template,
-)
-
-
-def test_install_restore_roundtrip():
-    original = prompts.DEFAULT_PROMPT_TEMPLATE
-    try:
-        install_prompt_template("CUSTOM {species} {tissue} {markers}")
-        assert prompts.DEFAULT_PROMPT_TEMPLATE == "CUSTOM {species} {tissue} {markers}"
-    finally:
-        restore_prompt_template()
-    assert prompts.DEFAULT_PROMPT_TEMPLATE == original
+from mllmct.core.prompt import render_prompt_preview
 
 
 def test_render_is_byte_faithful():
@@ -25,5 +11,12 @@ def test_render_is_byte_faithful():
                                 {"0": ["MKI67", "TOP2A"], "1": ["BAX", "CASP3"]})
     assert "mouse" in out and "synthetic culture" in out
     assert "MKI67" in out and "CASP3" in out
-    # render must not leave the library template global mutated
-    assert "{markers}" in prompts.DEFAULT_PROMPT_TEMPLATE or True  # restore-independent
+
+
+def test_render_does_not_mutate_library_default():
+    """render_prompt_preview passes prompt_template explicitly, so the library default global
+    is untouched (no install/restore seam anymore)."""
+    before = prompts.DEFAULT_PROMPT_TEMPLATE
+    render_prompt_preview("mouse", "lung", "CUSTOM {species} {tissue} {markers}",
+                          {"0": ["CD3E"]})
+    assert prompts.DEFAULT_PROMPT_TEMPLATE == before

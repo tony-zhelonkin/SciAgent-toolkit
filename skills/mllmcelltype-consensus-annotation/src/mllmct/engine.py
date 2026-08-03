@@ -182,7 +182,7 @@ class AnnotationEngine:
         marker_clusters = set(markers)
         evidence = self._assemble_evidence(evidence_csv, aux_path)
 
-        # 2. prompt template (fill our slots, install the library global seam)
+        # 2. prompt template (fill our slots; threaded natively to the library in step 5)
         template = self._prepare_template(lens, evidence)
         rendered = _prompt.render_prompt_preview(species, tissue, template, markers)
         log.info("lens=%s clusters=%d markers/cluster=%d prompt_chars=%d models=%s",
@@ -204,6 +204,7 @@ class AnnotationEngine:
         call_kwargs: dict[str, Any] = dict(
             marker_genes=markers, species=species, tissue=tissue, models=models,
             api_keys=api_keys,
+            prompt_template=template,
             consensus_threshold=p.consensus_threshold,
             entropy_threshold=p.entropy_threshold,
             max_discussion_rounds=p.max_discussion_rounds,
@@ -213,15 +214,13 @@ class AnnotationEngine:
         if cm:
             call_kwargs["consensus_model"] = cm
 
-        # 5. the call — wrapped for token capture + DEBUG survival + template restore
+        # 5. the call — wrapped for token capture + DEBUG survival.
+        # prompt_template is threaded natively via call_kwargs (mllmcelltype>=2.0.7),
+        # so there is no DEFAULT_PROMPT_TEMPLATE global to swap and restore.
         _debug.configure_llm_logging(lens, lens_trace)
-        _prompt.install_prompt_template(template)
-        try:
-            with _debug.llm_debug_capture(lens, lens_trace), capture as cap:
-                result = interactive_consensus_annotation(**call_kwargs)
-            token_usage = cap.usage
-        finally:
-            _prompt.restore_prompt_template()
+        with _debug.llm_debug_capture(lens, lens_trace), capture as cap:
+            result = interactive_consensus_annotation(**call_kwargs)
+        token_usage = cap.usage
 
         consensus = {str(k): v for k, v in result.get("consensus", {}).items()}
         model_annotations = result.get("model_annotations", {})

@@ -18,10 +18,10 @@ the cell-state plugin see [`cell-state-annotation.md`](cell-state-annotation.md)
   because mllmct monkeypatches their *internals* (attribute names + call signatures, not public
   APIs). Everything else (`pandas`, `pyyaml`, `python-dotenv`) is a `>=` floor. Which is which, and
   why, is in [`monkeypatch-internals.md`](monkeypatch-internals.md).
-- **`checks/smoke_check_versions.py` asserts these four seams specifically**: the prompts template
-  global, the consensus entrypoint + logger, the OpenRouter `requests.post` identity, and the
-  google-genai config/usage fields. The version-of-truth is `mllmct._version.PINNED`. Never `uv lock`
-  without re-running the smoke-check.
+- **`checks/smoke_check_versions.py` asserts the seams specifically**: the native `prompt_template`
+  parameter (on `create_prompt` + the consensus entrypoint), the consensus entrypoint + logger, the
+  OpenRouter `requests.post` identity, and the google-genai config/usage fields. The version-of-truth
+  is `mllmct._version.PINNED`. Never `uv lock` without re-running the smoke-check.
 - **The project-specific seam is the `EvidenceProvider` ABC** (+ a reference plugin) and the YAML
   `profiles/` — that's how cell-state biology is injected *without* importing any analysis-repo
   `config.py`, keeping the package extractable. Details in

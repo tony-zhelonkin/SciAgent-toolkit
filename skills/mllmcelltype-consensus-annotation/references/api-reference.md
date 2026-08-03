@@ -10,26 +10,22 @@ Public exports (`from mllmcelltype import ...`):
 
 > ## ⚠️ What this skill OVERRIDES in the library (read first)
 >
-> This page documents the **upstream `mllmcelltype` API**. `mllmct` deliberately distrusts two
-> things the library emits, and recovers a third it discards:
+> This page documents the **upstream `mllmcelltype` API**. `mllmct` distrusts the library's
+> consensus metrics and recovers token/cost the consensus entrypoint leaves unreachable:
 >
-> - **Consensus metrics are recomputed in Python.** The library's `consensus_proportion` and
->   `entropy` (see the return-dict table below) are **post-discussion** numbers — a stochastic
->   model's self-reported arithmetic describing agreement *after* the models were made to argue.
->   `mllmct` recomputes both deterministically from the per-model label multiset
->   (`core.consensus`) and writes them as the **authoritative** `py_consensus_proportion` /
->   `py_entropy` columns in `labels.csv`. The library's numbers are kept only as
->   `llm_reported_proportion` / `llm_reported_entropy` and **never override**. The LLM's chosen
->   `consensus` *label* is still authoritative; only the *metrics* are ours.
-> - **Token usage + USD cost are captured by wrapping the provider call.** The library reads
->   only the response text and **discards** `usage_metadata` (Gemini) / the `usage`+`cost` block
->   (OpenRouter). `mllmct` wraps the provider call to recover them (and to force
->   `temperature=0, seed=0`). So "the library returns no token usage" is expected — `mllmct`
->   captures it out-of-band.
+> - **Consensus metrics are recomputed in Python.** The returned `consensus_proportion` /
+>   `entropy` are **post-discussion**, self-reported numbers. `mllmct` recomputes both from the
+>   per-model label multiset (`core.consensus`) as the authoritative `py_consensus_proportion` /
+>   `py_entropy` in `labels.csv`, keeping the library's as `llm_reported_*` (never override). The
+>   chosen `consensus` *label* stays authoritative; only the *metrics* are ours.
+> - **Token usage + USD cost are captured by wrapping the provider call.** 2.0.7 reads usage
+>   natively into a `usage_sink`, but that sink is **not** threaded through
+>   `interactive_consensus_annotation` — so via the entrypoint `mllmct` uses, tokens/cost stay
+>   unreachable. The wrap recovers them and forces `temperature=0, seed=0` (the library exposes no
+>   public determinism knob). Custom prompts, by contrast, are threaded natively (`prompt_template=`).
 >
-> See **`monkeypatch-internals.md`** for the four version-sensitive seams that make this work,
-> and **`cell-state-annotation.md`** for the `py_*` vs `llm_reported_*` columns and the
-> profile/evidence model.
+> See **`monkeypatch-internals.md`** for the version-sensitive seams, and
+> **`cell-state-annotation.md`** for the `py_*` vs `llm_reported_*` columns and profile/evidence model.
 
 ---
 
@@ -43,7 +39,7 @@ annotate_clusters(
     species,                 # "human" | "mouse" | ...
     provider="openai",       # "openai" | "anthropic" | "gemini" | "qwen" | "deepseek" |
                              #   "zhipu" | "stepfun" | "minimax" | "grok" | "openrouter"
-    model=None,              # e.g. "gpt-5.5", "claude-sonnet-4-6"; None -> provider default
+    model=None,              # e.g. "gpt-5", "claude-sonnet-4.6"; None -> provider default
     api_key=None,            # falls back to <PROVIDER>_API_KEY env var
     tissue=None,             # tissue context, improves accuracy
     additional_context=None, # free-text hints (disease, protocol, expected lineages)
@@ -66,6 +62,7 @@ interactive_consensus_annotation(
     api_keys=None,               # {provider: key}; else env vars
     tissue=None,
     additional_context=None,
+    prompt_template=None,        # custom prompt; validated + threaded to create_prompt (native since 2.0.7)
     consensus_threshold=0.7,     # agreement proportion below this => controversial
     entropy_threshold=1.0,       # Shannon entropy above this => controversial
     max_discussion_rounds=3,     # deliberation rounds for controversial clusters
@@ -83,8 +80,8 @@ interactive_consensus_annotation(
 | Key | Type | Meaning |
 |---|---|---|
 | `consensus` | `{cluster: label}` | Final cell-type label per cluster |
-| `consensus_proportion` | `{cluster: float 0–1}` | Fraction of models agreeing on the final label. **Post-discussion / untrusted** — `mllmct` keeps this only as `llm_reported_proportion` and uses its own `py_consensus_proportion` (see top-of-page note). |
-| `entropy` | `{cluster: float}` | Shannon entropy of model votes (higher = more disagreement). **Post-discussion / untrusted** — kept as `llm_reported_entropy`; `mllmct` uses `py_entropy` instead. |
+| `consensus_proportion` | `{cluster: float 0–1}` | Fraction agreeing on the final label. Post-discussion — kept as `llm_reported_proportion` (see note). |
+| `entropy` | `{cluster: float}` | Shannon entropy of votes (higher = more disagreement). Post-discussion — kept as `llm_reported_entropy` (see note). |
 | `controversial_clusters` | list | Clusters that triggered discussion |
 | `resolved` | dict | Post-discussion labels for controversial clusters |
 | `model_annotations` | `{model: {cluster: label}}` | Per-model raw predictions |
@@ -106,7 +103,7 @@ res = interactive_consensus_annotation(
     models=[
         {"provider": "openrouter", "model": "meta-llama/llama-4-maverick:free"},
         {"provider": "openrouter", "model": "deepseek/deepseek-v4-pro:free"},
-        "claude-sonnet-4-6",            # mix native providers with OpenRouter
+        "claude-sonnet-4.6",            # mix native providers with OpenRouter
     ],
     consensus_threshold=0.7, max_discussion_rounds=2,
 )

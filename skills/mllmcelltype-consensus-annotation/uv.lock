@@ -282,7 +282,7 @@ wheels = [
 
 [[package]]
 name = "mllmcelltype"
-version = "2.0.5"
+version = "2.0.7"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
@@ -291,14 +291,14 @@ dependencies = [
     { name = "python-dotenv" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e0/42/d35b00df8f7254cc406b3e454b7343ca40ae0bbf54f92adba39208b16b37/mllmcelltype-2.0.5.tar.gz", hash = "sha256:d9c85b08095f5f0ebba25d6921a21f203db0a87e59b8254b08477ffd313d6232", size = 87902, upload-time = "2026-05-11T07:09:39.244Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/39/bb/fa8b69192c9dac49fe647e47534678e2020ad8edf6244f4d59f71b8f55d2/mllmcelltype-2.0.7.tar.gz", hash = "sha256:ff1759960cda54d25a6e337ca8dc0c0ee90a095370fa298a9975c3f45f30fe97", size = 120324, upload-time = "2026-07-21T01:05:49.483Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/90/9e/d67a8ccfaeb4fc6badeb445f5915752d9d1e21591c8a4b589c554ddd4095/mllmcelltype-2.0.5-py3-none-any.whl", hash = "sha256:7cc434bdc97ba9fc5d50f4a8700cf15cb8e60abcb3a979d0b2ce483f7851ba5c", size = 63656, upload-time = "2026-05-11T07:09:37.398Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/57/7cd2144de99ce00914a897bad305a8e9f7d428565670c62c3967d2ac8a01/mllmcelltype-2.0.7-py3-none-any.whl", hash = "sha256:b3329175f98048ab6741114cc64a67bb9c7736ae8707f11067412defe5b84016", size = 78139, upload-time = "2026-07-21T01:05:48.478Z" },
 ]
 
 [[package]]
 name = "mllmct"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "google-genai" },
@@ -318,7 +318,7 @@ test = [
 [package.metadata]
 requires-dist = [
     { name = "google-genai", specifier = "==2.6.0" },
-    { name = "mllmcelltype", specifier = "==2.0.5" },
+    { name = "mllmcelltype", specifier = "==2.0.7" },
     { name = "pandas", specifier = ">=2.0" },
     { name = "pydantic", specifier = "==2.13.3" },
     { name = "pytest", marker = "extra == 'test'", specifier = ">=8.0" },

@@ -53,13 +53,29 @@ def main() -> int:
 
     print("smoke_check_versions: monkeypatch seams")
 
-    # 2a. mllmcelltype.prompts seam (custom prompt install) ------------------
+    # 2a. native prompt_template seam (threaded, not monkeypatched since 2.0.7) ---
+    #     Seam (i) is retired: the engine passes prompt_template= to
+    #     interactive_consensus_annotation instead of swapping DEFAULT_PROMPT_TEMPLATE.
+    #     Assert the native parameter exists on both create_prompt (preview) and the
+    #     consensus entrypoint (the real call) — if either drops it, custom prompts
+    #     silently revert to the stock template.
     try:
+        import inspect
+
         prompts = importlib.import_module("mllmcelltype.prompts")
-        has_tmpl = isinstance(getattr(prompts, "DEFAULT_PROMPT_TEMPLATE", None), str)
-        failures += not _check("mllmcelltype.prompts.DEFAULT_PROMPT_TEMPLATE (str global)", has_tmpl)
+        create_prompt = getattr(prompts, "create_prompt", None)
         failures += not _check("mllmcelltype.prompts.create_prompt callable",
-                               callable(getattr(prompts, "create_prompt", None)))
+                               callable(create_prompt))
+        if callable(create_prompt):
+            failures += not _check(
+                "create_prompt accepts 'prompt_template'",
+                "prompt_template" in inspect.signature(create_prompt).parameters)
+        mc0 = importlib.import_module("mllmcelltype")
+        ica = getattr(mc0, "interactive_consensus_annotation", None)
+        if callable(ica):
+            failures += not _check(
+                "interactive_consensus_annotation accepts 'prompt_template'",
+                "prompt_template" in inspect.signature(ica).parameters)
     except Exception as exc:  # noqa: BLE001
         failures += not _check("import mllmcelltype.prompts", False, str(exc))
 

@@ -6,8 +6,8 @@ metadata:
   scope: implementation
   requires: []
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-29
-  version: 0.2.0
+  last-reviewed: 2026-07-22
+  version: 0.3.0
   upstream-docs: https://github.com/cafferychen777/mLLMCelltype
   category: annotation
   tier: standard
@@ -206,7 +206,7 @@ writing your own `EvidenceProvider`, and the reconcile config live in
 You don't need these to use the tool. When you want internals or to adapt it:
 
 - `references/cell-state-annotation.md` — cell-state mode, profile knobs, writing an `EvidenceProvider`, reconcile.
-- `references/monkeypatch-internals.md` — the four version-sensitive patches + the lock-regeneration procedure.
+- `references/monkeypatch-internals.md` — the version-sensitive patches + the lock-regeneration procedure.
 - `references/packaging-template.md` — the "locked tool + CLI + logging + tests" pattern, to copy into other skills.
 - `references/api-reference.md` — underlying mLLMCelltype API + the Python-recomputed-metrics override.
 - `references/r-seurat-workflow.md`, `references/uncertainty-and-hierarchy.md` — upstream-library context.
@@ -227,4 +227,4 @@ You don't need these to use the tool. When you want internals or to adapt it:
 
 - Repository: https://github.com/cafferychen777/mLLMCelltype
 - Preprint (Yang et al., 2025): https://doi.org/10.1101/2025.04.10.647852
-- PyPI: https://pypi.org/project/mllmcelltype/ (this skill pins `2.0.5`)
+- PyPI: https://pypi.org/project/mllmcelltype/ (this skill pins `2.0.7`)
