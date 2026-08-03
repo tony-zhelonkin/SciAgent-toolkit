@@ -51,3 +51,26 @@ def test_meta_and_prompt(tmp_path):
     assert (base / "prompt.txt").read_text() == "hello prompt"
     meta = json.loads((base / "meta.json").read_text())
     assert meta["lens"] == "lensC" and meta["profile"] == "p"
+
+
+def test_meta_records_the_arbiter_that_resolved_the_disagreements(tmp_path):
+    """The arbiter answers every non-unanimous cluster and its answers ship in the delivered
+    labels, so a meta.json naming only the annotators describes a smaller panel than the one that
+    ran. In the 14782-DM 2026-07-30 run the arbiter was 49.5% of total spend and appears nowhere
+    in its own provenance file."""
+    tw = TraceWriter("celltype", base_dir=tmp_path)
+    meta = json.loads(tw.write_meta(models=["a/x", "b/y"],
+                                    consensus_model="c/arbiter").read_text())
+
+    assert meta["consensus_model"] == "c/arbiter"
+    assert meta["models"] == ["a/x", "b/y"]
+
+
+def test_meta_states_an_unset_arbiter_as_a_fact_rather_than_omitting_it(tmp_path):
+    """Unset, the library resolves an arbiter of its own and answers anyway. A missing key reads
+    as "no arbiter ran"; the recorded string says a model ran and its identity was not captured."""
+    tw = TraceWriter("celltype", base_dir=tmp_path)
+    meta = json.loads(tw.write_meta(models=["a/x"]).read_text())
+
+    assert "consensus_model" in meta
+    assert "unset" in meta["consensus_model"]

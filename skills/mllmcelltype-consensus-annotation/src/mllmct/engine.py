@@ -191,9 +191,11 @@ class AnnotationEngine:
         # 3. trace: prompt + meta BEFORE the call
         tw = TraceWriter(lens, base_dir=lens_trace, git_cwd=self.git_cwd)
         tw.write_prompt(rendered)
-        tw.write_meta(models=models, sources={"markers": str(markers_csv),
-                                              "evidence": str(evidence_csv) if evidence_csv else "none",
-                                              "aux": str(aux_path) if aux_path else "none"},
+        tw.write_meta(models=models,
+                      consensus_model=consensus_model or p.consensus_model,
+                      sources={"markers": str(markers_csv),
+                               "evidence": str(evidence_csv) if evidence_csv else "none",
+                               "aux": str(aux_path) if aux_path else "none"},
                       extra={"profile": p.name, "vocab_mode": p.vocab_mode,
                              "inject_evidence": p.inject_evidence})
 
