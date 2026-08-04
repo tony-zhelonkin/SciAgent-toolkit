@@ -10,7 +10,7 @@ metadata:
   scope: concept
   requires: []
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-14
+  last-reviewed: 2026-07-28
   category: workflow
   tier: standard
   tags:
@@ -193,7 +193,9 @@ heat-vs-hypoxia stage), these defaults hold up:
   `cat prepend.md spec.md | codex exec … -`.
 - **Clean capture + orchestrator owns the artifacts.** codex: `-o OUT.txt` (final message only) and
   redirect the noisy stream separately (`> stream.log 2>&1`). agy: `-p` prints clean to stdout →
-  redirect to a file (do NOT ask agy to write files — triggers agentic mode / permission hangs). For
+  redirect to a file. (Superseded 2026-07-28: agy *can* be asked to write and edit files — see the
+  worker-edits/orchestrator-commits section. What hangs a headless run is a **shell command** outside
+  `permissions.allow`, not file writing.) For
   stateful research, have the orchestrator save each agent's stdout under `docs/_internal/reasoning/`
   (or tell codex, which can write, to save there) so the multi-model chain is traceable and replayable.
 - **Background the slow ones** (`run_in_background`), each with its own scratch OUT path; read the OUT
@@ -204,5 +206,117 @@ heat-vs-hypoxia stage), these defaults hold up:
   the diff. Under `danger-full-access`, re-assert ALL guardrails in the prompt (no git, no network,
   scope to one dir) — the sandbox is no longer enforcing them.
 - **Verify, don't trust.** Headless codex prints `reasoning effort: none` by default; for hard tasks
-  that is thin — consider a higher-reasoning model (`-m gpt-5.6-sol`) and always re-run the produced
-  artifact yourself before believing its numbers or committing.
+  that is thin. Raise it in-flight with `-c model_reasoning_effort=high` (verified: the header then
+  prints `reasoning effort: high`), or use a higher-reasoning model (`-m gpt-5.6-sol`). Always re-run
+  the produced artifact yourself before believing its numbers or committing.
+
+## Waiting on background workers — the self-match trap (verified 2026-07-27)
+
+The obvious way to block until a fan-out finishes is a `pgrep` poll loop:
+
+```bash
+# BROKEN — never exits
+while pgrep -f "codex exec --skip-git-repo-check" > /dev/null; do sleep 30; done
+echo "ALL WORKERS EXITED"
+```
+
+**The loop's own command line contains the pattern**, so `pgrep -f` matches the waiter's shell and
+the condition stays true after every worker has exited. It runs until it is killed or times out, and
+the timeout surfaces as a *task failure* that looks like the workers died. They did not. Check
+`out.txt`/`stream.log` before concluding anything about the workers.
+
+Fixes, cheapest first:
+
+- **Wait on PIDs, not on a name.** Capture `$!` at launch and `wait "${pids[@]}"`. Only works if the
+  waiter is the launching shell — across shells, poll the PIDs with `kill -0 "$pid"`.
+- **Wait on the artifact.** The workers' output files are the real completion signal:
+  `while [ ! -s w1.out.txt ] || [ ! -s w2.out.txt ]; do sleep 30; done`. Robust across shells, and it
+  waits for what you actually care about.
+- **Exclude self** if you must match by name: `pgrep -f "codex exec" | grep -v "^$$\$"`, or break the
+  literal so the waiter's own cmdline does not contain it (`"codex e""xec"`).
+
+Generalizes to any `pgrep`/`ps | grep` poll over a pattern that appears in the polling command.
+
+### Killing a parent orphans its forked workers (verified 2026-07-28)
+
+The mirror image of the same trap, on the way out. Stopping a fan-out by killing the PID you
+captured at launch kills only the parent. Anything it forked — R's `parallel::mclapply`, Python's
+`multiprocessing`, a `&`-backgrounded loop — is reparented to init and **keeps running at full
+tilt**. Nothing reports this: the log stops growing, the parent is gone, and the job looks stopped.
+
+It surfaced here as a later run taking 20 minutes for work that had taken 13, on a 72-core box
+sitting at load 87. Two earlier killed runs had left 105 orphaned workers between them, each still
+holding a core.
+
+- **Kill the group, not the process:** launch under `setsid`, then `kill -- -"$PGID"`.
+- **Audit before assuming a job is stopped:** `ps -o pid=,ppid=,cmd= -C R | awk '$2==1'` lists
+  exactly the orphans. Reparenting to `ppid 1` is the signature.
+- **Never `pkill -f <script>` to clean up** — same self-match problem, and here it killed the
+  invoking shell (exit 144). Filter `ps` output by `ppid == 1` and pipe PIDs to `kill`, or break the
+  literal with a bracket (`'probe[4]\.R'`) so the pattern cannot match its own command line.
+
+## Two failure modes in how the *prompt* is written (verified 2026-07-27)
+
+Both were the orchestrator's fault, not the CLI's, and both are cheap to avoid.
+
+- **A wrong acceptance test gets satisfied, not reported.** An acceptance command that was subtly
+  wrong (it invoked an import from the wrong working directory) was met by codex *creating a shim
+  file* so the command would pass, rather than saying the test was wrong. It disclosed the new file
+  under "what changed", so this is not deception — but the artifact was pure test-satisfying scaffold
+  and had to be deleted. **Run every acceptance command yourself before putting it in the prompt**,
+  and add a standing line: *"if an acceptance command here is wrong, report that instead of changing
+  the repository to satisfy it."*
+- **The acceptance test sets the blast radius.** A criterion phrased as a repo-wide
+  `grep -rn <banned-string> <root>/` licensed edits anywhere in that root, and the worker duly
+  rewrote an unrelated notebook to clear the grep. The work was defensible, but it was not the task,
+  and it silently carried a stale number into prose nobody had reviewed. **Scope the verification
+  command to the paths you scoped the task to.**
+
+Corollary for both: give expected numbers as a **check with an explicit instruction to report a
+mismatch rather than reconcile to it**. Workers otherwise treat a stated number as the target and
+quietly make the artifact agree.
+
+## The optimal split: the worker edits, the orchestrator commits (verified 2026-07-28)
+
+**agy edits and regenerates; it has no git write permission, so the orchestrator reviews against disk
+and commits.** That is the right split rather than a limitation — in a two-task pass, *both* tasks
+needed a correction caught in review that the model had reported as clean.
+
+Why it is a feature and not a workaround:
+
+- **Withholding git write is not a downgrade, it is where the review gate lives.** A worker that can
+  commit has already published before anyone looked. One that cannot leaves its work in the worktree,
+  where `git status --porcelain <scope>` is a complete and cheap statement of what it touched. Give
+  the worker read-only git (`git diff`, `git log`, `git show`, `git ls-files`) so it can verify its
+  own work, and nothing that writes.
+- **The worker's self-check has a blind spot its report cannot expose.** In the verified case a
+  caption was rewritten from two lines to three; the numbers were right, the linter passed `0 hard`,
+  and the banned string was gone — every check the worker could run said clean. The third line grew
+  upward into the title and collided with it, because the text element was anchored `va="bottom"`.
+  **Nothing in a text-level report can reveal a layout regression.** Whoever reviews must open the
+  regenerated artifact, not read about it.
+- **Generalize that:** after any worker edit that changes the *length* of rendered text, re-render and
+  look at the image. Same for row counts in a table that has a fixed-height panel, and label text that
+  feeds an axis.
+
+Practical mechanics, both verified:
+
+- **Small decomposed tasks beat one broad implementation pass.** At one-file / one-edit granularity
+  the orchestrator can open every artifact the worker touched. Across a six-item pass it cannot, and
+  the review degrades to reading the worker's own summary — which is exactly the signal that fails.
+- **Do the locating yourself and hand over an exact edit.** Reading the target artifact *before*
+  writing the prompt changed what the correct fix was in the verified case. A prompt that names
+  `file:line`, the exact replacement text, and an explicit do-not-touch list gets a 2-line diff; a
+  prompt that says "find and fix" gets a search, a judgment call, and a wider blast radius.
+- **Plant a trap in the do-not-touch list.** A nearby string that *looks* like the defect but is
+  correct (same wrong-looking number, different subject) tests whether the worker scoped its edit or
+  pattern-matched. Cheap to include, and it either passes silently or catches a real over-reach.
+- **agy writes files fine — but `cd` is auto-denied in headless mode and aborts the whole run.**
+  Its permissions live in `~/.gemini/antigravity-cli/settings.json` under `permissions.allow` as
+  `command(<prefix>)` rules. Headless (`-p`) cannot prompt, so any command outside the list is denied
+  and the run ends with *"no output produced — a tool required the command permission"* and nothing
+  else. Add the prefixes the task needs (`cd`, `mkdir`, `quarto`, …); deliberately omit `rm`, `mv`,
+  `bash`, `sh`, `pip`, `curl`, `wget`, and every `git` write verb. Back the file up before editing it.
+  Most generator scripts self-`chdir`, so check before granting `cd` at all.
+- **Probe writes separately from reads.** A passing read-only probe says nothing about whether the
+  worker can edit: write a throwaway file under a `_scratch/` path and read it back.
