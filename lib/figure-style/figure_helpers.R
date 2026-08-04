@@ -398,7 +398,7 @@ write_caption <- function(stage, filename, finding, script, fn, config_kv, input
     existing <- readLines(readme, warn = FALSE)
     new_text <- .replace_section(existing, heading, section)
   } else {
-    new_text <- c(sprintf("# %s — artifact captions", stage), "", section)
+    new_text <- c(sprintf("# %s: artifact captions", stage), "", section)
   }
   writeLines(new_text, readme)
   invisible(readme)
