@@ -6,13 +6,13 @@ description: >-
   X", "have agy web-research X", or similar. Tells you the exact flags, the working models (codex
   `-codex` variants are REJECTED on this account — must pass `-m gpt-5.5`), and that this vault is NOT
   a git repo so codex needs `--skip-git-repo-check`. Also covers the Linux devcontainer, where
-  codex's sandbox is unavailable and `agy --model` is ignored.
+  codex's sandbox is unavailable and `agy` takes its prompt as the value of `-p`.
 license: MIT
 metadata:
   scope: concept
   requires: []
   skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-28
+  last-reviewed: 2026-08-03
   category: workflow
   tier: standard
   tags:
@@ -52,16 +52,33 @@ codex exec --skip-git-repo-check -m gpt-5.5 -s <sandbox> [-o OUT.txt] "PROMPT" <
 
 ## agy (Gemini) — `agy -p`
 
+Flag surface verified against agy 1.1.10.
+
 ```
-agy -p [--model "Gemini 3.1 Pro (High)"] [--sandbox] [--add-dir DIR] "PROMPT"
+agy -p "PROMPT" [--model "Gemini 3.1 Pro (High)"] [--dangerously-skip-permissions] \
+    [--add-dir DIR] [--print-timeout 25m] > OUT.md 2>&1
 ```
 
-- **`-p` (`--print`)** runs one prompt and prints a clean answer to stdout — no header to strip.
-- Default model **Gemini 3.1 Pro**; good default for web research and big-context reads. Other names from
-  `agy models` (e.g. `Gemini 3.5 Flash (High)`, `Claude Opus 4.6 (Thinking)`); pass via `--model "<exact
-  display name>"`.
-- `--sandbox` restricts the terminal; `--dangerously-skip-permissions` auto-approves; `-c`/`--continue`
-  resumes the last conversation; `--print-timeout` default 5m.
+- **`-p`, `--print`, and `--prompt` are one string flag** (`-p` short, `--prompt` an alias); the last
+  occurrence wins, and it prints a clean answer to stdout with no header to strip. It consumes the
+  next token as its value, so a bare `--print` in front of another flag eats that flag — in
+  `--print --dangerously-skip-permissions … --prompt "…"` the permissions flag never takes effect.
+  Give the prompt as the flag's value and put the remaining flags after it.
+- A bare prompt with no `-p` starts interactive mode, which dies headless on `/dev/tty`. Flag parsing
+  stops at the first bare argument, so flags after one are silently dropped.
+- **`--model`** accepts either the display label (`"Gemini 3.1 Pro (High)"`) or the slug printed by
+  `agy models` (`gemini-3.1-pro-high`). An unrecognized value exits 1 before the run and prints the
+  label list. The session default is the `model` key in `~/.gemini/antigravity-cli/settings.json`,
+  which an interactive session rewrites.
+- **Omit `--effort`.** Every model in `agy models` bakes its effort into its name and rejects the
+  flag: `invalid model selection (--model "Gemini 3.1 Pro (High)" --effort "high"): --effort is not
+  supported for model "Gemini 3.1 Pro (High)"`, exit 1 before the run. Pick effort by picking the
+  model.
+- **`--print-timeout`** takes a Go duration with a unit — `25m`, `300s`; default 5m. A bare number
+  exits 2 with `missing unit in duration "30"`.
+- `--sandbox` restricts the terminal; `-c`/`--continue` resumes the last conversation.
+- Print mode buffers: the redirect target stays 0 bytes until the run ends, then the whole answer
+  lands at once.
 
 ## Linux devcontainer (`/workspaces/<project>`)
 
@@ -93,28 +110,27 @@ check what landed on disk before relaunching, and remember a gitignored tree sho
 **agy — headless auto-denies every tool.** Without `--dangerously-skip-permissions`, tool calls are
 refused because headless mode cannot prompt, and the model answers from its own knowledge instead.
 The failure is quiet: you get a fluent, plausible, entirely un-grounded reply. If an `agy` answer
-never cites a file it was asked to read, suspect this first.
+never cites a file it was asked to read, suspect this first. With the flag, print mode logs
+`--dangerously-skip-permissions set, auto-approving all tool permissions` — grep that line to
+confirm the flag survived parsing.
 
-**agy — `--model` is ignored.** `agy models` advertises `gemini-3.1-pro-high` and the server
-confirms the entitlement, yet every run logs
-`Propagating selected model override to backend: label="Gemini 3.6 Flash (High)"` regardless of the
-flag. No model key exists in `~/.gemini/antigravity-cli/settings.json` or
-`~/.gemini/config/config.json`. Check which model you actually got:
-
-```
-grep 'Propagating selected model' ~/.gemini/antigravity-cli/cli.log | tail -2
-```
-
-Changing it likely needs one interactive `agy` session, after which headless runs inherit the
-selection. **Verify the model before trusting a delegated result**, and say which model produced it
-when relaying.
+**agy — read the model back after the run.** Each invocation writes a fresh
+`~/.gemini/antigravity-cli/log/cli-<timestamp>.log` and repoints the `cli.log` symlink at it, so a
+grep taken before a run reports the previous run's model. Read it afterwards:
 
 ```
-agy --print --model=<id> --effort=high --dangerously-skip-permissions \
-    --print-timeout 25m --prompt "$(cat /tmp/<unit>_prompt.md)" > /tmp/<unit>.log 2>&1
+grep -o 'label="[^"]*"' ~/.gemini/antigravity-cli/cli.log | tail -1
 ```
 
-`--print` buffers: the log stays 0 bytes until the run ends. Watch `git status` for progress.
+The full line is `Propagating selected model override to backend: label="…"`. It names the model the
+session was configured with — `--model` when the flag parsed, the `settings.json` default otherwise,
+which is also what a run that exits on an invalid `--model` logs. Say which model produced a
+delegated result when relaying it.
+
+```
+agy -p "$(cat /tmp/<unit>_prompt.md)" --model "Gemini 3.1 Pro (High)" \
+    --dangerously-skip-permissions --print-timeout 25m > /tmp/<unit>.log 2>&1
+```
 
 ## Sizing the hand-off to the model
 
@@ -166,24 +182,26 @@ bwrap: No permissions to create a new namespace, likely because the kernel does 
 ```
 Codex uses bwrap (bundled at `~/.codex/packages/standalone/.../codex-resources/bwrap`) for ALL non-`danger-full-access` sandboxes. The Docker default seccomp profile blocks `clone(CLONE_NEWUSER)` — the syscall bwrap needs — even though `user.max_user_namespaces` is non-zero.
 
-**Root cause:** `.devcontainer/devcontainer.json` was missing `--security-opt seccomp=unconfined`. **Fixed** (added to `runArgs`). Requires devcontainer rebuild to take effect.
+**What restores it:** the container must permit unprivileged user namespaces — `security_opt: [seccomp=unconfined]` on the compose service (or `--security-opt seccomp=unconfined` in `runArgs`), then a rebuild. The Meta-Aging containers run without it, so the restriction is live: `unshare -U true` exits `Operation not permitted` while `user.max_user_namespaces` reads non-zero.
 
-**Workaround until rebuild:** Use `-s danger-full-access` — this skips bwrap entirely and runs without any sandbox. File writes work, shell commands work. **Anton's preference:** run `danger-full-access` commands himself via `! codex exec ...` in the Claude Code prompt, then tell me so I monitor artifact creation. The auto-mode classifier blocks me from invoking `danger-full-access` autonomously (it matches the `DANGEROUSLY_*` pattern and requires explicit user authorization).
+**Workaround while the restriction stands:** Use `-s danger-full-access` — this skips bwrap entirely and runs without any sandbox. File writes work, shell commands work. **Anton's preference:** run `danger-full-access` commands himself via `! codex exec ...` in the Claude Code prompt, then tell me so I monitor artifact creation. The auto-mode classifier blocks me from invoking `danger-full-access` autonomously (it matches the `DANGEROUSLY_*` pattern and requires explicit user authorization).
 
 **Pattern for Anton to run:** `! codex exec --skip-git-repo-check -m gpt-5.5 -s danger-full-access - < /abs/prompt.md` — Anton runs in the `!` prefix; I prepare the prompt file and monitor output.
 
-**After rebuild:** All three modes (`read-only`, `workspace-write`, `danger-full-access`) should work normally.
+**Once the container permits user namespaces:** all three modes (`read-only`, `workspace-write`, `danger-full-access`) work normally.
 
-## agy --add-dir quirk (observed 2026-06-29)
+## agy flag order (verified on agy 1.1.10)
 
-**Problem:** Passing `--add-dir DIR` BEFORE the prompt triggers agy's agentic mode — it treats the directory as a Claude Code project workspace and starts exploring it autonomously instead of executing the print-mode task.
+**The prompt is `-p`'s value, and the first bare argument ends flag parsing.** A flag placed between
+`-p` and the prompt therefore becomes the prompt, the directory that follows it terminates parsing,
+and the real prompt never arrives — the run was observed to explore the added directory agentically
+instead of executing the print-mode task.
 
-**Correct order:** PROMPT must come immediately after `-p`, then flags after:
 ```bash
-# CORRECT — prompt first, add-dir after
-agy -p "$(cat prompt.txt)" --add-dir /path/to/dir --model "..." --print-timeout 10m
+# CORRECT — prompt is -p's value, flags follow
+agy -p "$(cat prompt.txt)" --add-dir /path/to/dir --model "Gemini 3.1 Pro (High)" --print-timeout 10m
 
-# WRONG — add-dir before prompt triggers agentic exploration
+# WRONG — -p swallows --add-dir, /path/to/dir ends parsing, prompt.txt is dropped
 agy -p --add-dir /path/to/dir "$(cat prompt.txt)"
 ```
 
@@ -207,4 +225,5 @@ agy -p "$(cat "$SCRATCHPAD/prompt.txt")" \
 | Long prompt via file | `codex exec … -m gpt-5.5 -s workspace-write - < /abs/prompt.md` |
 | Attach image(s) | add `-i /abs/image.png` (repeat per file) |
 | Consult agy | `agy -p "…"` |
-| agy web research | `agy -p "research …; cite sources"` |
+| agy web research | `agy -p "research …; cite sources" --dangerously-skip-permissions` |
+| Pick the agy model | `agy -p "…" --model "Gemini 3.1 Pro (High)"` (no `--effort`) |
