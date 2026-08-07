@@ -462,16 +462,42 @@ def write_caption(stage: str, filename: str, finding: str, script: str, fn: str,
         existing = readme.read_text()
         new_text = _replace_section(existing, heading, section)
     else:
-        new_text = f"# {stage} — artifact captions\n\n{section}"
+        new_text = f"# {stage}: artifact captions\n\n{section}"
     readme.write_text(new_text)
     return readme
 
 
 def _wrap(text: str, width: int) -> str:
-    """Wrap one paragraph to `width`, preserving an empty string for falsy input."""
+    """Wrap prose to `width`, PRESERVING blank-line paragraph breaks.
+
+    A caption may be authored as several paragraphs separated by a blank line. Each
+    paragraph is wrapped on its own and the results are rejoined with a blank line, so the
+    rendered README keeps the author's paragraphing instead of collapsing a long
+    `how_to_read` into one wall of text. A SINGLE newline stays ordinary whitespace and is
+    collapsed, so paragraphing is always an explicit choice by the caller.
+
+    This brings the Python side to parity with the R side, where `strwrap` already splits on
+    blank lines natively, so the same caption string rendered from R and from Python now
+    produces the same paragraphs. Single-paragraph input is byte-identical to the previous
+    behaviour. Falsy input yields an empty string, and text that wraps to nothing falls back
+    to the original, both as before.
+    """
     if not text:
         return ""
-    return "\n".join(textwrap.wrap(str(text), width=width)) or str(text)
+    raw = str(text)
+    # Split on blank (or whitespace-only) lines without a regex, so this stays stdlib-light.
+    paragraphs: List[str] = []
+    current: List[str] = []
+    for line in raw.split("\n"):
+        if line.strip():
+            current.append(line)
+        elif current:
+            paragraphs.append(" ".join(current))
+            current = []
+    if current:
+        paragraphs.append(" ".join(current))
+    wrapped = "\n\n".join("\n".join(textwrap.wrap(p, width=width)) for p in paragraphs)
+    return wrapped or raw
 
 
 def _render_caption_section(heading: str, finding: str, script: str, fn: str, config_kv: str,
@@ -581,14 +607,33 @@ def append_master_table(df_or_rows: Any, database: str, stage: str, name: str,
     byte-stability (re-runs produce identical files). Accepts a list-of-dicts (stdlib csv) OR a
     pandas DataFrame (lazy pandas) so it is testable on a bare box. Needs NO plotting backend.
 
-    `database` labels the rows this call owns; every incoming row gets/keeps that label in the
+    `database` labels the rows this call owns; every incoming row gets that label in the
     `database` column. `stage` is recorded in a `stage` column for provenance.
+
+    RAISES ValueError if an incoming row already carries a NON-EMPTY `database` value that
+    disagrees with the `database` argument. That combination used to fail SILENTLY and
+    destructively: the rows were written with their own label, the dedupe filter compared the
+    argument against that label, matched nothing, and so removed nothing, and every re-run
+    appended another full copy of the same rows. An accumulator would grow a generation per run
+    with no marker saying which generation a row belonged to, and a reader averaging the column
+    would mix them. The caller must pass the same key the rows carry, and the loud failure makes
+    the disagreement a one-line fix at the call site instead of a corrupted table found later.
     """
     rows = _to_rows(df_or_rows)
     # Stamp provenance columns so the master table is self-describing.
     for r in rows:
-        r.setdefault("database", database)
-        r["database"] = r.get("database", database) or database
+        carried = r.get("database")
+        if carried not in (None, "") and str(carried) != str(database):
+            raise ValueError(
+                f"append_master_table({name!r}): the incoming rows carry "
+                f"database={str(carried)!r} but the call passed database={database!r}. "
+                "The dedupe key is compared against that column, so a mismatch would never "
+                "match and the table would gain a duplicate generation on every run. Set the "
+                "column to the key this call owns (it must be unique per call, so a script "
+                "that appends in a loop needs one key per iteration), or pass the value the "
+                "rows already carry."
+            )
+        r["database"] = database
         r.setdefault("stage", stage)
     rows = round_numeric_cols(rows)
 
