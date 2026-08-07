@@ -50,6 +50,8 @@ SciAgent-toolkit/
 
 7. **Prose: state what a thing *is*, not what it isn't.** Avoid gratuitous contrastive negation (e.g. "a receptor lens over the same cohort, *not* a new dataset"; the reflexive "X, not Y") in docs, captions, comments, and commit bodies. Keep a "not Y" clause only when the contrast is logically load-bearing *and* it reads well — semantically apt, aesthetically clean, non-disruptive to the narrative flow; otherwise cut it and make the positive statement. (This is the always-on `craft.yaml` Prose convention, restated here for agents editing the toolkit itself.)
 
+8. **Comments: intent only, brief.** A comment states *what the code is for* — the design goal or expected result — in one line when one line suffices. Leave out: the history of why, implementation details the code already shows, and before/after measurements. A docstring adds the contract (what the function guarantees, what it refuses) and nothing else. Judge each comment by whether it would survive if the surrounding code were rewritten from scratch; if not, it documents an incident, not an intent — cut it.
+
 ---
 
 ## Adding a new role
