@@ -29,6 +29,9 @@
 #   provenance      each caption's Script: cell resolves to an existing (and,
 #                   in a git repo, tracked) 02_analysis/scripts/ path.
 #   freshness       project CRAFT block version / submodule commit vs toolkit.
+#   hooks           every hook registered in .claude/settings.json exists and is
+#                   executable (a registered-but-absent hook silently disables
+#                   the (c) GUARDRAIL layer).
 # These run ONLY when --check <name> (or --check all) is given. They are SOFT
 # warnings (exit 0) by default and HARD failures (exit 1) under --strict.
 # `_scratch/` and $TMPDIR are always exempt. The default + activate-internal
@@ -652,6 +655,64 @@ _validate_check_freshness() {
     return $rc
 }
 
+# ---------------------------------------------------------------------------
+# Check 6: hooks
+# ---------------------------------------------------------------------------
+# Assert that every hook settings.json REGISTERS actually exists and is
+# executable. The (c) GUARDRAIL layer is the one tier that binds regardless of
+# model cooperation, so a registered-but-absent hook is a silent hole: Claude
+# Code fails the hook call quietly and the convention stops being enforced with
+# no signal anywhere.
+#
+# This check exists because that state shipped. Meta-Aging/14616-DM registered
+# PreToolUse -> .claude/hooks/no_ephemeral.sh and Stop -> caption_sweep.sh with
+# no .claude/hooks/ directory at all, because hook bodies were rendered only by
+# `new project` while `activate` merged in the registering settings template.
+_validate_check_hooks() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+
+    local settings="$projdir/.claude/settings.json"
+    [[ -f "$settings" ]] || return 0   # no settings: nothing registered, nothing to verify
+
+    if ! command -v jq >/dev/null 2>&1; then
+        _vcheck_emit "$strict" "$quiet" hooks \
+            "jq not found — cannot verify registered hooks in .claude/settings.json" || rc=1
+        return $rc
+    fi
+
+    # Every registered hook command, one per line. Absent/!object `hooks` yields
+    # empty output rather than a jq error.
+    local cmds
+    cmds=$(jq -r '(.hooks // {}) | to_entries[]? | .value[]? | .hooks[]? | .command // empty' \
+        "$settings" 2>/dev/null)
+    [[ -n "$cmds" ]] || return 0
+
+    local cmd path
+    while IFS= read -r cmd; do
+        [[ -n "$cmd" ]] || continue
+        # Pull the first .claude/hooks/<file> token out of the command line. Hook
+        # commands are `bash "$CLAUDE_PROJECT_DIR/.claude/hooks/<name>.sh"`, so
+        # match on the project-relative tail and ignore the interpreter/quoting.
+        path=$(printf '%s\n' "$cmd" | grep -oE '\.claude/hooks/[A-Za-z0-9._-]+' | head -1)
+        [[ -n "$path" ]] || continue   # not a project-local hook script; not ours to verify
+
+        if [[ ! -f "$projdir/$path" ]]; then
+            _vcheck_emit "$strict" "$quiet" hooks \
+                "$path is registered in .claude/settings.json but does not exist — run: sciagent activate" || rc=1
+        elif [[ ! -x "$projdir/$path" ]] && ! [[ "$cmd" =~ (^|[[:space:]/])(bash|sh|zsh|python3?|uv)([[:space:]]|$) ]]; then
+            # The exec bit only matters when the hook is invoked DIRECTLY. The
+            # shipped templates register `bash "<path>"`, where mode 0644 runs
+            # fine — demanding +x there would warn on a non-problem in every
+            # correctly-provisioned repo.
+            _vcheck_emit "$strict" "$quiet" hooks \
+                "$path is registered for direct execution but is not executable — run: chmod +x $path" || rc=1
+        fi
+    done <<< "$cmds"
+
+    return $rc
+}
+
 # _validate_run_project_checks <projdir> <strict> <quiet> <check>...
 # Dispatch the named opt-in project checks. Accepts `all` to run every check.
 # Returns 1 if any check reports a (strict) hard failure, 0 otherwise.
@@ -667,12 +728,12 @@ _validate_run_project_checks() {
     local n
     for n in "${names[@]}"; do
         case "$n" in
-            all) run=(figure-style results-layout captions provenance freshness); break ;;
-            figure-style|results-layout|captions|provenance|freshness) run+=("$n") ;;
+            all) run=(figure-style results-layout captions provenance freshness hooks); break ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks) run+=("$n") ;;
             "") ;;
             *)
                 echo "sciagent validate: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks all" >&2
                 return 1 ;;
         esac
     done
@@ -684,6 +745,7 @@ _validate_run_project_checks() {
             captions)       _validate_check_captions       "$projdir" "$strict" "$quiet" || rc=1 ;;
             provenance)     _validate_check_provenance     "$projdir" "$strict" "$quiet" || rc=1 ;;
             freshness)      _validate_check_freshness      "$projdir" "$strict" "$quiet" || rc=1 ;;
+            hooks)          _validate_check_hooks          "$projdir" "$strict" "$quiet" || rc=1 ;;
         esac
     done
 

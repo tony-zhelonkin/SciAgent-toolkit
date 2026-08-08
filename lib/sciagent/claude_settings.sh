@@ -169,6 +169,42 @@ _claude_settings_insert_key() {
 
 _CLAUDE_PROJECT_SETTINGS=".claude/settings.json"
 _CLAUDE_STATUSLINE=".claude/statusline.sh"
+_CLAUDE_HOOKS_DIR=".claude/hooks"
+
+# claude_settings_ensure_hooks
+# Materialize .claude/hooks/*.sh from the toolkit templates, so the hooks that
+# settings.json registers actually exist. Same non-clobbering contract as the
+# status line: written only if absent, executable bit re-asserted every run.
+#
+# Why this exists: settings.json.template REGISTERS PreToolUse/Stop hooks by
+# path, but the bodies were rendered only by `sciagent new project`. Any project
+# retrofitted by `activate` therefore got hook registration with no hook files —
+# a silently dead enforcement tier. Observed in Meta-Aging/14616-DM, which had
+# both hooks registered and no .claude/hooks/ directory at all.
+#
+# Only *.sh.template is materialized. README.md.template carries a {{PROJECT_ID}}
+# placeholder and belongs to `new project`'s substitution pass; rendering it here
+# would emit a half-substituted file.
+claude_settings_ensure_hooks() {
+    local tpl_dir="$SCIAGENT_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
+    [[ -d "$tpl_dir" ]] || return 0   # templates missing (e.g. stripped install): silent no-op
+
+    local src dst found=false
+    for src in "$tpl_dir"/*.sh.template; do
+        [[ -f "$src" ]] || continue   # nullglob-safe: unmatched glob stays literal
+        found=true
+        dst="$_CLAUDE_HOOKS_DIR/$(basename "${src%.template}")"
+        mkdir -p "$_CLAUDE_HOOKS_DIR"
+        if [[ ! -f "$dst" ]]; then
+            cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+            chmod +x "$dst"
+            echo "wrote: $dst"
+        else
+            chmod +x "$dst" 2>/dev/null || true
+        fi
+    done
+    [[ "$found" == true ]] || return 0
+}
 
 # claude_settings_ensure_statusline
 # Materialize .claude/statusline.sh from the toolkit template if absent, and

@@ -129,6 +129,9 @@ cmd_activate() {
     # projects — never touched them. Non-clobbering: see claude_settings.sh.
     claude_settings_ensure_statusline
     claude_settings_ensure_project_defaults
+    # settings.json registers hooks by path; materialize the bodies too, or the
+    # enforcement tier is registered-but-absent (see claude_settings.sh).
+    claude_settings_ensure_hooks
 
     # Phase A: gather direct entries via stack_walk, preserving insertion order.
     # No mutation yet — all validation/resolution must succeed before we touch
