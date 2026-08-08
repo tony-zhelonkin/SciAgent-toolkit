@@ -149,81 +149,55 @@ if [[ "$bad_rc" -eq 0 ]]; then
 fi
 
 # -------------------------------------------------------------------------
-# Test E: injected-stack — update --no-pin succeeds, manifest stack stays
-# "base _injected", and the injected agent is still recorded + re-applied.
+# Test E: legacy `_injected` stack — `update --no-pin` must tolerate it.
+#
+# `sciagent inject` is retired (the whole skill catalog now mounts regardless
+# of role), but manifests written before that still carry the synthetic
+# `_injected` overlay token. update.sh strips it before calling cmd_activate,
+# because `_injected` is not a real role and would abort activation. This test
+# pins that compatibility path by hand-crafting such a manifest.
 # -------------------------------------------------------------------------
 cd "$TMPDIR_TEST"
-mkdir inject-project && cd inject-project
+mkdir legacy-injected-project && cd legacy-injected-project
 
-# Activate solo base stack.
 "$SCIAGENT" activate base >/dev/null
 
-# Inject an agent (ag_b is in the fake toolkit but NOT in base role).
-inject_out=$("$SCIAGENT" inject --agent ag_b 2>&1)
-inject_rc=$?
-if [[ "$inject_rc" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] sciagent inject --agent ag_b failed (rc=$inject_rc)" >&2
-    echo "output: $inject_out" >&2
-    exit 1
-fi
+# Rewrite the manifest stack to the legacy "base _injected" shape.
+python3 - <<'PYEOF'
+import json
+m = json.load(open('.sciagent/manifest.json'))
+m['stack'] = ['base', '_injected']
+json.dump(m, open('.sciagent/manifest.json', 'w'), indent=2)
+PYEOF
 
-# Verify the manifest stack is now "base _injected".
-. "$FAKE/lib/sciagent/symlinks.sh"
 stack_before_e=$(manifest_stack)
 if [[ "$stack_before_e" != "base _injected" ]]; then
-    echo "FAIL [$_TEST_NAME] expected manifest stack 'base _injected' after inject, got '$stack_before_e'" >&2
+    echo "FAIL [$_TEST_NAME] fixture setup: expected stack 'base _injected', got '$stack_before_e'" >&2
     exit 1
 fi
 
-# Verify the injected entry is recorded in the manifest.
-inj_before=$(manifest_injected)
-if ! printf '%s\n' "$inj_before" | grep -q "ag_b"; then
-    echo "FAIL [$_TEST_NAME] ag_b not found in manifest injected entries before update" >&2
-    echo "injected: $inj_before" >&2
-    exit 1
-fi
-
-# Run update --no-pin — must succeed despite _injected in the stack.
+set +e
 update_out_e=$("$SCIAGENT" update --no-pin 2>&1)
 update_rc_e=$?
+set -e
 if [[ "$update_rc_e" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] sciagent update --no-pin on injected stack exited $update_rc_e" >&2
+    echo "FAIL [$_TEST_NAME] update --no-pin on legacy _injected stack exited $update_rc_e" >&2
     echo "output: $update_out_e" >&2
     exit 1
 fi
 
-# ROLES block must be valid.
-. "$FAKE/lib/sciagent/block.sh"
+# Both managed blocks must still verify after the re-activation.
 if ! block_hash_check AGENTS.md; then
-    echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin (injected stack)" >&2
+    echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin (legacy _injected stack)" >&2
     exit 1
 fi
-
-# CRAFT block must be valid.
 if ! block_hash_check AGENTS.md CRAFT; then
-    echo "FAIL [$_TEST_NAME] CRAFT block hash invalid after update --no-pin (injected stack)" >&2
+    echo "FAIL [$_TEST_NAME] CRAFT block hash invalid after update --no-pin (legacy _injected stack)" >&2
     exit 1
 fi
 
-# Manifest stack must still be "base _injected".
-stack_after_e=$(manifest_stack)
-if [[ "$stack_after_e" != "base _injected" ]]; then
-    echo "FAIL [$_TEST_NAME] manifest stack changed after update --no-pin: expected 'base _injected', got '$stack_after_e'" >&2
-    exit 1
-fi
-
-# The injected agent must still be recorded.
-inj_after=$(manifest_injected)
-if ! printf '%s\n' "$inj_after" | grep -q "ag_b"; then
-    echo "FAIL [$_TEST_NAME] ag_b not found in manifest injected entries after update --no-pin" >&2
-    echo "injected after: $inj_after" >&2
-    exit 1
-fi
-
-# The symlink for the injected agent must be present on disk.
-if [[ ! -L ".claude/agents/ag_b.md" ]]; then
-    echo "FAIL [$_TEST_NAME] .claude/agents/ag_b.md symlink missing after update --no-pin" >&2
-    exit 1
-fi
+# The catalog must be mounted regardless of the bogus overlay token.
+assert_symlink .claude/skills/s_a
+assert_symlink .claude/skills/s_c
 
 pass

@@ -41,6 +41,18 @@ _sw_record() {
 # Last-wins resolution is applied across the stack. Output order:
 #   SKILL entries (insertion order), then AGENT, then COMMAND, then STYLE.
 # The _injected synthetic role is silently skipped (no YAML file).
+#
+# SKILLS ARE NOT FILTERED BY ROLE. The whole catalog is always resolved; a
+# role's `skills:` list only affects PROVENANCE (which role a skill is
+# attributed to in the managed block), never visibility.
+#
+# Why: subsetting the catalog saved ~6k tokens (~3% of a 200k context) while
+# breaking cross-references — 20 of 43 mounted skills in Meta-Aging/14616-DM
+# pointed at skills that were not mounted, so the agent was routed to skills it
+# could not see. Harnesses also load only `name` + `description` per skill
+# (~100 tokens) until a skill is activated, so the platform already does the
+# token optimization the filter was invented for, and does it without severing
+# the routing graph. See docs 07a-07d.
 stack_walk() {
     local base="$1"
     local overlay="${2:-}"
@@ -69,6 +81,19 @@ stack_walk() {
             esac
         done < <(role_load "$role")
     done
+
+    # The catalog IS the skill set. Roles above supplied provenance for the
+    # skills they name; every remaining skill is mounted too, attributed to
+    # "catalog". Sorted so mount order is deterministic across hosts.
+    local _sw_sk _sw_name
+    while IFS= read -r _sw_sk; do
+        _sw_name=$(basename "$(dirname "$_sw_sk")")
+        case "$_sw_name" in
+            _*) continue ;;   # _TEMPLATE, and any other underscore-prefixed scaffold
+        esac
+        [[ -n "${_sw_skills[$_sw_name]:-}" ]] && continue   # already attributed to a role
+        _sw_record _sw_skills _sw_skill_shadows _sw_skill_order "$_sw_name" catalog
+    done < <(find "$SCIAGENT_TOOLKIT/skills" -mindepth 2 -maxdepth 2 -name SKILL.md 2>/dev/null | sort)
 
     # Emit: SKILL entries first, then AGENT, COMMAND, STYLE.
     local n

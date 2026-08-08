@@ -26,14 +26,8 @@ Usage:
   sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
   sciagent deactivate [<role>]         Tear down the stack (or one role)
   sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
-  sciagent inject <name>               Add one skill/agent/command (auto-detect)
-  sciagent inject --skill|--agent|--command <name>
                                        Force resolution to one kind
-  sciagent inject --tag <name>         Add all skills tagged <name>
-  sciagent eject <name>                Remove one previously-injected entry
-  sciagent eject --skill|--agent|--command <name>
                                        Disambiguate when same name spans kinds
-  sciagent eject --tag <name>          Remove all skills injected via tag
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
@@ -77,10 +71,8 @@ verb="$1"; shift
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
 #   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
 #   validate.sh         depends on skill_deps.sh, collisions.sh
-#   inject.sh           depends on roles.sh, stack.sh, block.sh, symlinks.sh, collisions.sh
 #   activate.sh         depends on ~everything above
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
-#   eject.sh            depends on inject.sh + stack.sh + block.sh + collisions.sh
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh; lazy-loads frontmatter.sh
 #   update.sh           depends on activate.sh closure + craft.sh (re-pin + re-activate)
 #
@@ -89,14 +81,12 @@ verb="$1"; shift
 declare -A VERB_MODULES=(
     [activate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
     [deactivate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
-    [inject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
-    [eject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
     [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh skill_deps.sh status.sh"
     [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
     [gitignore]="gitignore.sh"
-    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh inject.sh update.sh"
+    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
     [provision]="block.sh harness.sh claude_settings.sh provision.sh"
 )
 
@@ -104,8 +94,6 @@ declare -A VERB_MODULES=(
 declare -A VERB_ENTRY=(
     [activate]=cmd_activate
     [deactivate]=cmd_deactivate
-    [inject]=cmd_inject
-    [eject]=cmd_eject
     [status]=cmd_status
     [list]=cmd_list
     [validate]=cmd_validate
@@ -123,8 +111,6 @@ declare -A VERB_ENTRY=(
 # ---------------------------------------------------------------------------
 declare -A MUTATING_VERB=(
     [activate]=1
-    [inject]=1
-    [eject]=1
 )
 
 # _guard_toolkit_locality
