@@ -6,10 +6,10 @@ Add a new figure family with its own grep-isolable namespace, strict compute→v
 
 | Param | Shape | Default | Meaning |
 |---|---|---|---|
-| `slug` | `$ARGUMENTS[0]` (positional, **required**) | — | Figure family slug (e.g. `genotype-umap`). Used as the base name for scripts, artifacts, and the research dir. |
+| `slug` | `$ARGUMENTS[0]` (positional, **required**) | — | Figure family slug (e.g. `genotype-umap`). Used as the base name for stages, artifacts, and the research dir. |
 | `stage-id` | `$ARGUMENTS[1]` (positional, **required**) | — | Target stage identifier (e.g. `03_clustering`). Resolves the output root to `03_results/<stage-id>/`. |
-| `--namespace-token` | flag | derived from `slug` by replacing `-` with `_` (e.g. `genotype_umap`) | A grep-isolable token that MUST prefix every new identifier, filename, and variable in the compute and viz scripts. Used in the namespace-isolation gate in Phase 5. |
-| `--n-implementers` | flag | `1` | Number of parallel Sonnet implementers. `2` = dispatch compute and viz concurrently once both briefs are ready; `1` = sequential (default, safer for inter-script dependency). |
+| `--namespace-token` | flag | derived from `slug` by replacing `-` with `_` (e.g. `genotype_umap`) | A grep-isolable token that MUST prefix every new identifier, filename, and variable in the compute and viz stages. Used in the namespace-isolation gate in Phase 5. |
+| `--n-implementers` | flag | `1` | Number of parallel Sonnet implementers. `2` = dispatch compute and viz concurrently once both briefs are ready; `1` = sequential (default, safer for inter-stage dependency). |
 
 Flag parsing is order-independent. If either positional argument is missing, reject:
 
@@ -58,9 +58,9 @@ This file MUST exist on disk before Phase 2 begins. The file records:
 Why this figure family is needed; what biological question it addresses; what existing figures do not show.
 
 ## Data contract
-- **Compute inputs:** what data the compute script reads (file paths, object names, columns used).
-- **Checkpoint outputs:** what the compute script writes (`.rds`/`.h5ad` checkpoint path + schema).
-- **Viz inputs:** the checkpoint(s) the viz script reads.
+- **Compute inputs:** what data the compute stage reads (file paths, object names, columns used).
+- **Checkpoint outputs:** what the compute stage writes (`.rds`/`.h5ad` checkpoint path + schema).
+- **Viz inputs:** the checkpoint(s) the viz stage reads.
 - **Figure outputs:** the artifact stems and sub-layout (`_overview/` or `by_contrast/<c>/`).
 
 ## Genotype / facet structure
@@ -86,7 +86,7 @@ Dispatch **one Opus planner**. The planner reads:
 1. `docs/_internal/research/{date}-{slug}/01_rationale.md` — the data contract and acceptance criteria.
 2. `02_analysis/config/analysis_config.yaml` — stage ids, `figures:` block (geometry, font floors, sub-layout names).
 3. `skills/figure-style/SKILL.md` + `lib/figure-style/figure_helpers.{R,py}` — the figure-style contract (helper functions, anti-patterns, single-tier dual-format semantics).
-4. Existing `02_analysis/scripts/` file listing — to determine the next available `NN` script index.
+4. Existing `02_analysis/stages/` file listing — to determine the next available `NN` stage index.
 
 The planner writes `docs/_internal/research/{date}-{slug}/02_miniplan.md`:
 
@@ -97,15 +97,15 @@ The planner writes `docs/_internal/research/{date}-{slug}/02_miniplan.md`:
 
 ## Namespace declaration
 - **Token:** `{namespace-token}` — must prefix every new identifier (variables, function names,
-  checkpoint filenames, figure stems). MUST NOT match any token already used in sibling scripts
+  checkpoint filenames, figure stems). MUST NOT match any token already used in sibling stages
   (verified by grep in Phase 5).
-- **Script names:** `02_analysis/scripts/NN_{slug}_compute.{R,py}` and `NN_{slug}_viz.{R,py}`
+- **Stage names:** `02_analysis/stages/NN_{slug}_compute.{R,py}` and `NN_{slug}_viz.{R,py}`
   where NN is the next available index.
 - **Checkpoint path:** `03_results/objects/{namespace-token}_checkpoint.rds` (or `.h5ad`).
 - **Figure stems:** `{namespace-token}_<panel>` under `03_results/{stage-id}/figures/<sub-layout>/`.
 
 ## COMPUTE outputs
-- What the compute script writes (checkpoint/table path, schema, row count expected).
+- What the compute stage writes (checkpoint/table path, schema, row count expected).
 - Must NOT contain any ggplot/matplotlib call. Must NOT write to `03_results/figures/`.
 
 ## VIZ outputs
@@ -136,29 +136,29 @@ Stop. Do NOT pass the plan inline to Phase 3.
 Dispatch **one Sonnet implementer** with the mini-plan as context. The implementer creates:
 
 ```
-02_analysis/scripts/NN_{slug}_compute.{R,py}
+02_analysis/stages/NN_{slug}_compute.{R,py}
 ```
 
 where `NN` is the index declared in `02_miniplan.md`.
 
 **Compute discipline (non-negotiable):**
 
-- The compute script reads input data and writes a checkpoint / table to the path declared in the mini-plan.
-- **NEVER calls `ggplot()`, `plt.subplots()`, `ggsave()`, `plt.savefig()`, `save_figure()`, or `save_overview()`.** Compute scripts do not plot. Any plotting call in a compute script is a hard violation of the figure-style contract.
-- Every new object, variable, and function name in the compute script MUST begin with the `{namespace-token}` prefix (e.g., `genotype_umap_cells`, `genotype_umap_compute()`). No unprefixed new identifiers.
-- The script must be runnable stand-alone from the project root: `Rscript 02_analysis/scripts/NN_{slug}_compute.R` or `python 02_analysis/scripts/NN_{slug}_compute.py`.
+- The compute stage reads input data and writes a checkpoint / table to the path declared in the mini-plan.
+- **NEVER calls `ggplot()`, `plt.subplots()`, `ggsave()`, `plt.savefig()`, `save_figure()`, or `save_overview()`.** Compute stages do not plot. Any plotting call in a compute stage is a hard violation of the figure-style contract.
+- Every new object, variable, and function name in the compute stage MUST begin with the `{namespace-token}` prefix (e.g., `genotype_umap_cells`, `genotype_umap_compute()`). No unprefixed new identifiers.
+- The stage must be runnable stand-alone from the project root: `Rscript 02_analysis/stages/NN_{slug}_compute.R` or `python 02_analysis/stages/NN_{slug}_compute.py`.
 
-**After the compute script is written — VERIFY the checkpoint on disk before proceeding to viz:**
+**After the compute stage is written — VERIFY the checkpoint on disk before proceeding to viz:**
 
 ```
 ls -lh 03_results/objects/{namespace-token}_checkpoint.{rds,h5ad}
 ```
 
-**STOP condition — checkpoint missing.** If the checkpoint file is absent or empty after the compute script runs, STOP:
+**STOP condition — checkpoint missing.** If the checkpoint file is absent or empty after the compute stage runs, STOP:
 
 ```
 Compute checkpoint 03_results/objects/{namespace-token}_checkpoint.{rds,h5ad} is absent or empty.
-Viz cannot proceed without a verified checkpoint. Fix the compute script and re-run it first.
+Viz cannot proceed without a verified checkpoint. Fix the compute stage and re-run it first.
 ```
 
 Stop. Do NOT start the viz implementer.
@@ -168,7 +168,7 @@ Stop. Do NOT start the viz implementer.
 Only after the checkpoint is verified on disk, dispatch **one Sonnet implementer** with the mini-plan and the confirmed checkpoint path. The implementer creates:
 
 ```
-02_analysis/scripts/NN_{slug}_viz.{R,py}
+02_analysis/stages/NN_{slug}_viz.{R,py}
 ```
 
 **Viz discipline (non-negotiable):**
@@ -185,7 +185,7 @@ Only after the checkpoint is verified on disk, dispatch **one Sonnet implementer
 - Cap categorical axes to `FIG_CFG$figures$top_n` (R) / `FIG_CFG["figures"]["top_n"]` (Python) before plotting.
 - Use `direction_cue(value)` for signed labeling — never a bare `*` or raw colored dot.
 
-After the viz script runs, verify outputs:
+After the viz stage runs, verify outputs:
 
 ```
 ls -lh 03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.{pdf,png}
@@ -193,7 +193,7 @@ ls -lh 03_results/{stage-id}/tables/<sub-layout>/{namespace-token}_*.csv
 grep -n "## figures/" 03_results/{stage-id}/README.md | grep {namespace-token}
 ```
 
-**STOP condition — viz artifacts absent.** If any of the following are missing or empty after the viz script runs, STOP:
+**STOP condition — viz artifacts absent.** If any of the following are missing or empty after the viz stage runs, STOP:
 
 ```
 One or more viz artifacts are absent or empty:
@@ -201,7 +201,7 @@ One or more viz artifacts are absent or empty:
   - <stem>.png missing                  → dual-format contract violated
   - <stem>.csv missing                  → source-table adjacency violated
   - README.md caption section missing   → README-adjacency violated
-Fix the viz script. Do not proceed to review.
+Fix the viz stage. Do not proceed to review.
 ```
 
 Stop.
@@ -242,23 +242,23 @@ figure-audit  stage={stage-id}
 Run verbatim:
 
 ```bash
-grep -rn "{namespace-token}" 02_analysis/scripts/ 03_results/{stage-id}/
+grep -rn "{namespace-token}" 02_analysis/stages/ 03_results/{stage-id}/
 ```
 
 **The namespace-isolation gate passes if and only if every match falls within:**
 
-- `02_analysis/scripts/NN_{slug}_compute.{R,py}` — the compute script
-- `02_analysis/scripts/NN_{slug}_viz.{R,py}` — the viz script
+- `02_analysis/stages/NN_{slug}_compute.{R,py}` — the compute stage
+- `02_analysis/stages/NN_{slug}_viz.{R,py}` — the viz stage
 - `03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*` — figure artifacts
 - `03_results/{stage-id}/tables/<sub-layout>/{namespace-token}_*` — source tables
 - `03_results/{stage-id}/README.md` — captions section
 
-**If the token appears in any other file** (a sibling script, a master table column not declared in the mini-plan, a different stage's README, an unrelated config), the review FAILS with:
+**If the token appears in any other file** (a sibling stage, a master table column not declared in the mini-plan, a different stage's README, an unrelated config), the review FAILS with:
 
 ```
 Namespace isolation FAILED. Token "{namespace-token}" found outside intended scope:
   {file}:{line}: {matching line}
-The figure family is leaking into sibling scripts/artifacts. Fix before accepting.
+The figure family is leaking into sibling stages/artifacts. Fix before accepting.
 ```
 
 This gate is non-negotiable — it is the primary mechanism that makes the figure family isolatable, auditable, and safely removable.
@@ -289,7 +289,7 @@ The reviewer writes the verdict to `docs/_internal/reasoning/{date}_{slug}_revie
 
 ## (c) Namespace isolation — {PASS|FAIL}
 Command run:
-  grep -rn "{namespace-token}" 02_analysis/scripts/ 03_results/{stage-id}/
+  grep -rn "{namespace-token}" 02_analysis/stages/ 03_results/{stage-id}/
 Matches found: {count}
 Files in scope: {list}
 Leaks outside scope: {none | list of offending file:line}
@@ -340,9 +340,9 @@ Research dir:    docs/_internal/research/{date}-{slug}/
   01_rationale.md   — data contract + scientific rationale
   02_miniplan.md    — Opus mini-plan (namespace decl, compute/viz outputs, acceptance gate)
 
-Scripts:
-  02_analysis/scripts/NN_{slug}_compute.{R,py}   — COMPUTE only (no plots)
-  02_analysis/scripts/NN_{slug}_viz.{R,py}        — VIZ only (reads checkpoint, calls save_overview)
+Stages:
+  02_analysis/stages/NN_{slug}_compute.{R,py}   — COMPUTE only (no plots)
+  02_analysis/stages/NN_{slug}_viz.{R,py}        — VIZ only (reads checkpoint, calls save_overview)
 
 Artifacts produced:
   03_results/{stage-id}/figures/<sub-layout>/{namespace-token}_*.pdf        (vector PDF)
@@ -353,7 +353,7 @@ Artifacts produced:
 Review:
   docs/_internal/reasoning/{date}_{slug}_review.md   (Opus verdict — all 4 checks PASS)
 
-Namespace isolation: grep "{namespace-token}" — confined to intended scripts/artifacts ✓
+Namespace isolation: grep "{namespace-token}" — confined to intended stages/artifacts ✓
 Dual formats:        both .pdf + .png present for every stem ✓
 Caption completeness: all stems have path-qualified README section + How-to-read ✓
 ```
@@ -362,13 +362,13 @@ If stopped at a failed phase, report the failing phase, the missing or offending
 
 ## Rules
 
-1. **Compute never plots; viz never computes.** The compute script writes only checkpoints/tables. The viz script reads only the checkpoint and calls `save_overview()`/`save_figure()`. Any crossover is a hard violation.
+1. **Compute never plots; viz never computes.** The compute stage writes only checkpoints/tables. The viz stage reads only the checkpoint and calls `save_overview()`/`save_figure()`. Any crossover is a hard violation.
 2. **Checkpoint verified before viz starts.** The `ls -lh` checkpoint check after Phase 3 is mandatory. A viz that starts without a verified checkpoint is not reproducible.
 3. **Dual formats from one call.** Every figure stem must have both `<stem>.pdf` and `<stem>.png`. These are produced from one plot object by `save_figure()` or `save_overview()` — never by two separate save calls with different parameters.
-4. **Namespace token prefixes everything new.** Every new identifier in both scripts, every checkpoint filename, every figure/table stem uses `{namespace-token}` as a prefix. The grep gate in Phase 5(c) is the enforcement mechanism.
-5. **Namespace isolation is non-negotiable.** If the token appears in sibling scripts or unrelated artifacts, the review fails. A leaking namespace corrupts the audit trail and makes the family non-removable.
-6. **`save_overview()` is the only sanctioned figure+table+caption path.** It writes three things atomically. `save_figure()` alone is permitted only when the source table and caption are written separately in the same script call. Never ship a figure without its same-stem CSV and its `## figures/...` README section.
-7. **No inline style overrides.** No `ggsave(width=<literal>)`, `element_text(size=<num>)`, `theme(...)` blocks, or raw hex color strings in the viz script. All style decisions go through `project_theme(config=FIG_CFG)` / `set_paper_style(config=FIG_CFG)`. Inline overrides silently break the single-tier font floors.
+4. **Namespace token prefixes everything new.** Every new identifier in both stages, every checkpoint filename, every figure/table stem uses `{namespace-token}` as a prefix. The grep gate in Phase 5(c) is the enforcement mechanism.
+5. **Namespace isolation is non-negotiable.** If the token appears in sibling stages or unrelated artifacts, the review fails. A leaking namespace corrupts the audit trail and makes the family non-removable.
+6. **`save_overview()` is the only sanctioned figure+table+caption path.** It writes three things atomically. `save_figure()` alone is permitted only when the source table and caption are written separately in the same stage. Never ship a figure without its same-stem CSV and its `## figures/...` README section.
+7. **No inline style overrides.** No `ggsave(width=<literal>)`, `element_text(size=<num>)`, `theme(...)` blocks, or raw hex color strings in the viz stage. All style decisions go through `project_theme(config=FIG_CFG)` / `set_paper_style(config=FIG_CFG)`. Inline overrides silently break the single-tier font floors.
 8. **Persist every decision before proceeding.** Research rationale → `01_rationale.md`. Mini-plan → `02_miniplan.md`. Review verdict → `{date}_{slug}_review.md`. A decision with no trace is non-reproducible.
 9. **Model tiering is explicit.** Mini-planner = **Opus**. Compute implementer = **Sonnet**. Viz implementer = **Sonnet**. Reviewer = **Opus**. `captions` cleanup = `captions` agent (Sonnet). State the tier at every dispatch.
 10. **Mandatory `captions` pass always runs.** Even when `save_overview()` wrote captions at creation time, run the `captions` agent as the final cleanup pass — it is the backstop for README-adjacency.

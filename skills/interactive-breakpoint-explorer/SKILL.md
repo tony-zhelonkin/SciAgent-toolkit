@@ -15,7 +15,7 @@ metadata:
   complementary-skills:
     - decision-gate-notebook          # the STATIC (R) sibling this explorer feeds; owns the config gate
     - figure-style                    # styles the labelled matplotlib snapshot the explorer saves
-    - scrna-pipeline-conventions      # house style for the numbered scripts (incl. export_explorers.py)
+    - scrna-pipeline-conventions      # house style for the numbered stages (incl. export_explorers.py)
     - bulk-rnaseq-pathway-explorer    # a static, self-contained plotly explorer alternative (no live kernel)
 
   contraindications:
@@ -136,7 +136,7 @@ jscatter.compose([(s, c) for s, c in zip(PANELS, CHANNELS)], ...)
 ## Export-first discipline
 
 The live kernel must stay light. **Never open the multi-GB `.h5ad` checkpoint in the explorer
-kernel.** Instead, a project-owned `02_analysis/scripts/export_explorers.py` (copy
+kernel.** Instead, a project-owned `02_analysis/stages/export_explorers.py` (copy
 `assets/export_explorers_skeleton.py` and fill the `# TODO(project):` stubs) materializes a
 **compact parquet per inflection point** under `03_results/interactive/`:
 
@@ -191,13 +191,13 @@ mkdir -p 02_analysis/notebooks/01_qc_explore
 cp $SKILL/assets/explorer.qmd 02_analysis/notebooks/01_qc_explore/01_qc_explore.qmd
 
 # 2. copy the exporter skeleton into the project and fill the # TODO(project): stubs
-cp $SKILL/assets/export_explorers_skeleton.py 02_analysis/scripts/export_explorers.py
+cp $SKILL/assets/export_explorers_skeleton.py 02_analysis/stages/export_explorers.py
 
 # 3. add the interactive: block to config
 cat $SKILL/assets/interactive-config-snippet.yaml >> 02_analysis/config/analysis_config.yaml
 
 # 4. build the compact tables (once per checkpoint change), then open the .qmd on a LIVE kernel
-python 02_analysis/scripts/export_explorers.py
+python 02_analysis/stages/export_explorers.py
 ```
 
 **Verify it worked:**
@@ -307,7 +307,7 @@ After authoring an explorer, confirm:
 |---|---|---|
 | The static (R) sign-off surface that records the APPROVED gate | `decision-gate-notebook` | Static sibling (this feeds it) |
 | To style the labelled matplotlib snapshot the explorer saves | `figure-style` | Snapshot styling |
-| The numbered-script house style for `export_explorers.py` and the reviewed stages | `scrna-pipeline-conventions` | Sibling convention |
+| The numbered-stage house style for `export_explorers.py` and the reviewed stages | `scrna-pipeline-conventions` | Sibling convention |
 | A static, self-contained HTML explorer (plotly, no live kernel) | `bulk-rnaseq-pathway-explorer` | Static alternative |
 
 ---

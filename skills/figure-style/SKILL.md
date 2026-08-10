@@ -1,6 +1,6 @@
 ---
 name: figure-style
-description: "Publication-figure craft for this repo: the one styling + saving + captioning contract every viz script uses. Use whenever you create, edit, or review a figure under 03_results/. Applies one unified legible style and emits both a vector PDF and a raster PNG from a single plot object, writes the source table and README caption atomically, and enforces legibility floors. Never call ggsave or plt.savefig directly — always go through save_figure or save_overview."
+description: "Publication-figure craft for this repo: the one styling + saving + captioning contract every viz stage uses. Use whenever you create, edit, or review a figure under 03_results/. Applies one unified legible style and emits both a vector PDF and a raster PNG from a single plot object, writes the source table and README caption atomically, and enforces legibility floors. Never call ggsave or plt.savefig directly — always go through save_figure or save_overview."
 license: MIT
 metadata:
   scope: concept
@@ -19,7 +19,7 @@ metadata:
 
 # Figure-Style Contract
 
-Every viz script in this repo imports one shim and uses one set of functions. This skill documents that contract so you can write, review, or debug figures without guessing at conventions.
+Every viz stage in this repo imports one shim and uses one set of functions. This skill documents that contract so you can write, review, or debug figures without guessing at conventions.
 
 ## Why
 
@@ -40,7 +40,7 @@ source("02_analysis/helpers/figure_style.R")
 **Python**
 ```python
 from helpers.figure_style import set_paper_style, save_overview, FIG_CFG
-set_paper_style(config=FIG_CFG)   # call once, near the top of the viz script
+set_paper_style(config=FIG_CFG)   # call once, near the top of the viz stage
 ```
 
 ---
@@ -128,7 +128,7 @@ save_overview(
   p, "04_gsea", "gsea_hallmark_heatmap",
   table     = df_results,
   finding   = "Hallmark IFN-alpha/gamma dominate the ISD90 response.",
-  script    = "02_analysis/scripts/11_gsea_viz.R",
+  script    = "02_analysis/stages/11_gsea_viz.R",
   fn        = "save_overview",
   config_kv = "figures.nes_cap = 3.5",
   input     = "03_results/objects/gsea.rds",
@@ -143,7 +143,7 @@ save_overview(
     fig, "04_gsea", "gsea_hallmark_heatmap",
     table      = rows,
     finding    = "Hallmark IFN-alpha/gamma dominate the ISD90 response.",
-    script     = "02_analysis/scripts/11_gsea_viz.py",
+    script     = "02_analysis/stages/11_gsea_viz.py",
     fn         = "save_overview",
     config_kv  = "figures.nes_cap = 3.5",
     input      = "03_results/objects/gsea.rds",
@@ -184,11 +184,11 @@ Re-running with the same `filename` replaces the existing section in place (neve
 
 ## DO NOT — named anti-patterns
 
-**DO NOT** call `ggsave()`/`plt.savefig()` directly in a viz script. Route through `save_figure` or `save_overview` so the shared geometry and both formats are emitted and the namespace is purged.
+**DO NOT** call `ggsave()`/`plt.savefig()` directly in a viz stage. Route through `save_figure` or `save_overview` so the shared geometry and both formats are emitted and the namespace is purged.
 
-**DO NOT** compute in a viz script or plot in a compute script. Compute scripts (`01_*_compute.R`, `*_stats.py`, etc.) write `.rds`/`.h5ad` objects; viz scripts (`*_viz.R`, `*_viz.py`) read those objects and produce figures only. The `ggsave-inside-compute` pattern corrupts this separation.
+**DO NOT** compute in a viz stage or plot in a compute stage. A compute stage (`02_analysis/stages/NN_<topic>.{R,py}`) writes `.rds`/`.h5ad` objects; its viz twin (`NN_<topic>_viz.{R,py}`, same number and stem) reads those objects and produces figures only. The `ggsave-inside-compute` pattern corrupts this separation.
 
-**DO NOT** use inline `theme()` / `element_text(size=<num>)` / `ggsave(width=<literal>)` or raw hex color strings in a viz script. All style decisions go through `project_theme(config=FIG_CFG)` (R) or `set_paper_style(config=FIG_CFG)` (Python). Inline overrides break the single-tier font floors silently.
+**DO NOT** use inline `theme()` / `element_text(size=<num>)` / `ggsave(width=<literal>)` or raw hex color strings in a viz stage. All style decisions go through `project_theme(config=FIG_CFG)` (R) or `set_paper_style(config=FIG_CFG)` (Python). Inline overrides break the single-tier font floors silently.
 
 **DO NOT** truncate axis labels or use ambiguous glyphs (`*`, `+`, bare colored dots without a legend key). Use `direction_cue()` for sign labeling. Truncated labels in a column-width PDF are unreadable.
 

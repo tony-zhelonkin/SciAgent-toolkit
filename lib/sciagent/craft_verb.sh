@@ -11,12 +11,6 @@
 # someone's intent, and the toolkit is not the only author of the file it is a
 # guest in. --force renders anyway, discarding the edit.
 #
-# Not covered by _guard_toolkit_locality: the guard protects the submodule pin
-# from symlinks baked against the wrong toolkit, and it decides "in-repo" from
-# the cwd — which is not the target when --project-dir points elsewhere, as it
-# does for a fleet sweep. A stale block instead surfaces via
-# `validate --check freshness`, which reads the target repo's own toolkit.
-#
 # Depends on block.sh (framing/hashing) and craft.sh (the renderer); both are
 # reused unchanged.
 

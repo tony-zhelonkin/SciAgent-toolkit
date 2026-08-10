@@ -2,7 +2,7 @@
 # Template version: 2.1.0
 #
 # This file holds ALL project-specific values that must NOT be hardcoded in
-# analysis scripts. It is the cross-language data contract: both R and Python read it.
+# analysis stages. It is the cross-language data contract: both R and Python read it.
 #
 # Usage:
 #   R:      config <- yaml::read_yaml("02_analysis/config/analysis_config.yaml")
@@ -174,7 +174,7 @@ databases:
 # =============================================================================
 # Each stage owns 03_results/<id>/{tables,figures}/, created on first write.
 # Stage id = NN_<slug>: zero-padded two-digit prefix + lowercase snake_case (<=2 words).
-# Append a new entry here BEFORE any script writes artifacts to that stage.
+# Append a new entry here BEFORE any stage writes artifacts to it.
 
 stages:
   - id: "01_qc"

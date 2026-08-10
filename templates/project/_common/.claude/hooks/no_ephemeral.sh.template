@@ -2,8 +2,8 @@
 # .claude/hooks/no_ephemeral.sh — PreToolUse/Bash guardrail (P14).
 #
 # Convention (E): results must be reproducible from a committed
-# 02_analysis/scripts/NN_* script. Ephemeral inline code or scripts
-# living outside that tree must not write directly under 03_results/.
+# 02_analysis/stages/NN_* stage. Ephemeral inline code, or scripts
+# living outside that tree, must not write directly under 03_results/.
 #
 # Strict toggle: SCIAGENT_STRICT=1 (or =true) → exit 2 (BLOCK);
 #                default                      → exit 0 (advisory warn).
@@ -68,22 +68,24 @@ _is_sanctioned() {
 # Check 1: Ephemeral result-producing write heuristic.
 #
 # Conditions (both must match):
-#   (a) Inline interpreter OR script outside 02_analysis/scripts/
+#   (a) Inline interpreter OR script outside 02_analysis/stages/
 #   (b) Writes under 03_results/ (not fully in _scratch/)
+#
+# `scripts` is accepted alongside `stages` for the duration of the rename, so
+# this hook keeps passing legitimate runs in a repo that has not renamed yet.
+# Drop it from the alternation once they all have.
 # ---------------------------------------------------------------------------
-_is_inline_or_outside_scripts() {
+_STAGE_DIR_RE='02_analysis/(stages|scripts)'
+
+_is_inline_or_outside_stages() {
     local c="$1"
     # Inline interpreter patterns.
     if printf '%s' "$c" | grep -qE '(python3?|python|Rscript)[[:space:]]+-[ce][[:space:]]'; then
         return 0
     fi
-    # Script invocation outside 02_analysis/scripts/ writing to results.
-    # Detect: runs a *.py or *.R path that is NOT under 02_analysis/scripts/.
-    # Use a negative look: if any .py/.R path exists and none of them are under 02_analysis/scripts/.
+    # Runs a .py/.R file, none of which live under an accepted stage dir.
     if printf '%s' "$c" | grep -qE '[[:space:]/][^[:space:]]*\.(py|R)[[:space:]]'; then
-        # Check if ALL .py/.R invocations are under 02_analysis/scripts/.
-        if ! printf '%s' "$c" | grep -qE '02_analysis/scripts/[^[:space:]]*\.(py|R)'; then
-            # Has py/R scripts but none from the canonical path → outside scripts.
+        if ! printf '%s' "$c" | grep -qE "$_STAGE_DIR_RE/[^[:space:]]*\.(py|R)"; then
             return 0
         fi
     fi
@@ -103,10 +105,10 @@ _writes_to_results() {
     return 1
 }
 
-if _writes_to_results "$cmd" && ! _is_sanctioned "$cmd" && _is_inline_or_outside_scripts "$cmd"; then
-    msg="[sciagent/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/scripts/NN_* script.
+if _writes_to_results "$cmd" && ! _is_sanctioned "$cmd" && _is_inline_or_outside_stages "$cmd"; then
+    msg="[sciagent/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/stages/NN_* stage.
 Capture throwaway probes in _scratch/ or a reasoning trace (docs/_internal/).
-If this is a real analysis step, save the code as 02_analysis/scripts/NN_*.{R,py} first."
+If this is a real analysis step, save the code as 02_analysis/stages/NN_*.{R,py} first."
 
     if [[ "${SCIAGENT_STRICT:-0}" == "1" || "${SCIAGENT_STRICT:-}" == "true" ]]; then
         printf '%s\n' "$msg" >&2

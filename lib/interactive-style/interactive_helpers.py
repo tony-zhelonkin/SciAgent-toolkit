@@ -123,14 +123,14 @@ def load_explorer(name: str, config: Optional[Dict[str, Any]] = None) -> "pd.Dat
     """Load a compact explorer table, e.g. load_explorer('01_qc').
 
     Reads `<results_root>/interactive/<name>_explore.parquet` (built by the project's
-    `02_analysis/scripts/export_explorers.py`). Index = cell barcode. Raises a clear
+    `02_analysis/stages/export_explorers.py`). Index = cell barcode. Raises a clear
     FileNotFoundError telling the user to run the exporter first.
     """
     import pandas as pd  # lazy
     path = _results_root(config) / "interactive" / f"{name}_explore.parquet"
     if not path.exists():
         raise FileNotFoundError(
-            f"{path} not found — run `python 02_analysis/scripts/export_explorers.py` first "
+            f"{path} not found — run `python 02_analysis/stages/export_explorers.py` first "
             "to materialize the compact explorer tables.")
     return pd.read_parquet(path)
 

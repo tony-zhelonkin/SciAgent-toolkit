@@ -262,4 +262,58 @@ out=$("$SCIAGENT" validate --check all --strict --project-dir "$CONF" 2>&1); rc=
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: --check all conformant strict exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
+# ---------------------------------------------------------------------------
+# Test 6: migration window — 02_analysis/stages/ (canonical) is accepted just
+# like the legacy 02_analysis/scripts/, and a path under neither still warns.
+# ---------------------------------------------------------------------------
+ST="$TMPDIR_TEST/stages"
+mkdir -p "$ST/02_analysis/config" "$ST/02_analysis/stages" "$ST/02_analysis/helpers"
+mkdir -p "$ST/03_results/01_qc/figures/_overview" "$ST/03_results/01_qc/tables/_overview"
+cat > "$ST/02_analysis/config/analysis_config.yaml" <<'YAML'
+stages:
+  - id: "01_qc"
+YAML
+echo "1" > "$ST/02_analysis/stages/10_qc_viz.R"
+echo "1" > "$ST/02_analysis/helpers/plot_utils.R"
+touch "$ST/03_results/01_qc/figures/_overview/qc.screen.png"
+touch "$ST/03_results/01_qc/tables/_overview/qc.csv"
+cat > "$ST/03_results/01_qc/README.md" <<'MD'
+# 01_qc
+
+## figures/_overview/qc.screen.png
+
+F.
+
+**How to read:** x.
+
+| Script | Function | Config | Input |
+|---|---|---|---|
+| `02_analysis/stages/10_qc_viz.R` | `f` | `c` | `i` |
+
+## tables/_overview/qc.csv
+
+T.
+
+**How to read:** x.
+
+| Script | Function | Config | Input |
+|---|---|---|---|
+| `02_analysis/stages/10_qc_viz.R` | `f` | `c` | `i` |
+MD
+
+set +e
+out=$("$SCIAGENT" validate --check provenance --strict --project-dir "$ST" 2>&1); rc=$?
+set -e
+[[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test6: stages/ provenance strict expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
+
+# A script outside both accepted dirs is still a finding, hinted at stages/.
+sed -i 's#02_analysis/stages/10_qc_viz.R#02_analysis/helpers/plot_utils.R#g' \
+    "$ST/03_results/01_qc/README.md"
+set +e
+out=$("$SCIAGENT" validate --check provenance --project-dir "$ST" 2>&1); rc=$?
+set -e
+[[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test6: off-stage default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'WARN provenance:.*not under 02_analysis/stages/' \
+    || { echo "FAIL [$_TEST_NAME] test6: expected stages/-worded off-stage WARN"; printf '%s\n' "$out" >&2; exit 1; }
+
 pass

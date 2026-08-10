@@ -17,7 +17,7 @@
 **Tier:** <Sonnet|Opus>
 **Depends on:** <seq ids from phase table, or —>
 **Downstream consumers:** <list phases that read this phase's outputs, or —>
-**Figure-style contract:** this phase is <COMPUTE-ONLY / VIZ-ONLY / MIXED> — <one sentence: e.g. "compute scripts produce .rds checkpoints only; no plotting calls permitted" or "viz scripts read checkpoints, call save_overview() for every figure, never re-run models">
+**Figure-style contract:** this phase is <COMPUTE-ONLY / VIZ-ONLY / MIXED> — <one sentence: e.g. "compute stages produce .rds checkpoints only; no plotting calls permitted" or "viz stages read checkpoints, call save_overview() for every figure, never re-run models">
 
 ---
 
@@ -38,7 +38,7 @@
 **Out of scope** (grep to confirm nothing leaked):
 ```bash
 # Run these after implementation to confirm no out-of-scope work crept in:
-grep -rn "<out-of-scope-pattern-1>" 02_analysis/scripts/ && echo "LEAK" || echo "clean"
+grep -rn "<out-of-scope-pattern-1>" 02_analysis/stages/ && echo "LEAK" || echo "clean"
 grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 ```
 
@@ -59,7 +59,7 @@ grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 ## 4. Outputs
 
 <!-- Exact artifact paths. Stage id must be declared in analysis_config.yaml:stages
-     before the script first writes to it. -->
+     before the stage first writes to it. -->
 
 | Artifact | Path | Schema / description |
 |----------|------|----------------------|
@@ -111,7 +111,7 @@ grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 
 | Script | Function | Config | Input |
 |--------|----------|--------|-------|
-| `02_analysis/scripts/<NN_script.R>` | `<function_name>()` | `<config_key> = <value>` | `<input path or object>` |
+| `02_analysis/stages/<NN_stage.R>` | `<function_name>()` | `<config_key> = <value>` | `<input path or object>` |
 
 How to read: <axes, colour encoding, key glyph, what a reader should look for first>.
 ```
@@ -123,7 +123,7 @@ How to read: <axes, colour encoding, key glyph, what a reader should look for fi
 <!-- Grep-verifiable + structural. Every check must be runnable verbatim by the reviewer.
      Biological checks are logged, not stop()-ped. -->
 
-**Structural (the script RUNS and produces its declared artifacts):**
+**Structural (the stage RUNS and produces its declared artifacts):**
 ```bash
 # All declared output files exist:
 ls 03_results/<stage_id>/figures/_overview/<stem>.pdf
@@ -136,23 +136,23 @@ bash tests/run-all.sh | tail -3  # expect "failed: 0"
 
 **Compute→viz discipline:**
 ```bash
-# No plotting calls in compute scripts:
-grep -n "ggsave\|save_figure\|savefig\|plt\.show" 02_analysis/scripts/<NN_compute_script.R> && echo "VIOLATION" || echo "clean"
+# No plotting calls in compute stages:
+grep -n "ggsave\|save_figure\|savefig\|plt\.show" 02_analysis/stages/<NN_compute_stage.R> && echo "VIOLATION" || echo "clean"
 
-# No model re-runs in viz scripts:
-grep -n "lmFit\|voomLmFit\|eBayes\|fgsea\|DESeq2" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+# No model re-runs in viz stages:
+grep -n "lmFit\|voomLmFit\|eBayes\|fgsea\|DESeq2" 02_analysis/stages/<NN_viz_stage.R> && echo "VIOLATION" || echo "clean"
 ```
 
 **Figure-style compliance:**
 ```bash
-# No inline theme() calls in viz scripts:
-grep -n "theme(text" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+# No inline theme() calls in viz stages:
+grep -n "theme(text" 02_analysis/stages/<NN_viz_stage.R> && echo "VIOLATION" || echo "clean"
 
 # No hardcoded ggsave dimensions:
-grep -n "ggsave(width=[0-9]" 02_analysis/scripts/<NN_viz_script.R> && echo "VIOLATION" || echo "clean"
+grep -n "ggsave(width=[0-9]" 02_analysis/stages/<NN_viz_stage.R> && echo "VIOLATION" || echo "clean"
 
 # project_theme() / set_paper_style() is sourced:
-grep -n "project_theme\|set_paper_style" 02_analysis/scripts/<NN_viz_script.R> || echo "MISSING"
+grep -n "project_theme\|set_paper_style" 02_analysis/stages/<NN_viz_stage.R> || echo "MISSING"
 ```
 
 **Results placement:**
@@ -179,6 +179,6 @@ grep "## figures/_overview/<stem>" 03_results/<stage_id>/README.md || echo "CAPT
 
 - **<Gotcha name>:** <description of the failure mode and how to avoid or detect it>. See `<file>:<line>` for the pattern to follow.
 - **Byte-stability:** call `round_numeric_cols(sig=9)` before writing any CSV that feeds `append_master_table()`; without it, floating-point churn makes diffs noisy and idempotency checks fail spuriously.
-- **Checkpoint missing → stop():** viz scripts must call `stop("checkpoint not found: <path>")` if the `.rds` / `.h5ad` from the compute phase is absent; never silently re-compute inside a viz script.
+- **Checkpoint missing → stop():** viz stages must call `stop("checkpoint not found: <path>")` if the `.rds` / `.h5ad` from the compute phase is absent; never silently re-compute inside a viz stage.
 - **Stage not declared:** writing to `03_results/<stage_id>/` before adding the entry in `analysis_config.yaml:stages` breaks the `validate results-layout` check; declare the stage first.
 - **<Add phase-specific gotchas here.>**

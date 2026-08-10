@@ -1,11 +1,11 @@
 """
 02_analysis/helpers/figure_style.py — per-project figure-style shim.
 =====================================================================
-ONE import per viz script. Delegates to the SciAgent-toolkit contract
+ONE import per viz stage. Delegates to the SciAgent-toolkit contract
 lib (02_analysis/helpers/figure-style/figure_helpers.py, symlinked by
 `sciagent activate`) and loads the project analysis_config.yaml.
 
-Usage in any viz script:
+Usage in any viz stage:
     from helpers.figure_style import set_paper_style, save_overview, FIG_CFG
     set_paper_style(config=FIG_CFG)
     save_overview(fig, "04_gsea", "name", table=rows, ..., config=FIG_CFG)

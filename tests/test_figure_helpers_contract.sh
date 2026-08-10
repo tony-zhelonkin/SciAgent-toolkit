@@ -101,7 +101,7 @@ for _ in range(2):
     rm = fh.write_caption(
         "04_gsea", fname,
         finding="Hallmark IFN-alpha and IFN-gamma dominate the response.",
-        script="02_analysis/scripts/11_gsea_viz.py", fn="save_overview",
+        script="02_analysis/stages/11_gsea_viz.py", fn="save_overview",
         config_kv="figures.nes_cap = 3.5", input="03_results/objects/gsea.rds",
         how_to_read="Color = NES (orange up / blue down); arrows mark direction.",
         config=cfg)

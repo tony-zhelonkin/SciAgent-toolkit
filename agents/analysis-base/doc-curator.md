@@ -90,21 +90,21 @@ Run this check over every `03_results/*/README.md`. Report:
 
 Assign all C3 violations to the `captions` agent or the human.
 
-### C4 — Provenance: caption cites a committed script
+### C4 — Provenance: caption cites a committed stage
 
 Every caption's `Script:` column must resolve to an **existing, committed** path under
-`02_analysis/scripts/`. A result whose generating script is missing from version control
+`02_analysis/stages/`. A result whose generating stage is missing from version control
 is non-reproducible (violates craft rule E: every `03_results/` artifact reproducible
-from a committed `02_analysis/scripts/NN_*`).
+from a committed `02_analysis/stages/NN_*`).
 
 **Detection:**
 
 ```bash
-# Extract every script path that appears in a provenance table across all READMEs.
-grep -rh "^| \`02_analysis/scripts/" 03_results/*/README.md 2>/dev/null |
+# Extract every stage path that appears in a provenance table across all READMEs.
+grep -rh "^| \`02_analysis/stages/" 03_results/*/README.md 2>/dev/null |
   sed "s/^| \`//; s/\`.*//" |
 while read -r script_path; do
-  # A script is committed if git ls-files reports it (or it exists on disk if not in a repo).
+  # A stage is committed if git ls-files reports it (or it exists on disk if not in a repo).
   git ls-files --error-unmatch "$script_path" 2>/dev/null \
     || echo "UNCOMMITTED_SCRIPT: $script_path"
 done

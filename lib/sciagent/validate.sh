@@ -27,7 +27,7 @@
 #   captions        every figures/tables artifact has a path-qualified
 #                   `## <rel>` heading in the sibling stage README.md.
 #   provenance      each caption's Script: cell resolves to an existing (and,
-#                   in a git repo, tracked) 02_analysis/scripts/ path.
+#                   in a git repo, tracked) 02_analysis/stages/ path.
 #   freshness       project CRAFT block version / submodule commit vs toolkit.
 #   hooks           every hook registered in .claude/settings.json exists and is
 #                   executable (a registered-but-absent hook silently disables
@@ -249,6 +249,32 @@ _vcheck_is_exempt() {
     return 1
 }
 
+# Accepted analysis stage directories, canonical name first. `02_analysis/scripts`
+# is the pre-rename spelling: dual acceptance is a temporary migration window so
+# lint keeps working in repos that have not renamed yet. Drop the second entry
+# once they have; every stage-path decision below reads this one list.
+_VCHECK_STAGE_DIRS=(02_analysis/stages 02_analysis/scripts)
+
+# _vcheck_stage_dirs <projdir>
+# Echo the absolute path of each accepted stage dir that exists, canonical first.
+_vcheck_stage_dirs() {
+    local projdir="$1" d
+    for d in "${_VCHECK_STAGE_DIRS[@]}"; do
+        [[ -d "$projdir/$d" ]] && printf '%s\n' "$projdir/$d"
+    done
+    return 0
+}
+
+# _vcheck_is_stage_path <relpath>
+# True (0) when a project-relative path lies under an accepted stage dir.
+_vcheck_is_stage_path() {
+    local p="$1" d
+    for d in "${_VCHECK_STAGE_DIRS[@]}"; do
+        [[ "$p" == "$d"/* ]] && return 0
+    done
+    return 1
+}
+
 # _vcheck_config_path <projdir>
 # Echo the analysis_config.yaml path (empty string if absent).
 _vcheck_config_path() {
@@ -303,12 +329,14 @@ _vcheck_config_stages() {
 # ---------------------------------------------------------------------------
 # Scan viz scripts for inline styling that bypasses the project theme entry
 # point, plus the config base_size floor. A viz script is any
-# 02_analysis/scripts/*_viz.{R,py} (or *viz* / a script that calls a plotting
+# 02_analysis/stages/*_viz.{R,py} (or *viz* / a script that calls a plotting
 # primitive). Each violation is a WARN (hard-fail under strict).
 _validate_check_figure_style() {
     local projdir="$1" strict="$2" quiet="$3"
     local rc=0
-    local scripts_dir="$projdir/02_analysis/scripts"
+    local -a stage_dirs=()
+    local _d
+    while IFS= read -r _d; do stage_dirs+=("$_d"); done < <(_vcheck_stage_dirs "$projdir")
 
     # --- config floor: figures.base_size < 14 ------------------------------
     local cfg
@@ -322,7 +350,7 @@ _validate_check_figure_style() {
         fi
     fi
 
-    [[ -d "$scripts_dir" ]] || return $rc
+    [[ ${#stage_dirs[@]} -gt 0 ]] || return $rc
 
     # Collect candidate viz scripts: *_viz.{R,py}, any *viz* file, or any
     # script that calls a plotting primitive (ggsave/ggplot/savefig/plt.).
@@ -338,7 +366,7 @@ _validate_check_figure_style() {
         if grep -Eq 'ggsave\(|ggplot\(|\.savefig\(|plt\.(plot|figure|subplots)' "$f" 2>/dev/null; then
             vizscripts+=("$f")
         fi
-    done < <(find "$scripts_dir" -maxdepth 3 -type f \( -name '*.R' -o -name '*.py' \) 2>/dev/null)
+    done < <(find "${stage_dirs[@]}" -maxdepth 3 -type f \( -name '*.R' -o -name '*.py' \) 2>/dev/null)
 
     for f in "${vizscripts[@]+"${vizscripts[@]}"}"; do
         rel="${f#$projdir/}"
@@ -519,7 +547,7 @@ _validate_check_captions() {
 # ---------------------------------------------------------------------------
 # For each caption section in a stage README, the `Script:` cell (the first
 # cell of the `| Script | Function | Config | Input |` table) must resolve to
-# an existing path under 02_analysis/scripts/; if the project is a git repo,
+# an existing path under 02_analysis/stages/; if the project is a git repo,
 # the script must also be tracked.
 _validate_check_provenance() {
     local projdir="$1" strict="$2" quiet="$3"
@@ -547,14 +575,10 @@ _validate_check_provenance() {
                     "${rel}: caption cites missing script: $script" || rc=1
                 continue
             fi
-            # Must be under 02_analysis/scripts/.
-            case "$script" in
-                02_analysis/scripts/*) ;;
-                *)
-                    _vcheck_emit "$strict" "$quiet" provenance \
-                        "${rel}: caption Script not under 02_analysis/scripts/: $script" || rc=1
-                    ;;
-            esac
+            if ! _vcheck_is_stage_path "$script"; then
+                _vcheck_emit "$strict" "$quiet" provenance \
+                    "${rel}: caption Script not under 02_analysis/stages/: $script" || rc=1
+            fi
             # If a git repo, the script must be tracked.
             if [[ "$in_git" == "true" ]]; then
                 if ! git -C "$projdir" ls-files --error-unmatch "$script" >/dev/null 2>&1; then

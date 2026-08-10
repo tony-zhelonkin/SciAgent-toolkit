@@ -8,7 +8,7 @@ jupyter: python3
 ::: {.callout-important}
 **Live tool — needs a running Python kernel** (VS Code + Jupyter, or JupyterLab). This is not a
 `quarto render` artifact: brushing/lassoing only works in a live kernel. Rebuild the compact data
-first with `python 02_analysis/scripts/export_explorers.py` (never open the multi-GB `.h5ad`
+first with `python 02_analysis/stages/export_explorers.py` (never open the multi-GB `.h5ad`
 here). This explorer FEEDS the decision gate — it ends in a `## Decision — decisions.[stage]`
 note that the static `decision-gate-notebook` sibling records as `status: APPROVED`.
 :::

@@ -8,7 +8,7 @@ Research fan-out → synthesis → pipeline plan. Runs `--n-explorers` parallel 
 |---|---|---|---|
 | `question` | `$ARGUMENTS[0]` (positional, **required**) | — | The scientific question driving the research fan-out. Sets the frame for all explorers and the synthesizer. |
 | `slug` | `$ARGUMENTS[1]` (positional, **required**) | — | Research slug. Resolves the research dir to `docs/_internal/research/{today}-{slug}/` (date = `date +%F`). The same slug is forwarded to `/pipeline-plan`. |
-| `--n-explorers <int>` | flag | `3` | Number of parallel Opus explorers. Each explorer owns a distinct lane; the default three lanes are **codebase** (repo layout, existing scripts, stage-ids, config), **literature** (published methods, known approaches, relevant papers), and **reference-implementation** (external repos or toolkits that solve an analogous problem). |
+| `--n-explorers <int>` | flag | `3` | Number of parallel Opus explorers. Each explorer owns a distinct lane; the default three lanes are **codebase** (repo layout, existing stages, stage-ids, config), **literature** (published methods, known approaches, relevant papers), and **reference-implementation** (external repos or toolkits that solve an analogous problem). |
 | `--idempotency-peer <slug>` | flag | none | A sibling pipeline slug whose namespaces (stage-ids, checkpoint names, master-table column prefixes) the new plan must not clobber. When set, the synthesizer annotates the `_SYNTHESIS.md` with peer namespace facts and the `/pipeline-plan` handoff includes an explicit instruction to verify disjointness. |
 
 Flag parsing is order-independent. If either positional argument is missing, reject:
@@ -48,7 +48,7 @@ Dispatch `--n-explorers` Opus explorers **in parallel**. Each explorer owns one 
 
 | Explorer | Lane | Focus |
 |---|---|---|
-| 01 | `codebase` | Repo layout, existing `02_analysis/scripts/`, `analysis_config.yaml` (stages, figures, paths), helper libraries, prior plan dirs under `docs/_internal/plans/`, any existing results artifacts under `03_results/` — the internal ground truth. |
+| 01 | `codebase` | Repo layout, existing `02_analysis/stages/`, `analysis_config.yaml` (stages, figures, paths), helper libraries, prior plan dirs under `docs/_internal/plans/`, any existing results artifacts under `03_results/` — the internal ground truth. |
 | 02 | `literature` | Published methods, benchmarks, canonical approaches, key papers for the scientific question. Do NOT invent citations; surface only what is verifiable via web search or in-repo references. |
 | 03 | `reference-impl` | External repos or toolkits that solve an analogous problem: code patterns, parameter choices, conventions worth importing or avoiding. |
 

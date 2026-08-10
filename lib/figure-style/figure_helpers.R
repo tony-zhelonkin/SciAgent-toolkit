@@ -1,6 +1,6 @@
 ## figure_helpers.R — the SciAgent-toolkit cross-language FIGURE-STYLE CONTRACT (R side).
 ## =====================================================================================
-## ONE place that owns the project's figure format so phase viz scripts never reinvent it. This
+## ONE place that owns the project's figure format so phase viz stages never reinvent it. This
 ## is the R half of a two-language contract; the Python half (`figure_helpers.py`, same dir) has
 ## FUNCTION PARITY — identical public names, equivalent semantics — and both read the SAME
 ## `analysis_config.yaml:figures` block. Centralizing styling here is the load-bearing capability
@@ -41,7 +41,7 @@
 ##   p <- ggplot(...) + ... + project_theme(config = cfg)        # the SINGLE theme entry point
 ##   save_overview(p, "04_gsea", "gsea_hallmark_heatmap", table = df,
 ##                 finding = "Hallmark IFN-alpha/gamma dominate the ISD90 response.",
-##                 script = "02_analysis/scripts/11_gsea_viz.R", fn = "save_overview",
+##                 script = "02_analysis/stages/11_gsea_viz.R", fn = "save_overview",
 ##                 config_kv = "figures.nes_cap = 3.5", input = "03_results/objects/gsea.rds",
 ##                 how_to_read = "Rows = pathways; color = NES (orange up / blue down).",
 ##                 config = cfg)            # figure + sibling table + caption, atomic
@@ -68,7 +68,7 @@
 ## =====================================================================================
 load_figure_config <- function(path = NULL) {
   ## Load the project analysis_config.yaml and return the full parsed list. Pass it to every
-  ## other function as `config=`. Reading once per script keeps these helpers side-effect-free.
+  ## other function as `config=`. Reading once per stage file keeps these helpers side-effect-free.
   if (!requireNamespace("yaml", quietly = TRUE))
     stop("load_figure_config() needs the 'yaml' package to read analysis_config.yaml.")
   yaml::read_yaml(path %||% .DEFAULT_CONFIG_PATH)
@@ -347,7 +347,7 @@ style_series <- function(plot, ylim = NULL, config = NULL) {
     legend.background    = ggplot2::element_rect(fill = "white", colour = "grey90"),
     legend.key.size      = ggplot2::unit(0.8, "lines"))
 }
-## Canonical name for the same operation (so a viz script can call either).
+## Canonical name for the same operation (so a viz stage can call either).
 style_running_sum <- function(plot, ylim = NULL, config = NULL) style_series(plot, ylim = ylim, config = config)
 
 ## =====================================================================================
@@ -355,7 +355,7 @@ style_running_sum <- function(plot, ylim = NULL, config = NULL) style_series(plo
 ## =====================================================================================
 purge_figures <- function(stage, prefix, contrast = NULL, overview = FALSE, config = NULL) {
   ## Delete <prefix>*.{png,pdf} under the resolved stage figures dir (DC semantics). Removes
-  ## orphaned stems a fresh run no longer produces. Scoped by `prefix` so scripts sharing a
+  ## orphaned stems a fresh run no longer produces. Scoped by `prefix` so stages sharing a
   ## figures/ dir don't clobber each other. Needs NO plotting backend (base R only). Returns count.
   d <- if (!is.null(contrast))
          file.path(.stage_dir(config, stage, "figures"), .fig_get(config, "by_contrast_dir"), contrast)
