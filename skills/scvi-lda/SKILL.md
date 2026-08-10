@@ -1,27 +1,7 @@
 ---
 name: scvi-lda
-description: Runs AmortizedLDA (scvi-tools) for latent Dirichlet allocation topic modeling on scRNA-seq raw COUNT data, treating cells as documents and genes as words to discover discrete transcriptional programs (topics) and per-cell topic proportions. Use for unsupervised gene-module discovery on RNA, finding intermediate/transitional cell states, and interpretable dimensionality reduction before annotation. Requires raw counts with MT genes removed first. Unlike pycistopic-atac-topic-modeling, which runs LDA on scATAC-seq regions for the SCENIC+ pipeline, this skill is RNA-only. Unlike scvi-linearscvi, which gives continuous gene LOADINGS from a linear decoder, LDA gives discrete topic-gene distributions. Unlike genenmf-metaprogram-discovery (per-sample NMF + consensus meta-programs across patients), AmortizedLDA learns a single shared topic space jointly across all cells. For ATAC topics use pycistopic-atac-topic-modeling; for supervised label transfer use scvi-scanvi.
+description: "AmortizedLDA (scvi-tools) for topic modeling on raw scRNA-seq counts, treating cells as documents and genes as words to find discrete transcriptional programs and per-cell topic proportions. Use for unsupervised gene-module discovery and transitional states. Needs raw counts. For continuous signed loadings use scvi-linearscvi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: analysis
-  tier: simple
-  tags: []
-  complementary-skills:
-  - scvi-framework
-  - scvi-linearscvi
-  - scanpy
-  - anndata
-  - genenmf-metaprogram-discovery
-  contraindications:
-  - Do not use on normalized / log-transformed data. Raw counts required.
-  - Do not keep MT genes in the input. Filter them first (they dominate topics).
-  - Do not use for batch correction or integration. Use scvi-basic.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/amortizedlda.html
 ---
 
 # AmortizedLDA: Topic Modeling for Single-Cell
@@ -205,3 +185,21 @@ model.train(
 
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/amortizedlda.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/amortized_lda.html
+
+---
+
+## When not to use
+
+- Do not use on normalized / log-transformed data. Raw counts required.
+- Do not keep MT genes in the input. Filter them first (they dominate topics).
+- Do not use for batch correction or integration. Use scvi-basic.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-linearscvi`
+- `scanpy`
+- `anndata`
+- `genenmf-metaprogram-discovery`

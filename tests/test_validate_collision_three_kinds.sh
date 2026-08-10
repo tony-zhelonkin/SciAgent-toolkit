@@ -20,12 +20,8 @@ build_fake_toolkit "$FAKE"
 mkdir -p "$FAKE/skills/tri"
 cat > "$FAKE/skills/tri/SKILL.md" <<'EOF'
 ---
-metadata:
-  scope: implementation
-  requires: []
-  complementary-skills: []
-  contraindications: []
-  tags: []
+name: tri
+description: Fixture skill colliding with an agent and a command of the same name.
 ---
 tri as a skill
 EOF

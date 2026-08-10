@@ -1,27 +1,7 @@
 ---
 name: pycistopic-atac-topic-modeling
-description: Runs MALLET collapsed-Gibbs LDA topic modeling on scATAC-seq fragment counts using pycisTopic to identify co-accessible regulatory region programs (topics) and candidate enhancer sets, and produces cistopic objects plus binarized topic BED files. Use as the upstream step of the SCENIC+ pipeline — pseudobulk generation, peak calling, consensus peaks, LDA, topic binarization, DAR detection, and gene activity. Unlike scvi-lda (AmortizedLDA on scRNA-seq counts), this skill operates on ATAC peak x cell matrices, not RNA, and its output is region_sets BED files for motif enrichment — not cell-level gene programs. For the downstream motif enrichment on topic regions use pycistarget-motif-enrichment; for the full eRegulon GRN use scenic-grn-inference; for scATAC cell-type clustering use scvi-peakvi or ArchR/Signac.
+description: "MALLET collapsed-Gibbs LDA topic modeling on scATAC fragment counts via pycisTopic, identifying co-accessible region programs and candidate enhancer sets. Use as the upstream step of SCENIC+: pseudobulk, peak calling, consensus peaks, LDA, topic binarization, DAR detection. For downstream motif enrichment use pycistarget-motif-enrichment."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://pycistopic.readthedocs.io/
-  category: analysis
-  tier: simple
-  tags:
-  - grn
-  - chromatin
-  complementary-skills:
-  - pycistarget-motif-enrichment
-  - scenic-grn-inference
-  - iterative-peak-merging
-  - chromvar-motif-accessibility
-  contraindications:
-  - Do not use for cell-type clustering of scATAC. Use scvi-peakvi or ArchR/Signac workflows.
-  - Do not use in isolation for TF inference. Requires downstream pycistarget + SCENIC+.
 ---
 
 # pycisTopic Skill
@@ -350,3 +330,19 @@ imputed = impute_accessibility(cistopic_obj)
 ## API Reference
 
 Full documentation: https://pycistopic.readthedocs.io/en/latest/api.html
+
+---
+
+## When not to use
+
+- Do not use for cell-type clustering of scATAC. Use scvi-peakvi or ArchR/Signac workflows.
+- Do not use in isolation for TF inference. Requires downstream pycistarget + SCENIC+.
+
+---
+
+## See also
+
+- `pycistarget-motif-enrichment`
+- `scenic-grn-inference`
+- `iterative-peak-merging`
+- `chromvar-motif-accessibility`

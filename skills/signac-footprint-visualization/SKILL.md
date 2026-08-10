@@ -1,34 +1,7 @@
 ---
 name: signac-footprint-visualization
-description: Signac Footprint() / PlotFootprint() for R-side TF footprint visualization on Seurat ChromatinAssay objects. Use for publication figures showing observed vs expected Tn5 cutting around motif sites, grouped by cell type or condition. For quantitative differential analysis use tobias-footprint-bindetect; for multi-condition heatmaps use hint-atac-differential-footprint.
+description: "Signac Footprint() and PlotFootprint() for R-side TF footprint visualization on Seurat ChromatinAssay objects. Use for publication figures showing observed vs expected Tn5 cutting around motif sites, grouped by cell type or condition. For quantitative differential analysis use tobias-footprint-bindetect."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  tools:
-  - Signac
-  - Seurat
-  - motifmatchr
-  - JASPAR2020
-  - TFBSTools
-  - BSgenome
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 1.0.0
-  upstream-docs: https://stuartlab.org/signac/articles/footprint
-  category: visualization
-  tier: simple
-  tags:
-  - viz
-  - chromatin
-  - motif
-  complementary-skills:
-  - tobias-footprint-bindetect
-  - hint-atac-differential-footprint
-  - signac-chromatin-analysis
-  contraindications:
-  - Do not use for quantitative differential binding — Signac Footprint() is visualization-first; use tobias-footprint-bindetect.
-  - Do not use on very large fragment files for many TFs — slow; restrict with `in.peaks = TRUE` or use TOBIAS.
 ---
 
 # Signac TF Footprint Visualization
@@ -134,3 +107,18 @@ ggsave("footprint_profiles.pdf", width = 8, height = 12)
 - **Signac footprint vignette**: https://stuartlab.org/signac/articles/footprint
 - **Signac GitHub**: https://github.com/stuart-lab/signac
 - **JASPAR 2024**: https://jaspar.elixir.no/
+
+---
+
+## When not to use
+
+- Do not use for quantitative differential binding — Signac Footprint() is visualization-first; use tobias-footprint-bindetect.
+- Do not use on very large fragment files for many TFs — slow; restrict with `in.peaks = TRUE` or use TOBIAS.
+
+---
+
+## See also
+
+- `tobias-footprint-bindetect`
+- `hint-atac-differential-footprint`
+- `signac-chromatin-analysis`

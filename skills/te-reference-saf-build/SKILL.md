@@ -10,23 +10,6 @@ description: >-
   alignment+counting recipe use star-te-preprocessing. For locus-level TE
   references use SQuIRE/Telescope (out of scope here).
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-09
-  version: 1.0.0
-  upstream-docs: https://www.mghlab.org/software/tetranscripts
-  scope: implementation
-  category: workflow
-  tier: standard
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - star-te-preprocessing
-  contraindications:
-    - "Do not use per-dataset — these artifacts are built once per genome build and reused across every dataset. For the per-run alignment+counting recipe use star-te-preprocessing."
-    - "Do not use for locus-level TE references — this builds subfamily-grouped SAFs (one meta-feature per subfamily). For copy-resolved/locus-level annotations use Telescope or SQuIRE."
-    - "Do not use to build a combined gene+TE GTF or a Dfam annotation — the TE source here is the TEtranscripts pre-generated RepeatMasker GTF, kept separate from the gene GTF."
 ---
 
 # TE Reference SAF Build (build-once, shared)
@@ -352,3 +335,17 @@ all datasets on the same build reuse this one file.
 - **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.1** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
 - **TE GTF source:** TEtranscripts — https://www.mghlab.org/software/tetranscripts
 - **TE-ID parser** (label `Subfamily:Family:Class`): TE-RNAseq-toolkit — `R/te_utils.R::parse_te_id`.
+
+---
+
+## When not to use
+
+- Do not use per-dataset — these artifacts are built once per genome build and reused across every dataset. For the per-run alignment+counting recipe use star-te-preprocessing.
+- Do not use for locus-level TE references — this builds subfamily-grouped SAFs (one meta-feature per subfamily). For copy-resolved/locus-level annotations use Telescope or SQuIRE.
+- Do not use to build a combined gene+TE GTF or a Dfam annotation — the TE source here is the TEtranscripts pre-generated RepeatMasker GTF, kept separate from the gene GTF.
+
+---
+
+## See also
+
+- `star-te-preprocessing`

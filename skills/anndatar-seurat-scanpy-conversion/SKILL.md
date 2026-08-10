@@ -2,25 +2,6 @@
 name: anndatar-seurat-scanpy-conversion
 description: Convert between AnnData (.h5ad, Python/scverse) and Seurat (.rds, R/Seurat5) using the modern anndataR API. Use when bridging R and Python workflows, loading .h5ad in R, or exporting a Seurat object to scverse. For multi-assay / multimodal containers (CITE-seq, multiome) use multimodal-anndata-mudata. For Seurat→Loupe use louper-seurat-conversion.
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-14
-  category: foundation
-  tier: standard
-  tags:
-  - conversion
-  complementary-skills:
-  - anndata
-  - multimodal-anndata-mudata
-  - louper-seurat-conversion
-  contraindications:
-  - Do not use for multi-assay Seurat objects (CITE-seq, multiome). Use multimodal-anndata-mudata.
-  - Do not use the older SeuratDisk API. This skill uses modern anndataR.
-  - Do not pass AnnData X layer name when calling as_Seurat — pass layer NAMES only (e.g., c('counts')).
-  version: 1.1.0
-  upstream-docs: https://scverse.org/anndataR/
 ---
 
 # anndataR: Seurat ↔ h5ad Conversion Skill
@@ -423,3 +404,21 @@ Signac's ChromatinAssay has extra slots (peak GRanges, fragment file paths) that
 5. Test small subset first: `adata[1:100, 1:500]`
 6. Check memory: `pryr::object_size(seurat)`
 7. Validate conversion: compare dimensions, metadata columns
+
+---
+
+## When not to use
+
+- Do not use for multi-assay Seurat objects (CITE-seq, multiome). Use multimodal-anndata-mudata.
+- Do not use the older SeuratDisk API. This skill uses modern anndataR.
+- Do not pass AnnData X layer name when calling as_Seurat — pass layer NAMES only (e.g., c('counts')).
+
+---
+
+## See also
+
+- `anndata`
+- `multimodal-anndata-mudata`
+- `louper-seurat-conversion`
+
+Upstream docs: https://scverse.org/anndataR/

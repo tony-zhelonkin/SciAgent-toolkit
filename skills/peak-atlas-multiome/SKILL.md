@@ -1,31 +1,7 @@
 ---
 name: peak-atlas-multiome
-description: "Define a consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC in the same cells) — call peaks per RNA, ATAC, WNN, and cell-type grouping with pseudo-replicate reproducibility, vote across the four strategies, then quantify-then-prune with a Primary+Rescue adaptive per-cell-type filter that protects rare populations. Use when you have paired multiome and want a peak set called from RNA-informed cell identities and validated cross-modally. Builds on peak-atlas-framework. For unpaired RNA+ATAC (separate cell pools) use peak-atlas-unpaired."
+description: "Define a consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC in the same cells): call peaks per RNA, ATAC, WNN, and cell-type grouping with pseudo-replicate reproducibility, vote across the four strategies, then quantify-then-prune with a Primary+Rescue filter that protects rare populations. Builds on peak-atlas-framework."
 license: MIT
-metadata:
-  scope: implementation
-  status: stable
-  requires:
-  - peak-atlas-framework
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-25
-  version: 1.0.0
-  upstream-docs: https://stuartlab.org/signac/
-  category: analysis
-  tier: rich
-  tags:
-  - chromatin
-  - multimodal
-  - preprocessing
-  complementary-skills:
-  - peak-atlas-framework
-  - peak-atlas-unpaired
-  - signac-chromatin-analysis
-  - iterative-peak-merging
-  - chromvar-motif-accessibility
-  contraindications:
-  - "Do not use for unpaired RNA+ATAC (separate cell pools). Use peak-atlas-unpaired instead."
-  - "Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework."
 ---
 
 # Peak Atlas from True 10x Multiome (paired RNA + ATAC)
@@ -178,3 +154,21 @@ Validate per the framework battery: rare-marker promoter-peak retention `>= 0.95
 - ArchR / iterative-overlap (Granja et al., Nat Genet 2021): https://www.nature.com/articles/s41588-021-00790-6
 - Corces & Granja et al., Science 2018: https://www.science.org/doi/10.1126/science.aav1898
 - MACS3: https://macs3-project.github.io/MACS/
+
+
+---
+
+## When not to use
+
+- Do not use for unpaired RNA+ATAC (separate cell pools). Use peak-atlas-unpaired instead.
+- Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework.
+
+---
+
+## See also
+
+- `peak-atlas-framework`
+- `peak-atlas-unpaired`
+- `signac-chromatin-analysis`
+- `iterative-peak-merging`
+- `chromvar-motif-accessibility`

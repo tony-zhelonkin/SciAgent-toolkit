@@ -2,61 +2,8 @@
 # Computes the effective merged stack (last-wins on name collisions), creates
 # dual symlinks, rewrites the AGENTS.md managed block, writes manifest.
 # Stack-walking and block-body rendering are delegated to stack.sh.
-#
-# Complementary-skills warning surface:
-#   Missing complementary-skills references are soft-warn only. Buffered
-#   during the walk and emitted as one STDERR summary block after the
-#   normal activation output. Exit code remains 0.
 
 # shellcheck shell=bash
-
-# ---------------------------------------------------------------------------
-# _activate_read_complementary <skill-name>
-# Emit complementary-skills entries, one per line, from frontmatter.
-# Handles the same block-list format used by skill_read_requires.
-# ---------------------------------------------------------------------------
-_activate_read_complementary() {
-    local name="$1"
-    local file
-    file=$(skill_frontmatter_path "$name") || return 0   # missing SKILL.md: skip
-    _skill_extract_frontmatter "$file" | awk '
-        BEGIN { in_meta=0; in_comp=0 }
-        /^[A-Za-z_][A-Za-z0-9_-]*:/ {
-            in_meta = ($0 ~ /^metadata:[ \t]*(#.*)?$/)
-            in_comp = 0
-            next
-        }
-        in_meta && /^[ \t]+complementary-skills:/ {
-            line = $0
-            sub(/^[ \t]+complementary-skills:[ \t]*/, "", line)
-            sub(/[ \t]*#.*$/, "", line)
-            sub(/[ \t]+$/, "", line)
-            if (line ~ /^\[.*\]$/) {
-                gsub(/^\[[ \t]*/, "", line)
-                gsub(/[ \t]*\]$/, "", line)
-                n = split(line, parts, /[ \t]*,[ \t]*/)
-                for (i = 1; i <= n; i++) {
-                    item = parts[i]
-                    gsub(/^["'"'"']|["'"'"']$/, "", item)
-                    if (item != "") print item
-                }
-                in_comp = 0
-                next
-            }
-            in_comp = 1
-            next
-        }
-        in_comp && /^[ \t]+[A-Za-z_][A-Za-z0-9_-]*:/ { in_comp=0; next }
-        in_comp && /^[ \t]+-[ \t]+/ {
-            item = $0
-            sub(/^[ \t]+-[ \t]+/, "", item)
-            sub(/[ \t]*#.*$/, "", item)
-            sub(/[ \t]+$/, "", item)
-            gsub(/^["'"'"']|["'"'"']$/, "", item)
-            if (item != "") print item
-        }
-    '
-}
 
 # ---------------------------------------------------------------------------
 # ensure_claude_md_shim
@@ -113,7 +60,7 @@ cmd_activate() {
         return 1
     fi
 
-    # Pre-flight: run tag-vocab + requires-graph checks before any mutation.
+    # Pre-flight: check every skill's frontmatter shape before any mutation.
     # validate.sh must be sourced by the caller (bin/sciagent sources it for
     # the activate verb). Called with --quiet so success produces no output.
     if ! cmd_validate --quiet; then
@@ -149,52 +96,6 @@ cmd_activate() {
             STYLE)   OUTPUT_STYLE="$name"; OUTPUT_STYLE_ROLE="$provider" ;;
         esac
     done < <(stack_walk "$base" "$overlay")
-
-    # Phase B: transitive `requires:` resolution. For each direct skill, fold
-    # its closure into SKILL_ORDER; new entries get provider=":requires:<parent>"
-    # so the manifest is self-describing.
-    # Resolver failures (cycles, missing targets) abort before any mutation.
-    local direct
-    for direct in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
-        # Skip skills with no SKILL.md frontmatter (e.g. test fixtures).
-        if ! skill_frontmatter_path "$direct" >/dev/null 2>&1; then
-            continue
-        fi
-        # Capture closure via command-substitution so the resolver's exit
-        # status propagates (process substitution + `done` would swallow it).
-        local closure_out
-        if ! closure_out=$(skill_resolve_transitive "$direct"); then
-            echo "sciagent: aborting activation; requires resolution failed for '$direct'" >&2
-            return 1
-        fi
-        local dep
-        while IFS= read -r dep; do
-            [[ -z "$dep" ]] && continue
-            # Skip self and skills already in the effective set.
-            [[ "$dep" == "$direct" ]] && continue
-            [[ -n "${SKILLS[$dep]:-}" ]] && continue
-            SKILLS[$dep]=":requires:$direct"
-            SKILL_ORDER+=("$dep")
-        done <<< "$closure_out"
-    done
-
-    # Phase B.5: scan complementary-skills for unresolvable references.
-    # complementary-skills misses are soft-warn only — buffer here, 
-    # emit at end-of-activate on STDERR.
-    # Exit code stays 0 regardless of how many warnings accumulate.
-    local -a _comp_warnings=()
-    local sk
-    for sk in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
-        local cs
-        while IFS= read -r cs; do
-            [[ -z "$cs" ]] && continue
-            # A complementary-skill is "missing" when it has no directory
-            # under skills/. Use skill_frontmatter_path as the canonical check.
-            if ! skill_frontmatter_path "$cs" >/dev/null 2>&1; then
-                _comp_warnings+=("$sk references complementary-skill '$cs' — not present in skills/")
-            fi
-        done < <(_activate_read_complementary "$sk")
-    done
 
     # Resolve output_style → system-prompts/<file>.md by frontmatter name.
     # Validate before any filesystem mutation so a drifted role spec leaves
@@ -286,20 +187,9 @@ cmd_activate() {
         STYLE_APPLIED_TAG=$(claude_settings_apply "$OUTPUT_STYLE")
     fi
 
-    # Render and write the managed block. Inherited (`:requires:`) skills are
-    # passed via the SCIAGENT_INHERITED env var so render_block_body can put
-    # them under a dedicated subsection.
-    local SCIAGENT_INHERITED=""
-    local sk
-    for sk in "${SKILL_ORDER[@]+"${SKILL_ORDER[@]}"}"; do
-        if [[ "${SKILLS[$sk]:-}" == :requires:* ]]; then
-            SCIAGENT_INHERITED+="${sk}=${SKILLS[$sk]#:requires:};"
-        fi
-    done
-    export SCIAGENT_INHERITED
+    # Render and write the managed block.
     local body
     body=$(render_block_body "$base" "$overlay")
-    unset SCIAGENT_INHERITED
     block_write AGENTS.md "$body" || {
         echo "sciagent activate: failed to write managed block" >&2
         return 1
@@ -325,23 +215,5 @@ cmd_activate() {
     echo "  commands: ${#COMMAND_ORDER[@]}"
     if [[ -n "$OUTPUT_STYLE" ]]; then
         echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_ROLE) [settings.local.json: $STYLE_APPLIED_TAG]"
-    fi
-
-    # Emit complementary-skills warning block to STDERR after the activation
-    # summary. One block, one place to look. Exit code stays 0.
-    if [[ "${#_comp_warnings[@]}" -gt 0 ]]; then
-        {
-            echo ""
-            echo "sciagent: activation completed with warnings:"
-            echo ""
-            echo "  complementary-skills (not installed):"
-            local w
-            for w in "${_comp_warnings[@]}"; do
-                echo "    - $w"
-            done
-            echo ""
-            echo "  These skills are optional companions. Install them via 'sciagent inject'"
-            echo "  or add them to a role if the gap affects your current work."
-        } >&2
     fi
 }

@@ -12,27 +12,6 @@ description: >-
   (out of scope here). For count-matrix annotation and DGEList assembly use
   annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-11
-  version: 1.1.1
-  upstream-docs: https://github.com/nf-core/rnaseq
-  scope: implementation
-  category: workflow
-  tier: standard
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - te-reference-saf-build
-    - nfcore-rnaseq-execution
-    - te-gene-featurecounts
-    - annotate-bulk-rnaseq-data
-  contraindications:
-    - "Do not use for locus-level TE quantification (Random-One assignments are stochastic per locus). Use SQuIRE/Telescope instead."
-    - "This recipe is integer Random-One (no --fraction). Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments + -M --fraction) — see the Decision Tree; don't just bolt --fraction onto this integer recipe."
-    - "Do not use for generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs). Use nfcore-rnaseq-execution instead."
-    - "Do not use for count-matrix annotation, DGEList assembly, or DE. Use annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit instead."
 ---
 
 # STAR + featureCounts TE-Compatible Preprocessing (Random-One)
@@ -245,3 +224,21 @@ The canonical handoff chain is `star-te-preprocessing → te-gene-featurecounts 
 - **TE-ID parser** (label definition `Subfamily:Family:Class`): TE-RNAseq-toolkit — `R/te_utils.R::parse_te_id`.
 - **nf-core/rnaseq:** https://github.com/nf-core/rnaseq (run at `-r 3.20.0`, `-profile docker`, `--aligner star_salmon`).
 - **STAR:** https://github.com/alexdobin/STAR — Random-One strategy cited to Nat. Commun. (2022).
+
+---
+
+## When not to use
+
+- Do not use for locus-level TE quantification (Random-One assignments are stochastic per locus). Use SQuIRE/Telescope instead.
+- This recipe is integer Random-One (no --fraction). Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments + -M --fraction) — see the Decision Tree; don't just bolt --fraction onto this integer recipe.
+- Do not use for generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs). Use nfcore-rnaseq-execution instead.
+- Do not use for count-matrix annotation, DGEList assembly, or DE. Use annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit instead.
+
+---
+
+## See also
+
+- `te-reference-saf-build`
+- `nfcore-rnaseq-execution`
+- `te-gene-featurecounts`
+- `annotate-bulk-rnaseq-data`

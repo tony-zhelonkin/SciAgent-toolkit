@@ -11,23 +11,6 @@ description: >-
   use starsolo-spliced-unspliced. For annotating/DE of the resulting count
   matrices use annotate-bulk-rnaseq-data.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-08
-  version: 1.1.0
-  upstream-docs: https://nf-co.re/rnaseq/3.26.0
-  scope: implementation
-  category: workflow
-  tier: standard
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - star-te-preprocessing
-    - annotate-bulk-rnaseq-data
-  contraindications:
-    - "Do not use for 10x single-cell velocity alignment. Use starsolo-spliced-unspliced instead."
-    - "Do not use for count-matrix annotation/DE. Use annotate-bulk-rnaseq-data instead."
 ---
 
 # nf-core/rnaseq Execution
@@ -210,3 +193,17 @@ After the run, confirm:
 - **TE recipe + canonical config:** `star-te-preprocessing/references/te_star.config` (owner — do not duplicate)
 - **Per-dataset provenance template:** `references/dataset-record-template.md` (instantiate per run)
 - **Samplesheet generator:** `scripts/make_samplesheet.sh` (tested; `tests/run_skill_tests.sh`)
+
+---
+
+## When not to use
+
+- Do not use for 10x single-cell velocity alignment. Use starsolo-spliced-unspliced instead.
+- Do not use for count-matrix annotation/DE. Use annotate-bulk-rnaseq-data instead.
+
+---
+
+## See also
+
+- `star-te-preprocessing`
+- `annotate-bulk-rnaseq-data`

@@ -95,10 +95,20 @@ build_fake_toolkit() {
     local root="$1"
     mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,system-prompts,lib,bin}
 
-    # Skills (directory format)
-    echo "skill s_a"  > "$root/skills/s_a/SKILL.md"
-    echo "skill s_b"  > "$root/skills/s_b/SKILL.md"
-    echo "skill s_c"  > "$root/skills/s_c/SKILL.md"
+    # Skills (directory format). Frontmatter carries the two fields
+    # `sciagent validate` hard-checks: a `name:` matching the directory and a
+    # `description:` within the length cap.
+    local _s
+    for _s in s_a s_b s_c; do
+        cat > "$root/skills/$_s/SKILL.md" <<EOF
+---
+name: $_s
+description: Fixture skill $_s.
+---
+
+skill $_s
+EOF
+    done
 
     # Agents
     echo "agent ag_a" > "$root/agents/ag_a.md"
@@ -164,31 +174,3 @@ EOF
     ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
 }
 
-# tag_skill <toolkit-root> <skill-name> <tag-name>
-# Rewrites <toolkit-root>/skills/<skill-name>/SKILL.md so its frontmatter
-# carries a metadata.tags: block list containing <tag-name>. Any existing
-# file content is replaced with a minimal frontmatter + body.
-# Also ensures <tag-name> is present in <toolkit-root>/tags.yaml.
-tag_skill() {
-    local root="$1" skill="$2" tag="$3"
-
-    mkdir -p "$root/skills/$skill"
-    cat > "$root/skills/$skill/SKILL.md" <<EOF
----
-metadata:
-  scope: implementation
-  requires: []
-  complementary-skills: []
-  contraindications: []
-  tags:
-    - $tag
----
-skill $skill
-EOF
-
-    # Add the tag to tags.yaml if not already present.
-    if ! grep -q "name: $tag" "$root/tags.yaml" 2>/dev/null; then
-        printf '  - name: %s\n    description: Test fixture tag.\n    since: 2026-05-24\n' \
-            "$tag" >> "$root/tags.yaml"
-    fi
-}

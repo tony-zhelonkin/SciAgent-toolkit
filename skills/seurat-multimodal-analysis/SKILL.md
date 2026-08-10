@@ -1,31 +1,7 @@
 ---
 name: seurat-multimodal-analysis
-description: Orchestrator for R/Seurat multimodal single-cell analysis — chains CITE-seq + WNN, Signac chromatin analysis, bridge integration, and unpaired RNA+ATAC anchoring across four leaf skills. Use as the entry point when the project is R-based and analyses must stay in Seurat. For Python scverse use muon-multimodal-analysis; for Seurat-to-AnnData conversion use anndatar-seurat-scanpy-conversion.
+description: "Orchestrator for R/Seurat multimodal single-cell analysis — chains CITE-seq WNN, Signac chromatin analysis, bridge integration, and unpaired RNA+ATAC anchoring across four leaf skills. Use as the entry point when the project is R-based and must stay in Seurat. For the Python scverse use muon-multimodal-analysis."
 license: MIT
-metadata:
-  scope: concept
-  requires:
-  - seurat-citeseq-wnn
-  - signac-chromatin-analysis
-  - seurat-bridge-integration
-  - seurat-unpaired-cross-modality
-  - harmonypy-batch-integration
-  - anndatar-seurat-scanpy-conversion
-  - louper-seurat-conversion
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 2.0.0
-  upstream-docs: https://satijalab.org/seurat/
-  category: integration
-  tier: orchestrator
-  tags:
-  - multimodal
-  complementary-skills:
-  - muon-multimodal-analysis
-  - scglue-unpaired-multiomics-integration
-  contraindications:
-  - Do not use for Python/scverse workflows. Use muon-multimodal-analysis instead.
-  - Do not use to convert Seurat objects to AnnData/MuData. Use multimodal-anndata-mudata.
 ---
 
 # Seurat Multimodal Analysis — Orchestrator
@@ -220,3 +196,18 @@ files.
 - Bridge integration: https://satijalab.org/seurat/articles/seurat5_integration_bridge
 - ChromVAR:           https://greenleaflab.github.io/chromVAR/
 - JASPAR:             https://jaspar.genereg.net/
+
+
+---
+
+## When not to use
+
+- Do not use for Python/scverse workflows. Use muon-multimodal-analysis instead.
+- Do not use to convert Seurat objects to AnnData/MuData. Use multimodal-anndata-mudata.
+
+---
+
+## See also
+
+- `muon-multimodal-analysis`
+- `scglue-unpaired-multiomics-integration`

@@ -1,20 +1,7 @@
 ---
 name: figure-style
-description: "Publication-figure craft for this repo: the one styling + saving + captioning contract every viz stage uses. Use whenever you create, edit, or review a figure under 03_results/. Applies one unified legible style and emits both a vector PDF and a raster PNG from a single plot object, writes the source table and README caption atomically, and enforces legibility floors. Never call ggsave or plt.savefig directly — always go through save_figure or save_overview."
+description: "The one styling, saving, and captioning contract every viz stage in this repo uses. Use whenever you create, edit, or review a figure under 03_results/. Applies one unified legible style, emits a vector PDF and a raster PNG from a single plot object, and writes the table and caption atomically. Never call ggsave or plt.savefig directly."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-26
-  category: visualization
-  tier: standard
-  tags:
-  - figure
-  - viz
-  complementary-skills:
-  - scrna-pipeline-conventions
-  - bulk-rnaseq-gsea
 ---
 
 # Figure-Style Contract
@@ -203,3 +190,10 @@ Re-running with the same `filename` replaces the existing section in place (neve
 - Both `<name>.pdf` and `<name>.png` exist under the correct `<stage>/figures/<sub-layout>/` directory.
 - A same-stem `<name>.csv` exists under the parallel `<stage>/tables/<sub-layout>/` directory.
 - `03_results/<stage>/README.md` contains a path-qualified caption section for this figure with a non-empty `**How to read:**` block.
+
+---
+
+## See also
+
+- `scrna-pipeline-conventions`
+- `bulk-rnaseq-gsea`

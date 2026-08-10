@@ -1,17 +1,6 @@
 ---
 name: architecture-first-dev
-description: Architecture-first software development methodology. Use when planning non-trivial features, refactors, or redesigns where upfront design pays off. Encodes the 6-stage per-feature pipeline (map → review → synthesize → design → plan → implement) plus the optional 3-command meta-layer (meta-map → meta-design → meta-plan) for cross-feature work. Primes the assistant to stop at each gate, surface per-stage tips, and navigate the user from any state. Defer to docs/workflows/architect/00-quickstart.md as the cadence source of truth.
-metadata:
-  version: 0.2.0
-  scope: concept
-  requires: []
-  complementary-skills: []
-  contraindications:
-  - Do not use for one-line fixes, typo corrections, or trivial tweaks.
-  - Do not use for throwaway scripts or exploratory data analysis.
-  - Do not use when design is already locked (just implementing an approved spec).
-  tags:
-  - architecture
+description: "Architecture-first development methodology. Use when planning non-trivial features, refactors, or redesigns where upfront design pays off. Encodes the 6-stage per-feature pipeline (map, review, synthesize, design, plan, implement) plus a 3-command meta-layer for cross-feature work, stopping at each gate for review."
 ---
 
 # Architecture-First Development
@@ -289,3 +278,11 @@ Special case — **after `/meta-apply`**: always surface the MANUAL_REDESIGN_NEE
 - **"Advancing a refactor stage on a sub-agent's reported green"** — re-run the gate yourself; a sub-agent's "tests pass" is a claim, not a guarantee. The orchestrator owns verification. See the oracle-discipline section.
 - **"Scrubbing a non-deterministic value out of the output instead of pinning it at the source"** — you will miss an occurrence you didn't know about. Pin the value at its source (env hook / injected clock) so every render site is covered at once.
 - **"Refactoring a byte-sensitive surface without a golden oracle in place first"** — every later "byte-for-byte" claim then rests on nothing checkable. The byte-exact oracle is Stage 0, not an afterthought.
+
+---
+
+## When not to use
+
+- Do not use for one-line fixes, typo corrections, or trivial tweaks.
+- Do not use for throwaway scripts or exploratory data analysis.
+- Do not use when design is already locked (just implementing an approved spec).

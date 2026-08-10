@@ -13,7 +13,8 @@ SciAgent-toolkit/
 │   ├── activate.sh           # activate/deactivate orchestration
 │   ├── block.sh              # AGENTS.md managed-block read/write/hash
 │   ├── deactivate.sh         # teardown logic
-│   ├── inject.sh             # inject a skill into current overlay
+│   ├── craft.sh              # SCIAGENT:CRAFT block renderer (craft.yaml is the SSOT)
+│   ├── craft_verb.sh         # `craft` verb: render the block, mount nothing
 │   ├── new.sh                # scaffolding (project/role/skill/agent)
 │   ├── roles.sh              # YAML parser (grep/awk, no yq dependency)
 │   ├── stack.sh              # stack-walk and manifest helpers

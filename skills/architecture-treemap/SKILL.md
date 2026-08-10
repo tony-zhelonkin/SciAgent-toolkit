@@ -1,30 +1,12 @@
 ---
 name: architecture-treemap
-description: 'architecture-treemap — render a self-contained HTML treemap of a codebase''s architectural model (logical components sized by LOC, classified core/seam/removable, with static and audit-asserted coupling edges). Use to VISUALISE the output of an architecture audit: run /components-extract for the deterministic substrate, /audit-slice + /synthesize-audit for the judgment layer, then /architecture-treemap to render. The treemap displays a model; it does not produce one. For per-feature Mermaid diagrams use /diagram; for the design methodology use architecture-first-dev.'
+description: "Render a self-contained HTML treemap of a codebase's architectural model: components sized by LOC, classified core/seam/removable, with static and audit-asserted coupling edges. Use to VISUALISE an architecture audit — it displays a model, it does not produce one. For Mermaid diagrams use /diagram; for the methodology use architecture-first-dev."
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-24
-  version: 0.1.0
-  upstream-docs: https://d3js.org/
-  category: practice
-  tier: rich
-  status: experimental
-  prune-review-at: 2026-11-20
-  tags:
-  - architecture
-  - viz
-  complementary-skills:
-  - architecture-first-dev
-  contraindications:
-  - Do not use to PRODUCE an architectural model. It only renders an existing components.json — run /components-extract then /synthesize-audit first.
-  - Do not use for per-feature design diagrams. Use /diagram (collects Mermaid from design artifacts) instead.
-  - Do not use as a routine per-feature tool. A full audit costs roughly 1M tokens; it is a quarterly retrospective instrument, not a per-commit one.
-  scope: implementation
-  requires: []
 ---
 
 # Architecture Treemap
+
+**Status: experimental.** Review for pruning by 2026-11-20.
 
 ## Overview
 
@@ -233,3 +215,17 @@ authoring checklist`.
 - **Classification rationale:** `skills/architecture-treemap/references/classification-rationale.md`
 - **D3:** https://d3js.org/
 - **Connascence (Page-Jones taxonomy):** Meilir Page-Jones, *What Every Programmer Should Know About Object-Oriented Design*.
+
+---
+
+## When not to use
+
+- Do not use to PRODUCE an architectural model. It only renders an existing components.json — run /components-extract then /synthesize-audit first.
+- Do not use for per-feature design diagrams. Use /diagram (collects Mermaid from design artifacts) instead.
+- Do not use as a routine per-feature tool. A full audit costs roughly 1M tokens; it is a quarterly retrospective instrument, not a per-commit one.
+
+---
+
+## See also
+
+- `architecture-first-dev`

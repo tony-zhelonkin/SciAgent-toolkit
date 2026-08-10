@@ -1,29 +1,7 @@
 ---
 name: mofa-r
-description: MOFA2 — R bindings and plotting for Multi-Omics Factor Analysis. Use to fit MOFA from R (calls the mofapy2 Python engine via reticulate/basilisk) and to run the standard downstream methods (`get_factors`, `get_weights`, `plot_factors`, `correlate_factors_with_covariates`, `summarise_factors`, `calculate_variance_explained`). For Python-side fitting use mofa-mofapy2; for single-cell pseudo-bulk preprocessing use mofa-cellular; for Python-side downstream viz use mofa-mofax.
+description: "MOFA2 — R bindings and plotting for Multi-Omics Factor Analysis. Use to fit MOFA from R (it calls the mofapy2 engine via reticulate/basilisk) and to run the standard downstream methods: get_factors, get_weights, plot_factors, correlate_factors_with_covariates, calculate_variance_explained. For Python-side fitting use mofa-mofapy2."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: integration
-  tier: standard
-  tags:
-  - factor-analysis
-  - integration
-  - viz
-  - multimodal
-  complementary-skills:
-  - mofa-framework
-  - mofa-cellular
-  - muon-multimodal-analysis
-  contraindications:
-  - Do not use without a working Python install. MOFA2 R calls mofapy2 under the hood via reticulate/basilisk; the conda env is required.
-  - Do not expect a biplot. MOFA2 has 25 `plot_*` man pages and none of them co-projects Z and W; use the L1 supplementary-projection patch from mofa-framework/references/supplementary-projection-on-z.md.
-  - Do not pass `get_factors(scale=TRUE)` and `get_weights(scale=TRUE)` outputs into the same coordinate system; the two scalers are independent `max(|.|)` normalisations, not the two halves of a shared SVD.
-  version: 0.1.0
-  upstream-docs: https://biofam.github.io/MOFA2/
 ---
 
 # MOFA2: R Bindings and Plotting
@@ -185,3 +163,19 @@ What MOFA2 ships (`R/plot_*.R`, 25 `plot_*` man pages). Each returns a `ggplot` 
 - **Vignettes (in-source):** `vignettes/getting_started_R.Rmd`, `vignettes/downstream_analysis.Rmd`, `vignettes/MEFISTO_temporal.Rmd`
 - **Website:** https://biofam.github.io/MOFA2/
 - **MOFA+ paper:** https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02015-1
+
+---
+
+## When not to use
+
+- Do not use without a working Python install. MOFA2 R calls mofapy2 under the hood via reticulate/basilisk; the conda env is required.
+- Do not expect a biplot. MOFA2 has 25 `plot_*` man pages and none of them co-projects Z and W; use the L1 supplementary-projection patch from mofa-framework/references/supplementary-projection-on-z.md.
+- Do not pass `get_factors(scale=TRUE)` and `get_weights(scale=TRUE)` outputs into the same coordinate system; the two scalers are independent `max(|.|)` normalisations, not the two halves of a shared SVD.
+
+---
+
+## See also
+
+- `mofa-framework`
+- `mofa-cellular`
+- `muon-multimodal-analysis`

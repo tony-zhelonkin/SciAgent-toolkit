@@ -1,33 +1,7 @@
 ---
 name: muon-multimodal-analysis
-description: End-to-end orchestrator for paired multimodal scRNA + scATAC analysis in the Python scverse (muon, MuData, scanpy, SnapATAC2). Use as the entry point for a 10x Multiome or CITE-seq dataset — this skill chains together preprocessing, batch integration, differential accessibility, peak-gene linkage, and visualisation across the five leaf skills it requires. For R/Seurat workflows use seurat-multimodal-analysis; for unpaired modalities use scglue-unpaired-multiomics-integration.
+description: "End-to-end orchestrator for paired multimodal scRNA + scATAC analysis in the Python scverse (muon, MuData, scanpy, SnapATAC2). Use as the entry point for a 10x Multiome or CITE-seq dataset: it chains preprocessing, batch integration, differential accessibility, peak-gene linkage, and visualisation across five leaf skills."
 license: MIT
-metadata:
-  scope: concept
-  requires:
-  - multimodal-anndata-mudata
-  - scanpy
-  - snapatac2-atac-preprocessing
-  - harmonypy-batch-integration
-  - atac-differential-accessibility
-  - pyranges-peak-gene-linkage
-  - pygenometracks-coverage-plots
-  - scvi-multivi
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 2.0.0
-  upstream-docs: https://muon.scverse.org/
-  category: integration
-  tier: orchestrator
-  tags:
-  - multimodal
-  complementary-skills:
-  - seurat-multimodal-analysis
-  - scglue-unpaired-multiomics-integration
-  - scvi-multivi
-  contraindications:
-  - Do not use for R/Seurat workflows. Use seurat-multimodal-analysis instead.
-  - Do not use solely for Seurat-to-Python conversion. Use multimodal-anndata-mudata for that bridge.
 ---
 
 # muon Multimodal Analysis — Orchestrator
@@ -209,3 +183,19 @@ Locus-level coverage figures (e.g. for marker genes) are handled by
 - scverse:       https://scverse.org/
 - SnapATAC2:     https://kzhang.org/SnapATAC2/
 - scvi-tools MultiVI: https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html
+
+
+---
+
+## When not to use
+
+- Do not use for R/Seurat workflows. Use seurat-multimodal-analysis instead.
+- Do not use solely for Seurat-to-Python conversion. Use multimodal-anndata-mudata for that bridge.
+
+---
+
+## See also
+
+- `seurat-multimodal-analysis`
+- `scglue-unpaired-multiomics-integration`
+- `scvi-multivi`

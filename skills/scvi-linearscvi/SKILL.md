@@ -1,27 +1,7 @@
 ---
 name: scvi-linearscvi
-description: Trains LinearSCVI (scvi-tools variant with a LINEAR decoder) on raw scRNA-seq counts to produce continuous, signed gene-to-factor LOADINGS via model.get_loadings(), giving interpretable factors that identify which genes drive each latent dimension. Use to extract gene-program signatures as ranked gene lists, find drivers of population structure, or replace PCA-on-logcounts with a count-aware equivalent. Trades model capacity and batch-correction strength for interpretability; does NOT support scArches/transfer learning. Unlike scvi-lda (discrete Dirichlet topics, unsigned topic-gene probabilities), LinearSCVI yields continuous signed loadings closer to PCA. Unlike genenmf-metaprogram-discovery (per-sample NMF + cross-sample consensus meta-programs), LinearSCVI trains one joint model across all cells. For strong batch correction use scvi-basic; for discrete topics use scvi-lda; for multi-sample consensus programs use genenmf-metaprogram-discovery.
+description: "LinearSCVI (a scvi-tools variant with a linear decoder) on raw scRNA-seq counts, giving continuous signed gene-to-factor loadings via get_loadings() — interpretable factors showing which genes drive each latent dimension. Use as a count-aware replacement for PCA-on-logcounts. No scArches support. For discrete topics use scvi-lda."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: analysis
-  tier: simple
-  tags: []
-  complementary-skills:
-  - scvi-framework
-  - scvi-basic
-  - scvi-lda
-  - scanpy
-  - anndata
-  contraindications:
-  - Do not use on normalized / log-transformed data. Raw counts required.
-  - Do not use for strong multi-batch correction. Use scvi-basic.
-  - Do not use with scArches or reference mapping. LinearSCVI does not support transfer learning.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/linearscvi.html
 ---
 
 # LinearSCVI: Interpretable Factor Analysis
@@ -185,3 +165,23 @@ sc.pl.umap(adata, color=[f"factor_{i}" for i in range(5)])
 - **Docs:** https://docs.scvi-tools.org/en/stable/api/reference/scvi.model.LinearSCVI.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/linear_decoder.html
 - **Paper:** https://academic.oup.com/bioinformatics/article/36/11/3418/5807606
+
+---
+
+## When not to use
+
+- Do not use on normalized / log-transformed data. Raw counts required.
+- Do not use for strong multi-batch correction. Use scvi-basic.
+- Do not use with scArches or reference mapping. LinearSCVI does not support transfer learning.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-basic`
+- `scvi-lda`
+- `scanpy`
+- `anndata`
+
+Upstream docs: https://docs.scvi-tools.org/en/stable/user_guide/models/linearscvi.html

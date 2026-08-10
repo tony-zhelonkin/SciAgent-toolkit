@@ -1,32 +1,7 @@
 ---
 name: multi-tool-consensus-annotation
-description: Framework for annotating single-cell data as a PANEL of independent voters — broad markers, cluster-level public-atlas reference voting, public-atlas scANVI/scArches transfer, internal control→treatment scANVI, popV ensemble, treeArches open-set novelty, CELLxGENE Census scVI-KNN, tissue-specific expert dictionaries — harmonized into one canonical label space and reconciled by a conservative, flag-heavy consensus that emits annotation_confidence, basis_of_label, and novelty_flag per cell. Use when designing or reviewing a cell-type/state annotation pipeline that should not trust any single method, when reconciling disagreeing per-tool votes, or when a tally silently never agrees (the vocabulary "dead-tally" bug). This is the index/framework that composes the per-tool voter skills (scvi-scanvi, scvi-scarches-reference-mapping, treearches-hierarchy-learning, cellxgene-census-annotation, scembed-atac-annotation). For a reference-free multi-LLM consensus over marker genes use mllmcelltype-consensus-annotation.
+description: "Framework for annotating single-cell data as a PANEL of independent voters — markers, atlas reference voting, scANVI/scArches transfer, popV, treeArches novelty, Census scVI-KNN — harmonized into one label space and reconciled by a conservative, flag-heavy consensus emitting confidence, basis_of_label, and novelty_flag per cell."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-05
-  version: 0.1.0
-  upstream-docs: ''
-  category: annotation
-  tier: rich
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-scanvi
-  - scvi-scarches-reference-mapping
-  - treearches-hierarchy-learning
-  - cellxgene-census-annotation
-  - scembed-atac-annotation
-  - mllmcelltype-consensus-annotation
-  - scanpy
-  - reasoning-trace
-  contraindications:
-  - Do not use for a reference-free multi-LLM consensus over marker genes. Use mllmcelltype-consensus-annotation.
-  - Do not use to run a single annotation method. Route to that method's own skill (scvi-scanvi, treearches-hierarchy-learning, cellxgene-census-annotation, ...); this skill is the framework that composes several.
-  - Do not treat the consensus as a way to manufacture agreement — its job is to preserve disagreement as Uncertain/Novel, not to coerce a label.
 ---
 
 # Multi-Tool Consensus Annotation
@@ -251,3 +226,24 @@ Freeze once; do not recluster or rename after the freeze. `annotation_confidence
 
 - The conservative multi-leg policy and the leg-independence caveat are the recurring pattern behind
   the per-tool voter skills above; this skill is the framework that composes them.
+
+---
+
+## When not to use
+
+- Do not use for a reference-free multi-LLM consensus over marker genes. Use mllmcelltype-consensus-annotation.
+- Do not use to run a single annotation method. Route to that method's own skill (scvi-scanvi, treearches-hierarchy-learning, cellxgene-census-annotation, ...); this skill is the framework that composes several.
+- Do not treat the consensus as a way to manufacture agreement — its job is to preserve disagreement as Uncertain/Novel, not to coerce a label.
+
+---
+
+## See also
+
+- `scvi-scanvi`
+- `scvi-scarches-reference-mapping`
+- `treearches-hierarchy-learning`
+- `cellxgene-census-annotation`
+- `scembed-atac-annotation`
+- `mllmcelltype-consensus-annotation`
+- `scanpy`
+- `reasoning-trace`

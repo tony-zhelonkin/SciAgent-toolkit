@@ -1,27 +1,7 @@
 ---
 name: signac-chromatin-analysis
-description: Signac (R) for chromatin accessibility — 10x Multiome RNA+ATAC processing, TF-IDF+LSI, WNN joint embedding, gene activity, ChromVAR motif enrichment, peak-gene linkage, and coverage plots. Use when analysing 10x Multiome data in R with Seurat+Signac. For Python equivalents see snapatac2-atac-preprocessing and atac-differential-accessibility; for CITE-seq use seurat-citeseq-wnn.
+description: "Signac (R) for chromatin accessibility — 10x Multiome RNA+ATAC processing, TF-IDF+LSI, WNN joint embedding, gene activity, ChromVAR motif enrichment, peak-gene linkage, and coverage plots. Use when analysing 10x Multiome in R with Seurat+Signac. For the Python path see snapatac2-atac-preprocessing."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 0.1.0
-  upstream-docs: https://stuartlab.org/signac/
-  category: integration
-  tier: rich
-  tags:
-  - chromatin
-  - multimodal
-  complementary-skills:
-  - seurat-citeseq-wnn
-  - seurat-multimodal-analysis
-  - chromvar-motif-accessibility
-  - snapatac2-atac-preprocessing
-  contraindications:
-  - Do not use for Python ATAC workflows — use snapatac2-atac-preprocessing.
-  - Do not use for protein + RNA CITE-seq — use seurat-citeseq-wnn.
 ---
 
 # Signac Chromatin Analysis
@@ -290,3 +270,19 @@ FindMultiModalNeighbors(); FindClusters(graph.name = "wsnn")
 - ChromVAR: https://greenleaflab.github.io/chromVAR/
 - JASPAR: https://jaspar.genereg.net/
 - Stuart et al., Nature Methods 2021 — Signac paper.
+
+---
+
+## When not to use
+
+- Do not use for Python ATAC workflows — use snapatac2-atac-preprocessing.
+- Do not use for protein + RNA CITE-seq — use seurat-citeseq-wnn.
+
+---
+
+## See also
+
+- `seurat-citeseq-wnn`
+- `seurat-multimodal-analysis`
+- `chromvar-motif-accessibility`
+- `snapatac2-atac-preprocessing`

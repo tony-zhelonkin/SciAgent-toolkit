@@ -1,33 +1,7 @@
 ---
 name: decision-gate-notebook
-description: "Decision-gate review notebook — the house pattern for putting a human in the loop at a pipeline inflection point. A read-only Quarto/R notebook re-plots what a stage just wrote, surfaces the numbers behind N explicit calls, and records the decision in analysis_config.yaml under decisions.[stage] so the NEXT stage refuses to run until status: APPROVED. Use when a pipeline reaches a branch a person must sign off on (which contrasts to freeze, which gate/threshold, which cutoff) before an expensive or hard-to-reverse downstream stage runs. For the numbered-script house style use scrna-pipeline-conventions; for the figure styling contract the notebook re-plots through use figure-style."
+description: "House pattern for a human-in-the-loop gate at a pipeline inflection point: a read-only Quarto/R notebook re-plots what a stage just wrote, surfaces the numbers behind N explicit calls, and records the verdict in analysis_config.yaml so the next stage refuses to run until APPROVED. For the live-kernel variant see interactive-breakpoint-explorer."
 license: MIT
-
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-03
-  version: 0.1.0
-  upstream-docs: https://quarto.org/docs/computations/r.html
-
-  scope: concept
-  requires: []
-
-  complementary-skills:
-    - figure-style                    # the notebook re-plots through project_theme / save_figure
-    - scrna-pipeline-conventions      # sibling house style for the numbered scripts this notebook reviews
-    - bulk-rnaseq-pathway-explorer    # an adjacent interactive-review artifact (UMAP pathway explorer)
-
-  contraindications:
-    - "Do not use for throwaway scratch exploration. A decision-gate notebook is a committed, rendered artifact tied to a config gate; if nothing downstream waits on the call, just hack in the console."
-    - "Do not let the notebook COMPUTE anything a later stage depends on. It reads 03_results/ and config and re-plots; the authoritative outputs stay in the numbered scripts. Use scrna-pipeline-conventions for stages that write state."
-    - "Do not use as a general reporting/methods document. This is a decision surface with an APPROVED gate, not a results write-up."
-
-  tags:
-    - report
-    - viz
-
-  category: practice
-  tier: standard
 ---
 
 # Decision-Gate Review Notebook
@@ -290,3 +264,19 @@ After authoring a decision-gate notebook, confirm:
 - **ragg headless raster device:** https://ragg.r-lib.org/
 - **Bundled templates:** `assets/notebook.qmd`, `assets/render.R`, `assets/decisions-config-snippet.yaml`
 - **Deep dives:** `references/root-resolution.md`, `references/headless-workflow.md`
+
+---
+
+## When not to use
+
+- Do not use for throwaway scratch exploration. A decision-gate notebook is a committed, rendered artifact tied to a config gate; if nothing downstream waits on the call, just hack in the console.
+- Do not let the notebook COMPUTE anything a later stage depends on. It reads 03_results/ and config and re-plots; the authoritative outputs stay in the numbered scripts. Use scrna-pipeline-conventions for stages that write state.
+- Do not use as a general reporting/methods document. This is a decision surface with an APPROVED gate, not a results write-up.
+
+---
+
+## See also
+
+- `figure-style`
+- `scrna-pipeline-conventions`
+- `bulk-rnaseq-pathway-explorer`

@@ -1,23 +1,7 @@
 ---
 name: gatom-metabolomic-predictions
-description: Finds maximally-regulated metabolic subnetworks from differential expression using atom-transition graphs and BUM-scored SGMWCS. Use when interpreting transcriptomic or metabolomic DE through KEGG/Rhea pathway structure, predicting active metabolic modules, or linking enzyme expression to metabolite flow. R-based (GATOM); requires raw p-values (gene.de AND met.de) but linear baseMean is a gene.de-ONLY requirement (met.de does not need it). Not a GSEA replacement — use fgsea for pathway-level enrichment tests.
+description: "Finds maximally-regulated metabolic subnetworks from differential expression using atom-transition graphs and BUM-scored SGMWCS. Use when interpreting transcriptomic or metabolomic DE through KEGG/Rhea pathway structure, or linking enzyme expression to metabolite flow. R-based; needs raw p-values. For pathway enrichment use fgsea instead."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://artyomovlab.wustl.edu/publications/supp_materials/GATOM/
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  complementary-skills:
-  - genenmf-metaprogram-discovery
-  contraindications:
-  - Do not use adjusted p-values (padj) — GATOM's BUM scoring requires raw p-values.
-  - Do not use for pathway-level enrichment statistics. Use fgsea or clusterProfiler instead.
 ---
 
 # GATOM - Active Metabolic Module Discovery
@@ -146,3 +130,18 @@ saveModuleToHtml(m, "module.html", name = "Module")   # Interactive
 ---
 *Install*: `BiocManager::install("gatom")`
 *Test*: `data("networkEx")` then verify graph has edges
+
+---
+
+## When not to use
+
+- Do not use adjusted p-values (padj) — GATOM's BUM scoring requires raw p-values.
+- Do not use for pathway-level enrichment statistics. Use fgsea or clusterProfiler instead.
+
+---
+
+## See also
+
+- `genenmf-metaprogram-discovery`
+
+Upstream docs: https://artyomovlab.wustl.edu/publications/supp_materials/GATOM/

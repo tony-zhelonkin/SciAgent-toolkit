@@ -2,29 +2,6 @@
 name: scvi-basic
 description: scVI — probabilistic deep generative model for scRNA-seq integration and batch correction. Use for unsupervised integration across batches or samples, building a latent space for downstream analysis, or as a preprocessing step before scANVI. Requires raw counts. For semi-supervised annotation use scvi-scanvi; for multiome use scvi-multivi.
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: integration
-  tier: standard
-  tags:
-  - integration
-  complementary-skills:
-  - scvi-framework
-  - anndata
-  - single-cell-rna-qc
-  - scvi-scanvi
-  - scvi-scarches-reference-mapping
-  - scanpy
-  contraindications:
-  - Do not use on normalized / log-transformed data. scVI needs raw integer counts.
-  - Do not use for multiome (RNA+ATAC). Use scvi-multivi.
-  - Do not use for scATAC-seq alone. Use scvi-peakvi.
-  - Do not use for cross-species integration without careful gene orthology handling.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/
 ---
 
 # scVI: Basic Integration and Batch Correction
@@ -190,3 +167,23 @@ See `scvi-scanvi.md` for full workflows.
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/scvi.html
 - **DE Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/scVI_DE_worm.html
 - **Paper:** https://www.nature.com/articles/s41592-018-0229-2
+
+---
+
+## When not to use
+
+- Do not use on normalized / log-transformed data. scVI needs raw integer counts.
+- Do not use for multiome (RNA+ATAC). Use scvi-multivi.
+- Do not use for scATAC-seq alone. Use scvi-peakvi.
+- Do not use for cross-species integration without careful gene orthology handling.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `anndata`
+- `single-cell-rna-qc`
+- `scvi-scanvi`
+- `scvi-scarches-reference-mapping`
+- `scanpy`

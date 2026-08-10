@@ -1,28 +1,7 @@
 ---
 name: scrna-pipeline-conventions
-description: 'scrna-pipeline-conventions — house style for scRNA-seq analysis projects: numbered analysis scripts (00_build, 01_qc, 02_annotation, ...), multi-checkpoint discipline within long-running scripts, central config.py with PATHS and PARAMS dataclasses sourced from analysis_config.yaml, stage-based results layout 03_results/<stage>/{figures,tables}/ with objects/master/interactive/_scratch at root, and per-utility custom modules (anndata_utils, cxg_utils, geneset_utils). Use when starting a new scRNA-seq project that should match the established workflow shared by cellranger-multi-to-anndata, scrna-cxg-host, and consensus-nmf-multirun, or when retrofitting an existing project to the convention. Practice-tier skill — no executable code; documents the style other skills reference. For software-design discipline (ADRs, design reviews) use architecture-first-dev. For MAD-based QC filtering use single-cell-rna-qc.'
+description: "House style for scRNA-seq projects: numbered analysis stages, multi-checkpoint discipline in long-running stages, a central config sourced from analysis_config.yaml, the 03_results/<stage>/{figures,tables}/ layout, and per-utility helper modules. Use when starting a project that should match the established workflow, or retrofitting one."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-23
-  category: practice
-  tier: simple
-  version: 0.3.0
-  upstream-docs: ''
-  tags: []
-  complementary-skills:
-  - cellranger-multi-to-anndata
-  - scrna-cxg-host
-  - consensus-nmf-multirun
-  - architecture-first-dev
-  - anndatar-seurat-scanpy-conversion
-  - louper-seurat-conversion
-  contraindications:
-  - Do not use for software-design discipline (ADRs, design reviews, refactor planning). Use architecture-first-dev.
-  - Do not enforce on throwaway exploration notebooks or one-off scratch analyses. The conventions are for production analysis pipelines that will run more than once.
-  - Do not use as a code-review checklist. The skill documents conventions; lint/style enforcement is out of scope.
 ---
 
 # scRNA-seq Pipeline Conventions
@@ -433,3 +412,22 @@ Report the confidently-unplaceable fraction per condition as a QC deliverable. R
 ## Resources
 
 This SKILL.md is the canonical reference. Other skills point here. There is no upstream documentation — these conventions are local to this skill library.
+
+---
+
+## When not to use
+
+- Do not use for software-design discipline (ADRs, design reviews, refactor planning). Use architecture-first-dev.
+- Do not enforce on throwaway exploration notebooks or one-off scratch analyses. The conventions are for production analysis pipelines that will run more than once.
+- Do not use as a code-review checklist. The skill documents conventions; lint/style enforcement is out of scope.
+
+---
+
+## See also
+
+- `cellranger-multi-to-anndata`
+- `scrna-cxg-host`
+- `consensus-nmf-multirun`
+- `architecture-first-dev`
+- `anndatar-seurat-scanpy-conversion`
+- `louper-seurat-conversion`

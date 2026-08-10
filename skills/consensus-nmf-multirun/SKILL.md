@@ -1,29 +1,7 @@
 ---
 name: consensus-nmf-multirun
-description: consensus-nmf-multirun — multi-run consensus cNMF for robust gene-program discovery on a single scRNA-seq dataset. Runs cNMF in parallel on the full dataset and user-defined obs subsets, each raw and optionally QC-filtered, produces k_selection_plot per variant for manual K-choice, scores all programs onto the full barcode space, hierarchically merges at r above a user-set threshold (default 0.7) with rank-aggregation of top-100 genes, classifies as Biological/Technical/CellCycle/Ribosomal/Mitochondrial/ImmediateEarly, annotates via g:Profiler GO/KEGG/Reactome, and runs per-celltype ANOVA against a user-named factor with eta-squared and BH-FDR. Use when a single dataset has factorial conditions and you want programs that survive QC variation and subset focus. For per-sample NMF + cross-donor consensus use genenmf-metaprogram-discovery; for AmortizedLDA topics use scvi-lda; for linear scVI loadings use scvi-linearscvi.
+description: "Multi-run consensus cNMF for robust gene-program discovery on a single scRNA-seq dataset: runs across obs subsets and QC variants, merges correlated programs, classifies them Biological/Technical/CellCycle, and annotates via g:Profiler. Use when one dataset has factorial conditions. For per-sample NMF use genenmf-metaprogram-discovery."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-29
-  category: analysis
-  tier: rich
-  version: 0.1.0
-  upstream-docs: https://github.com/dylkot/cNMF
-  tags:
-  - metaprogram
-  complementary-skills:
-  - scanpy
-  - single-cell-rna-qc
-  - genenmf-metaprogram-discovery
-  - bulk-rnaseq-pathway-explorer
-  - scrna-pipeline-conventions
-  contraindications:
-  - Do not use for per-sample NMF + cross-donor consensus. Use genenmf-metaprogram-discovery.
-  - Do not use for AmortizedLDA topic modeling. Use scvi-lda.
-  - Do not use without a celltype annotation — programs are interpreted per-celltype during ANOVA.
-  - Do not use without raw counts in adata.layers['counts']. cNMF errors on log-normalised input.
 ---
 
 # Consensus cNMF — multi-run program discovery
@@ -437,3 +415,22 @@ For automated verification: `python checks/check_program_redundancy.py <correlat
 - Kotliar et al. 2019: https://doi.org/10.7554/eLife.43803
 - g:Profiler API: https://biit.cs.ut.ee/gprofiler/page/apis
 - Reference codebase patterns (in-repo): `01_modules/.ref/<ref-scrna>/02_Analysis/06*.py`, `07_*.py`, `08_*.py`
+
+---
+
+## When not to use
+
+- Do not use for per-sample NMF + cross-donor consensus. Use genenmf-metaprogram-discovery.
+- Do not use for AmortizedLDA topic modeling. Use scvi-lda.
+- Do not use without a celltype annotation — programs are interpreted per-celltype during ANOVA.
+- Do not use without raw counts in adata.layers['counts']. cNMF errors on log-normalised input.
+
+---
+
+## See also
+
+- `scanpy`
+- `single-cell-rna-qc`
+- `genenmf-metaprogram-discovery`
+- `bulk-rnaseq-pathway-explorer`
+- `scrna-pipeline-conventions`

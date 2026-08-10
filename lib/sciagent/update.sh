@@ -28,7 +28,7 @@
 # symlink, etc.).  In --no-pin mode the re-activate runs in THIS process
 # (lib is already current) so no re-exec is needed.
 #
-# Depends on: block.sh craft.sh symlinks.sh roles.sh skill_deps.sh
+# Depends on: block.sh craft.sh symlinks.sh roles.sh
 #             collisions.sh validate.sh stack.sh claude_settings.sh activate.sh
 
 # shellcheck shell=bash

@@ -1,26 +1,7 @@
 ---
 name: pyranges-peak-gene-linkage
-description: Peak-to-gene linkage — correlate scATAC-seq peak accessibility with scRNA-seq expression of nearby genes, computing gene activity scores and Pearson correlations within configurable genomic windows. Use when you need cis-regulatory candidate links (peak → gene) for downstream motif / TF analysis on a paired multiome dataset. For unpaired cross-modality linkage, use scglue-unpaired-multiomics-integration.
+description: "Peak-to-gene linkage — correlate scATAC peak accessibility with scRNA expression of nearby genes, computing gene activity scores and Pearson correlations within configurable genomic windows. Use for cis-regulatory candidate links on a paired multiome dataset. For unpaired linkage use scglue-unpaired-multiomics-integration."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 0.1.0
-  upstream-docs: https://muon.scverse.org/
-  category: atac-analysis
-  tier: simple
-  tags:
-  - chromatin
-  complementary-skills:
-  - muon-multimodal-analysis
-  - snapatac2-atac-preprocessing
-  - scglue-unpaired-multiomics-integration
-  - crescendo-scatac-cre-analysis
-  contraindications:
-  - Do not use for unpaired RNA + ATAC. Use scglue-unpaired-multiomics-integration.
-  - Do not use for motif enrichment on linked peaks. Use pycistarget-motif-enrichment.
 ---
 
 # Peak-to-Gene Linkage (paired multiome)
@@ -184,3 +165,19 @@ pyranges.PyRanges             # genome-wide interval arithmetic
 - muon: https://muon.scverse.org/
 - SnapATAC2 gene activity: https://kzhang.org/SnapATAC2/
 - Cusanovich et al., Cell 2018 — original cell-by-peak / peak-gene framework.
+
+---
+
+## When not to use
+
+- Do not use for unpaired RNA + ATAC. Use scglue-unpaired-multiomics-integration.
+- Do not use for motif enrichment on linked peaks. Use pycistarget-motif-enrichment.
+
+---
+
+## See also
+
+- `muon-multimodal-analysis`
+- `snapatac2-atac-preprocessing`
+- `scglue-unpaired-multiomics-integration`
+- `crescendo-scatac-cre-analysis`

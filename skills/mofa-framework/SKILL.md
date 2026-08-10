@@ -1,33 +1,7 @@
 ---
 name: mofa-framework
-description: MOFA family framework and router — Multi-Omics Factor Analysis (Bayesian group factor model with per-view likelihoods, ARD sparsity, shared Z + view-specific W, ELBO-based VI). Use first when choosing between the four MOFA implementations (mofa-mofapy2 Python engine, mofa-r R bindings, mofa-cellular single-cell pseudo-bulk, mofa-mofax Python downstream/viz) or when a cross-cutting concern (raw counts vs log-normalised, view likelihoods, R² semantics, sign/order ambiguity, GPU/SVI, no-biplot caveat) applies. For the specific implementation, route to the corresponding mofa-* child. For non-MOFA factor analysis, route up to factor-analysis-framework.
+description: "MOFA family router — Multi-Omics Factor Analysis, a Bayesian group factor model with per-view likelihoods, ARD sparsity, and a shared latent Z. Use first when choosing among the four MOFA implementations, or when a cross-cutting concern applies (counts vs log-normalised, R-squared semantics, sign ambiguity, GPU/SVI, the no-biplot caveat)."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: integration
-  tier: rich
-  tags:
-  - factor-analysis
-  - integration
-  - multimodal
-  complementary-skills:
-  - factor-analysis-framework
-  - mofa-mofapy2
-  - mofa-r
-  - mofa-cellular
-  - mofa-mofax
-  - muon-multimodal-analysis
-  - multimodal-anndata-mudata
-  - anndata
-  contraindications:
-  - Do not use this skill alone to run MOFA. Pair with the specific mofa-* implementation skill.
-  - Do not use for single-omic Gaussian PCA (use scanpy) or nonlinear viz (use UMAP/t-SNE).
-  - Do not use as a biplot generator out of the box. MOFA does not produce a Benzécri-style biplot; see references/geometric-caveats.md and references/supplementary-projection-on-z.md.
-  version: 0.1.0
-  upstream-docs: https://biofam.github.io/MOFA2/
 ---
 
 # MOFA Framework and Router
@@ -213,3 +187,24 @@ For the trade-off between "good model" (modelling fitness — MOFA wins) and "go
 - **MOFA2 GitHub:** https://github.com/bioFAM/MOFA2
 - **MOFAcellulaR GitHub:** https://github.com/saezlab/MOFAcellulaR
 - **mofax GitHub:** https://github.com/bioFAM/mofax
+
+---
+
+## When not to use
+
+- Do not use this skill alone to run MOFA. Pair with the specific mofa-* implementation skill.
+- Do not use for single-omic Gaussian PCA (use scanpy) or nonlinear viz (use UMAP/t-SNE).
+- Do not use as a biplot generator out of the box. MOFA does not produce a Benzécri-style biplot; see references/geometric-caveats.md and references/supplementary-projection-on-z.md.
+
+---
+
+## See also
+
+- `factor-analysis-framework`
+- `mofa-mofapy2`
+- `mofa-r`
+- `mofa-cellular`
+- `mofa-mofax`
+- `muon-multimodal-analysis`
+- `multimodal-anndata-mudata`
+- `anndata`

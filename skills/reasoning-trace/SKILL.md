@@ -2,18 +2,6 @@
 name: reasoning-trace
 description: "Persist reasoning and decisions to disk before returning. Use whenever a non-trivial method, parameter, or phase-boundary choice is made; on a surprising result; at a handoff; or anytime a chat summary would be the only record. A decision with no trace is non-reproducible — capture the answer, delete the shell."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-23
-  category: provenance
-  tier: standard
-  tags:
-  - provenance
-  complementary-skills:
-  - scrna-pipeline-conventions
-  - figure-style
 ---
 
 # Reasoning-Trace Skill
@@ -101,3 +89,10 @@ Routine operations (re-running a committed stage with no parameter changes) do n
 - The decision and at least one rejected alternative are written to `docs/_internal/reasoning/` or `docs/_internal/research/`.
 - Every `03_results/` artifact produced since the last committed stage has a committed `02_analysis/stages/NN_*` that reproduces it.
 - No non-trivial reasoning lives only in chat or in a `/tmp` file.
+
+---
+
+## See also
+
+- `scrna-pipeline-conventions`
+- `figure-style`

@@ -1,30 +1,7 @@
 ---
 name: cellxgene-census-annotation
-description: Transfers cell-type annotations from the CELLxGENE Census (public human/mouse atlases with pre-computed scVI embeddings) to a query scRNA-seq dataset via a robust local pipeline — pull a Census reference slice keeping its obsm['scvi'], project the query into that same scVI space with a CPU forward pass, and take a local sklearn KNN vote. Use for supplementary label transfer, tissue-specific reference lookup, or a scVI-nearest-neighbour majority vote that runs without the tiledb-vector-search stack. Emits CELLxGENE-ontology labels, so canonicalize via a crosswalk before feeding a multi-tool tally (see multi-tool-consensus-annotation). For cross-atlas embedding search use single-cell-vector-search; for hierarchical multi-reference learning use treearches-hierarchy-learning.
+description: "Transfer cell-type labels from the CELLxGENE Census to a query scRNA-seq dataset: pull a reference slice keeping its scVI embedding, project the query into that space on CPU, then take a local sklearn KNN vote. Use for supplementary label transfer without the tiledb stack. For cross-atlas embedding search use single-cell-vector-search."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-05
-  version: 1.1.0
-  upstream-docs: https://chanzuckerberg.github.io/cellxgene-census/
-  category: annotation
-  tier: standard
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - single-cell-vector-search
-  - treearches-hierarchy-learning
-  - scvi-scanvi
-  - scvi-scarches-reference-mapping
-  - multi-tool-consensus-annotation
-  contraindications:
-  - Do not omit is_primary_data == True filters — Census contains duplicate cells across datasets.
-  - Do not use pandas .isin() syntax in obs_value_filter — Census uses TileDB QueryCondition syntax.
-  - Do not project a 2000-HVG query subset through the Census scVI model — it expects the full ~8000-gene Ensembl HVG set and HVG-subsetting zero-fills most model genes, degrading the vote. Project the full-gene query.
-  - Do not treat census_label as a sole label source — it is a supplementary vote (bounded tie-breaker/corroboration), never load-bearing.
 ---
 
 # CELLxGENE Census — Cell-Type Annotation via Reference Data
@@ -338,3 +315,22 @@ removes technical duplicates (Census stores the same cell across multiple datase
 - Census docs: https://chanzuckerberg.github.io/cellxgene-census/
 - Census Python API: https://chanzuckerberg.github.io/cellxgene-census/python-api.html
 - Census models / embeddings: https://cellxgene.cziscience.com/census-models
+
+---
+
+## When not to use
+
+- Do not omit is_primary_data == True filters — Census contains duplicate cells across datasets.
+- Do not use pandas .isin() syntax in obs_value_filter — Census uses TileDB QueryCondition syntax.
+- Do not project a 2000-HVG query subset through the Census scVI model — it expects the full ~8000-gene Ensembl HVG set and HVG-subsetting zero-fills most model genes, degrading the vote. Project the full-gene query.
+- Do not treat census_label as a sole label source — it is a supplementary vote (bounded tie-breaker/corroboration), never load-bearing.
+
+---
+
+## See also
+
+- `single-cell-vector-search`
+- `treearches-hierarchy-learning`
+- `scvi-scanvi`
+- `scvi-scarches-reference-mapping`
+- `multi-tool-consensus-annotation`

@@ -16,27 +16,6 @@ description: >-
   use te-reference-saf-build; for annotating the resulting matrices use
   annotate-bulk-rnaseq-data.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-15
-  version: 1.0.3
-  upstream-docs: https://subread.sourceforge.net/
-  scope: implementation
-  category: workflow
-  tier: packaged
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - te-reference-saf-build
-    - star-te-preprocessing
-    - annotate-bulk-rnaseq-data
-  contraindications:
-    - "Recipe is integer Random-One everywhere (-M, NO --fraction) — primary AND the optional sense/antisense aux passes. Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments --outSAMmultNmax 100 + -M --fraction, non-integer) — see the Decision Tree."
-    - "Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead."
-    - "Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF."
-    - "Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2)."
-    - "Do not perform DE, annotation, or DGEList assembly here. Hand the matrices to annotate-bulk-rnaseq-data."
 ---
 
 # TE + Gene featureCounts Counting (env-locked, packaged)
@@ -372,3 +351,21 @@ The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **
 - **Runnable QC suite:** `qc/run_qc.sh BAM_DIR SAF STRAND OUTDIR` — the parameterized, operator-invoked "QC a new TE dataset end-to-end" suite (the `-R CORE` regime witness, closure-table audit, `-O` silent-loss attribution, young gate, SAF-geometry concordance, DE_precheck). Container/bedtools tools skip gracefully when absent. See `qc/README.md`.
 - **QC doctrine:** the strand-split invariant, the `excess/ambiguous` directional meter, the working principles, the warning-flag taxonomy, and the GREEN/RED gate live in the toolkit `docs/QC.md`.
 - **subread/featureCounts:** https://subread.sourceforge.net/ (release 2.0.2).
+
+---
+
+## When not to use
+
+- Recipe is integer Random-One everywhere (-M, NO --fraction) — primary AND the optional sense/antisense aux passes. Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments --outSAMmultNmax 100 + -M --fraction, non-integer) — see the Decision Tree.
+- Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead.
+- Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF.
+- Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2).
+- Do not perform DE, annotation, or DGEList assembly here. Hand the matrices to annotate-bulk-rnaseq-data.
+
+---
+
+## See also
+
+- `te-reference-saf-build`
+- `star-te-preprocessing`
+- `annotate-bulk-rnaseq-data`

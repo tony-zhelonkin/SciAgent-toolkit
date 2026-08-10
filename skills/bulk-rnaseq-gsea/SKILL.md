@@ -1,29 +1,7 @@
 ---
 name: bulk-rnaseq-gsea
-description: 'Bulk RNA-seq GSEA pipeline router -- covers the complete workflow: MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration (MitoCarta/TransportDB/GMT/igraph), master table assembly (13-column CSV schema, idempotent append), and visualization (dotplots/barplots/running sum/interactive HTML). Use when running GSEA, adding a custom gene set database, normalizing gseaResult objects to CSV, or generating publication figures and interactive pathway dashboards. Routes internally to references/msigdb.md (MSigDB execution), references/custom-db.md (custom databases), references/master-tables.md (CSV schema), references/visualization.md (plots + explorer). For interactive UMAP-based pathway explorer use bulk-rnaseq-pathway-explorer. For metabolic modules use gatom-metabolomic-predictions.'
+description: "Bulk RNA-seq GSEA router — MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration, master-table assembly, and static figures. Use when running GSEA, adding a gene-set database, or normalizing gseaResult objects to CSV. For the interactive dashboard use bulk-rnaseq-pathway-explorer."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.1  # 2026-06-17: cross-link te-geneset-gsea (N1)
-  upstream-docs: https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  complementary-skills:
-  - gatom-metabolomic-predictions
-  - bulk-rnaseq-activity-inference
-  - coresh-signature-search
-  - bulk-rnaseq-pathway-explorer
-  - te-geneset-gsea
-  contraindications:
-  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
-  - Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
-  - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
-  - Do not use for TE family/class geneset GSEA. Use te-geneset-gsea instead.
 ---
 
 # Bulk RNA-seq GSEA Pipeline
@@ -232,3 +210,22 @@ For detailed walkthroughs of each pitfall → see the relevant reference documen
 - `references/custom-db.md` — Custom database integration: T2G/T2N data model, bundled databases (`load_reference_db()`), four parsing patterns (GMX/TSV/CSV/igraph), three ID mapping strategies (homologene/AnnotationDbi/passthrough), Jaccard dedup, `@geneSets` fix, master table append
 - `references/master-tables.md` — Master table assembly: `normalize_gsea_results()`, 13-column CSV schema, idempotent filter+bind, non-GSEA sources (GATOM pseudo-NES), derived tables, Python schema validation, column casing pitfalls
 - `references/visualization.md` — Visualization: 7-step per-database R pattern, cross-database pooled dotplot, NES diverging color system, pathway explorer architecture (Jaccard/Overlap UMAP), adding a new database (7-step guide), running sum pitfalls
+
+---
+
+## When not to use
+
+- Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
+- Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
+- Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
+- Do not use for TE family/class geneset GSEA. Use te-geneset-gsea instead.
+
+---
+
+## See also
+
+- `gatom-metabolomic-predictions`
+- `bulk-rnaseq-activity-inference`
+- `coresh-signature-search`
+- `bulk-rnaseq-pathway-explorer`
+- `te-geneset-gsea`

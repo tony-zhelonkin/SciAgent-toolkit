@@ -1,30 +1,7 @@
 ---
 name: hint-atac-differential-footprint
-description: HINT-ATAC (rgt-hint) HMM-based TF footprint detection and multi-condition differential footprinting. Use when comparing TF activity across 3+ conditions/celltypes simultaneously and you want overview heatmaps from a single command. For pairwise quantitative contrasts with p-values use tobias-footprint-bindetect; for publication-quality footprint plots use signac-footprint-visualization.
+description: "HINT-ATAC (rgt-hint) HMM-based TF footprint detection and multi-condition differential footprinting. Use when comparing TF activity across 3+ conditions at once and you want overview heatmaps from one command. For pairwise contrasts with p-values use tobias-footprint-bindetect; for figures use signac-footprint-visualization."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  tools:
-  - rgt-hint
-  - rgt-motifanalysis
-  - RGT
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 1.0.0
-  upstream-docs: https://reg-gen.readthedocs.io/
-  category: analysis
-  tier: simple
-  tags:
-  - chromatin
-  - motif
-  complementary-skills:
-  - tobias-footprint-bindetect
-  - signac-footprint-visualization
-  - chromvar-motif-accessibility
-  contraindications:
-  - Do not use for single-cell TF activity — HINT-ATAC requires pseudobulk BAMs.
-  - Do not use for quantitative pairwise contrasts — use tobias-footprint-bindetect.
 ---
 
 # HINT-ATAC Multi-Condition Differential Footprinting
@@ -142,3 +119,18 @@ rgt-hint tracks \
 - **Publication**: Li et al., Genome Biology 2019 ([DOI: 10.1186/s13059-019-1642-2](https://doi.org/10.1186/s13059-019-1642-2))
 - **RGT Suite docs**: https://reg-gen.readthedocs.io/
 - **HINT-ATAC tutorial (DC specification)**: https://reg-gen.readthedocs.io/en/latest/hint/tutorial_DC.html
+
+---
+
+## When not to use
+
+- Do not use for single-cell TF activity — HINT-ATAC requires pseudobulk BAMs.
+- Do not use for quantitative pairwise contrasts — use tobias-footprint-bindetect.
+
+---
+
+## See also
+
+- `tobias-footprint-bindetect`
+- `signac-footprint-visualization`
+- `chromvar-motif-accessibility`

@@ -1,28 +1,7 @@
 ---
 name: scrna-cxg-host
-description: 'scrna-cxg-host — two-phase skill for hosting AnnData on CellxGene over an internal network. Phase A: schema preparation (convert obsm DataFrames to np.float32 arrays, unique cell_id/var_names with __N suffix, set uns[title], realign aligned mappings, ensure X_umap, optionally re-embed per-celltype subsets with their own HVG/PCA/UMAP/leiden). Phase B: Docker Compose deployment (N cellxgene containers with --backed --annotations-dir for autosave + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe). Use when standing up wet-lab–facing interactive single-cell exploration (one full + N celltype-specific instances) on a university intranet. For one-off local exploration of one .h5ad use cellxgene CLI directly. For cell-type annotation transfer use cellxgene-census-annotation. For schema-prep on an already-built file use anndata + this skill''s Phase A only.'
+description: "Two-phase skill for hosting AnnData on CellxGene over an internal network. Phase A prepares the schema (float32 obsm, unique ids, uns[title], X_umap, optional per-celltype re-embedding); Phase B deploys N cellxgene containers behind nginx basic-auth via Docker Compose. Use for wet-lab-facing interactive exploration on an intranet."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-29
-  category: workflow
-  tier: rich
-  version: 0.1.0
-  upstream-docs: https://cellxgene.cziscience.com/
-  tags:
-  - hosting
-  complementary-skills:
-  - anndata
-  - scanpy
-  - scrna-pipeline-conventions
-  - scvi-scanvi
-  contraindications:
-  - Do not use for one-off cellxgene CLI exploration on a single .h5ad. Run cellxgene launch directly.
-  - Do not use on .h5ad with obsm DataFrames left in place. Phase A must run first; deploying an unprepared file produces 502s and silent autosave failures.
-  - Do not use for cell-type annotation transfer. Use cellxgene-census-annotation.
-  - Do not use to expose data on the public internet. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope.
 ---
 
 # scRNA CellxGene Host — schema preparation and Docker deployment
@@ -486,3 +465,21 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 - nginx auth_basic: http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html
 - Docker Compose volume + UID semantics: https://docs.docker.com/storage/volumes/
 - Reference Docker Compose example (anonymised, in-repo): `01_modules/.ref/<ref-scrna>/cellxgene-deploy/`
+
+---
+
+## When not to use
+
+- Do not use for one-off cellxgene CLI exploration on a single .h5ad. Run cellxgene launch directly.
+- Do not use on .h5ad with obsm DataFrames left in place. Phase A must run first; deploying an unprepared file produces 502s and silent autosave failures.
+- Do not use for cell-type annotation transfer. Use cellxgene-census-annotation.
+- Do not use to expose data on the public internet. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope.
+
+---
+
+## See also
+
+- `anndata`
+- `scanpy`
+- `scrna-pipeline-conventions`
+- `scvi-scanvi`

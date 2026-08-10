@@ -300,7 +300,7 @@ user picks one with `sciagent activate` (see the type→default-role hint in §1
 
 ## 12. Packaged skills
 
-Most skills are flat docs-only SKILL.md files an agent reads and interprets. A **packaged skill** is the other tier: a thin SKILL.md interface over a deep, version-locked, tested module that an agent or human outsources execution to via one CLI — deterministic instead of re-derived each run. Marked with `packaged: true` in frontmatter (orthogonal to `scope:` / `tier:`, which describe the doc, not the packaging). The reference implementation is `skills/mllmcelltype-consensus-annotation/`; the code is the spec, so there is no separate packaged template.
+Most skills are flat docs-only SKILL.md files an agent reads and interprets. A **packaged skill** is the other tier: a thin SKILL.md interface over a deep, version-locked, tested module that an agent or human outsources execution to via one CLI — deterministic instead of re-derived each run. Recognisable by its shape — `pyproject.toml`, a lockfile, `src/`, `tests/` — and by a tier note in the first line of its body; there is no frontmatter marker. The reference implementation is `skills/mllmcelltype-consensus-annotation/`; the code is the spec, so there is no separate packaged template.
 
 See [docs/packaged-skills.md](packaged-skills.md) for the full contract, distribution stance, and the copy-this checklist.
 

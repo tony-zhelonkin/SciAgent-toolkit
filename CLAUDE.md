@@ -17,7 +17,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 | Path | Purpose |
 |------|---------|
 | `bin/sciagent` | CLI dispatcher |
-| `lib/sciagent/` | Internal bash modules (`activate.sh`, `deactivate.sh`, `inject.sh`, `status.sh`, `new.sh`, `block.sh`, `roles.sh`, `symlinks.sh`, `stack.sh`, `frontmatter.sh`) |
+| `lib/sciagent/` | Internal bash modules (`activate.sh`, `deactivate.sh`, `status.sh`, `new.sh`, `block.sh`, `craft.sh`, `craft_verb.sh`, `roles.sh`, `symlinks.sh`, `stack.sh`, `frontmatter.sh`, `validate.sh`) |
 | `roles/` | Role definitions (YAML) |
 | `agents/` | Canonical sub-agent definitions (`.md` files) |
 | `skills/` | Canonical skill definitions (`<name>/SKILL.md` format) |
@@ -122,4 +122,4 @@ If this toolkit is a submodule, re-activate from the parent:
 
 See [docs/architecture.md](docs/architecture.md) for the full design spec.
 
-For skills that ship version-locked, tested executable code (not just prose), see [docs/packaged-skills.md](docs/packaged-skills.md) — the `packaged: true` tier, with `skills/mllmcelltype-consensus-annotation/` as the reference implementation.
+For skills that ship version-locked, tested executable code (not just prose), see [docs/packaged-skills.md](docs/packaged-skills.md) — the packaged tier, with `skills/mllmcelltype-consensus-annotation/` as the reference implementation.

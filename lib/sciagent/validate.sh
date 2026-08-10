@@ -4,13 +4,12 @@
 # Called internally by `activate` before mounting; standalone for debugging.
 #
 # Checks:
-#   1. requires resolution    — every named dep exists as a skill
-#   2. cycle detection        — DFS over requires graph (skill_deps.sh helper)
-#   3. tag-vocab compliance   — every metadata.tags: entry is in tags.yaml
-#   4. (optional) skills-ref  — if installed, invoke per skill; surface exit
+#   1. frontmatter shape      — every skill has `name:` matching its directory
+#                               and a `description:` of at most 350 chars
+#   2. (optional) skills-ref  — if installed, invoke per skill; surface exit
 #                               code as warning, not error; silently skip
 #                               when absent
-#   5. cross-namespace collision — names appearing in >=2 of
+#   3. cross-namespace collision — names appearing in >=2 of
 #                               skills/agents/commands/roles. Soft-warn only;
 #                               most overlaps are intentional family overlaps
 #                               (e.g. /architect → @architect → roles/architect).
@@ -39,7 +38,7 @@
 # figure/caption/layout finding).
 #
 # Hardness boundary:
-#   Hard-fail (exit 1): cycle or missing requires target; unknown tag;
+#   Hard-fail (exit 1): malformed skill frontmatter;
 #                       any --check finding when --strict.
 #   Soft-warn:          skills-ref findings (when present);
 #                       cross-namespace name collisions;
@@ -48,6 +47,11 @@
 # Exit code:
 #   0 — all checks pass
 #   1 — any hard check fails
+
+# Ceiling on a skill `description:`. Harnesses preload name+description for
+# every skill in the catalog, so this is the one frontmatter field with a
+# per-context cost; the body is read only on activation.
+: "${SCIAGENT_DESC_MAX:=350}"
 #
 # Output streams:
 #   stdout — "all checks passed" summary line on success (suppressed by --quiet)
@@ -786,9 +790,9 @@ cmd_validate() {
             -h|--help)
                 cat <<'USAGE'
 sciagent validate [--quiet] [--project-dir <dir>] [--check <name>...] [--strict]
-  Check requires graph + tag-vocab compliance over every skill in the
-  toolkit. Exits 0 on success, 1 on any hard-fail (missing requires
-  target, cycle, or unknown tag).
+  Check the frontmatter shape of every skill in the toolkit. Exits 0 on
+  success, 1 on any hard-fail (missing/mismatched name, missing
+  description, or a description over 350 chars).
 
   --quiet            Suppress the "all checks passed" summary on success.
   --project-dir <d>  Project directory to lint (default: .).
@@ -796,7 +800,7 @@ sciagent validate [--quiet] [--project-dir <dir>] [--check <name>...] [--strict]
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | all. Repeatable.
                      When given, ONLY the named project check(s) run (the
-                     toolkit-wide requires/cycle/tag-vocab walk is skipped).
+                     toolkit-wide frontmatter walk is skipped).
                      Findings are soft WARN (exit 0) unless --strict.
   --strict           Project-check findings become HARD failures (exit 1).
 
@@ -851,33 +855,6 @@ USAGE
     fi
 
     local skills_dir="$tk_root/skills"
-    local tags_file="$tk_root/tags.yaml"
-
-    # -----------------------------------------------------------------------
-    # Check 3 prep: build known-tag vocabulary from tags.yaml.
-    # Parse lines:  `  - name: <value>`
-    # NOTE: tests/test_tags_vocabulary.sh carries a near-identical awk parser
-    # for the same vocabulary. If you change the matching/trimming rules here,
-    # change them there too — the two readers must agree on what counts as a tag.
-    # -----------------------------------------------------------------------
-    local known_tags=""
-    if [[ -f "$tags_file" ]]; then
-        known_tags="$(awk '
-            /^tags:/ { intags=1; next }
-            intags && /^  - name:/ {
-                sub(/^  - name:[ \t]*/, "")
-                sub(/[ \t]*#.*$/, "")
-                sub(/[ \t]+$/, "")
-                gsub(/^["'"'"']|["'"'"']$/, "")
-                print
-                next
-            }
-            intags && /^[^ ]/ { intags=0 }
-        ' "$tags_file")"
-    else
-        failures+=("tags.yaml: file missing at $tags_file")
-        fail=1
-    fi
 
     # -----------------------------------------------------------------------
     # Walk every skill directory.
@@ -892,54 +869,48 @@ USAGE
         skill_file="$skill_dir/SKILL.md"
         [[ -f "$skill_file" ]] || continue
 
-        # Check 1+2: transitive requires resolution + cycle detection.
-        # skill_resolve_transitive hard-fails on missing targets and cycles
-        # and writes the diagnostic to stderr (which we capture into
-        # resolve_err and re-emit). The kickoff spec asks for "message names
-        # the cycle" — the resolver's "cycle detected in requires graph at
-        # '<name>'" line satisfies that transitively, so we relay it as-is
-        # rather than re-format here.
-        local resolve_err
-        if ! resolve_err=$(skill_resolve_transitive "$skill_name" 2>&1); then
-            failures+=("$skill_name: requires resolution failed — $resolve_err")
+        # Check 1: frontmatter shape. `name` and `description` are the whole
+        # preloaded surface a harness sees — a missing or mismatched name makes
+        # the skill unaddressable, and an oversized description spends context
+        # on every skill in the catalog whether it is used or not.
+        local fm_name fm_desc_len
+        fm_name="$(awk '
+            NR==1 && /^---[ \t]*$/ { infm=1; next }
+            infm && /^---[ \t]*$/ { exit }
+            infm && /^name:[ \t]*/ {
+                sub(/^name:[ \t]*/, "")
+                sub(/[ \t]+$/, "")
+                gsub(/^["'"'"']|["'"'"']$/, "")
+                print; exit
+            }
+        ' "$skill_file")"
+        if [[ -z "$fm_name" ]]; then
+            failures+=("$skill_name: SKILL.md frontmatter has no name:")
+            fail=1
+        elif [[ "$fm_name" != "$skill_name" ]]; then
+            failures+=("$skill_name: frontmatter name: '$fm_name' does not match its directory")
             fail=1
         fi
 
-        # Check 3: tag-vocab compliance.
-        # Parse metadata.tags block list items from frontmatter.
-        if [[ -n "$known_tags" ]]; then
-            local skill_tags
-            skill_tags="$(awk '
-                BEGIN { infm=0; closed=0; inmeta=0; intags=0 }
-                NR==1 && /^---[ \t]*$/ { infm=1; next }
-                infm && !closed && /^---[ \t]*$/ { closed=1; exit }
-                !infm { next }
-                /^metadata:[ \t]*$/ { inmeta=1; next }
-                inmeta && /^  tags:/ { intags=1; next }
-                intags && /^[ \t]+-[ \t]/ {
-                    val=$0
-                    sub(/^[ \t]+-[ \t]+/, "", val)
-                    sub(/[ \t]*#.*$/, "", val)
-                    sub(/[ \t]+$/, "", val)
-                    gsub(/^["'"'"']|["'"'"']$/, "", val)
-                    print val
-                    next
-                }
-                intags && /^  [^ \t-]/ { intags=0 }
-                intags && /^[^ \t]/ { intags=0 }
-            ' "$skill_file")"
-
-            local tag
-            while IFS= read -r tag; do
-                [[ -z "$tag" ]] && continue
-                if ! printf '%s\n' "$known_tags" | grep -qxF "$tag"; then
-                    failures+=("$skill_name: unknown tag '$tag' (not in tags.yaml)")
-                    fail=1
-                fi
-            done <<< "$skill_tags"
+        fm_desc_len="$(awk '
+            NR==1 && /^---[ \t]*$/ { infm=1; next }
+            infm && /^---[ \t]*$/ { exit }
+            infm && /^description:[ \t]*/ {
+                sub(/^description:[ \t]*/, "")
+                sub(/[ \t]+$/, "")
+                gsub(/^["'"'"']|["'"'"']$/, "")
+                print length($0); exit
+            }
+        ' "$skill_file")"
+        if [[ -z "$fm_desc_len" ]]; then
+            failures+=("$skill_name: SKILL.md frontmatter has no description:")
+            fail=1
+        elif (( fm_desc_len > SCIAGENT_DESC_MAX )); then
+            failures+=("$skill_name: description is $fm_desc_len chars (max $SCIAGENT_DESC_MAX)")
+            fail=1
         fi
 
-        # Check 4 (optional): skills-ref shell-out.
+        # Check 2 (optional): skills-ref shell-out.
         if command -v skills-ref >/dev/null 2>&1; then
             if ! skills-ref "$skill_file" >/dev/null 2>&1; then
                 # Warn-only; does not set fail.

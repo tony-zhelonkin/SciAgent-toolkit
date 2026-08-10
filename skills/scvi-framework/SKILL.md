@@ -1,33 +1,7 @@
 ---
 name: scvi-framework
-description: scvi-tools framework foundation and router — installation, model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract across all scvi-tools models. Use first when choosing between scVI variants (scVI, scANVI, MrVI, MultiVI, PeakVI, LinearSCVI, AmortizedLDA, contrastiveVI) or when a cross-cutting concern (raw counts, batch keys, scArches flags, hub loading, count distributions, GPU) applies to any scvi-* child skill. For the specific model implementation, route to the corresponding scvi-* skill.
+description: "scvi-tools framework foundation and router — installation, a model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract. Use first when choosing among the scVI variants, or when a cross-cutting concern applies to any scvi-* child (raw counts, batch keys, scArches flags, hub loading, GPU)."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-20
-  category: foundation
-  tier: rich
-  tags:
-  - integration
-  complementary-skills:
-  - scvi-basic
-  - scvi-scanvi
-  - scvi-mrvi
-  - scvi-lda
-  - scvi-linearscvi
-  - scvi-contrastivevi
-  - scvi-multivi
-  - scvi-peakvi
-  - scvi-scarches-reference-mapping
-  - scvi-hub-models
-  - anndata
-  contraindications:
-  - Do not use this skill alone to run a model. Pair with the specific scvi-* skill for implementation details.
-  - Do not use for non-probabilistic workflows (plain PCA + Harmony). Use scanpy.
-  version: 2.0.0
-  upstream-docs: https://docs.scvi-tools.org/
 ---
 
 # scvi-tools Framework and Router
@@ -137,3 +111,26 @@ Child skills link directly into these — do not copy-paste their content into a
 - API: https://docs.scvi-tools.org/en/stable/api/
 - Hub: https://huggingface.co/scvi-tools
 - GitHub: https://github.com/scverse/scvi-tools
+
+---
+
+## When not to use
+
+- Do not use this skill alone to run a model. Pair with the specific scvi-* skill for implementation details.
+- Do not use for non-probabilistic workflows (plain PCA + Harmony). Use scanpy.
+
+---
+
+## See also
+
+- `scvi-basic`
+- `scvi-scanvi`
+- `scvi-mrvi`
+- `scvi-lda`
+- `scvi-linearscvi`
+- `scvi-contrastivevi`
+- `scvi-multivi`
+- `scvi-peakvi`
+- `scvi-scarches-reference-mapping`
+- `scvi-hub-models`
+- `anndata`

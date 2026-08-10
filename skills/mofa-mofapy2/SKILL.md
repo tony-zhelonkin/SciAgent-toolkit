@@ -1,29 +1,7 @@
 ---
 name: mofa-mofapy2
-description: mofapy2 — Python core engine for Multi-Omics Factor Analysis (MOFA+). Use to fit a MOFA model from Python with raw or pre-processed multi-view data (gaussian/bernoulli/poisson per view), with optional spike-and-slab sparsity, SVI minibatching, and GPU (CuPy) acceleration. Outputs an HDF5 file consumable by mofax (Python) or MOFA2 (R). For R-side fitting use mofa-r; for single-cell donor-pseudo-bulk preprocessing use mofa-cellular; for downstream viz on a trained model use mofa-mofax.
+description: "mofapy2 — the Python core engine for Multi-Omics Factor Analysis (MOFA+). Use to fit a MOFA model from Python on multi-view data (gaussian/bernoulli/poisson per view), with optional spike-and-slab sparsity, SVI minibatching, and GPU acceleration. Emits HDF5 readable by mofax or MOFA2. For R-side fitting use mofa-r."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: integration
-  tier: standard
-  tags:
-  - factor-analysis
-  - integration
-  - multimodal
-  complementary-skills:
-  - mofa-framework
-  - mofa-mofax
-  - anndata
-  contraindications:
-  - Do not pass log-normalised data with `likelihoods=["poisson"]`. Poisson assumes raw integer counts.
-  - Do not pass row-wise (sample × feature) matrices; mofapy2 takes feature × sample per view inside the views list.
-  - Do not impute missing values before fit. mofapy2 integrates NaN over the ELBO; imputation biases the posterior.
-  - Do not enable stochastic SVI together with MEFISTO smooth covariates; the codebase forbids it.
-  version: 0.1.0
-  upstream-docs: https://biofam.github.io/MOFA2/
 ---
 
 # mofapy2: Python Core Engine for MOFA+
@@ -249,3 +227,20 @@ For Python-side reading and plotting, pair with `mofa-mofax` (`mofax.mofa_model(
 - **PyPI:** https://pypi.org/project/mofapy2/
 - **MOFA+ paper (multi-group, sparse priors):** https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02015-1
 - **MOFA original paper:** https://www.embopress.org/doi/full/10.15252/msb.20178124
+
+---
+
+## When not to use
+
+- Do not pass log-normalised data with `likelihoods=["poisson"]`. Poisson assumes raw integer counts.
+- Do not pass row-wise (sample × feature) matrices; mofapy2 takes feature × sample per view inside the views list.
+- Do not impute missing values before fit. mofapy2 integrates NaN over the ELBO; imputation biases the posterior.
+- Do not enable stochastic SVI together with MEFISTO smooth covariates; the codebase forbids it.
+
+---
+
+## See also
+
+- `mofa-framework`
+- `mofa-mofax`
+- `anndata`
