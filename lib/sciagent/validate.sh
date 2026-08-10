@@ -632,7 +632,7 @@ _validate_check_freshness() {
             expected_hash=$(printf '%s' "$expected_body" | _sha1)
             if [[ -n "$expected_hash" && "$stored_hash" != "$expected_hash" ]]; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "CRAFT block is stale vs toolkit craft.yaml — run: sciagent update" || rc=1
+                    "CRAFT block is stale vs toolkit craft.yaml — run: sciagent craft" || rc=1
             fi
         fi
     fi

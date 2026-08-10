@@ -1,9 +1,9 @@
 # craft.yaml — single source of truth for the SCIAGENT:CRAFT managed block.
 #
-# Rendered into each repo's AGENTS.md by `sciagent activate/inject/eject`
-# (lib/sciagent/craft.sh) as the <!-- BEGIN SCIAGENT:CRAFT --> block, next to
-# SCIAGENT:ROLES. Edit here once; re-`activate` (or `sciagent update`) to
-# propagate to every repo. The block states the standing conventions; numeric
+# Rendered into each repo's AGENTS.md by `sciagent craft` (and by `activate` /
+# `update`) as the <!-- BEGIN SCIAGENT:CRAFT --> block, next to SCIAGENT:ROLES.
+# Edit here once; run `sciagent craft` in each repo to propagate — that verb
+# needs no role and mounts nothing. The block states the standing conventions; numeric
 # values an analysis reads live in analysis_config.yaml (figures:). Keep the
 # rendered block terse (<=25 lines) — depth belongs in skills, not always-on text.
 #
@@ -30,5 +30,6 @@ body: |
   - **Interactive breakpoints** — to *look* live at an inflection point, a live-kernel Python `.qmd` under `02_analysis/notebooks/<NN>_<stage>_explore/` drives jscatter linked panels to brush/lasso cells; export-first compact parquet under `03_results/interactive/` (never open the multi-GB `.h5ad`); always drive panels through `grid()`/`close_panels()` (OOM hygiene); config-driven lists (`interactive:`); persists selected barcodes + a labelled snapshot; feeds the decision gate (skill: interactive-breakpoint-explorer).
   - **Reproducibility** — no ephemeral scripts: every `03_results/` artifact reproducible from a committed `02_analysis/scripts/NN_*`; log non-trivial decisions to `docs/_internal/reasoning/` before proceeding (`_scratch/` is the only sanctioned throwaway zone).
   - **Memory & traceability** — durable project memory lives only in tracked locations (`AGENTS.md`, `docs/_internal/`, committed scripts). Ephemeral/auto memory of vendored coding harnesses (e.g. Claude Code auto-memory, untracked `~/.claude` state written outside the repo) is prohibited as project state — `autoMemoryEnabled` is off; record decisions in `docs/_internal/reasoning/` and session handoffs in `docs/_internal/sessions/` so context stays reproducible, traceable, and observable.
+  - **Code shape** — `02_analysis/{config,helpers,stages,notebooks}`. A stage (`stages/NN_<topic>.R`) is narrative: it reads top-to-bottom as the dataset's story, and its viz twin is `NN_<topic>_viz` — same number, same stem. Number by decades: `00`–`09` preliminaries, `10`/`20`/`30` acts, `11`–`19` beats within an act; no letter suffixes. Implementation lives in `helpers/`, not inline — a stage that defines its own machinery buries the story in it. Carve functions out unless the detail *is* the narrative (a model's training spec), and mark that case `# stage-detail: <reason>`.
   - **Prose** — state what a thing *is*, not what it isn't. Avoid gratuitous contrastive negation (e.g. "a receptor lens over the same cohort, *not* a new dataset"; the reflexive "X, not Y"). Keep a "not Y" clause only when the contrast is logically load-bearing *and* it reads well — semantically apt, aesthetically clean, non-disruptive to the narrative flow; otherwise cut it and make the positive statement.
-  - **Comments** — state intent: what the code is *for*, the design goal, the expected result. One line when one line suffices. A docstring adds the contract (guarantees, refusals) and nothing else. Leave out history, implementation details the code already shows, and provenance. Judge each comment by whether it survives a rewrite; if not, it documents an incident rather than an intent.
+  - **Comments** — state intent: what the code is *for*, the design goal, the expected result. One line when one line suffices. A docstring adds the contract (guarantees, refusals) and nothing else. Leave out history, implementation details the code already shows, and provenance. Judge each comment by whether it survives a rewrite; if not, it documents an incident rather than an intent. Never a banner or separator rule (`# =====`, `# -----`); never a stacked multi-line block mid-function — if intent needs six lines mid-body, the code needs a helper with a name.

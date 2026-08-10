@@ -235,8 +235,8 @@ set +e
 out=$("$SCIAGENT" validate --check freshness --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: freshness default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
-printf '%s\n' "$out" | grep -q 'WARN freshness:.*CRAFT block is stale.*sciagent update' \
-    || { echo "FAIL [$_TEST_NAME] test4: expected stale-CRAFT WARN with update hint"; printf '%s\n' "$out" >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'WARN freshness:.*CRAFT block is stale.*sciagent craft' \
+    || { echo "FAIL [$_TEST_NAME] test4: expected stale-CRAFT WARN with craft hint"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
 out=$("$SCIAGENT" validate --check freshness --strict --project-dir "$CONF" 2>&1); rc=$?

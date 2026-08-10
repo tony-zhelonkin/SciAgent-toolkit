@@ -37,6 +37,9 @@ Usage:
   sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
+  sciagent craft [--project-dir D] [--force] [--quiet]
+                                       Render/refresh the SCIAGENT:CRAFT block in
+                                       D/AGENTS.md; mounts nothing
   sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
   sciagent update [--to <ref>] [--no-pin] [--quiet]
                                        Re-pin toolkit submodule + re-activate current stack
@@ -63,6 +66,7 @@ verb="$1"; shift
 #
 #   block.sh            leaf: managed-block file I/O + hashing, no sciagent deps
 #   craft.sh            CRAFT block renderer (depends on block.sh)
+#   craft_verb.sh       `craft` verb: block-only render (depends on block.sh, craft.sh)
 #   frontmatter.sh      leaf: YAML frontmatter parser, no sciagent deps
 #   roles.sh            leaf: role/skill YAML reads
 #   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
@@ -85,6 +89,7 @@ declare -A VERB_MODULES=(
     [list]="roles.sh skill_deps.sh status.sh"
     [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
     [new]="new.sh"
+    [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"
     [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
     [provision]="block.sh harness.sh claude_settings.sh provision.sh"
@@ -98,6 +103,7 @@ declare -A VERB_ENTRY=(
     [list]=cmd_list
     [validate]=cmd_validate
     [new]=cmd_new
+    [craft]=cmd_craft
     [gitignore]=cmd_gitignore
     [update]=cmd_update
     [provision]=cmd_provision
