@@ -86,7 +86,7 @@ Working with format questions (.h5ad reading, subsetting, concat)?
 
 The scvi-tools ecosystem provides probabilistic deep learning models for single-cell analysis. All skills follow a consistent pattern and share installation/configuration via the framework document.
 
-**Architecture (2026-04-20):** `scvi-framework/` is the **Rich-tier router** for this cluster. Shared patterns (`setup_anndata`, batch vs sample keys, scArches flags, hub loading, gotchas, count distributions, GPU, troubleshooting) live in `scvi-framework/references/` and are referenced by every child SKILL.md instead of being duplicated. The cross-reference manifest at `scvi-framework/references/cross-refs.yaml` is the single source of truth for each child's `complementary-skills:` graph. Self-evolution hooks: `scvi-framework/references/troubleshooting.md` (append-only failure log) and `scvi-framework/checks/pre-train-checklist.md` (extend on encounter).
+**Architecture (2026-04-20):** `scvi-framework/` is the **Rich-tier router** for this cluster. Shared patterns (`setup_anndata`, batch vs sample keys, scArches flags, hub loading, gotchas, count distributions, GPU, troubleshooting) live in `scvi-framework/references/` and are referenced by every child SKILL.md instead of being duplicated. The cross-reference manifest at `scvi-framework/references/cross-refs.yaml` is a curated design record of the intended routing graph for this cluster — not a source of truth and not enforced by any validator, so it can drift from each child's `## See also` prose (see the taxonomy-removal note below). Self-evolution hooks: `scvi-framework/references/troubleshooting.md` (append-only failure log) and `scvi-framework/checks/pre-train-checklist.md` (extend on encounter).
 
 | Skill | Purpose | Modality |
 |-------|---------|----------|
@@ -454,7 +454,20 @@ Skills are promoted from Simple → Standard → Rich additively. Start simple; 
 | Progressive Depth (Basic/Intermediate/Advanced) | Optional | REQUIRED | REQUIRED |
 | Verification Checklist | REQUIRED | REQUIRED | REQUIRED |
 | Common Pitfalls (Symptom/Cause/Fix) | REQUIRED | REQUIRED | REQUIRED |
-| Complementary Skills | Optional | RECOMMENDED | REQUIRED |
+| See also | Optional | RECOMMENDED | REQUIRED |
+
+**`## See also` format.** Each entry is one bullet:
+`` - `skill-name` — Relationship; purpose ``. `Relationship` is a short label
+naming the *edge* between the two skills (`Prerequisite`, `Next step`,
+`Alternative`, `Downstream consumer`, `Sibling convention`, `Voter`, ... —
+whatever fits, but name the edge, not the target's job). `purpose` is one
+clause saying what the target skill actually does for or against this one —
+don't let it just restate the relationship word (e.g. avoid `Voter; voter
+for X`; say what kind of vote). This replaced an older `## Complementary
+Skills` table format (`| When you need... | Use skill | Relationship |`)
+during the 2026 metadata-taxonomy removal — that heading and table shape are
+retired; don't reintroduce them. `skills/_TEMPLATE/SKILL.md` demonstrates
+the current convention.
 
 ### 5. Keep SKILL.md provider-agnostic
 

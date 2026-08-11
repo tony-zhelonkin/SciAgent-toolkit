@@ -1,6 +1,6 @@
 ---
 name: peak-atlas-unpaired
-description: "Define a consensus scATAC peak atlas from unpaired data (separate scRNA and scATAC pools from one system): bridge modalities via a gene-activity matrix plus staged CCA label transfer, call peaks with coarse, refined, and label-free strategies, then tier-stratify and gate risky single-strategy peaks on external correlation."
+description: "Consensus scATAC peak atlas from unpaired data (separate scRNA/scATAC pools): bridges modalities via gene-activity + staged CCA transfer, calls peaks (coarse/refined/label-free), tier-stratifies, gates risky peaks on external correlation. Use when RNA/ATAC aren't the same cells. For true multiome use peak-atlas-multiome."
 license: MIT
 ---
 

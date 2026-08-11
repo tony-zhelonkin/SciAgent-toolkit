@@ -295,6 +295,41 @@ symlink_create_dual() {
 }
 
 # ---------------------------------------------------------------------------
+# _sciagent_toolkit_locality_ok — pure predicate, no output, no mutation.
+# True (rc 0) iff EITHER the project ships no in-repo toolkit at
+# ./01_modules/SciAgent-toolkit (nothing to protect), OR the currently active
+# $SCIAGENT_TOOLKIT resolves to that in-repo toolkit. False (rc 1) iff an
+# in-repo toolkit exists and the active one is a different (external)
+# checkout.
+#
+# This is the boolean core of bin/sciagent's `_guard_toolkit_locality` —
+# factored out here (rather than duplicated) so that lib code which re-enters
+# a mutating path IN-PROCESS, bypassing the dispatcher's own guard call, can
+# still check locality before it mounts anything. `update` calling
+# `cmd_activate` in-process (update.sh) is exactly this shape, and so is
+# `deactivate <overlay>` re-activating solo-base (deactivate.sh) — the
+# dispatcher guard only runs once, for the TOP-LEVEL verb, before any lib code
+# is even sourced, so a verb that internally calls into another mutating verb
+# needs its own check. bin/sciagent sources this file unconditionally and
+# early (before its own guard call) so both call sites share one definition.
+# ---------------------------------------------------------------------------
+_sciagent_toolkit_locality_ok() {
+    local in_repo="./01_modules/SciAgent-toolkit"
+    [[ -d "$in_repo" ]] || return 0
+
+    local in_repo_real active_real
+    if command -v realpath >/dev/null 2>&1; then
+        in_repo_real="$(realpath "$in_repo" 2>/dev/null || printf '%s' "$in_repo")"
+        active_real="$(realpath "${SCIAGENT_TOOLKIT:-}" 2>/dev/null || printf '%s' "${SCIAGENT_TOOLKIT:-}")"
+    else
+        in_repo_real="$(cd "$in_repo" 2>/dev/null && pwd -P || printf '%s' "$in_repo")"
+        active_real="$(cd "${SCIAGENT_TOOLKIT:-}" 2>/dev/null && pwd -P || printf '%s' "${SCIAGENT_TOOLKIT:-}")"
+    fi
+
+    [[ "$active_real" == "$in_repo_real" ]]
+}
+
+# ---------------------------------------------------------------------------
 # Toolkit-ownership check (Phase 5c follow-up, "Option D").
 #
 # The manifest's "symlinks" array used to be the sole record of what
@@ -367,11 +402,33 @@ _SCIAGENT_MOUNT_DIRS=(
 )
 
 # ---------------------------------------------------------------------------
-# symlink_teardown_all — remove exactly the symlinks sciagent mounted, by
-# resolving ownership from each link's target rather than trusting the
-# manifest's bookkeeping (see block comment above). `rm` unlinks the symlink
-# itself in every case below — never `rm -r`/`rm -rf`, and never anything
-# that would dereference into the toolkit checkout the link points at.
+# symlink_teardown_all — remove exactly the symlinks sciagent mounted, via the
+# UNION of two independent sources:
+#
+#   1. Target-based ownership: sweep every _SCIAGENT_MOUNT_DIRS entry and
+#      remove any symlink whose fully-resolved target lies inside the
+#      CURRENTLY ACTIVE $SCIAGENT_TOOLKIT (see block comment above). This is
+#      the orphan-recovery path — it needs no manifest, so a lost/hand-edited/
+#      deleted manifest.json never strands a mount.
+#   2. Manifest-recorded paths: every path in a still-present manifest's
+#      "symlinks" array, if it is still a symlink. Trusting these unconditionally
+#      (regardless of what they currently resolve to) is safe because they were
+#      never guessed — every entry was written by OUR OWN
+#      symlink_create_dual/symlink_create_helper_lib at mount time, first-party
+#      bookkeeping, not an inference from a target path.
+#
+# Source 2 exists because source 1 alone regresses when $SCIAGENT_TOOLKIT
+# differs between mount time and teardown time — e.g. a project mounted
+# against its in-repo toolkit, then `deactivate` invoked with
+# SCIAGENT_TOOLKIT=<a different external checkout>. None of the mounts resolve
+# under that external root, so a target-only sweep silently finds nothing,
+# while the caller still deletes the manifest and the managed blocks — exactly
+# the "intermediate state worse than doing nothing or doing everything" this
+# union avoids. Source 1 alone remains necessary for the complementary case
+# (manifest missing/stale) that source 2 alone can't cover. `rm` unlinks the
+# symlink itself in every case below — never `rm -r`/`rm -rf`, and never
+# anything that would dereference into the toolkit checkout the link points
+# at.
 #
 # Sets _SCIAGENT_TEARDOWN_COUNT to the number of links removed, so a caller can
 # report what actually happened rather than guessing from manifest presence.
@@ -400,6 +457,20 @@ symlink_teardown_all() {
             fi
         done < <(find "$d" -mindepth 1 -maxdepth 1 -type l 2>/dev/null)
     done
+
+    # Source 2: manifest-recorded paths (see header comment above). Runs AFTER
+    # the target-based sweep and BEFORE the manifest is deleted below. A path
+    # already removed by source 1 simply fails the `-L` test here and is
+    # skipped — no double-count, no error.
+    if manifest_exists; then
+        local mpath
+        while IFS= read -r mpath; do
+            [[ -n "$mpath" ]] || continue
+            [[ -L "$mpath" ]] || continue
+            rm "$mpath"
+            _SCIAGENT_TEARDOWN_COUNT=$((_SCIAGENT_TEARDOWN_COUNT + 1))
+        done < <(manifest_symlinks 2>/dev/null)
+    fi
 
     rm -f "$_MANIFEST_PATH"
     rmdir .sciagent 2>/dev/null || true

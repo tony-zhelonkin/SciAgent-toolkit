@@ -1,6 +1,6 @@
 ---
 name: iterative-peak-merging
-description: "Iterative overlap merging builds an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces 2018), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified set, or when bedtools merge produces artificially wide peaks. For peak calling use MACS3."
+description: "Iterative overlap merging builds an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces 2018), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified set, or when bedtools merge produces artificially wide peaks. For peak calling use MACS3 (external tool)."
 license: MIT
 ---
 

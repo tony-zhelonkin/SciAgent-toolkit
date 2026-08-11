@@ -20,6 +20,19 @@
 #   hooks           every hook registered in .claude/settings.json exists and is
 #                   executable (a registered-but-absent hook silently disables
 #                   the (c) GUARDRAIL layer).
+#   docs-layout     docs/_internal/ must be gitignored when the project is a
+#                   git repo (leaks internal notes on push otherwise); plus
+#                   softer structural warnings — missing docs/_internal/, a
+#                   stray .md at the 03_results/ root, mixed archive-naming
+#                   conventions, non-standard handoff filenames. No-ops
+#                   entirely (same absent-subject pattern as figure-style/
+#                   results-layout/captions/provenance) when the project has
+#                   no docs/ tree at all — it audits the STRUCTURE of an
+#                   existing docs/ tree, it does not mandate that one exist.
+#                   Moved here from validate.sh, where it used to run
+#                   unconditionally on the default path and could hard-block
+#                   `activate`'s pre-flight — see validate.sh's header
+#                   comment for the incident this fixed.
 #   stage-thinness  02_analysis/stages|scripts function-def count (>2),
 #                   summed function-body lines (>60), total LOC (>500) per
 #                   file; see docs 09 §3.1. `# stage-detail: <reason>` exempts
@@ -28,8 +41,8 @@
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
 # These run ONLY when --check <name> (or --check all, or no --check at all —
 # `all` is the default) is given. They are SOFT warnings (exit 0) by default
-# and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are always
-# exempt.
+# and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are
+# always exempt.
 #
 # Hardness boundary:
 #   Hard-fail (exit 1): any finding when --strict.
@@ -549,6 +562,108 @@ _lint_check_freshness() {
 }
 
 # ---------------------------------------------------------------------------
+# Check: docs-layout
+# ---------------------------------------------------------------------------
+# Moved from validate.sh (formerly _validate_docs_layout, called
+# unconditionally on validate's default path). Findings, all soft-warn unless
+# --strict (including the not-gitignored rule below — previously an
+# unconditional hard-fail regardless of --strict/--quiet; now consistent with
+# every other lint check's hardness boundary, since this check is opt-in and
+# no longer reachable from activate's pre-flight):
+#   - docs/_internal/ does not exist (docs/ itself does — see the absent-
+#     subject guard below)
+#   - docs/_internal/ exists, is inside a git repo, and is NOT gitignored
+#     (would expose internal notes on a push)
+#   - a .md file directly in 03_results/ (maxdepth 1)
+#   - multiple archive-naming conventions (.archive/_deprecated/_legacy/
+#     .deprecated) coexisting under the same parent
+#   - a handoff_*.md file at the project root not matching
+#     handoff_YYYYMMDD_HHMMSS.md
+_lint_check_docs_layout() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+
+    # Absent-subject guard, same shape as every sibling check in this file
+    # (figure-style's stage_dirs check; results-layout's/captions'/
+    # provenance's `[[ -d "$results" ]] || return 0`): no docs/ tree at all
+    # means this project hasn't adopted the docs/ convention (or is a
+    # software/early-stage repo that doesn't need one) — that is an absent
+    # subject, not a finding, and must produce NO output, not a WARN. Per
+    # this file's header (and the standing project position that these
+    # thresholds are aspirational, a backlog rather than a baseline), a
+    # project that simply hasn't grown a docs/ tree yet is not "wrong" by
+    # default. docs-layout audits the STRUCTURE of an existing docs/ tree; it
+    # does not mandate that one exist.
+    [[ -d "$projdir/docs" ]] || return 0
+
+    # docs/_internal/ does not exist (docs/ itself does, so the project has
+    # opted into the convention but hasn't finished scaffolding it).
+    [[ -d "$projdir/docs/_internal" ]] || \
+        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: sciagent gitignore" || rc=1; }
+
+    # docs/_internal/ exists but is NOT gitignored (in a git repo).
+    if [[ -d "$projdir/docs/_internal" ]]; then
+        local _in_git
+        _in_git=$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)
+        if [[ "$_in_git" == "true" ]] && ! git -C "$projdir" check-ignore -q docs/_internal 2>/dev/null; then
+            _vcheck_emit "$strict" "$quiet" docs-layout \
+                "docs/_internal/ is NOT gitignored — add 'docs/_internal/' to .gitignore" || rc=1
+        fi
+    fi
+
+    # Any .md file directly in 03_results/ at maxdepth 1.
+    local f
+    while IFS= read -r f; do
+        [[ -f "$f" ]] || continue
+        _vcheck_emit "$strict" "$quiet" docs-layout \
+            "report in results dir: $(basename "$f") — move to docs/_internal/reports/" || rc=1
+    done < <(find "$projdir/03_results" -maxdepth 1 -name "*.md" 2>/dev/null)
+
+    # Multiple archive-style naming conventions coexisting under one parent.
+    local _dir
+    for _dir in "$projdir/02_analysis" "$projdir/03_results"; do
+        [[ -d "$_dir" ]] || continue
+        local _conventions
+        _conventions=$(find "$_dir" -maxdepth 3 -type d \
+            \( -name ".archive" -o -name "_deprecated" -o -name "_legacy" -o -name ".deprecated" \) \
+            2>/dev/null | awk -F'/' '{
+                n=split($0,a,"/")
+                parent=""
+                for(i=1;i<n;i++) parent=parent (i>1?"/":"") a[i]
+                basename=a[n]
+                key=parent SUBSEP basename
+                if(!seen[key]++) {
+                    count[parent]++
+                }
+            }
+            END {
+                for(p in count) {
+                    if(count[p]>=2) print p
+                }
+            }')
+        if [[ -n "$_conventions" ]]; then
+            local _p
+            while IFS= read -r _p; do
+                _vcheck_emit "$strict" "$quiet" docs-layout \
+                    "mixed archive-naming conventions under $_p — pick one (.archive / _deprecated / _legacy / .deprecated)" || rc=1
+            done <<< "$_conventions"
+        fi
+    done
+
+    # handoff_*.md files at the project root that don't match
+    # handoff_YYYYMMDD_HHMMSS.md.
+    for f in "$projdir"/handoff_*.md; do
+        [[ -f "$f" ]] || continue
+        if ! printf '%s\n' "$(basename "$f")" | grep -qE '^handoff_[0-9]{8}_[0-9]{6}\.md$'; then
+            _vcheck_emit "$strict" "$quiet" docs-layout \
+                "non-standard handoff filename: $(basename "$f")" || rc=1
+        fi
+    done
+
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
 # Check 6: hooks
 # ---------------------------------------------------------------------------
 # Assert that every hook settings.json REGISTERS actually exists and is
@@ -608,6 +723,9 @@ _lint_check_hooks() {
 
 # _lint_run_checks <projdir> <strict> <quiet> <check>...
 # Dispatch the named opt-in project checks. Accepts `all` to run every check.
+# `docs-layout` upholds the same "absent subject -> no findings" invariant
+# every other check here follows (see its own header comment above), so it is
+# a full member of `all` like everything else.
 # Returns 1 if any check reports a (strict) hard failure, 0 otherwise.
 _lint_run_checks() {
     local projdir="$1"; shift
@@ -621,12 +739,12 @@ _lint_run_checks() {
     local n
     for n in "${names[@]}"; do
         case "$n" in
-            all) run=(figure-style results-layout captions provenance freshness hooks stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|stage-thinness|comment-intent|stage-layout) run+=("$n") ;;
+            all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout) run+=("$n") ;;
             "") ;;
             *)
                 echo "sciagent lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks stage-thinness comment-intent stage-layout all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout all" >&2
                 return 1 ;;
         esac
     done
@@ -639,6 +757,7 @@ _lint_run_checks() {
             provenance)     _lint_check_provenance     "$projdir" "$strict" "$quiet" || rc=1 ;;
             freshness)      _lint_check_freshness      "$projdir" "$strict" "$quiet" || rc=1 ;;
             hooks)          _lint_check_hooks          "$projdir" "$strict" "$quiet" || rc=1 ;;
+            docs-layout)    _lint_check_docs_layout    "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-layout)   _lint_check_stage_layout   "$projdir" "$strict" "$quiet" || rc=1 ;;
@@ -666,8 +785,9 @@ sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
   --project-dir <d>  Project directory to lint (default: .).
   --check <name>     Run only the named check(s). Repeatable.
                      name ∈ figure-style | results-layout | captions |
-                            provenance | freshness | hooks | stage-thinness |
-                            comment-intent | stage-layout | all.
+                            provenance | freshness | hooks | docs-layout |
+                            stage-thinness | comment-intent | stage-layout |
+                            all.
                      Default (no --check given): all.
   --strict           Findings become HARD failures (exit 1) instead of WARN.
   --quiet            Suppress soft-WARN output on success/no-strict findings.

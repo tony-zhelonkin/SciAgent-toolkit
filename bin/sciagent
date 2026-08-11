@@ -18,6 +18,16 @@ export SCIAGENT_TOOLKIT
 
 LIB="$SCIAGENT_TOOLKIT/lib/sciagent"
 
+# Source the toolkit-locality predicate unconditionally and early (before the
+# verb dispatch below, and before any mutating code path runs). It is pure
+# detection with no side effects (see symlinks.sh), so sourcing it for every
+# verb is cheap and lets both this dispatcher's guard AND any lib code that
+# re-enters a mutating path in-process (e.g. deactivate.sh re-activating
+# solo-base) share one definition of "is the active toolkit the project's own
+# in-repo one" instead of drifting out of sync.
+# shellcheck source=/dev/null
+. "$LIB/symlinks.sh"
+
 usage() {
     cat <<EOF
 sciagent — per-project AI-harness context manager
@@ -118,12 +128,29 @@ declare -A VERB_ENTRY=(
 
 # ---------------------------------------------------------------------------
 # Mutating verbs — those that write symlinks/blocks into the project. Guarded
-# by _guard_toolkit_locality (see below). deactivate is intentionally NOT
-# guarded: it only removes what its own manifest owns, so it is safe (and
-# desirable) to run even against an external toolkit to clean up.
+# by _guard_toolkit_locality (see below), which runs once for the TOP-LEVEL
+# verb before any lib module is even sourced.
+#
+# `update` calls `cmd_activate` in-process (update.sh, both the --no-pin path
+# and the re-exec path's freshly-loaded process) — it must be guarded exactly
+# like `activate`, or `SCIAGENT_TOOLKIT=<external> sciagent update --no-pin`
+# silently re-mounts the project against the wrong checkout, escaping the
+# submodule pin the guard exists to protect.
+#
+# `deactivate` is intentionally NOT in this map: its full/base-removal paths
+# only ever DELETE (symlink_teardown_all resolves ownership from each link's
+# own target — see symlinks.sh — and additionally sweeps every path the
+# manifest recorded, so it tears down what this project actually mounted
+# regardless of which toolkit is currently active), which is safe and
+# desirable to run against any toolkit. Its one MUTATING sub-path —
+# `deactivate <overlay>` re-activating solo-base via `cmd_activate` in-process
+# — checks `_sciagent_toolkit_locality_ok` (symlinks.sh) itself before doing
+# so, rather than gating the whole verb (which would also block the always-safe
+# delete-only paths).
 # ---------------------------------------------------------------------------
 declare -A MUTATING_VERB=(
     [activate]=1
+    [update]=1
 )
 
 # _guard_toolkit_locality
@@ -143,6 +170,13 @@ _guard_toolkit_locality() {
     # No in-repo toolkit → nothing to protect; any resolution is fine.
     [[ -d "$in_repo" ]] || return 0
 
+    # Boolean check delegated to the shared predicate (symlinks.sh, sourced
+    # unconditionally above) so this dispatcher-level guard and any lib code
+    # that re-enters a mutating path in-process (deactivate.sh's solo-base
+    # re-activation) can never drift apart on what "in-repo" means.
+    _sciagent_toolkit_locality_ok && return 0
+
+    # Mismatch: recompute the resolved paths for the error message below.
     local in_repo_real active_real
     if command -v realpath >/dev/null 2>&1; then
         in_repo_real="$(realpath "$in_repo" 2>/dev/null || printf '%s' "$in_repo")"
@@ -151,9 +185,6 @@ _guard_toolkit_locality() {
         in_repo_real="$(cd "$in_repo" 2>/dev/null && pwd -P || printf '%s' "$in_repo")"
         active_real="$(cd "$SCIAGENT_TOOLKIT" 2>/dev/null && pwd -P || printf '%s' "$SCIAGENT_TOOLKIT")"
     fi
-
-    # Resolved toolkit already IS the in-repo one → allowed.
-    [[ "$active_real" == "$in_repo_real" ]] && return 0
 
     # Mismatch: external toolkit while an in-repo one exists.
     echo "sciagent: refusing to $verb against an external toolkit" >&2

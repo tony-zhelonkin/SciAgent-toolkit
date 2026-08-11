@@ -1,6 +1,6 @@
 ---
 name: gatom-metabolomic-predictions
-description: "Finds maximally-regulated metabolic subnetworks from differential expression using atom-transition graphs and BUM-scored SGMWCS. Use when interpreting transcriptomic or metabolomic DE through KEGG/Rhea pathway structure, or linking enzyme expression to metabolite flow. R-based; needs raw p-values. For pathway enrichment use fgsea instead."
+description: "Finds maximally-regulated metabolic subnetworks from differential expression using atom-transition graphs and BUM-scored SGMWCS. Use when interpreting transcriptomic or metabolomic DE through KEGG/Rhea pathway structure, or linking enzyme expression to metabolite flow. R-based; needs raw p-values. For pathway enrichment use fgsea (external)."
 license: MIT
 ---
 

@@ -1,18 +1,19 @@
 # sciagent — architecture
 
-This is the canonical design spec for sciagent: a harness-agnostic, per-project context manager that mounts the full catalog of skills, sub-agents, and slash commands into AI assistant sessions via role activation. Roles no longer curate *which* content is mounted (that gating was removed — see §5); a role now decides provenance labels (who gets credited for a name in `sciagent status`/the managed block) and which output-style is applied.
+This is the canonical design spec for sciagent: a harness-agnostic, per-project context manager that mounts the full catalog of skills, sub-agents, and slash commands into AI assistant sessions via role activation. Roles no longer curate *which* content is mounted (that gating was removed — see §5); a role now decides one thing only: provenance labels — who gets credited for a name in `sciagent status`/the managed block, and which of the two stack slots wins a name collision. Output-style is **not** role-scoped; it is selected at activation time (§6).
 
 ---
 
 ## 1. Goal
 
-One job: **manage AI-harness context per project**. The user wears different hats (bioinformatician, software engineer, architect). Each hat = a *role*. Activating a role mounts the whole catalog of skills, sub-agents, and slash commands into the project so the active harness session picks them up natively; the role's own `skills:`/`agents:`/`commands:` lists only decide provenance attribution and which output-style is applied (§5).
+One job: **manage AI-harness context per project**. The user wears different hats (bioinformatician, software engineer, architect). Each hat = a *role*. Activating a role mounts the whole catalog of skills, sub-agents, and slash commands into the project so the active harness session picks them up natively; the role's own `skills:`/`agents:`/`commands:` lists only decide provenance attribution (§5).
 
 Non-goals: installing harnesses, managing MCPs, managing API keys, multi-provider posture, anything global to the user's home directory.
 
 ## 2. Mental model: roles as RPG combo classes
 
-A role is a bundle: `skills + sub-agents + slash-commands + output-style`. A project has at most **two** active roles, stacked in order: `base` (the foundation) and optionally an `overlay` (the specialization). Last-wins on name collisions; the shadowed entry is visible in `sciagent status`.
+A role is a *label* over `skills + sub-agents + slash-commands` — not a bundle that
+gates them, and not a carrier for output-style (§6). A project has at most **two** active roles, stacked in order: `base` (the foundation) and optionally an `overlay` (the specialization). Last-wins on name collisions; the shadowed entry is visible in `sciagent status`.
 
 Two roles, not N, because Claude Code's own three-tier resolution already creates "where did this come from?" debugging pain in practice. Two is enough for "wizard/knight" combos and stays inspectable.
 
@@ -43,7 +44,7 @@ sciagent-toolkit/
 ├── agents/<name>.md          # canonical sub-agents (Claude format)
 ├── commands/<name>.md        # canonical slash commands (Claude format)
 ├── system-prompts/<name>.md  # canonical output styles
-├── roles/<name>.yaml         # role definitions (provenance + output-style selection only)
+├── roles/<name>.yaml         # role definitions (provenance labels only)
 └── templates/                # project scaffolding (new project bootstrap)
     ├── AGENTS.md.template    # points at docs/_internal/scientific-context.md
     └── CLAUDE.md.template    # 1-line shim: @AGENTS.md
@@ -59,7 +60,7 @@ project/
 │   ├── skills/<name> ──▶ toolkit/skills/<name>
 │   ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
 │   ├── commands/<name>.md ──▶ toolkit/commands/<name>.md
-│   └── output-styles/<name>.md ──▶ toolkit/output-styles/<name>.md
+│   └── output-styles/<name>.md ──▶ toolkit/system-prompts/<name>.md
 └── .agents/                               # harness-agnostic mirror
     ├── skills/<name> ──▶ toolkit/skills/<name>
     ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
@@ -104,12 +105,14 @@ Stack (in order, last-wins on name collisions):
 
 ### Robustness rules
 
-- **Markers**: HTML comments — invisible in rendered markdown, distinct namespace (`SCIAGENT:ROLES`), versioned (`v1`).
-- **Drift detection**: header includes `hash=<sha1>` of the block body. On every `activate` / `deactivate`:
-  1. Read file, locate markers.
-  2. If both markers found: recompute hash of current body. If hash mismatches stored, user has edited inside the block — print a unified diff and require `--force` (or `sciagent role stash` to preserve edits as a side file).
-  3. If only one marker found: abort. Corrupted state. User must fix or pass `--force-reset` to nuke and rewrite.
-  4. If neither marker found: append fresh block at EOF, preceded by one blank line. Never silently rewrite existing content.
+- **Markers**: HTML comments — invisible in rendered markdown, distinct namespace (one id per block: `ROLES`, `CRAFT`, `CONTEXT`). The `v1` in the marker is **decorative — nothing parses it**, so there is no version-negotiated upgrade path: a reader expecting `v2` would fail to match a `v1` BEGIN line while still matching the unversioned END line, and report corruption. Treat the format as effectively unversioned until that is fixed.
+- **Drift detection**: the header carries `hash=<sha1>` of the block body, checksummed against the body itself — never against what the renderer *would* produce. That is what distinguishes a merely **stale** block (old body, self-consistent hash → re-render proceeds silently) from a **hand-edited** one (body mutated, hash no longer matching → refuse).
+  `block_hash_check` returns: `0` match, `1` no block, `2` one marker only (corrupt), `3` drift, `4` no id argument passed (a caller bug, deliberately distinct from `1`).
+  1. If both markers found and the hash matches: re-render in place.
+  2. If both markers found and the hash mismatches: **`craft` refuses and names `--force`.** `activate`'s ROLES write path does **not** implement this guard — it removes and rewrites unconditionally, so hand-edits inside a ROLES block are lost silently. `status` reports ROLES drift as a note; that is the only warning. **This asymmetry is a known gap.**
+  3. If only one marker found: refuse and tell the user to repair the markers by hand. There is no `--force-reset`.
+  4. If neither marker found: append a fresh block at EOF, preceded by one blank line. Never silently rewrite existing content, and never change the file's permission bits.
+  5. If the file contains **two blocks with the same id**, the state is unrecoverable through the CLI: the body read spans both, so the hash can never match, `craft` reports "drifted (hand-edited)" forever, and `--force` rewrites only the first. Delete the duplicate by hand. Known gap; the message misattributes the cause.
 - **Position-shift safe**: search file for markers every run. Never store byte offsets.
 - **Single block, not per-role**: the entire stack is rendered into one block. Multi-block patterns invite drift between blocks.
 - **CLAUDE.md**: a 1-line `@AGENTS.md` import is the default. Claude's native `@file` import means CLAUDE.md inherits AGENTS.md automatically without duplication or generation.
@@ -157,13 +160,20 @@ every other role.
 
 `sciagent validate` runs against the toolkit content (see `lib/sciagent/validate.sh`):
 
-1. **Frontmatter shape** — every skill has a `name:` matching its directory and a `description:` of at most `SCIAGENT_DESC_MAX` chars (350 by default).
+1. **Frontmatter shape** — every skill has a `name:` matching its directory and a `description:` of at most `SCIAGENT_DESC_MAX` chars (350 by default). The length is measured on the *folded* value, so a `>-`/`|` block scalar is counted in full rather than by its first physical line — the earlier first-line-only measurement made the cap silently unenforceable for any multi-line description.
 2. **Optional skills-ref** — if installed, invoked per skill; surfaced as a warning, silently skipped when absent.
 3. **Cross-namespace name collisions** — names appearing under two or more of `skills/`, `agents/`, `commands/`, `roles/`.
 
 Check 1 is **hard-fail** (non-zero exit, error on stderr). Checks 2–3 are **soft-warn** (warning on stderr, "all checks passed" on stdout, exit 0): mounting both is supported and sometimes deliberate. `--quiet` suppresses the success summary.
 
 `validate --check <name>...` is a deprecated compatibility path: it delegates to `sciagent lint` (the opt-in PROJECT guardrail layer split out in Phase 5a) and prints a deprecation note to stderr. The default `validate` path (no `--check`) never runs lint checks and is unaffected.
+
+Two checks that used to run unconditionally here are **no longer on the default path**, because `activate` uses `validate --quiet` as its pre-flight and a consumer-project finding must never be able to block activation:
+
+- **`docs-layout`** moved to `lint` (`sciagent lint --check docs-layout`), where it shares the warn-by-default / `--strict`-escalates hardness of every other project check, and is included in `--check all`. It carries the same absent-subject guard as its siblings: **no `docs/` tree at all is not a finding**, it is an absent subject, so the check returns silently. `docs-layout` audits the structure of an existing `docs/` tree; it does not mandate that one exist. (Only once `docs/` exists does a missing `docs/_internal/` warn — the project has adopted the convention but not finished scaffolding it.) Without that guard the check fired on any directory whatsoever, breaking the "a software or empty project produces zero findings" invariant every other check upholds.
+- **`env-hygiene`** stays in `validate` but behind an explicit `--env-hygiene` flag. It inspects the invoking shell's environment rather than anything under `--project-dir`, so `lint`'s "against a consumer project" framing does not fit it.
+
+The "all checks passed" line is emitted only after every check capable of failing has run. It previously printed before the docs-layout check, so `validate` could report success and then exit 1.
 
 There is no requires-graph or tag-vocabulary check anymore — both mechanisms (`metadata.requires:`, tag declarations) were removed along with role-based gating. See `skills/README.md` § Taxonomy.
 
@@ -249,10 +259,19 @@ Every `activate` walks the whole catalog of skills, agents, and commands (§5) �
 ## 8. Deactivation
 
 `sciagent deactivate` (no args) — full teardown:
-- Remove the managed block from AGENTS.md (preserve everything outside markers byte-for-byte).
-- Remove `.claude/skills/*`, `.claude/agents/*`, `.claude/commands/*`, `.claude/output-styles/*` symlinks created by sciagent only (track via a sidecar `.sciagent/manifest.json` so we never delete symlinks we didn't create).
-- Remove `.agents/skills/*`, `.agents/agents/*`, `.agents/commands/*` analogously.
+- Remove the ROLES and CRAFT blocks from AGENTS.md (preserve everything outside markers byte-for-byte, including the file's permission bits).
+- Remove `.claude/{skills,agents,commands,output-styles}/*` and `.agents/{skills,agents,commands}/*` mounts, sweeping the **union** of two sources: (a) entries that are symlinks resolving inside the *currently active* `$SCIAGENT_TOOLKIT`, and (b) every path recorded in a still-present manifest that is still a symlink. Neither source alone is sufficient: (a) alone strands everything when teardown runs against a *different* toolkit checkout than the one that mounted (the links resolve elsewhere, so nothing matches); (b) alone strands everything when the manifest is lost or stale. (b) is safe to trust unconditionally because manifest entries are never guessed — each was written by `symlink_create_dual`/`symlink_create_helper_lib` at mount time. A file or symlink of the user's own is untouched either way: it is not toolkit-resolving and was never recorded.
+- Remove `02_analysis/helpers/{figure-style,interactive-style}` on the same rule.
 - Remove `.sciagent/manifest.json`.
+
+**Not removed — `deactivate` is deliberately documented as an incomplete inverse:**
+`.claude/settings.json` (created or key-backfilled), `.claude/statusline.sh`,
+`.claude/hooks/{no_ephemeral,caption_sweep}.sh`, and the `@AGENTS.md` line
+`activate` prepends to `CLAUDE.md`. The hooks remain registered and live after
+deactivation. No verb currently unwinds them. This is a known gap, not a design
+choice — the reversible artifacts above are reversible precisely because each has
+an ownership record (link target, hash-framed markers, a state tag); the
+settings/hooks/shim family never got one.
 
 `sciagent deactivate <name>` — partial: remove just that role from the stack. If it's the base, the overlay also goes (overlay without base is meaningless). If it's the overlay, base remains.
 
@@ -264,8 +283,15 @@ Every `activate` walks the whole catalog of skills, agents, and commands (§5) �
 ```
 
 - AGENTS.md managed block is the **human-readable** state.
-- `.sciagent/manifest.json` is the **machine-readable** state — used for safe teardown (we only remove symlinks we own) and drift detection.
-- On conflict between block and manifest: print warning, manifest wins for teardown purposes, block is rewritten.
+- `.sciagent/manifest.json` is the **machine-readable** state — it records the
+  active stack (the only machine-readable answer to *which* roles are active) and
+  the links `activate` created, which lets `status` detect a mount that has been
+  *deleted*. A target-ownership scan cannot do that: it sees what is present, not
+  what is missing.
+- The manifest is **not** the teardown authority. Teardown resolves ownership from
+  each link's target (§8), so the manifest being stale, hand-edited or absent
+  changes nothing about what gets removed. There is consequently no block-vs-manifest
+  conflict to arbitrate.
 
 ## 10. Idempotency
 

@@ -24,7 +24,9 @@ Different data modalities, different goals, might require different context.
 - different commands. 
 Roles used to gate which of these got mounted; they don't anymore — the whole
 catalog is always mounted (see "The RPG model" below), and activating a role now
-picks the output-style and labels provenance in one command.
+labels provenance. The output-style is a separate choice at activation time
+(`--output-style <name>`, else `craft.yaml`'s `output_style:`), not a property of
+the role.
 Everything is by design per-project folder.
 
 Even with increased context window size I don\`t personally believe that 
@@ -85,7 +87,7 @@ sciagent --help     # verify it resolves
 sciagent new project
 
 # Activate a role — symlinks the whole skill/agent/command catalog into .claude/ and .agents/;
-# the role only decides provenance labels + which output-style gets applied
+# the role only decides provenance labels (output-style is a separate --output-style choice)
 sciagent activate base
 
 # Show the active stack, effective tables, and block/symlink health (add --json for a machine-readable manifest)
@@ -133,7 +135,7 @@ Stack depth is for now capped at 2 to stay inspectable.
 | `update [--to <ref>]` | Re-pin the toolkit submodule + re-activate the current stack |
 | `provision [--harness <csv\|all>]` | Seed user-level / global context + settings per harness |
 
-Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
+Run `sciagent --help` for the terse reference.
 
 ## validate
 
@@ -161,22 +163,38 @@ $ sciagent validate --quiet
 ```
 project/
 ├── AGENTS.md                         # your file; sciagent appends a managed block
-├── CLAUDE.md                         # 1-line @AGENTS.md shim (from template)
+├── CLAUDE.md                         # created, or `@AGENTS.md` prepended to yours
 ├── .claude/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   └── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
+│   ├── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
+│   ├── settings.json                 # created, or missing keys backfilled
+│   ├── statusline.sh                 # created, +x
+│   └── hooks/{no_ephemeral,caption_sweep}.sh   # created, +x, registered in settings.json
 ├── .agents/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   └── commands/<name>.md  →  toolkit/commands/<name>.md
-└── .sciagent/manifest.json           # machine-readable state for safe teardown
+├── 02_analysis/helpers/{figure-style,interactive-style}  →  toolkit/lib/<name>
+└── .sciagent/manifest.json           # records the active stack + the links created
 ```
 
-The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown. On each run, sciagent recomputes the hash and warns if you've edited inside the block.
+The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown.
 
-`deactivate` removes the block and removes only symlinks it owns (tracked via `manifest.json`).
+`deactivate` removes both managed blocks and every symlink whose target resolves
+inside the toolkit — ownership is derived from the link target, so a lost or
+stale `manifest.json` cannot strand a mount. Anything that is not such a symlink
+is left alone, which is why a file or symlink of your own inside `.claude/skills/`
+survives untouched.
+
+**`deactivate` is not a full inverse of `activate`.** The four `.claude/` entries
+above marked *created* — `settings.json`, `statusline.sh`, both hooks — and the
+`@AGENTS.md` line in `CLAUDE.md` are **not** removed, and the hooks stay
+registered and live. There is currently no verb that unwinds them; remove them by
+hand if you want a clean tree. Only the output-style key in
+`settings.local.json` is reversed, and only when an output-style was actually
+applied.
 
 ## Harness support
 

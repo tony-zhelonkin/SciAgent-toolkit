@@ -1,6 +1,6 @@
 ---
 name: anndata
-description: AnnData data structure — foundation for the entire scverse ecosystem. Use for format operations (reading .h5ad, writing, subsetting, concatenating), understanding data slots, and debugging shape/index issues. For analysis workflows use scanpy; for probabilistic models use scvi-tools; for population-scale queries use cellxgene-census.
+description: AnnData — foundation for the scverse ecosystem. Use for format operations (.h5ad read/write, subsetting, concatenating), data-slot structure, and shape/index debugging. For analysis workflows use scanpy; for probabilistic models use scvi-framework (scvi-tools); for population-scale queries use cellxgene-census-annotation.
 license: MIT
 ---
 

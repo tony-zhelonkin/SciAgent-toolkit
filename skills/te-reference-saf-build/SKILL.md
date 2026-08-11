@@ -1,14 +1,11 @@
 ---
 name: te-reference-saf-build
 description: >-
-  RepeatMasker/TE reference build — construct the shared TE GTF + grouped
-  subfamily SAF + exon-subtracted no-exon SAF for TE-compatible RNA-seq
-  preprocessing. Acquire the TEtranscripts pre-generated RepeatMasker GTF, collapse
-  loci to a Subfamily:Family:Class grouped SAF via awk, then bedtools-subtract gene
-  exons to a no-exon SAF. Use when setting up a NEW genome build / species for TE
-  preprocessing (build-once, shared across datasets). For the per-dataset
-  alignment+counting recipe use star-te-preprocessing. For locus-level TE
-  references use SQuIRE/Telescope (out of scope here).
+  Use when setting up a NEW genome build / species for TE-compatible
+  RNA-seq preprocessing (build-once, shared across datasets). Builds the
+  TE GTF + subfamily SAF + exon-subtracted no-exon SAF from the
+  TEtranscripts RepeatMasker GTF. For per-dataset alignment+counting use
+  star-te-preprocessing. For locus-level TE references use SQuIRE/Telescope.
 license: MIT
 ---
 

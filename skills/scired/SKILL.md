@@ -296,5 +296,5 @@ Both overlays can be plotted on the same `plot_factor_scatter` axes — they are
 - `factor-analysis-framework` — Parent / super-family; conceptual framing for why sciRED strips three Benzécri properties
 - `mofa-framework` — Alternative family; multi-view / multi-omic factor analysis
 - `mofa-mofapy2` — the `mofa-framework` engine used for that alternative-family analysis
-- `scanpy` — Prerequisite; HVG selection, count loading, AnnData manipulation
-- `anndata` — Prerequisite; HVG selection, count loading, AnnData manipulation
+- `scanpy` — Prerequisite; HVG selection (`pp.highly_variable_genes`) and standard preprocessing before the factor decomposition
+- `anndata` — Prerequisite; count loading and the AnnData object manipulation sciRED operates on

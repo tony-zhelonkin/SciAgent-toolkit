@@ -1,6 +1,6 @@
 ---
 name: multi-tool-consensus-annotation
-description: "Framework for annotating single-cell data as a PANEL of independent voters — markers, atlas reference voting, scANVI/scArches transfer, popV, treeArches novelty, Census scVI-KNN — harmonized into one label space and reconciled by a conservative, flag-heavy consensus emitting confidence, basis_of_label, and novelty_flag per cell."
+description: "Runs a PANEL of independent cell-type voters (markers, atlas transfer, scANVI/scArches, popV, treeArches novelty, Census scVI-KNN), reconciled into one label space by a conservative, flag-heavy consensus (confidence, basis_of_label, novelty_flag per cell). Use when no single method's confidence suffices. For single-method transfer use scvi-scanvi."
 license: MIT
 ---
 
@@ -226,11 +226,11 @@ Freeze once; do not recluster or rename after the freeze. `annotation_confidence
 
 ## See also
 
-- `scvi-scanvi` — Voter; semi-supervised transfer voter (public or internal)
+- `scvi-scanvi` — Voter; scANVI semi-supervised label transfer from seed cell-type labels (public or internal reference), always initialized from a trained scVI model
 - `scvi-scarches-reference-mapping` — Voter; scArches surgery to project a query onto a frozen atlas
 - `treearches-hierarchy-learning` — Voter (authoritative OOD); open-set novelty / OOD rejection guard
-- `cellxgene-census-annotation` — Voter (supplementary); supplementary public-atlas KNN vote
-- `scembed-atac-annotation` — Voter (ATAC modality); scATAC reference-transfer voter
+- `cellxgene-census-annotation` — Voter (supplementary); pulls a CELLxGENE Census reference slice and takes a local KNN vote in its scVI embedding, without the tiledb stack
+- `scembed-atac-annotation` — Voter (ATAC modality); region2vec KNN vote against a pre-trained HuggingFace databio reference, no retraining
 - `mllmcelltype-consensus-annotation` — Alternative voter / self-contained panel; reference-free multi-LLM marker consensus
 - `scanpy` — Prerequisite (markers + coarse anchor); marker scoring, clustering, `rank_genes_groups`
 - `reasoning-trace` — Provenance; persist the fusion policy + correlation structure

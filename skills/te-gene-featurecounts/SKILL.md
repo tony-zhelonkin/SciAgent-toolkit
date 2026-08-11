@@ -1,20 +1,11 @@
 ---
 name: te-gene-featurecounts
 description: >-
-  featureCounts TE+gene counting workflow, packaged with its own locked,
-  version-pinned container (te-fc:2.0.2, featureCounts v2.0.2). Two-pass driver:
-  integer Random-One TE counting (grouped Subfamily:Family:Class SAF, -M,
-  NO --fraction) plus per-library-stranded gene counting, then a row-bound
-  combined matrix. TE strandedness is context-dependent (field is SPLIT): -s 0
-  (unstranded) matches the dominant tool's default (TEtranscripts --stranded no)
-  for standalone work; stranded sense/antisense (--te-strand sense_antisense)
-  matched to genes is the more principled best-practice for a joint matrix
-  (grade B, not a standard). Use when you have nf-core/rnaseq star_salmon BAMs (including
-  the lean markdup.sorted.bam path) and need the runnable, env-locked step that
-  turns them into gene + TE subfamily count matrices. For the upstream STAR
-  Random-One alignment recipe use star-te-preprocessing; for building the TE SAF
-  use te-reference-saf-build; for annotating the resulting matrices use
-  annotate-bulk-rnaseq-data.
+  Use when you have nf-core/rnaseq star_salmon BAMs and a pre-built TE SAF,
+  and need gene + TE subfamily count matrices. Env-locked featureCounts
+  driver: integer Random-One TE counting, row-bound with gene counts. For
+  STAR alignment use star-te-preprocessing. For the TE SAF use
+  te-reference-saf-build. For annotation use annotate-bulk-rnaseq-data.
 license: MIT
 ---
 
@@ -355,6 +346,6 @@ It is **not a replacement** for short-read TE DE.
 
 The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **`te-gene-featurecounts`** → `annotate-bulk-rnaseq-data`. For locus-level / copy-resolved TE quantification (out of scope here), see SQuIRE/Telescope (external).
 
-- `te-reference-saf-build` — Prerequisite; produces the SAF this skill consumes
+- `te-reference-saf-build` — Prerequisite; builds the grouped, exon-subtracted TE SAF this skill consumes
 - `star-te-preprocessing` — Prerequisite; produces the BAMs and owns the alignment/counting contract
 - `annotate-bulk-rnaseq-data` — Next step; annotate matrices, parse TE IDs, build combined DGEList

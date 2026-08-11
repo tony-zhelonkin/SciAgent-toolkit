@@ -415,6 +415,6 @@ This SKILL.md is the canonical reference. Other skills point here. There is no u
 - `consensus-nmf-multirun` — Downstream consumer; discover gene programs after annotation (uses `PATHS.objects`, `PATHS.tables`)
 - `architecture-first-dev` — Different scope; discipline for software-design changes (ADRs, reviews), not data-pipeline scaffolding
 - `anndatar-seurat-scanpy-conversion` — Downstream of milestone packaging; export the packaged `.h5ad` to Seurat `.rds` (Convention 6, 7), preserves `gene_id` and both embeddings
-- `louper-seurat-conversion` — Export to Loupe `.cloupe` (Convention 7); carries `umap_unsupervised`/`umap_integrated` embedding names
+- `louper-seurat-conversion` — Downstream export; exports to Loupe `.cloupe` (Convention 7), carries `umap_unsupervised`/`umap_integrated` embedding names
 - `single-cell-rna-qc` — Adjacent; run MAD-based QC filtering on the produced AnnData (consumes `00_raw.h5ad` from this convention's Stage 0)
-- `figure-style` — Governs all `03_results/<stage>/figures/` output; this skill defers to it
+- `figure-style` — Prerequisite; governs figure placement, captions, and source-table adjacency for all `03_results/<stage>/figures/` output — this skill defers to it

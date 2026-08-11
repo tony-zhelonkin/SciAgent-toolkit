@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 
 ## Repository Overview
 
-**SciAgent-toolkit** is a per-project context manager for AI coding harnesses. `sciagent activate <role>` mounts the *entire* catalog of skills, sub-agents, and slash commands into a project's `.claude/` and `.agents/` directories — a role no longer gates which of these get mounted (that filtering was removed). A role now decides two things: **provenance** (which role a mounted name is attributed to in `sciagent status`/the managed block, and which wins on a name collision between the two stack slots) and, optionally, which Claude output-style gets applied. See "Role System" below and `docs/architecture.md` for the full design spec.
+**SciAgent-toolkit** is a per-project context manager for AI coding harnesses. `sciagent activate <role>` mounts the *entire* catalog of skills, sub-agents, and slash commands into a project's `.claude/` and `.agents/` directories — a role no longer gates which of these get mounted (that filtering was removed). A role now decides exactly one thing: **provenance** — which role a mounted name is attributed to in `sciagent status`/the managed block, and which wins on a name collision between the two stack slots. Output-style is *not* role-scoped; it is chosen at activation time (`--output-style`, else `craft.yaml`). See "Role System" below and `docs/architecture.md` for the full design spec.
 
 **Integration:** Used as a submodule at `01_modules/SciAgent-toolkit/` in analysis projects.
 
@@ -32,7 +32,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 
 ```bash
 # Activate base role (symlinks the whole catalog of agents/skills/commands into
-# .claude/ and .agents/; the role only picks provenance labels + output-style)
+# .claude/ and .agents/; the role only picks provenance labels)
 bin/sciagent activate base
 
 # Check skill frontmatter shape + cross-namespace name collisions

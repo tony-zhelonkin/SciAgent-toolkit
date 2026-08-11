@@ -4,6 +4,18 @@
 # shellcheck shell=bash
 
 cmd_deactivate() {
+    case "${1:-}" in
+        -h|--help)
+            cat <<'USAGE'
+sciagent deactivate [<role>]
+  No argument: full teardown of the active stack (all mounted symlinks,
+  the ROLES/CRAFT managed blocks, and the manifest).
+  <role>: partial teardown — removing the base implies removing the
+  overlay too; removing the overlay re-activates solo-base.
+USAGE
+            return 0 ;;
+    esac
+
     if [[ $# -eq 0 ]]; then
         # Full teardown does NOT require a manifest. Ownership is derived from
         # each link's target, so a lost/deleted manifest.json must not strand
@@ -62,6 +74,30 @@ cmd_deactivate() {
 
     if [[ "$target" == "$overlay" ]]; then
         # Re-activate solo-base. cmd_activate handles teardown-first.
+        #
+        # This calls cmd_activate IN-PROCESS, the same shape as update.sh's
+        # bypass of the dispatcher-level guard: bin/sciagent's
+        # _guard_toolkit_locality already ran for the top-level `deactivate`
+        # verb, but `deactivate` is deliberately NOT in MUTATING_VERB (its
+        # delete-only paths are safe against any toolkit), so that check said
+        # nothing about the toolkit this re-activation is about to mount
+        # against. Check it here, or `SCIAGENT_TOOLKIT=<external> sciagent
+        # deactivate <overlay>` would silently re-mount solo-base against the
+        # wrong checkout — the exact escape the guard exists to prevent.
+        if [[ "${SCIAGENT_ALLOW_EXTERNAL_TOOLKIT:-0}" != "1" ]] && ! _sciagent_toolkit_locality_ok; then
+            local _in_repo_real _active_real
+            _in_repo_real="$(realpath "./01_modules/SciAgent-toolkit" 2>/dev/null || printf '%s' "./01_modules/SciAgent-toolkit")"
+            _active_real="$(realpath "${SCIAGENT_TOOLKIT:-}" 2>/dev/null || printf '%s' "${SCIAGENT_TOOLKIT:-}")"
+            echo "sciagent: refusing to deactivate '$overlay' against an external toolkit" >&2
+            echo "  active toolkit : $_active_real" >&2
+            echo "  in-repo toolkit: $_in_repo_real" >&2
+            echo "  removing '$overlay' re-activates solo-'$base', which would mount it against" >&2
+            echo "  the wrong toolkit and escape the submodule pin. Fix by one of:" >&2
+            echo "    - run ./01_modules/SciAgent-toolkit/bin/sciagent deactivate $overlay" >&2
+            echo "    - export SCIAGENT_TOOLKIT=$_in_repo_real" >&2
+            echo "    - set SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1 to override" >&2
+            return 1
+        fi
         cmd_activate "$base"
         return 0
     fi

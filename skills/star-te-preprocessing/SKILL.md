@@ -1,16 +1,11 @@
 ---
 name: star-te-preprocessing
 description: >-
-  STAR + featureCounts "Random-One" recipe for TE-compatible bulk RNA-seq — the
-  canonical --extra_star_align_args (multimapper retention, one emitted alignment
-  per read, EndToEnd, RNG seed 777), grouped subfamily SAF with bedtools exon
-  subtraction, and integer featureCounts -M counting. Use when bulk RNA-seq
-  alignment must preserve transposable-element signal for downstream TE
-  differential expression, or when you need the preprocessing contract the TE
-  count matrix must satisfy. For generic nf-core/rnaseq run mechanics use
-  nfcore-rnaseq-execution. For locus-level TE quantification use SQuIRE/Telescope
-  (out of scope here). For count-matrix annotation and DGEList assembly use
-  annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit.
+  Use when bulk RNA-seq alignment must preserve TE signal for DE, or need
+  the preprocessing contract a TE matrix must satisfy: STAR "Random-One"
+  args + subfamily SAF + integer -M counting. For run mechanics use
+  nfcore-rnaseq-execution. For locus-level TE use SQuIRE/Telescope. For
+  annotation use annotate-bulk-rnaseq-data and the TE-RNAseq-toolkit.
 license: MIT
 ---
 
@@ -226,7 +221,7 @@ After running this skill, confirm:
 
 The canonical handoff chain is `star-te-preprocessing → te-gene-featurecounts → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`. For locus-level / copy-resolved TE quantification (out of scope here — EM-based), see SQuIRE/Telescope (external); for downstream TE DE/enrichment/plotting, see the TE-RNAseq-toolkit (external).
 
-- `te-reference-saf-build` — upstream; produces the no-exon SAF this skill's featureCounts pass consumes
+- `te-reference-saf-build` — Upstream; produces the no-exon SAF this skill's featureCounts pass consumes
 - `nfcore-rnaseq-execution` — Prerequisite; generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs, `-resume`, cleanup) that runs the pipeline consuming these STAR args
 - `te-gene-featurecounts` — Next step; runs the actual TE+gene counting (env-locked container, two-pass driver, staging), turning the BAMs this skill's contract describes into count matrices
 - `annotate-bulk-rnaseq-data` — Downstream; annotate count matrices, parse TE IDs, build combined gene+TE DGEList

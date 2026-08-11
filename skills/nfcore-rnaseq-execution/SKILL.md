@@ -1,15 +1,11 @@
 ---
 name: nfcore-rnaseq-execution
 description: >-
-  nf-core/rnaseq — reproducibly run the Nextflow bulk RNA-seq pipeline (Docker
-  profile, star_salmon) on an HPC/workstation. Use when you have bulk RNA-seq
-  FASTQs and need STAR BAMs / gene counts via nf-core: building the samplesheet,
-  exporting NXF_UID/NXF_GID, work/temp dirs on a big disk, maxForks resource
-  caps, -resume, and post-run verify/cleanup that never touches published
-  outputs. For the TE-specific STAR --extra_star_align_args + featureCounts
-  recipe ALSO load star-te-preprocessing. For 10x single-cell velocity alignment
-  use starsolo-spliced-unspliced. For annotating/DE of the resulting count
-  matrices use annotate-bulk-rnaseq-data.
+  Use when you have bulk RNA-seq FASTQs and need STAR BAMs / gene counts
+  via nf-core/rnaseq (Docker, star_salmon) — samplesheet, container UID,
+  disk, resource caps, -resume, cleanup. For the TE-specific recipe also
+  load star-te-preprocessing. For 10x velocity alignment use
+  starsolo-spliced-unspliced. For annotation/DE use annotate-bulk-rnaseq-data.
 license: MIT
 ---
 
@@ -196,5 +192,5 @@ After the run, confirm:
 
 ## See also
 
-- `star-te-preprocessing` — Co-load for TE runs; owns the TE-compatible STAR/featureCounts recipe this skill points to
+- `star-te-preprocessing` — Co-load for TE runs; owns the TE-compatible STAR `--extra_star_align_args` + featureCounts SAF recipe (`te_star.config`) this skill points to
 - `annotate-bulk-rnaseq-data` — Next step (downstream); annotate / build DGEList / run DE on the resulting count matrices

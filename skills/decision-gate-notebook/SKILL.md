@@ -47,7 +47,7 @@ Pipeline stage just finished. Should the next stage run automatically?
 │        │     → next stage reads the gate and runs
 │        │
 │        └─ The choice needs a bespoke interactive app (live UMAP, brushing)
-│              → bulk-rnaseq-pathway-explorer  (heavier, HTML widget)
+│              → interactive-breakpoint-explorer  (live kernel, jscatter brushing)
 │
 └─ You just want to write up results  → ordinary .qmd report, no gate
 ```
@@ -269,4 +269,5 @@ After authoring a decision-gate notebook, confirm:
 
 - `figure-style` — Prerequisite; the styling/saving contract the notebook re-plots through
 - `scrna-pipeline-conventions` — Sibling convention; the numbered-script house style for the stages being reviewed
-- `bulk-rnaseq-pathway-explorer` — Alternative; a heavier live interactive review (brushable UMAP pathway explorer)
+- `interactive-breakpoint-explorer` — Live-kernel variant; brushes a live embedding (jscatter) instead of re-plotting a static snapshot
+- `bulk-rnaseq-pathway-explorer` — Alternative; a heavier static, shareable HTML dashboard (UMAP-of-gene-sets, no live kernel) when the review needs to leave the notebook

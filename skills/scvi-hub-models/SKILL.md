@@ -259,7 +259,7 @@ denoised_rna, denoised_prot = totalvi.get_normalized_expression(
 
 ### MultiVI (RNA + ATAC, paired or unpaired)
 
-**See: [MultiVI Multiomics Integration Skill](multivi-multiomics-integration.md) for comprehensive documentation.**
+**See: [`scvi-multivi`](../scvi-multivi/SKILL.md) for comprehensive documentation.**
 
 MultiVI integrates scRNA-seq, scATAC-seq, and paired multiome data into a shared latent space. Quick setup:
 

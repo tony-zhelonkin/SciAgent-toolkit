@@ -100,7 +100,7 @@ Child skills link directly into these — do not copy-paste their content into a
 - `scripts/validate_scvi_adata.py` — pre-flight check that any AnnData is ready for `setup_anndata`.
 - `checks/pre-train-checklist.md` — 8-item checklist the agent should walk before calling `.train()`.
 - `references/troubleshooting.md` — append-only log. Record new failure modes here instead of carving a new skill on first encounter.
-- `references/cross-refs.yaml` — single source of truth for each child's `complementary-skills:` list. Extend the validator alongside this file.
+- `references/cross-refs.yaml` — curated design record of the intended routing graph for this cluster, kept for reference when writing or auditing each child's `## See also` prose. There is no `metadata.complementary-skills` frontmatter anymore and no validator checks this file against the SKILL.md bodies — it is not enforced, so it can drift from the prose. Treat it as a curated starting point, not ground truth.
 
 ---
 

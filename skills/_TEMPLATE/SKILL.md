@@ -140,19 +140,6 @@ For automated verification: `python checks/check_<thing>.py` *(rich tier only)*
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| [Upstream preprocessing] | `prereq-skill` | Prerequisite |
-| [Downstream visualization or DE] | `next-skill` | Next step |
-| [Same job, different approach] | `alt-skill` | Alternative |
-| [Extend this skill's outputs] | `ext-skill` | Extension |
-
-*Required for `rich` tier, recommended for `standard`, optional for `simple`.*
-
----
-
 ## Resources
 
 - **Docs:** https://example.org/docs
@@ -172,7 +159,15 @@ For automated verification: `python checks/check_<thing>.py` *(rich tier only)*
 
 ## See also
 
-- `related-skill-a`
-- `related-skill-b`
-- `related-skill-c`
-- `related-skill-d`
+Each entry is `` - `skill-name` — Relationship; purpose ``: a short relationship
+label (`Prerequisite`, `Next step`, `Alternative`, `Downstream consumer`,
+`Sibling convention`, ... — pick the word that names the *edge*, not the
+target's job) followed by a semicolon and one clause saying what the target
+skill actually does for/against this one. Don't let the purpose clause just
+restate the relationship word (e.g. avoid `Voter; voter for X` — say what
+kind of vote). Keep it to one line per entry.
+
+- `related-skill-a` — Prerequisite; produces the input this skill consumes
+- `related-skill-b` — Next step; consumes this skill's output for [task]
+- `related-skill-c` — Alternative; use instead when [condition]
+- `related-skill-d` — Sibling convention; shares [contract/house style] with this skill

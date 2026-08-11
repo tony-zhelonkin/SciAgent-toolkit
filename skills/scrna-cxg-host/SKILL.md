@@ -1,6 +1,6 @@
 ---
 name: scrna-cxg-host
-description: "Two-phase skill for hosting AnnData on CellxGene over an internal network. Phase A prepares the schema (float32 obsm, unique ids, uns[title], X_umap, optional per-celltype re-embedding); Phase B deploys N cellxgene containers behind nginx basic-auth via Docker Compose. Use for wet-lab-facing interactive exploration on an intranet."
+description: "Two-phase skill for hosting AnnData on CellxGene over an internal network: Phase A preps the schema (float32 obsm, unique ids, X_umap); Phase B deploys N cellxgene containers behind nginx basic-auth via Docker Compose. Use for wet-lab-facing interactive exploration on an intranet — not one-off .h5ad viewing (cellxgene launch) or public hosting."
 license: MIT
 ---
 

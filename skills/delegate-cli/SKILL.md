@@ -1,10 +1,11 @@
 ---
 name: delegate-cli
 description: >-
-  Hand off or consult work to the local `codex` (OpenAI) and `agy` (Gemini) CLIs in headless mode.
-  Trigger when Anton says "implement/do X via codex/agy", "consult codex/agy", "have codex/agy do/write
-  X", "have agy web-research X", or similar. Covers headless flags, local model/account quirks,
-  sandbox fallbacks, installation, and safe multi-agent fan-out.
+  Hand off or consult work to the local `codex` (OpenAI) and `agy` (Gemini)
+  CLIs in headless mode. Trigger when Anton says "implement/do X via
+  codex/agy", "consult codex/agy", "have codex/agy do/write X", "have agy
+  web-research X", or similar. Covers headless flags, model/account quirks,
+  sandbox fallbacks, installation, and multi-agent fan-out.
 license: MIT
 ---
 

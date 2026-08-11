@@ -1,6 +1,6 @@
 ---
 name: cellranger-arc-multiome
-description: "Cell Ranger ARC processes 10x Single Cell Multiome ATAC+GEX via mkfastq, count, aggr, and reanalyze, producing paired ATAC fragments and gene expression from the same cells. Use for primary processing of multiome FASTQs, including single-indexed ATAC demultiplexing and the libraries CSV. For scRNA-only use Cell Ranger, not ARC."
+description: "Cell Ranger ARC processes 10x Single Cell Multiome ATAC+GEX via mkfastq, count, aggr, and reanalyze, producing paired ATAC fragments and gene expression from the same cells. Use for primary processing of multiome FASTQs, including single-indexed ATAC demultiplexing and the libraries CSV. For scRNA-only use plain Cell Ranger (external), not ARC."
 license: MIT
 ---
 
