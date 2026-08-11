@@ -278,6 +278,10 @@ symlink_create_dual() {
             return 1
             ;;
     esac
+    # Adding a category here REQUIRES adding its directories to
+    # _SCIAGENT_MOUNT_DIRS. Since teardown derives ownership from link targets,
+    # that list is the only record of where to look — a mount in an unlisted
+    # directory is never torn down and never reported, silently, forever.
 
     mkdir -p "$(dirname "$claude_path")"
     ln -sfn "$(symlink_target_for "$claude_path" "$canonical")" "$claude_path"
