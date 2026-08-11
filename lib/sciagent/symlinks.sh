@@ -6,25 +6,24 @@
 #     "version": 1,
 #     "stack": ["base", "reviewer"],
 #     "symlinks": ["/abs/or/relative/path"],
-#     "injected": [{"overlay": "_injected", "skill": "obsidian-vignette",
-#                    "via": "tag:pathway", "kind": "skill"}],
 #     "block_hash": "abc123..."
 #   }
 #
-# The "via" field: Named-skill injections carry via:"" (empty
-# string). Tag-driven injections carry via:"tag:<name>". Pre-PR-3 manifest
-# entries with no "via" key are treated as named-skill injections on read
-# (forward-compatible).
+# What the manifest is FOR, now that teardown no longer depends on it:
+#   - "stack" is the only machine-readable record of WHICH roles are active,
+#     and its presence is the is-a-stack-active flag (manifest_exists).
+#   - "symlinks" lets `status` notice a mount that has been DELETED. A
+#     target-ownership scan cannot: it sees what is present, not what is
+#     missing. Teardown reads it as a second source alongside link targets so
+#     that a teardown run against a different toolkit checkout still cleans up.
+#   - "block_hash" is written by activate and read by nothing. Retained for now
+#     only because dropping it changes the on-disk schema and a test asserts it.
 #
-# The "kind" field (cross-kind inject): Values are one of
-# "skill", "agent", "command". The legacy "skill" JSON key still names the
-# entry (e.g. `"skill": "code-reviewer"` for an injected sub-agent) — only
-# the "kind" discriminates which symlink tree the entry owns. 
-# The legacy manifest entries with no "kind" key default to "skill" on read
-# (forward-compatible).
+# An "injected" array was removed in 2026-08 along with the readers that
+# round-tripped it; it was residue of the retired `inject`/`eject` verbs and
+# was always emitted empty.
 #
-# jq is a dependency I couldn`t yet avoid 
-# jq used when available for reading; when absent, a targeted bash fallback
+# jq is used when available for reading; when absent, a targeted bash fallback
 # uses grep+sed against this well-known flat structure. The fallback does NOT
 # attempt general JSON parsing — it only supports this specific schema.
 # Writing always uses the bash _json_escape helper (no jq dependency).
@@ -108,20 +107,12 @@ _json_escape() {
 _manifest_staging=""
 _manifest_stack_val=""
 declare -a _manifest_syms=()
-declare -a _manifest_injected_overlays=()
-declare -a _manifest_injected_skills=()
-declare -a _manifest_injected_vias=()
-declare -a _manifest_injected_kinds=()
 
 manifest_begin() {
     local stack="$1"   # space-separated role names
     _manifest_staging=$(mktemp)
     _manifest_stack_val="$stack"
     _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
 }
 
 _manifest_record_symlink() {
@@ -156,24 +147,6 @@ _manifest_write_json() {
                 (( first )) && first=0 || printf ',\n'
                 printf '"%s"' "$(_json_escape "$s")"
             done
-        fi
-        printf '],\n'
-
-        # injected array
-        printf '  "injected": ['
-        first=1
-        local _ninj=${#_manifest_injected_overlays[@]}
-        if (( _ninj > 0 )); then
-            local i
-            for (( i=0; i<_ninj; i++ )); do
-                (( first )) && first=0 || printf ','
-                printf '\n    {"overlay": "%s", "skill": "%s", "via": "%s", "kind": "%s"}' \
-                    "$(_json_escape "${_manifest_injected_overlays[$i]}")" \
-                    "$(_json_escape "${_manifest_injected_skills[$i]}")" \
-                    "$(_json_escape "${_manifest_injected_vias[$i]:-}")" \
-                    "$(_json_escape "${_manifest_injected_kinds[$i]:-skill}")"
-            done
-            printf '\n  '
         fi
         printf '],\n'
 
@@ -545,96 +518,20 @@ manifest_symlinks() {
     fi
 }
 
-# manifest_injected — print one "overlay|skill|via|kind" tuple per line.
-# The legacy entries without a "via" key emit an empty third field (treated as
-# named-skill injection by callers that inspect the via column).
-# The legacy entries without a "kind" key emit "skill" as the fourth field
-# (the legacy default — every pre-PR-A injection was a skill).
+# Removed 2026-08: manifest_injected / manifest_block_hash /
+# manifest_update_block_hash (~110 lines).
 #
-# Fields are pipe-separated rather than whitespace-separated so that an empty
-# "via" (named-skill injection) is preserved by `read -r`. Bash collapses
-# consecutive whitespace IFS characters (tab, space) into a single delimiter,
-# which would silently shift the fourth field into the third slot. Pipe is
-# safe because no legal value in the four columns can contain it: overlay
-# and skill names are bash-identifier-shaped, via is "" or "tag:<name>",
-# and kind is one of skill/agent/command. Callers must use
-# `IFS='|' read -r ...` (set IFS explicitly to avoid relying on caller env).
-manifest_injected() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-    if command -v jq >/dev/null 2>&1; then
-        jq -r '.injected[] | (.overlay + "|" + .skill + "|" + (.via // "") + "|" + (.kind // "skill"))' "$_MANIFEST_PATH"
-    else
-        # Fallback: each injected entry spans one line:
-        #   {"overlay": "X", "skill": "Y", "via": "Z", "kind": "K"}
-        # The legacy entries lack the "via" field; those emit empty third field.
-        # The legacy entries lack the "kind" field; those emit "skill" fourth field.
-        grep '"overlay"' "$_MANIFEST_PATH" | while IFS= read -r line; do
-            local ov sk via kind
-            ov=$(printf '%s' "$line" | sed 's/.*"overlay":[[:space:]]*"\([^"]*\)".*/\1/')
-            sk=$(printf '%s' "$line" | sed 's/.*"skill":[[:space:]]*"\([^"]*\)".*/\1/')
-            # Extract "via" when present; default to empty string when absent.
-            if printf '%s' "$line" | grep -q '"via"'; then
-                via=$(printf '%s' "$line" | sed 's/.*"via":[[:space:]]*"\([^"]*\)".*/\1/')
-            else
-                via=""
-            fi
-            # Extract "kind" when present; default to "skill" when absent.
-            if printf '%s' "$line" | grep -q '"kind"'; then
-                kind=$(printf '%s' "$line" | sed 's/.*"kind":[[:space:]]*"\([^"]*\)".*/\1/')
-            else
-                kind="skill"
-            fi
-            printf '%s|%s|%s|%s\n' "$ov" "$sk" "$via" "$kind"
-        done
-    fi
-}
-
-# manifest_block_hash — print stored block hash.
-manifest_block_hash() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-    if command -v jq >/dev/null 2>&1; then
-        jq -r '.block_hash' "$_MANIFEST_PATH"
-    else
-        grep '"block_hash"' "$_MANIFEST_PATH" \
-            | sed 's/.*"block_hash":[[:space:]]*"\([^"]*\)".*/\1/'
-    fi
-}
-
-# manifest_update_block_hash <hash>  — rewrite "block_hash" in-place.
-manifest_update_block_hash() {
-    local new_hash="$1"
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    local old_stack old_syms old_inj
-    old_stack=$(manifest_stack)
-    old_syms=$(manifest_symlinks)
-    old_inj=$(manifest_injected)
-
-    _manifest_stack_val="$old_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done <<< "$old_syms"
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done <<< "$old_inj"
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$new_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
-}
+# All three were readers with no callers. manifest_injected served the retired
+# `inject`/`eject` verbs (Phase 2); its only remaining caller was
+# manifest_update_block_hash, which had no callers of its own, and
+# manifest_block_hash had none either — the drift guard reads the hash from the
+# AGENTS.md marker (block_hash_check), never from the manifest. A value that is
+# only ever read back in order to be written out unchanged is dead, so the
+# whole cluster went together with the "injected" JSON key it round-tripped.
+#
+# The manifest still carries a `block_hash` field that activate writes and
+# nothing reads. Left in place deliberately: removing it changes the on-disk
+# schema and a test asserts its presence, so it belongs in its own change.
 
 # ---------------------------------------------------------------------------
 # symlink_create_helper_lib

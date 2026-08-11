@@ -405,17 +405,6 @@ _json_esc() {
     printf '%s' "$s"
 }
 
-_json_array_names() {
-    local first=1 n
-    printf '['
-    for n in "$@"; do
-        [[ -z "$n" ]] && continue
-        if (( first )); then first=0; else printf ','; fi
-        printf '"%s"' "$(_json_esc "$n")"
-    done
-    printf ']'
-}
-
 _status_render_json() {
     local first
     printf '{'
