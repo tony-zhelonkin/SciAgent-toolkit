@@ -224,17 +224,6 @@ Run these checks every time you use CORESH on a new signature:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Canonical-pathway interpretation (MSigDB Hallmark/KEGG/Reactome/GO) of the same signature | `bulk-rnaseq-gsea` | Alternative (prior-knowledge question) |
-| Run GSEA with CORESH-derived gene sets as a custom database | `bulk-rnaseq-gsea` | Next step (consumes `extract_gene_loadings.R` output) |
-| Interactive HTML dashboards over the resulting master table | `bulk-rnaseq-pathway-explorer` | Downstream (visualizes GSEA output) |
-| Topology-aware metabolic module discovery from DE | `gatom-metabolomic-predictions` | Alternative (module-level, not signature-level) |
-
----
-
 ## Resources
 
 - **Paper:** Sukhov V et al. *CORESH: a gene signature-based search engine for public gene expression datasets.* Nucleic Acids Res. 2025 Jul 7;53(W1):W187-W192. doi: [10.1093/nar/gkaf372](https://doi.org/10.1093/nar/gkaf372). PMID: 40322919; PMCID: PMC12230675.
@@ -270,6 +259,6 @@ Run these checks every time you use CORESH on a new signature:
 
 ## See also
 
-- `bulk-rnaseq-gsea`
-- `bulk-rnaseq-pathway-explorer`
-- `gatom-metabolomic-predictions`
+- `bulk-rnaseq-gsea` — Alternative (canonical-pathway interpretation of the same signature via MSigDB Hallmark/KEGG/Reactome/GO) and next step (run GSEA with CORESH-derived gene sets as a custom database, consuming `extract_gene_loadings.R` output)
+- `bulk-rnaseq-pathway-explorer` — Downstream; interactive HTML dashboards over the resulting master table (visualizes GSEA output)
+- `gatom-metabolomic-predictions` — Alternative; topology-aware metabolic module discovery from DE (module-level, not signature-level)

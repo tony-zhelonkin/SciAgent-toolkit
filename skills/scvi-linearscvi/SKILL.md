@@ -183,5 +183,6 @@ sc.pl.umap(adata, color=[f"factor_{i}" for i in range(5)])
 - `scvi-lda`
 - `scanpy`
 - `anndata`
+- `genenmf-metaprogram-discovery` — to turn LinearSCVI's interpretable per-factor gene loadings into consensus gene-expression metaprograms across samples/datasets
 
 Upstream docs: https://docs.scvi-tools.org/en/stable/user_guide/models/linearscvi.html

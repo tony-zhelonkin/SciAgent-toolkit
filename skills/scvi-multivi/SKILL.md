@@ -174,3 +174,4 @@ da = model.differential_accessibility(
 - `scvi-peakvi`
 - `scglue-unpaired-multiomics-integration`
 - `cellranger-arc-multiome`
+- `muon-multimodal-analysis` — for loading, storing, and manipulating the paired RNA+ATAC `MuData` object that MultiVI's inputs and outputs are typically organized around

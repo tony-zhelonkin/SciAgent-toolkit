@@ -446,18 +446,6 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Operate on the `.h5ad` before schema-prep (subset, copy, layer manipulation) | `anndata` | Prerequisite-adjacent |
-| Standard scRNA-seq UMAP/leiden pipeline (upstream of subset re-embed) | `scanpy` | Prerequisite |
-| House style for `03_results/objects/` and `03_results/annotation/` paths | `scrna-pipeline-conventions` | Convention |
-| Annotate cell types via reference mapping before hosting | `scvi-scanvi` | Upstream (often) |
-| Cell-type annotation transfer from CellxGene Census | `cellxgene-census-annotation` | Adjacent / alternative |
-
----
-
 ## Resources
 
 - CellxGene Discover: https://cellxgene.cziscience.com/
@@ -479,7 +467,8 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 
 ## See also
 
-- `anndata`
-- `scanpy`
-- `scrna-pipeline-conventions`
-- `scvi-scanvi`
+- `anndata` — Prerequisite-adjacent; operate on the `.h5ad` before schema-prep (subset, copy, layer manipulation)
+- `scanpy` — Prerequisite; standard scRNA-seq UMAP/leiden pipeline (upstream of subset re-embed)
+- `scrna-pipeline-conventions` — Convention; house style for `03_results/objects/` and `03_results/annotation/` paths
+- `scvi-scanvi` — Upstream (often); annotate cell types via reference mapping before hosting
+- `cellxgene-census-annotation` — Adjacent / alternative; cell-type annotation transfer from CellxGene Census

@@ -89,19 +89,6 @@ A peak set is only as good as the signal it retains. Validate on four axes: **FR
 | Adaptive per-cluster threshold, stratified sampling, rescue, metadata pre-filter | `references/rare-celltype-protection.md` |
 | FRiP / TSS / peaks-per-cell / marker / embedding / chromVAR validation | `references/validation-battery.md` |
 
-## Complementary skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Paired multiome consensus (RNA+ATAC same cells) | `peak-atlas-multiome` | Child (paired regime) |
-| Unpaired consensus (transfer identity to ATAC) | `peak-atlas-unpaired` | Child (unpaired regime) |
-| Bare within-study merge from MACS summit BEDs | `iterative-peak-merging` | Embedded primitive |
-| De-novo peak calling + fragment/QC preprocessing | `snapatac2-atac-preprocessing` | Upstream calling |
-| Signac peak calling, quantification, coverage | `signac-chromatin-analysis` | Upstream / downstream |
-| Per-cell TF-motif activity once the atlas is fixed | `chromvar-motif-accessibility` | Downstream validation / use |
-
----
-
 ## Pitfalls
 
 | Symptom | Cause | Fix |
@@ -133,9 +120,9 @@ A peak set is only as good as the signal it retains. Validate on four axes: **FR
 
 ## See also
 
-- `peak-atlas-multiome`
-- `peak-atlas-unpaired`
-- `iterative-peak-merging`
-- `snapatac2-atac-preprocessing`
-- `signac-chromatin-analysis`
-- `chromvar-motif-accessibility`
+- `peak-atlas-multiome` — Child (paired regime); paired multiome consensus (RNA+ATAC same cells)
+- `peak-atlas-unpaired` — Child (unpaired regime); unpaired consensus (transfer identity to ATAC)
+- `iterative-peak-merging` — Embedded primitive; bare within-study merge from MACS summit BEDs
+- `snapatac2-atac-preprocessing` — Upstream calling; de-novo peak calling + fragment/QC preprocessing
+- `signac-chromatin-analysis` — Upstream / downstream; Signac peak calling, quantification, coverage
+- `chromvar-motif-accessibility` — Downstream validation / use; per-cell TF-motif activity once the atlas is fixed

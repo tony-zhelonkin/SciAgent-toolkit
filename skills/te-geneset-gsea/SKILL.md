@@ -159,15 +159,6 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Build the TE family/class GMTs and combined DGEList | `annotate-bulk-rnaseq-data` | Prerequisite (TE path) |
-| Gene-symbol or MSigDB GSEA (Hallmark/KEGG/Reactome) | `bulk-rnaseq-gsea` | Alternative (gene GSEA; shares clusterProfiler machinery) |
-
----
-
 ## Resources
 
 - **clusterProfiler:** https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
@@ -184,5 +175,5 @@ After running this skill, confirm:
 
 ## See also
 
-- `annotate-bulk-rnaseq-data`
-- `bulk-rnaseq-gsea`
+- `annotate-bulk-rnaseq-data` — Prerequisite (TE path); build the TE family/class GMTs and combined DGEList
+- `bulk-rnaseq-gsea` — Alternative; gene-symbol or MSigDB GSEA (Hallmark/KEGG/Reactome), shares clusterProfiler machinery

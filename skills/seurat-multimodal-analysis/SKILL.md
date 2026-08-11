@@ -10,11 +10,11 @@ license: MIT
 
 This skill is the **entry point** for R-side multimodal scRNA-seq
 analysis. It does not duplicate per-tool tutorial content — that lives
-in the leaf skills declared under `requires:`. Its job is to choreograph
+in the leaf skills listed below. Its job is to choreograph
 the workflow: when to use CITE-seq WNN vs Signac multiome, when to add
 a bridge dataset, and when unpaired anchoring is the right tool.
 
-**The leaves (all pulled in automatically):**
+**The leaves (mounted flat alongside this skill; load each on demand):**
 
 | Leaf | Role in the workflow |
 |---|---|

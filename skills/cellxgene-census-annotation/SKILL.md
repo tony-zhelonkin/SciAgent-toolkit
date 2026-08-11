@@ -300,16 +300,6 @@ removes technical duplicates (Census stores the same cell across multiple datase
 
 ---
 
-## Complementary skills
-
-| When you need… | Use skill | Relationship |
-|---|---|---|
-| Compose this vote with markers / scANVI / popV / treeArches into a frozen label | `multi-tool-consensus-annotation` | Downstream (this leg is one voter) |
-| Semi-supervised label transfer from partial labels | `scvi-scanvi` | Alternative |
-| scArches surgery to map a query onto a reference model | `scvi-scarches-reference-mapping` | Related (same projection primitive) |
-| Open-set novelty / hierarchical multi-reference learning | `treearches-hierarchy-learning` | Alternative / complement |
-| Cross-atlas embedding similarity search (SCimilarity / Census) | `single-cell-vector-search` | Alternative |
-
 ## Resources
 
 - Census docs: https://chanzuckerberg.github.io/cellxgene-census/
@@ -329,8 +319,8 @@ removes technical duplicates (Census stores the same cell across multiple datase
 
 ## See also
 
-- `single-cell-vector-search`
-- `treearches-hierarchy-learning`
-- `scvi-scanvi`
-- `scvi-scarches-reference-mapping`
-- `multi-tool-consensus-annotation`
+- `single-cell-vector-search` — Alternative; cross-atlas embedding similarity search (SCimilarity / Census)
+- `treearches-hierarchy-learning` — Alternative / complement; open-set novelty / hierarchical multi-reference learning
+- `scvi-scanvi` — Alternative; semi-supervised label transfer from partial labels
+- `scvi-scarches-reference-mapping` — Related (same projection primitive); scArches surgery to map a query onto a reference model
+- `multi-tool-consensus-annotation` — Downstream; compose this vote with markers / scANVI / popV / treeArches into a frozen label (this leg is one voter)

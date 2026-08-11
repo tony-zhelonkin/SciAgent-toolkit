@@ -1,13 +1,41 @@
-# implementation-kickoff — sciagent extension
+# implementation-kickoff — sciagent extension (ARCHIVED — superseded, not live direction)
 
-A working document for executing the sciagent extension after grilling. Mirrors the dual purpose of `docs/kickoff.md`:
+> **STATUS: HISTORICAL RECORD. DO NOT EXECUTE. DO NOT PASTE §7 INTO A SESSION.**
+>
+> This document planned an *expansion* of the role layer: a `metadata.requires:`
+> dependency graph, a `tags.yaml` vocabulary + tag-based `inject --tag`/`eject`
+> verb pair, and a `scope: concept|implementation` taxonomy. None of that
+> shipped as designed. Instead, the "demolish the role layer" refactor (see
+> `docs/architecture.md`, `CHANGELOG.md`) went the opposite direction: it
+> **removed** `inject`/`eject` entirely, **removed** the `metadata:`
+> frontmatter block and every `requires:`/tag mechanism, and made roles
+> pure provenance labels — the full skill/agent/command catalog is mounted
+> unconditionally now, so there is nothing left to inject, eject, or gate by
+> tag. `sciagent validate` today is the frontmatter-shape + collision checker
+> described in `docs/architecture.md` §5, not the graph-and-tag validator PR 2
+> below designs.
+>
+> Every PR plan, file list, code skeleton, and the session-resume prompt in §7
+> below describes that abandoned direction. It is kept **only as an audit
+> trail** of what was once decided and why the team changed course — read it
+> as history, never as a task list. If you are an agent and were pointed at
+> this file to "pick up where it left off," stop and re-read
+> `docs/architecture.md` instead; nothing here should be implemented.
+>
+> The imperative mood throughout ("do not soften `skill_deps.sh`", "execute
+> PR 1", etc.) is preserved verbatim from the original working document for
+> historical accuracy — it does not apply anymore.
 
-1. **A guide for the human (Anton)** — what to build, in what order, what each PR has to verify, when to stop and ask.
-2. **A session-resume prompt for a fresh Claude Code session** — paste §7 into a clean session to pick up the work.
+---
 
-Same content serves both because the implementer's reading order and the reviewer's verification order are the same list.
+Written as a working document for executing the sciagent extension after grilling, mirroring the dual purpose of `docs/kickoff.md`:
 
-The grilling phase that produced this plan is done. `kickoff.md` §3 is empty; §9 holds the 16 resolutions; `docs/proposals/deffered.md` holds four wholesale deferrals. The grilling document stays as audit trail; this document drives PRs.
+1. **A guide for the human (Anton)** — what was to be built, in what order, what each PR had to verify, when to stop and ask.
+2. **A session-resume prompt for a fresh Claude Code session** — §7 was meant to be pasted into a clean session to pick up the work. (Superseded — do not paste it; see the banner at the top of this file.)
+
+Same content served both because the implementer's reading order and the reviewer's verification order were the same list.
+
+The grilling phase that produced this plan was done at the time. `kickoff.md` §3 was empty; §9 held the 16 resolutions; `docs/proposals/deffered.md` held four wholesale deferrals. The grilling document stays as audit trail; this document was meant to drive PRs, but the plan it describes was abandoned in favor of the opposite direction (see the banner at the top of this file).
 
 ---
 
@@ -395,9 +423,9 @@ cmd_eject() {
 
 ---
 
-## 6. Reading order for a fresh session
+## 6. Reading order for a fresh session (historical — the plan below was never executed as designed)
 
-Before executing PR 1, load these files into context in this order:
+The plan called for loading these files into context, in this order, before executing PR 1:
 
 1. `docs/kickoff.md` §9 — authoritative resolutions. Every PR's "why" lives here.
 2. `docs/proposals/deffered.md` — what is explicitly out of scope.
@@ -415,7 +443,14 @@ The grilling artefacts (`docs/proposals/ai-research/*.md`, `docs/proposals/sciag
 
 ---
 
-## 7. Session-resume prompt
+## 7. Session-resume prompt (ARCHIVED — do not paste)
+
+> **This prompt is dead.** It was written to resume the PR 1–3 work above.
+> That work was superseded by the demolition refactor (see the banner at the
+> top of this file). Pasting it into a session today would misdirect an
+> agent into rebuilding `inject`/`eject`/`tags.yaml`/`metadata.requires:` —
+> exactly the layer that was deliberately removed. Kept verbatim below for
+> audit-trail purposes only.
 
 Paste the body below into a fresh Claude Code session. Assumes working directory `/workspaces/DC_hum_verse/01_modules/SciAgent-toolkit/`.
 
@@ -487,4 +522,4 @@ Explicit don'ts. Lifted from §3, `deffered.md`, and the hard constraints in §5
 
 ---
 
-*End of implementation kickoff. All architectural decisions resolved in `kickoff.md` §9; deferrals in `deffered.md`. Walk into PR 1, read §5, execute.*
+*End of implementation kickoff. All architectural decisions were resolved in `kickoff.md` §9; deferrals in `deffered.md`. The plan called for walking into PR 1, reading §5, and executing — but the plan itself was superseded (see the banner at the top of this file); do not execute it.*

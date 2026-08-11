@@ -1,5 +1,15 @@
 # kickoff — sciagent extension grilling
 
+> **Outcome note (superseded).** The decisions recorded here (§9) fed
+> [`docs/implementation-kickoff.md`](implementation-kickoff.md), which planned
+> an `inject --tag`/`eject`/`metadata.requires:`/`tags.yaml` extension. That
+> plan did not ship as designed — a later "demolish the role layer" refactor
+> went the opposite direction and removed `inject`/`eject`, the `metadata:`
+> frontmatter block, and all `requires:`/tag mechanisms (see
+> `docs/architecture.md`). This file's grilling record and the §7
+> session-resume prompt are kept as audit trail; do not treat them as a
+> description of the current system or as work to resume.
+
 A working document for resuming the sciagent extension design review. Serves two purposes simultaneously:
 
 1. **A guide for the human** (Anton) — what to read, in what order, what to decide, when to step back, what to hand-edit.

@@ -22,7 +22,9 @@ Different data modalities, different goals, might require different context.
 - different agents, 
 - different skills, 
 - different commands. 
-Roles let you swap that context in one command. 
+Roles used to gate which of these got mounted; they don't anymore — the whole
+catalog is always mounted (see "The RPG model" below), and activating a role now
+picks the output-style and labels provenance in one command.
 Everything is by design per-project folder.
 
 Even with increased context window size I don\`t personally believe that 
@@ -82,11 +84,9 @@ sciagent --help     # verify it resolves
 # Bootstrap a new project directory with AGENTS.md, CLAUDE.md, docs/_internal/scientific-context.md
 sciagent new project
 
-# Activate a role — symlinks agents, skills, commands into .claude/ and .agents/
+# Activate a role — symlinks the whole skill/agent/command catalog into .claude/ and .agents/;
+# the role only decides provenance labels + which output-style gets applied
 sciagent activate base
-
-# Add one skill on top of the current stack
-sciagent inject simplify
 
 # Show the active stack, effective tables, and block/symlink health (add --json for a machine-readable manifest)
 sciagent status
@@ -103,7 +103,10 @@ sciagent deactivate
 A project has at most two active roles: 
 - a `base` (the foundation) 
 - and an optional `overlay` (the specialization). 
-Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
+Layering runs bottom-to-top for *provenance*: a role's `skills:`/`agents:`/`commands:`
+lists decide which role a mounted entry is attributed to (and which entry wins the
+attribution on a name collision), not whether it gets mounted — the full catalog is
+always mounted regardless of the active stack. `sciagent status` shows what got shadowed.
 
 Any role can occupy either slot; there's no enforced base/overlay typing. 
 Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `base` + `scatac-regulatory` to layer a chromatin stack on top of the scRNA foundation, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
@@ -120,59 +123,27 @@ Stack depth is for now capped at 2 to stay inspectable.
 |------|-------------|
 | `activate <base> [overlay]` | Activate role(s); replaces current stack |
 | `deactivate [<role>]` | Tear down the stack or remove one role |
-| `inject <name>` | Add one skill / agent / command (auto-detect; `--skill` / `--agent` / `--command` for explicit) |
-| `eject <name>` | Remove one injected entry (symmetric to `inject`) |
-| `validate [--quiet]` | Check toolkit integrity (requires-graph, tags, refs, name collisions) |
+| `validate [--quiet]` | Check skill frontmatter shape + cross-namespace name collisions |
+| `lint [--project-dir D] [--check <name>...]` | Opt-in PROJECT guardrail checks against an analysis repo |
 | `status [--json\|--effective\|--source <name>]` | Report active stack and effective tables |
 | `list [roles\|skills\|agents\|commands]` | List available content in the toolkit |
 | `new project\|role\|skill\|agent [args]` | Scaffold from templates |
+| `craft [--project-dir D]` | Render/refresh the SCIAGENT:CRAFT block in AGENTS.md |
+| `gitignore [<path>]` | Add/update the SCIAGENT:GITIGNORE block in .gitignore |
+| `update [--to <ref>]` | Re-pin the toolkit submodule + re-activate the current stack |
+| `provision [--harness <csv\|all>]` | Seed user-level / global context + settings per harness |
 
 Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
 
-## inject · eject · validate
+## validate
 
-`inject <name>` auto-detects whether `<name>` is a skill, agent, or command:
+There is no `inject`/`eject` verb anymore — the whole catalog is always mounted, so
+there is nothing left to add or remove on top of a role's stack (see "The RPG model").
 
-```
-$ sciagent inject extra-skill
-injected: extra-skill (into _injected)
-
-$ sciagent inject extra-agent
-injected: extra-agent (into _injected)
-
-$ sciagent inject extra-command
-injected: extra-command (into _injected)
-```
-
-Ambiguous names hard-fail; the explicit flags resolve them:
-
-```
-$ sciagent inject dual-name
-error: ambiguous — 'dual-name' exists as both skill and command. use --skill <name>, --agent <name>, or --command <name>
-
-$ sciagent inject --command dual-name
-injected: dual-name (into _injected)
-note: companion skill 'dual-name' available — `inject --skill dual-name` to add
-```
-
-The companion-skill note is informational — the skill is not auto-mounted. Unknown names hard-fail:
-
-```
-$ sciagent inject definitely-does-not-exist
-error: 'definitely-does-not-exist' not found as skill, agent, or command
-```
-
-`eject <name>` is symmetric. Ambiguous when the same name was injected as 2+ kinds:
-
-```
-$ sciagent eject extra-agent
-ejected: extra-agent (agent)
-
-$ sciagent eject dual-name
-error: ambiguous — 'dual-name' is injected as both command and skill. use --skill <name>, --agent <name>, or --command <name>
-```
-
-`validate` checks toolkit integrity. Cross-namespace name collisions are soft-warns (mounting both is supported); other failures are hard. `--quiet` suppresses all output (exit code only):
+`validate` checks the frontmatter shape of every skill in the toolkit (matching
+`name:`, a `description:` under the length cap). Cross-namespace name collisions
+are soft-warns (mounting both is supported); frontmatter failures are hard.
+`--quiet` suppresses all output (exit code only):
 
 ```
 $ sciagent validate

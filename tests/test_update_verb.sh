@@ -50,7 +50,7 @@ fi
 
 # ROLES block must be present and hash-valid.
 . "$FAKE/lib/sciagent/block.sh"
-if ! block_hash_check AGENTS.md; then
+if ! block_hash_check AGENTS.md ROLES; then
     echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin" >&2
     exit 1
 fi
@@ -108,7 +108,7 @@ if [[ "$stack_before2" != "$stack_after2" ]]; then
     exit 1
 fi
 
-if ! block_hash_check AGENTS.md; then
+if ! block_hash_check AGENTS.md ROLES; then
     echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin (two-role stack)" >&2
     exit 1
 fi
@@ -187,7 +187,7 @@ if [[ "$update_rc_e" -ne 0 ]]; then
 fi
 
 # Both managed blocks must still verify after the re-activation.
-if ! block_hash_check AGENTS.md; then
+if ! block_hash_check AGENTS.md ROLES; then
     echo "FAIL [$_TEST_NAME] ROLES block hash invalid after update --no-pin (legacy _injected stack)" >&2
     exit 1
 fi

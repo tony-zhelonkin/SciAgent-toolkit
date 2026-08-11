@@ -29,9 +29,9 @@ Usage:
                                        (else craft.yaml's output_style:) selects
                                        the mounted/applied Claude system prompt
   sciagent deactivate [<role>]         Tear down the stack (or one role)
-  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
-                                       Force resolution to one kind
-                                       Disambiguate when same name spans kinds
+  sciagent validate [--quiet]          Check skill frontmatter shape + cross-namespace
+                                       name collisions (soft-warn); --check <name>...
+                                       is deprecated and delegates to sciagent lint
   sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]
                                        Opt-in PROJECT guardrail checks (the
                                        (c) GUARDRAIL layer) against an analysis repo
@@ -40,8 +40,6 @@ Usage:
   sciagent list [roles|skills|agents|commands]
                                        List available content
   sciagent list role <name>            Detailed view of a specific role
-  sciagent list deps <skill>           Transitive requires closure (leaves first)
-  sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
   sciagent craft [--project-dir D] [--force] [--quiet]

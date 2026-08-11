@@ -203,3 +203,4 @@ model.train(
 - `scanpy`
 - `anndata`
 - `genenmf-metaprogram-discovery`
+- `pycistopic-atac-topic-modeling` — the scATAC-seq counterpart of topic modeling; switch there when the data is chromatin accessibility rather than scRNA-seq (see comparison table above)

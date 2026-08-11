@@ -251,3 +251,4 @@ adata = sc.read_h5ad("signac_data.h5ad")
 - `scvi-multivi`
 - `chromvar-motif-accessibility`
 - `iterative-peak-merging`
+- `pycistopic-atac-topic-modeling` — for topic-model-based cCRE/regulon discovery as an alternative accessibility model when you want interpretable topics rather than a VAE latent space

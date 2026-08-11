@@ -10,12 +10,12 @@ license: MIT
 
 This skill is the **entry point** for Python-side paired multimodal
 analysis (10x Multiome, CITE-seq). It does not duplicate per-tool tutorial
-content — that lives in the leaf skills declared under `requires:`. Its
+content — that lives in the leaf skills listed below. Its
 job is to choreograph the workflow: when to load a MuData, which
 preprocessing path to take per modality, when to integrate, and how to
 hand off to scvi-tools for deep-learning-based joint embeddings.
 
-**The leaves (all pulled in automatically):**
+**The leaves (mounted flat alongside this skill; load each on demand):**
 
 | Leaf | Role in the workflow |
 |---|---|

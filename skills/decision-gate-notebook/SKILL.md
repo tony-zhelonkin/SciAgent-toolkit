@@ -247,16 +247,6 @@ After authoring a decision-gate notebook, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The styling/saving contract the notebook re-plots through | `figure-style` | Prerequisite |
-| The numbered-script house style for the stages being reviewed | `scrna-pipeline-conventions` | Sibling convention |
-| A heavier live interactive review (brushable UMAP pathway explorer) | `bulk-rnaseq-pathway-explorer` | Alternative |
-
----
-
 ## Resources
 
 - **Quarto with R (knitr engine):** https://quarto.org/docs/computations/r.html
@@ -277,6 +267,6 @@ After authoring a decision-gate notebook, confirm:
 
 ## See also
 
-- `figure-style`
-- `scrna-pipeline-conventions`
-- `bulk-rnaseq-pathway-explorer`
+- `figure-style` — Prerequisite; the styling/saving contract the notebook re-plots through
+- `scrna-pipeline-conventions` — Sibling convention; the numbered-script house style for the stages being reviewed
+- `bulk-rnaseq-pathway-explorer` — Alternative; a heavier live interactive review (brushable UMAP pathway explorer)

@@ -397,18 +397,6 @@ For automated verification: `python checks/check_program_redundancy.py <correlat
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Standard scRNA-seq pipeline upstream (QC, integration, annotation) | `scanpy` | Prerequisite |
-| MAD-based QC filtering before this skill | `single-cell-rna-qc` | Prerequisite |
-| Per-sample NMF + cross-donor consensus (different statistical object) | `genenmf-metaprogram-discovery` | Alternative |
-| Build an interactive HTML pathway dashboard from program annotations | `bulk-rnaseq-pathway-explorer` | Downstream |
-| House style for output paths / numbered scripts | `scrna-pipeline-conventions` | Convention |
-
----
-
 ## Resources
 
 - cNMF GitHub: https://github.com/dylkot/cNMF
@@ -429,8 +417,8 @@ For automated verification: `python checks/check_program_redundancy.py <correlat
 
 ## See also
 
-- `scanpy`
-- `single-cell-rna-qc`
-- `genenmf-metaprogram-discovery`
-- `bulk-rnaseq-pathway-explorer`
-- `scrna-pipeline-conventions`
+- `scanpy` — Prerequisite; standard scRNA-seq pipeline upstream (QC, integration, annotation)
+- `single-cell-rna-qc` — Prerequisite; MAD-based QC filtering before this skill
+- `genenmf-metaprogram-discovery` — Alternative; per-sample NMF + cross-donor consensus, a different statistical object
+- `bulk-rnaseq-pathway-explorer` — Downstream; build an interactive HTML pathway dashboard from program annotations
+- `scrna-pipeline-conventions` — Convention; house style for output paths / numbered scripts

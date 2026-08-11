@@ -391,19 +391,12 @@ print(f"ATAC-only: {len(atac_barcodes - rna_barcodes)}")
 
 ---
 
-## Related Skills
-
-- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling (Stage 5 uses cisTopic object from this skill)
-- [pycistarget](pycistarget-motif-enrichment.md) — Motif enrichment on binarized topics
-- [SCENIC+ GRN](scenic-grn-inference.md) — eRegulon inference (Python API + Snakemake)
-- [Seurat ↔ AnnData](anndatar-seurat-scanpy-conversion.md) — General conversion patterns
-- [Multimodal AnnData/MuData](multimodal-anndata-mudata.md) — Multi-assay conversion
-
-
 ---
 
 ## See also
 
-- `pycistopic-atac-topic-modeling`
-- `pycistarget-motif-enrichment`
-- `scenic-grn-inference`
+- `pycistopic-atac-topic-modeling` — ATAC topic modeling (Stage 5 uses the cisTopic object from this skill)
+- `pycistarget-motif-enrichment` — Motif enrichment on binarized topics
+- `scenic-grn-inference` — eRegulon inference (Python API + Snakemake)
+- `anndatar-seurat-scanpy-conversion` — General conversion patterns (Seurat ↔ AnnData)
+- `multimodal-anndata-mudata` — Multi-assay conversion

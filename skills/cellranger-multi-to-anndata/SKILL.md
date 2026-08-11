@@ -259,19 +259,6 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Operate on the produced `.h5ad` (subset, save, copy) | `anndata` | Adjacent / prerequisite-adjacent |
-| Run MAD-based QC on the produced `.h5ad` | `single-cell-rna-qc` | Next step (Stage 1) |
-| Integrate batches and learn a latent space | `scvi-basic` | Downstream (Stage 2) |
-| House style for the project this lands in | `scrna-pipeline-conventions` | Convention; references `03_results/checkpoints/` layout |
-| Multiome RNA + ATAC paired ingestion | `muon-multimodal-analysis` | Alternative (different modality) |
-| Spliced/unspliced or intronic counting | `starsolo-spliced-unspliced` | Alternative (different counting strategy) |
-
----
-
 ## Resources
 
 - 10x CellRanger Multi: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
@@ -292,7 +279,9 @@ After running this skill, confirm:
 
 ## See also
 
-- `anndata`
-- `single-cell-rna-qc`
-- `scvi-basic`
-- `scrna-pipeline-conventions`
+- `anndata` — Adjacent / prerequisite-adjacent; operate on the produced `.h5ad` (subset, save, copy)
+- `single-cell-rna-qc` — Next step (Stage 1); run MAD-based QC on the produced `.h5ad`
+- `scvi-basic` — Downstream (Stage 2); integrate batches and learn a latent space
+- `scrna-pipeline-conventions` — Convention; house style for the project this lands in, references the `03_results/checkpoints/` layout
+- `muon-multimodal-analysis` — Alternative (different modality); multiome RNA + ATAC paired ingestion
+- `starsolo-spliced-unspliced` — Alternative (different counting strategy); spliced/unspliced or intronic counting

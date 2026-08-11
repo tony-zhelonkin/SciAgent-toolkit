@@ -271,17 +271,6 @@ Both overlays can be plotted on the same `plot_factor_scatter` axes — they are
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Conceptual framing (why sciRED strips three Benzécri properties) | `factor-analysis-framework` | Parent / super-family |
-| Multi-view / multi-omic factor analysis | `mofa-framework` → `mofa-mofapy2` | Alternative family |
-| HVG selection, count loading, AnnData manipulation | `scanpy`, `anndata` | Prerequisite |
-| L1 supplementary projection (level barycenters, continuous arrows) | `factor-analysis-framework/references/supplementary-projection.md` | Extension on top of sciRED's outputs |
-
----
-
 ## Resources
 
 - **Repository:** https://github.com/delipouya/sciRED
@@ -304,7 +293,8 @@ Both overlays can be plotted on the same `plot_factor_scatter` axes — they are
 
 ## See also
 
-- `factor-analysis-framework`
-- `mofa-framework`
-- `scanpy`
-- `anndata`
+- `factor-analysis-framework` — Parent / super-family; conceptual framing for why sciRED strips three Benzécri properties
+- `mofa-framework` — Alternative family; multi-view / multi-omic factor analysis
+- `mofa-mofapy2` — the `mofa-framework` engine used for that alternative-family analysis
+- `scanpy` — Prerequisite; HVG selection, count loading, AnnData manipulation
+- `anndata` — Prerequisite; HVG selection, count loading, AnnData manipulation

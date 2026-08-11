@@ -321,12 +321,6 @@ topics = binarize_topics(cistopic_obj, method='otsu')
 imputed = impute_accessibility(cistopic_obj)
 ```
 
-## Related Skills
-
-- [scenic-r-python-interop](scenic-r-python-interop.md) — R → Python data handoff (Signac, ArchR, cisTopic R bridge)
-- [scenic-grn-inference](scenic-grn-inference.md) — SCENIC+ eRegulon inference (downstream)
-- [pycistarget-motif-enrichment](pycistarget-motif-enrichment.md) — Motif enrichment on binarized topics
-
 ## API Reference
 
 Full documentation: https://pycistopic.readthedocs.io/en/latest/api.html
@@ -342,7 +336,8 @@ Full documentation: https://pycistopic.readthedocs.io/en/latest/api.html
 
 ## See also
 
-- `pycistarget-motif-enrichment`
-- `scenic-grn-inference`
+- `pycistarget-motif-enrichment` — Motif enrichment on binarized topics
+- `scenic-grn-inference` — SCENIC+ eRegulon inference (downstream)
 - `iterative-peak-merging`
 - `chromvar-motif-accessibility`
+- `scenic-r-python-interop` — R → Python data handoff (Signac, ArchR, cisTopic R bridge)

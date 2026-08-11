@@ -135,18 +135,6 @@ Validate per the framework battery: rare-marker promoter-peak retention `>= 0.95
 
 ---
 
-## Complementary skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The shared CALL/MERGE/FILTER/TIER/VALIDATE methodology | `peak-atlas-framework` | Foundation (this child links up to it) |
-| Unpaired RNA+ATAC (separate pools, transferred identity) | `peak-atlas-unpaired` | Sibling (other data regime) |
-| Peak quantification, coverage, `CallPeaks`, ChromatinAssay mechanics | `signac-chromatin-analysis` | Upstream / downstream |
-| The bare within-study merge primitive from MACS summit BEDs | `iterative-peak-merging` | Embedded merge primitive |
-| TF-motif activity validation of the finished atlas | `chromvar-motif-accessibility` | Downstream validation |
-
----
-
 ## Resources
 
 - Signac (multiome / ChromatinAssay): https://stuartlab.org/signac/
@@ -167,8 +155,8 @@ Validate per the framework battery: rare-marker promoter-peak retention `>= 0.95
 
 ## See also
 
-- `peak-atlas-framework`
-- `peak-atlas-unpaired`
-- `signac-chromatin-analysis`
-- `iterative-peak-merging`
-- `chromvar-motif-accessibility`
+- `peak-atlas-framework` — Foundation; this child links up to the shared CALL/MERGE/FILTER/TIER/VALIDATE methodology
+- `peak-atlas-unpaired` — Sibling (other data regime); unpaired RNA+ATAC (separate pools, transferred identity)
+- `signac-chromatin-analysis` — Upstream / downstream; peak quantification, coverage, `CallPeaks`, ChromatinAssay mechanics
+- `iterative-peak-merging` — Embedded merge primitive; the bare within-study merge primitive from MACS summit BEDs
+- `chromvar-motif-accessibility` — Downstream validation; TF-motif activity validation of the finished atlas

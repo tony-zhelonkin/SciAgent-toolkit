@@ -64,19 +64,6 @@ If TE rows were counted stranded with a sense/antisense split upstream (`--te-st
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Produce the integer TE + gene count matrices this skill annotates (STAR Random-One, SAF, featureCounts) | `star-te-preprocessing` | Prerequisite (upstream step) |
-| Single-cell scRNA-seq QC and annotation | `single-cell-rna-qc` | Alternative (different modality) |
-| Downstream DE → GSEA on the annotated DGEList | `bulk-rnaseq-gsea` | Next step |
-| Run GSEA on TE family/class gene-sets produced by this skill | `te-geneset-gsea` | Next step (TE path) |
-
-The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea` (gene path) or `→ te-geneset-gsea` (TE path).
-
----
-
 ## Resources
 
 - **Gene path detail:** `references/gene-annotation.md`
@@ -95,5 +82,9 @@ The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-d
 
 ## See also
 
-- `star-te-preprocessing`
-- `single-cell-rna-qc`
+The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea` (gene path) or `→ te-geneset-gsea` (TE path).
+
+- `star-te-preprocessing` — Prerequisite; produces the integer TE + gene count matrices this skill annotates
+- `single-cell-rna-qc` — Alternative for single-cell scRNA-seq QC and annotation (different modality)
+- `bulk-rnaseq-gsea` — Next step; downstream DE → GSEA on the annotated DGEList
+- `te-geneset-gsea` — Next step (TE path); GSEA on TE family/class gene-sets produced here

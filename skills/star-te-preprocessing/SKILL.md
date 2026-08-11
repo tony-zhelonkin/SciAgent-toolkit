@@ -201,20 +201,6 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs, `-resume`, cleanup) | `nfcore-rnaseq-execution` | Prerequisite (runs the pipeline that consumes these STAR args) |
-| Run the actual TE+gene counting (env-locked container, two-pass driver, staging) | `te-gene-featurecounts` | Next step (turns the BAMs this skill's contract describes into the count matrices) |
-| Annotate count matrices, parse TE IDs, build combined gene+TE DGEList | `annotate-bulk-rnaseq-data` | Downstream (consumes the integer TE + gene matrices) |
-| Locus-level / copy-resolved TE quantification | SQuIRE / Telescope (external) | Alternative (out of scope here — EM-based) |
-| TE DE, enrichment, master tables, plotting | TE-RNAseq-toolkit (external) | Extension (downstream R analysis on the annotated DGEList) |
-
-The canonical handoff chain is `star-te-preprocessing → te-gene-featurecounts → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`.
-
----
-
 ## Resources
 
 - **Owned canonical config:** `references/te_star.config` (provenance: 13036-DM / AdaW canonical runs, 2026-06-08).
@@ -238,7 +224,9 @@ The canonical handoff chain is `star-te-preprocessing → te-gene-featurecounts 
 
 ## See also
 
-- `te-reference-saf-build`
-- `nfcore-rnaseq-execution`
-- `te-gene-featurecounts`
-- `annotate-bulk-rnaseq-data`
+The canonical handoff chain is `star-te-preprocessing → te-gene-featurecounts → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`. For locus-level / copy-resolved TE quantification (out of scope here — EM-based), see SQuIRE/Telescope (external); for downstream TE DE/enrichment/plotting, see the TE-RNAseq-toolkit (external).
+
+- `te-reference-saf-build` — upstream; produces the no-exon SAF this skill's featureCounts pass consumes
+- `nfcore-rnaseq-execution` — Prerequisite; generic nf-core/rnaseq run mechanics (samplesheet, Docker UID, work dirs, `-resume`, cleanup) that runs the pipeline consuming these STAR args
+- `te-gene-featurecounts` — Next step; runs the actual TE+gene counting (env-locked container, two-pass driver, staging), turning the BAMs this skill's contract describes into count matrices
+- `annotate-bulk-rnaseq-data` — Downstream; annotate count matrices, parse TE IDs, build combined gene+TE DGEList

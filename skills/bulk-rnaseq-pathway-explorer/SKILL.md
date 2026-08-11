@@ -228,15 +228,6 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Running GSEA (MSigDB H/C2/C3/C5), running GSEA with custom gene sets (MitoCarta, TransportDB, GATOM), assembling / appending `master_*.csv` tables, or static publication figures (dotplot, barplot, running-sum PDFs) | `bulk-rnaseq-gsea` | Prerequisite for inputs / alternative for static rendering — the consolidated router covers all four legs |
-| Metabolic network (atom-transition) visualization | `gatom-metabolomic-predictions` | Alternative — different entity model |
-
----
-
 ## Resources
 
 - **Module source:** `01_modules/pathway-explorer/pathway_explorer/` (this project).
@@ -255,4 +246,5 @@ After running this skill, confirm:
 
 ## See also
 
-- `bulk-rnaseq-gsea`
+- `bulk-rnaseq-gsea` — Prerequisite for inputs / alternative for static rendering; the consolidated router covers running GSEA, custom gene sets, master-table assembly, and static publication figures
+- `gatom-metabolomic-predictions` — Alternative; metabolic network (atom-transition) visualization, a different entity model

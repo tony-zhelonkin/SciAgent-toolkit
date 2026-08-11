@@ -164,17 +164,6 @@ For automated verification: `bash skills/architecture-treemap/checks/golden_rend
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use | Relationship |
-|---|---|---|
-| The design-before-code methodology and per-feature pipeline | `architecture-first-dev` | Sibling — this stack is the retrospective audit arm of the same harness |
-| One feature's design diagrams (Mermaid) | `/diagram` | Sibling — feature-scoped, prospective; this stack is repo-scoped, retrospective |
-| The deterministic substrate (files, static edges, metrics) | `/components-extract` | Prerequisite — produces the input the judgment layer enriches |
-| The judgment layer (concerns, classifications, prune verdicts) | `/audit-slice` + `/synthesize-audit` | Prerequisite — produce the model this skill renders |
-
----
-
 ## Robust authoring checklist (for the judgment layer)
 
 `/synthesize-audit` (and the slicer feeding it) must satisfy these before a
@@ -228,4 +217,4 @@ authoring checklist`.
 
 ## See also
 
-- `architecture-first-dev`
+- `architecture-first-dev` — Sibling; the design-before-code methodology and per-feature pipeline (this stack is the retrospective audit arm of the same harness)

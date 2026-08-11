@@ -6,7 +6,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 
 ## Repository Overview
 
-**SciAgent-toolkit** is a per-project context manager for AI coding harnesses. It activates a role — a bundle of skills, sub-agents, and slash commands — into a project's `.claude/` and `.agents/` directories.
+**SciAgent-toolkit** is a per-project context manager for AI coding harnesses. `sciagent activate <role>` mounts the *entire* catalog of skills, sub-agents, and slash commands into a project's `.claude/` and `.agents/` directories — a role no longer gates which of these get mounted (that filtering was removed). A role now decides two things: **provenance** (which role a mounted name is attributed to in `sciagent status`/the managed block, and which wins on a name collision between the two stack slots) and, optionally, which Claude output-style gets applied. See "Role System" below and `docs/architecture.md` for the full design spec.
 
 **Integration:** Used as a submodule at `01_modules/SciAgent-toolkit/` in analysis projects.
 
@@ -17,8 +17,8 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 | Path | Purpose |
 |------|---------|
 | `bin/sciagent` | CLI dispatcher |
-| `lib/sciagent/` | Internal bash modules (`activate.sh`, `deactivate.sh`, `status.sh`, `new.sh`, `block.sh`, `craft.sh`, `craft_verb.sh`, `roles.sh`, `symlinks.sh`, `stack.sh`, `frontmatter.sh`, `validate.sh`) |
-| `roles/` | Role definitions (YAML) |
+| `lib/sciagent/` | Internal bash modules — `activate.sh`, `deactivate.sh`, `status.sh`, `new.sh`, `block.sh`, `craft.sh`, `craft_verb.sh`, `roles.sh`, `symlinks.sh`, `stack.sh` (catalog walk — mounts everything, roles supply provenance only), `frontmatter.sh`, `validate.sh` (frontmatter-shape + name-collision checks), `lint.sh` (opt-in PROJECT guardrail checks, the `lint` verb), `collisions.sh`, `claude_settings.sh`, `harness.sh`, `provision.sh`, `update.sh`, `gitignore.sh` |
+| `roles/` | Role definitions (YAML) — provenance labels only, not a mount filter |
 | `agents/` | Canonical sub-agent definitions (`.md` files) |
 | `skills/` | Canonical skill definitions (`<name>/SKILL.md` format) |
 | `commands/` | Canonical slash command definitions (`.md` files) |
@@ -31,8 +31,15 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 ## Common Commands
 
 ```bash
-# Activate base role (symlinks agents/skills/commands into .claude/ and .agents/)
+# Activate base role (symlinks the whole catalog of agents/skills/commands into
+# .claude/ and .agents/; the role only picks provenance labels + output-style)
 bin/sciagent activate base
+
+# Check skill frontmatter shape + cross-namespace name collisions
+bin/sciagent validate
+
+# Run the opt-in PROJECT guardrail checks against an analysis repo
+bin/sciagent lint --project-dir <analysis-repo-dir>
 
 # Run the test suite
 bash tests/run-all.sh
@@ -48,6 +55,14 @@ bin/sciagent status
 
 ## Role System
 
+**Roles no longer gate what gets mounted.** `sciagent activate <base> [overlay]` always
+mounts the entire catalog under `skills/`, `agents/`, `commands/` — a role's
+`skills:`/`agents:`/`commands:` lists only decide **provenance attribution** for the
+names they list (which role gets credited in `sciagent status`/the managed block, and
+which one wins on a name collision between `base` and `overlay`, last-wins). Anything
+in the catalog not named by either role's lists still mounts, attributed to `catalog`.
+See `docs/architecture.md` §5 and `lib/sciagent/stack.sh` for the mechanism.
+
 Role YAML schema:
 
 ```yaml
@@ -60,15 +75,22 @@ agents:
   - agent-name
 commands:
   - command-name
-# output_style: architect-mentor   # optional, Claude-specific
 ```
 
-Stack is capped at 2 (base + optional overlay). Last-wins on name collisions.
+There is no `output_style:` field in the schema anymore — a role YAML may still carry
+a stale one from before this changed, but it is never read. Output-style selection is
+a runtime choice: `sciagent activate --output-style <name>`, else `craft.yaml`'s
+`output_style:` key, else none.
+
+The stack is still capped at 2 (`base` + optional `overlay`) — that cap is a UX/
+inspectability constraint on the provenance model, not a mount-capacity limit, since
+mounting is unconditional either way. Last-wins on provenance for name collisions
+between the two slots.
 
 ### Adding a New Agent
 
 1. Create `agents/<name>.md` with YAML frontmatter (`name`, `description`, `model`, `color`)
-2. Add to relevant `roles/*.yaml`
+2. Optionally add it to a `roles/*.yaml` if you want it attributed to that role in `sciagent status`/the managed block — it mounts either way (attributed to `catalog` if you skip this)
 3. Test: `bin/sciagent activate base && echo OK`
 4. Update `agents/README.md`
 5. If the chosen name collides across namespaces (also exists as a skill/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
@@ -89,14 +111,14 @@ Any agent that writes a dated artifact must implement the Step-0 output-path pro
 ### Adding a New Role
 
 1. `bin/sciagent new role <name>` — scaffolds `roles/<name>.yaml`
-2. Edit the YAML to add skills/agents/commands
+2. Edit the YAML to list the skills/agents/commands you want attributed to this role (provenance only — it does not change what's mounted)
 3. Test: `bin/sciagent activate <name>`
 
 ### Adding a New Skill
 
 1. `bin/sciagent new skill <name>` — copies `skills/_TEMPLATE/` to `skills/<name>/`
 2. Edit `skills/<name>/SKILL.md`
-3. Add to relevant `roles/*.yaml`
+3. It mounts automatically on the next `activate` — no role edit needed. Optionally add it to a `roles/*.yaml` if you want it attributed to that role rather than to `catalog`.
 4. If the chosen name collides across namespaces (also exists as an agent/command/role), see `CONTRIBUTING.md` for the allowlist procedure.
 
 ---

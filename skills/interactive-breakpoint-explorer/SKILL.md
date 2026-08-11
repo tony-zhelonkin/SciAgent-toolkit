@@ -273,17 +273,6 @@ After authoring an explorer, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The static (R) sign-off surface that records the APPROVED gate | `decision-gate-notebook` | Static sibling (this feeds it) |
-| To style the labelled matplotlib snapshot the explorer saves | `figure-style` | Snapshot styling |
-| The numbered-stage house style for `export_explorers.py` and the reviewed stages | `scrna-pipeline-conventions` | Sibling convention |
-| A static, self-contained HTML explorer (plotly, no live kernel) | `bulk-rnaseq-pathway-explorer` | Static alternative |
-
----
-
 ## Resources
 
 - **jupyter-scatter (jscatter):** https://jupyter-scatter.dev/
@@ -303,7 +292,7 @@ After authoring an explorer, confirm:
 
 ## See also
 
-- `decision-gate-notebook`
-- `figure-style`
-- `scrna-pipeline-conventions`
-- `bulk-rnaseq-pathway-explorer`
+- `decision-gate-notebook` — Static sibling; the static (R) sign-off surface that records the APPROVED gate (this skill feeds it)
+- `figure-style` — Snapshot styling; styles the labelled matplotlib snapshot the explorer saves
+- `scrna-pipeline-conventions` — Sibling convention; the numbered-stage house style for `export_explorers.py` and the reviewed stages
+- `bulk-rnaseq-pathway-explorer` — Static alternative; a static, self-contained HTML explorer (plotly, no live kernel)

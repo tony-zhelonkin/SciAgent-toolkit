@@ -11,6 +11,6 @@ cat > AGENTS.md <<'EOF'
 some body
 EOF
 
-assert_exit 2 block_read AGENTS.md
-assert_exit 2 block_hash_check AGENTS.md
+assert_exit 2 block_read AGENTS.md ROLES
+assert_exit 2 block_hash_check AGENTS.md ROLES
 pass

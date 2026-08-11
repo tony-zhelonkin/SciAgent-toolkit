@@ -327,19 +327,6 @@ It is **not a replacement** for short-read TE DE.
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Build the grouped, exon-subtracted TE SAF | `te-reference-saf-build` | Prerequisite (produces the SAF this skill consumes) |
-| Produce the Random-One STAR BAMs + the alignment/counting contract | `star-te-preprocessing` | Prerequisite (produces the BAMs; owns the contract) |
-| Annotate matrices, parse TE IDs, build combined DGEList | `annotate-bulk-rnaseq-data` | Next step (consumes these matrices) |
-| Locus-level / copy-resolved TE quantification | SQuIRE / Telescope (external) | Alternative (out of scope) |
-
-The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **`te-gene-featurecounts`** → `annotate-bulk-rnaseq-data`.
-
----
-
 ## Resources
 
 - **Locked image:** `env/Dockerfile` + `env/build.sh` → `te-fc:2.0.2` (featureCounts v2.0.2).
@@ -366,6 +353,8 @@ The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **
 
 ## See also
 
-- `te-reference-saf-build`
-- `star-te-preprocessing`
-- `annotate-bulk-rnaseq-data`
+The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **`te-gene-featurecounts`** → `annotate-bulk-rnaseq-data`. For locus-level / copy-resolved TE quantification (out of scope here), see SQuIRE/Telescope (external).
+
+- `te-reference-saf-build` — Prerequisite; produces the SAF this skill consumes
+- `star-te-preprocessing` — Prerequisite; produces the BAMs and owns the alignment/counting contract
+- `annotate-bulk-rnaseq-data` — Next step; annotate matrices, parse TE IDs, build combined DGEList

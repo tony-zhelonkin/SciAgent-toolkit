@@ -304,18 +304,6 @@ After building, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Per-dataset STAR alignment + featureCounts against this reference | `star-te-preprocessing` | Next step (downstream consumer of the no-exon SAF) |
-| Locus-level / copy-resolved TE quantification | SQuIRE / Telescope (external) | Alternative (out of scope — locus-level) |
-
-This skill sits **upstream** of `star-te-preprocessing` in the handoff graph:
-`te-reference-saf-build → star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`.
-
----
-
 ## Handoff to star-te-preprocessing
 
 Once `*_GROUPED_all_noExon.saf` exists for the build, hand it to
@@ -348,4 +336,7 @@ all datasets on the same build reuse this one file.
 
 ## See also
 
-- `star-te-preprocessing`
+This skill sits **upstream** of `star-te-preprocessing` in the handoff graph:
+`te-reference-saf-build → star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`. For locus-level / copy-resolved TE quantification (out of scope here), see SQuIRE/Telescope (external).
+
+- `star-te-preprocessing` — Next step; downstream consumer of the no-exon SAF for per-dataset STAR alignment + featureCounts

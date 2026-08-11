@@ -73,9 +73,12 @@ _status_load_state() {
     _STK_BASE=$(printf '%s\n' "$stack" | awk '{print $1}')
     _STK_OVERLAY=$(printf '%s\n' "$stack" | awk '{print $2}')
 
-    # Drift check.
+    # Drift check. ROLES explicitly — this is the effective-stack block
+    # activate.sh writes (see block.sh header: three ids exist — ROLES,
+    # CRAFT, CONTEXT — status only reports ROLES drift here; CRAFT's own
+    # drift is surfaced by craft_verb.sh/lint.sh, not duplicated here).
     if [[ -f AGENTS.md ]]; then
-        block_hash_check AGENTS.md
+        block_hash_check AGENTS.md ROLES
         case $? in
             0) _BLOCK_HASH_OK="ok" ;;
             1) _BLOCK_HASH_OK="missing" ;;
@@ -230,7 +233,7 @@ _status_render_text() {
         missing) hash_label="block missing" ;;
     esac
     local lines="" range lb le
-    if range=$(block_line_range AGENTS.md); then
+    if range=$(block_line_range AGENTS.md ROLES); then
         read -r lb le <<< "$range"
         lines="lines ${lb}-${le}  "
     fi

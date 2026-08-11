@@ -206,16 +206,6 @@ fed to the geometry layer is the full set ∩ universe, decoupled from the per-c
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) | `bulk-rnaseq-gsea` | Parallel analysis (different question) |
-| Interactive UMAP pathway/TF/PROGENy explorer HTML | `bulk-rnaseq-pathway-explorer` | Next step (consumes master CSVs) |
-| Topology-aware metabolic module discovery | `gatom-metabolomic-predictions` | Extension |
-
----
-
 ## Resources
 
 - **DecoupleR docs:** https://saezlab.github.io/decoupleR/
@@ -245,6 +235,6 @@ fed to the geometry layer is the full set ∩ universe, decoupled from the per-c
 
 ## See also
 
-- `bulk-rnaseq-gsea`
-- `bulk-rnaseq-pathway-explorer`
-- `gatom-metabolomic-predictions`
+- `bulk-rnaseq-gsea` — Parallel analysis; gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) is a different question
+- `bulk-rnaseq-pathway-explorer` — Next step; interactive UMAP pathway/TF/PROGENy explorer HTML (consumes master CSVs)
+- `gatom-metabolomic-predictions` — Extension; topology-aware metabolic module discovery

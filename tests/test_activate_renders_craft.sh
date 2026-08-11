@@ -55,10 +55,10 @@ assert_file_eq AGENTS.md AGENTS.md.first "AGENTS.md unchanged on re-activate (CR
 # Drift detection scopes to the CRAFT block independently of ROLES.
 . "$FAKE/lib/sciagent/block.sh"
 assert_exit 0 block_hash_check AGENTS.md CRAFT
-assert_exit 0 block_hash_check AGENTS.md
+assert_exit 0 block_hash_check AGENTS.md ROLES
 sed -i 's/Craft standards/Craft STANDARDS/' AGENTS.md
 assert_exit 3 block_hash_check AGENTS.md CRAFT
-assert_exit 0 block_hash_check AGENTS.md
+assert_exit 0 block_hash_check AGENTS.md ROLES
 
 # Deactivate removes both blocks and restores the file byte-for-byte.
 "$SCIAGENT" activate base >/dev/null      # re-render to clear the manual drift

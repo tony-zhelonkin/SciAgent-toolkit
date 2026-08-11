@@ -394,21 +394,6 @@ Report the confidently-unplaceable fraction per condition as a QC deliverable. R
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Build the first AnnData from CellRanger output | `cellranger-multi-to-anndata` | Next step (Stage 0) |
-| Host the prepared `.h5ad` on CellxGene for the wet lab | `scrna-cxg-host` | Downstream consumer (uses `PATHS.objects`) |
-| Discover gene programs after annotation | `consensus-nmf-multirun` | Downstream consumer (uses `PATHS.objects`, `PATHS.tables`) |
-| Discipline for software-design changes (ADRs, reviews) | `architecture-first-dev` | Different scope (software design, not data-pipeline scaffolding) |
-| Run MAD-based QC filtering on the produced AnnData | `single-cell-rna-qc` | Adjacent (consumes `00_raw.h5ad` from this convention's Stage 0) |
-| Figure placement, captions, source-table adjacency | `figure-style` | Governs all `03_results/<stage>/figures/` output; this skill defers to it |
-| Export the packaged `.h5ad` to Seurat `.rds` (Convention 6, 7) | `anndatar-seurat-scanpy-conversion` | Downstream of milestone packaging; preserves `gene_id` and both embeddings |
-| Export to Loupe `.cloupe` (Convention 7) | `louper-seurat-conversion` | Carries `umap_unsupervised`/`umap_integrated` embedding names |
-
----
-
 ## Resources
 
 This SKILL.md is the canonical reference. Other skills point here. There is no upstream documentation — these conventions are local to this skill library.
@@ -425,9 +410,11 @@ This SKILL.md is the canonical reference. Other skills point here. There is no u
 
 ## See also
 
-- `cellranger-multi-to-anndata`
-- `scrna-cxg-host`
-- `consensus-nmf-multirun`
-- `architecture-first-dev`
-- `anndatar-seurat-scanpy-conversion`
-- `louper-seurat-conversion`
+- `cellranger-multi-to-anndata` — Next step (Stage 0); build the first AnnData from CellRanger output
+- `scrna-cxg-host` — Downstream consumer; host the prepared `.h5ad` on CellxGene for the wet lab (uses `PATHS.objects`)
+- `consensus-nmf-multirun` — Downstream consumer; discover gene programs after annotation (uses `PATHS.objects`, `PATHS.tables`)
+- `architecture-first-dev` — Different scope; discipline for software-design changes (ADRs, reviews), not data-pipeline scaffolding
+- `anndatar-seurat-scanpy-conversion` — Downstream of milestone packaging; export the packaged `.h5ad` to Seurat `.rds` (Convention 6, 7), preserves `gene_id` and both embeddings
+- `louper-seurat-conversion` — Export to Loupe `.cloupe` (Convention 7); carries `umap_unsupervised`/`umap_integrated` embedding names
+- `single-cell-rna-qc` — Adjacent; run MAD-based QC filtering on the produced AnnData (consumes `00_raw.h5ad` from this convention's Stage 0)
+- `figure-style` — Governs all `03_results/<stage>/figures/` output; this skill defers to it

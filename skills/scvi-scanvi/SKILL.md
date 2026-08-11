@@ -229,3 +229,4 @@ sc.tl.leiden(uncertain_adata, resolution=0.3)
 - `anndata`
 - `scvi-scarches-reference-mapping`
 - `cellxgene-census-annotation`
+- `treearches-hierarchy-learning` — for open-set detection of novel cell types not present in the label set, or for building a hierarchical ontology on top of the scANVI latent space

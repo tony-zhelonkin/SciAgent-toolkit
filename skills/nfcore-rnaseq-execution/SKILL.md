@@ -176,15 +176,6 @@ After the run, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The TE-compatible STAR `--extra_star_align_args` + featureCounts SAF recipe + `te_star.config` | `star-te-preprocessing` | **Co-load for TE runs** (owns the recipe this skill points to) |
-| Annotate / build DGEList / run DE on the resulting count matrices | `annotate-bulk-rnaseq-data` | Next step (downstream) |
-
----
-
 ## Resources
 
 - **nf-core/rnaseq docs:** https://nf-co.re/rnaseq/3.26.0
@@ -205,5 +196,5 @@ After the run, confirm:
 
 ## See also
 
-- `star-te-preprocessing`
-- `annotate-bulk-rnaseq-data`
+- `star-te-preprocessing` — Co-load for TE runs; owns the TE-compatible STAR/featureCounts recipe this skill points to
+- `annotate-bulk-rnaseq-data` — Next step (downstream); annotate / build DGEList / run DE on the resulting count matrices

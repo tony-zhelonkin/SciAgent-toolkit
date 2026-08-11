@@ -11,7 +11,9 @@ cmd_deactivate() {
         fi
         claude_settings_teardown
         symlink_teardown_all
-        block_remove AGENTS.md 2>/dev/null || true
+        # ROLES explicitly: full teardown removes the ROLES block sciagent
+        # itself owns; CRAFT is a separate id, torn down via craft_remove.
+        block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
         echo "deactivated"
         return 0
@@ -38,7 +40,9 @@ cmd_deactivate() {
         # Removing the base implies removing the overlay too.
         claude_settings_teardown
         symlink_teardown_all
-        block_remove AGENTS.md 2>/dev/null || true
+        # ROLES explicitly: full teardown removes the ROLES block sciagent
+        # itself owns; CRAFT is a separate id, torn down via craft_remove.
+        block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
         echo "deactivated (removed base implies overlay too)"
         return 0

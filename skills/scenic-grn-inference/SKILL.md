@@ -439,12 +439,6 @@ For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, ci
 - [ ] RNA and ATAC annotations use identical label vocabulary
 - [ ] ≥50 cells per group for robust metacells
 
-## Related Skills
-
-- [scenic-r-python-interop](scenic-r-python-interop.md) — R → Python data handoff (Signac export, RNA raw preservation)
-- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling (prerequisite)
-- [pycistarget](pycistarget-motif-enrichment.md) — Standalone motif enrichment
-
 ---
 
 ## When not to use
@@ -457,9 +451,10 @@ For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, ci
 
 ## See also
 
-- `pycistopic-atac-topic-modeling`
-- `pycistarget-motif-enrichment`
+- `pycistopic-atac-topic-modeling` — ATAC topic modeling (prerequisite)
+- `pycistarget-motif-enrichment` — Standalone motif enrichment
 - `cellranger-arc-multiome`
 - `scvi-multivi`
+- `scenic-r-python-interop` — R → Python data handoff (Signac export, RNA raw preservation)
 
 Upstream docs: https://scenicplus.readthedocs.io/

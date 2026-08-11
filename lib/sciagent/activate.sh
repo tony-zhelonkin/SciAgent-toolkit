@@ -169,7 +169,11 @@ cmd_activate() {
     if manifest_exists; then
         claude_settings_teardown
         symlink_teardown_all
-        block_remove AGENTS.md 2>/dev/null || true
+        # ROLES explicitly: this is the teardown-before-rewrite half of
+        # re-activation, not a generic "clear the file" — the block_write
+        # below re-renders the same id. CRAFT is torn down separately via
+        # craft_remove (its own id).
+        block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
     fi
 
@@ -212,7 +216,7 @@ cmd_activate() {
     # Render and write the managed block.
     local body
     body=$(render_block_body "$base" "$overlay")
-    block_write AGENTS.md "$body" || {
+    block_write AGENTS.md "$body" ROLES || {
         echo "sciagent activate: failed to write managed block" >&2
         return 1
     }
@@ -225,7 +229,7 @@ cmd_activate() {
     # AGENTS.md is the canonical context surface; Claude Code does not read it
     # natively, so guarantee the project CLAUDE.md = @AGENTS.md import shim.
     ensure_claude_md_shim
-    manifest_finalize "$(block_stored_hash AGENTS.md)" || {
+    manifest_finalize "$(block_stored_hash AGENTS.md ROLES)" || {
         echo "sciagent activate: failed to finalize manifest" >&2
         return 1
     }

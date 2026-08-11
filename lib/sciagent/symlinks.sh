@@ -291,30 +291,110 @@ symlink_create_dual() {
 }
 
 # ---------------------------------------------------------------------------
-# symlink_teardown_all — remove only the symlinks recorded in our manifest.
+# Toolkit-ownership check (Phase 5c follow-up, "Option D").
+#
+# The manifest's "symlinks" array used to be the sole record of what
+# activate created, and teardown trusted it blindly. That has two failure
+# modes: (a) anything the manifest lost track of (crashed activate,
+# hand-edited/deleted manifest.json, a manual `ln -sfn` repair) is stranded
+# forever, never cleaned up; (b) it offers no protection beyond "not in this
+# list" — it doesn't independently verify a path is actually ours before
+# deleting it.
+#
+# Ownership is now a property of the LINK ITSELF: a mount is toolkit-owned
+# iff it is a symlink whose fully-resolved target lies inside the
+# (canonicalised) toolkit checkout. Everything else — a real user file/dir,
+# or a user's own symlink pointing OUTSIDE the toolkit — is left strictly
+# alone, independent of whatever the manifest does or doesn't know.
+# ---------------------------------------------------------------------------
+
+# _toolkit_canonical_root — fully-resolved (all symlink components followed)
+# absolute path to $SCIAGENT_TOOLKIT, or empty + rc=1 if it can't be
+# resolved (env unset, `realpath` unavailable, or the toolkit checkout is
+# itself gone). Callers MUST treat that as "ownership can't be determined,
+# do nothing" — never fall back to a bare string comparison, which is
+# exactly how "/toolkit-evil" would wrongly match a "/toolkit" prefix.
+_toolkit_canonical_root() {
+    [[ -n "${SCIAGENT_TOOLKIT:-}" ]] || return 1
+    command -v realpath >/dev/null 2>&1 || return 1
+    realpath -e "$SCIAGENT_TOOLKIT" 2>/dev/null
+}
+
+# _link_owned_by_toolkit <path> <toolkit_canonical_root>
+# True iff <path> is a symlink whose resolved target is the toolkit root
+# itself or a proper descendant of it. Path-boundary comparison (trailing
+# "/" on the toolkit side), not a string prefix — "/toolkit-evil" must not
+# match "/toolkit". `readlink -f` on a BROKEN toolkit-owned link (canonical
+# skill/agent file deleted out from under a live mount) still resolves to
+# the intended lexical path — verified empirically: GNU readlink -f only
+# requires all-but-the-LAST path component to exist — so a dangling
+# toolkit-owned link is correctly recognised and cleaned up here, not
+# stranded.
+#
+# Deliberate, accepted behavior (not an oversight — owner sign-off): a user
+# symlink that happens to point INTO the toolkit checkout is indistinguishable
+# from a toolkit-created mount by any means available here, and is therefore
+# treated as toolkit-owned and removed on deactivate, same as any other
+# toolkit-owned link.
+_link_owned_by_toolkit() {
+    local path="$1" toolkit_root="$2"
+    [[ -L "$path" ]] || return 1
+    [[ -n "$toolkit_root" ]] || return 1
+    local resolved
+    resolved=$(readlink -f "$path" 2>/dev/null) || return 1
+    [[ -n "$resolved" ]] || return 1
+    case "$resolved" in
+        "$toolkit_root")   return 0 ;;
+        "$toolkit_root"/*) return 0 ;;
+        *)                  return 1 ;;
+    esac
+}
+
+# Every directory sciagent ever mounts INTO, across the four catalog trees
+# (dual .claude/+.agents/ mirrors) plus the analysis-repo helper-lib mount.
+# maxdepth 1 when scanning these — resolve_canonical hides toolkit-side
+# subfolders, so a mount is always a flat entry directly inside one of these;
+# we must never recurse into a mounted skill DIRECTORY itself (that would
+# walk into the toolkit checkout through the symlink).
+_SCIAGENT_MOUNT_DIRS=(
+    .claude/skills .claude/agents .claude/commands .claude/output-styles
+    .agents/skills .agents/agents .agents/commands
+    02_analysis/helpers
+)
+
+# ---------------------------------------------------------------------------
+# symlink_teardown_all — remove exactly the symlinks sciagent mounted, by
+# resolving ownership from each link's target rather than trusting the
+# manifest's bookkeeping (see block comment above). `rm` unlinks the symlink
+# itself in every case below — never `rm -r`/`rm -rf`, and never anything
+# that would dereference into the toolkit checkout the link points at.
 # ---------------------------------------------------------------------------
 symlink_teardown_all() {
     [[ -f "$_MANIFEST_PATH" ]] || return 0
-    local -a syms
-    readarray -t syms < <(manifest_symlinks)
-    local path
-    for path in "${syms[@]+"${syms[@]}"}"; do
-        [[ -z "$path" ]] && continue
-        if [[ ! -e "$path" && ! -L "$path" ]]; then
-            echo "warning: $path already gone, skipping" >&2
-            continue
-        fi
-        if [[ ! -L "$path" ]]; then
-            echo "warning: $path is not a symlink, skipping" >&2
-            continue
-        fi
-        rm "$path"
+
+    local toolkit_root=""
+    if ! toolkit_root=$(_toolkit_canonical_root); then
+        echo "warning: could not resolve \$SCIAGENT_TOOLKIT ('${SCIAGENT_TOOLKIT:-<unset>}'); skipping toolkit-owned symlink cleanup this run" >&2
+        toolkit_root=""
+    fi
+
+    local d entry
+    for d in "${_SCIAGENT_MOUNT_DIRS[@]}"; do
+        [[ -d "$d" ]] || continue
+        while IFS= read -r entry; do
+            [[ -z "$entry" ]] && continue
+            if [[ -n "$toolkit_root" ]] && _link_owned_by_toolkit "$entry" "$toolkit_root"; then
+                rm "$entry"
+            fi
+        done < <(find "$d" -mindepth 1 -maxdepth 1 -type l 2>/dev/null)
     done
+
     rm -f "$_MANIFEST_PATH"
     rmdir .sciagent 2>/dev/null || true
-    # Best-effort: clean empty .claude/* and .agents/* dirs we created.
-    for d in .claude/skills .claude/agents .claude/commands .claude/output-styles \
-             .agents/skills .agents/agents .agents/commands; do
+    # Best-effort: clean empty dirs we may have mkdir -p'd at mount time. A
+    # non-empty dir here means real content remains (ours or the user's) —
+    # rmdir fails on a non-empty dir and we leave it, by construction.
+    for d in "${_SCIAGENT_MOUNT_DIRS[@]}"; do
         [[ -d "$d" ]] && rmdir "$d" 2>/dev/null || true
     done
     rmdir .agents 2>/dev/null || true

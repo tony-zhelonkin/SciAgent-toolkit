@@ -194,16 +194,6 @@ You don't need these to use the tool. When you want internals or to adapt it:
 
 ---
 
-## Complementary skills
-
-| When you need… | Use skill | Relationship |
-|---|---|---|
-| Clustering + marker genes that feed this tool | `scanpy` | Prerequisite |
-| MAD-based QC before clustering | `single-cell-rna-qc` | Prerequisite |
-| Gene programs to inject as cell-state evidence | `consensus-nmf-multirun` | Upstream (evidence) |
-| Label transfer from an annotated atlas | `cellxgene-census-annotation` | Alternative |
-| Semi-supervised propagation from partial labels | `scvi-scanvi` | Alternative |
-
 ## Resources
 
 - Repository: https://github.com/cafferychen777/mLLMCelltype
@@ -222,8 +212,8 @@ You don't need these to use the tool. When you want internals or to adapt it:
 
 ## See also
 
-- `scanpy`
-- `cellxgene-census-annotation`
-- `scvi-scanvi`
-- `single-cell-rna-qc`
-- `consensus-nmf-multirun`
+- `scanpy` — Prerequisite; clustering + marker genes that feed this tool
+- `cellxgene-census-annotation` — Alternative; label transfer from an annotated atlas
+- `scvi-scanvi` — Alternative; semi-supervised propagation from partial labels
+- `single-cell-rna-qc` — Prerequisite; MAD-based QC before clustering
+- `consensus-nmf-multirun` — Upstream (evidence); gene programs to inject as cell-state evidence

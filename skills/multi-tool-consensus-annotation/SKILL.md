@@ -209,19 +209,6 @@ Freeze once; do not recluster or rename after the freeze. `annotation_confidence
 
 ---
 
-## Complementary skills
-
-| When you need… | Use skill | Relationship |
-|---|---|---|
-| Semi-supervised transfer voter (public or internal) | `scvi-scanvi` | Voter |
-| scArches surgery to project a query onto a frozen atlas | `scvi-scarches-reference-mapping` | Voter |
-| Open-set novelty / OOD rejection guard | `treearches-hierarchy-learning` | Voter (authoritative OOD) |
-| Supplementary public-atlas KNN vote | `cellxgene-census-annotation` | Voter (supplementary) |
-| scATAC reference-transfer voter | `scembed-atac-annotation` | Voter (ATAC modality) |
-| Reference-free multi-LLM marker consensus | `mllmcelltype-consensus-annotation` | Alternative voter / self-contained panel |
-| Marker scoring, clustering, `rank_genes_groups` | `scanpy` | Prerequisite (markers + coarse anchor) |
-| Persist the fusion policy + correlation structure | `reasoning-trace` | Provenance |
-
 ## Resources
 
 - The conservative multi-leg policy and the leg-independence caveat are the recurring pattern behind
@@ -239,11 +226,11 @@ Freeze once; do not recluster or rename after the freeze. `annotation_confidence
 
 ## See also
 
-- `scvi-scanvi`
-- `scvi-scarches-reference-mapping`
-- `treearches-hierarchy-learning`
-- `cellxgene-census-annotation`
-- `scembed-atac-annotation`
-- `mllmcelltype-consensus-annotation`
-- `scanpy`
-- `reasoning-trace`
+- `scvi-scanvi` — Voter; semi-supervised transfer voter (public or internal)
+- `scvi-scarches-reference-mapping` — Voter; scArches surgery to project a query onto a frozen atlas
+- `treearches-hierarchy-learning` — Voter (authoritative OOD); open-set novelty / OOD rejection guard
+- `cellxgene-census-annotation` — Voter (supplementary); supplementary public-atlas KNN vote
+- `scembed-atac-annotation` — Voter (ATAC modality); scATAC reference-transfer voter
+- `mllmcelltype-consensus-annotation` — Alternative voter / self-contained panel; reference-free multi-LLM marker consensus
+- `scanpy` — Prerequisite (markers + coarse anchor); marker scoring, clustering, `rank_genes_groups`
+- `reasoning-trace` — Provenance; persist the fusion policy + correlation structure
