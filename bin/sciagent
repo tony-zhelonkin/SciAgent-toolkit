@@ -28,6 +28,9 @@ Usage:
   sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
                                        Force resolution to one kind
                                        Disambiguate when same name spans kinds
+  sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]
+                                       Opt-in PROJECT guardrail checks (the
+                                       (c) GUARDRAIL layer) against an analysis repo
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
@@ -73,7 +76,8 @@ verb="$1"; shift
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
 #   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
-#   validate.sh         depends on collisions.sh
+#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh)
+#   validate.sh         depends on collisions.sh, lint.sh (delegates `validate --check`)
 #   activate.sh         depends on ~everything above
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh; lazy-loads frontmatter.sh
@@ -82,15 +86,16 @@ verb="$1"; shift
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 # ---------------------------------------------------------------------------
 declare -A VERB_MODULES=(
-    [activate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
-    [deactivate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
+    [activate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh"
+    [deactivate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
     [status]="block.sh symlinks.sh roles.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh status.sh"
-    [validate]="block.sh craft.sh collisions.sh validate.sh"
+    [validate]="block.sh craft.sh collisions.sh lint.sh validate.sh"
+    [lint]="block.sh craft.sh lint.sh"
     [new]="new.sh"
     [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"
-    [update]="block.sh craft.sh symlinks.sh roles.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
+    [update]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
     [provision]="block.sh harness.sh claude_settings.sh provision.sh"
 )
 
@@ -101,6 +106,7 @@ declare -A VERB_ENTRY=(
     [status]=cmd_status
     [list]=cmd_list
     [validate]=cmd_validate
+    [lint]=cmd_lint
     [new]=cmd_new
     [craft]=cmd_craft
     [gitignore]=cmd_gitignore

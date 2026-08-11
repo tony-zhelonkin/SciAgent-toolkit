@@ -316,4 +316,14 @@ set -e
 printf '%s\n' "$out" | grep -q 'WARN provenance:.*not under 02_analysis/stages/' \
     || { echo "FAIL [$_TEST_NAME] test6: expected stages/-worded off-stage WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
+# ---------------------------------------------------------------------------
+# Test 7: the new `sciagent lint --check` surface covers the same ground.
+# ---------------------------------------------------------------------------
+set +e
+out=$("$SCIAGENT" lint --check provenance --project-dir "$ST" 2>&1); rc=$?
+set -e
+[[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test7: lint --check provenance default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'WARN provenance:.*not under 02_analysis/stages/' \
+    || { echo "FAIL [$_TEST_NAME] test7: expected off-stage WARN via lint --check"; printf '%s\n' "$out" >&2; exit 1; }
+
 pass

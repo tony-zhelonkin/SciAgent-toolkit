@@ -137,4 +137,14 @@ out=$("$SCIAGENT" validate --check results-layout --strict --project-dir "$EMPTY
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: empty project exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
+# ---------------------------------------------------------------------------
+# Test 5: the new `sciagent lint --check` surface covers the same ground.
+# ---------------------------------------------------------------------------
+set +e
+out=$("$SCIAGENT" lint --check results-layout --strict --project-dir "$VIOL" 2>&1); rc=$?
+set -e
+[[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test5: lint --check results-layout strict expected 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
+printf '%s\n' "$out" | grep -q 'ERROR results-layout:' \
+    || { echo "FAIL [$_TEST_NAME] test5: expected ERROR from lint --check under strict"; printf '%s\n' "$out" >&2; exit 1; }
+
 pass

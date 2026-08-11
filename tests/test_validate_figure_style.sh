@@ -194,4 +194,13 @@ printf '%s\n' "$out" | grep -q '02_analysis/scripts/09_old_viz.R' \
 printf '%s\n' "$out" | grep -q '02_analysis/stages/10_qc_viz.R' \
     || { echo "FAIL [$_TEST_NAME] test6: stages/ dir dropped when both present"; printf '%s\n' "$out" >&2; exit 1; }
 
+# ---------------------------------------------------------------------------
+# Test 7: the new `sciagent lint --check` surface covers the same ground.
+# ---------------------------------------------------------------------------
+set +e
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$STG" 2>&1); rc=$?
+set -e
+printf '%s\n' "$out" | grep -q 'WARN figure-style:.*02_analysis/stages/10_qc_viz.R' \
+    || { echo "FAIL [$_TEST_NAME] test7: lint --check figure-style did not scan stages/"; printf '%s\n' "$out" >&2; exit 1; }
+
 pass

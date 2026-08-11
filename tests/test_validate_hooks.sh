@@ -63,6 +63,13 @@ run_check() {   # run_check <projdir> [--strict] -> sets OUT / RC
     set -e
 }
 
+run_lint_check() {   # run_lint_check <projdir> [--strict] -> sets OUT / RC (the `lint` verb)
+    set +e
+    OUT=$("$SCIAGENT" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
+    RC=$?
+    set -e
+}
+
 # --- 1. registered + present, interpreter-invoked, mode 0644 → clean ---------
 P1="$TMPDIR_TEST/p_present"
 write_settings "$P1" 'bash "$CLAUDE_PROJECT_DIR/.claude/hooks/no_ephemeral.sh"'
@@ -82,6 +89,14 @@ grep -q 'caption_sweep.sh is registered' <<<"$OUT" \
     || fail "no WARN for a registered-but-absent hook" "$OUT"
 run_check "$P2" --strict
 [[ "$RC" -eq 1 ]] || fail "absent-hook project exited $RC under --strict (expected 1)" "$OUT"
+
+# --- 2b. the new `sciagent lint --check` surface covers the same ground -----
+run_lint_check "$P2"
+[[ "$RC" -eq 0 ]] || fail "lint: absent-hook project exited $RC by default (expected soft 0)" "$OUT"
+grep -q 'caption_sweep.sh is registered' <<<"$OUT" \
+    || fail "lint: no WARN for a registered-but-absent hook" "$OUT"
+run_lint_check "$P2" --strict
+[[ "$RC" -eq 1 ]] || fail "lint: absent-hook project exited $RC under --strict (expected 1)" "$OUT"
 
 # --- 3/4. direct execution requires +x --------------------------------------
 P3="$TMPDIR_TEST/p_direct"
