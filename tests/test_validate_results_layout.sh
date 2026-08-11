@@ -116,6 +116,9 @@ T.
 MD
 mkdir -p "$CONF/02_analysis/scripts"
 echo "print('viz')" > "$CONF/02_analysis/scripts/10_qc_viz.py"
+# Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+# same-stem compute stage. Without it this fixture is itself non-conformant.
+echo "print('qc')" > "$CONF/02_analysis/scripts/10_qc.py"
 git -C "$CONF" init -q
 git -C "$CONF" config user.email t@e.com
 git -C "$CONF" config user.name T

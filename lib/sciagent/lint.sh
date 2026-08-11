@@ -118,6 +118,32 @@ _vcheck_is_stage_path() {
     return 1
 }
 
+# _vcheck_stage_files <projdir>
+# Emit every stage SCRIPT file, one per line, across all spellings in
+# _VCHECK_STAGE_DIRS.
+#
+# Single definition on purpose. The doc-09 §3 checks each grew their own `find`
+# and ended up disagreeing about which files are stages: depth 1, 2 and 3 with
+# two different extension sets. In a repo using the nested
+# 02_analysis/scripts/{compute,figures}/ layout that meant one check saw a file
+# and its sibling check did not, so a stage could pass stage-layout while
+# stage-thinness had never looked at it. Divergence between checks on "what is
+# a stage" is a defect, not a tuning knob.
+#
+# Depth 3 covers both the flat doc-09 layout (stages/NN_topic.R) and the one
+# level of nesting the pre-migration fleet still uses. .sh is included: an
+# ordered stage may legitimately be a shell script.
+_vcheck_stage_files() {
+    local projdir="$1"
+    local -a dirs=()
+    local d
+    while IFS= read -r d; do dirs+=("$d"); done < <(_vcheck_stage_dirs "$projdir")
+    [[ ${#dirs[@]} -gt 0 ]] || return 0
+    find "${dirs[@]}" -maxdepth 3 -type f \
+        \( -name '*.R' -o -name '*.py' -o -name '*.sh' \) 2>/dev/null | sort
+    return 0
+}
+
 # _vcheck_config_path <projdir>
 # Echo the analysis_config.yaml path (empty string if absent).
 _vcheck_config_path() {
@@ -770,7 +796,7 @@ _lint_check_stage_thinness() {
             _vcheck_emit "$strict" "$quiet" stage-thinness \
                 "$rel: $loc lines (> 500 LOC) — split the stage or extract helpers" || rc=1
         fi
-    done < <(find "${stage_dirs[@]}" -maxdepth 2 -type f \( -name '*.R' -o -name '*.py' -o -name '*.sh' \) 2>/dev/null)
+    done < <(_vcheck_stage_files "$projdir")
 
     return $rc
 }
@@ -970,7 +996,7 @@ _lint_check_comment_intent() {
             _vcheck_emit "$strict" "$quiet" comment-intent \
                 "$rel:$run_start: mid-file comment run of $run_len lines — extract a named helper instead" || rc=1
         fi
-    done < <(find "${stage_dirs[@]}" -maxdepth 3 -type f \( -name '*.R' -o -name '*.py' -o -name '*.sh' \) 2>/dev/null)
+    done < <(_vcheck_stage_files "$projdir")
 
     return $rc
 }
@@ -1033,18 +1059,16 @@ _lint_check_stage_layout() {
     [[ ${#stage_dirs[@]} -gt 0 ]] || return $rc
 
     # --- rules 1, 2, 3, 5, 6: per-stage-file checks --------------------------
-    local d
-    for d in "${stage_dirs[@]}"; do
-        local f base rel num suffix stem found_sib e
-        # Rule 3 (orphan viz) needs at least two stage files to mean anything —
-        # a lone viz script in an otherwise-empty stage dir is a self-contained
-        # utility, not evidence of a severed pair. Gate on the narrative
-        # actually having more than one beat before judging it broken.
-        local stage_file_count
-        stage_file_count=$(find "$d" -maxdepth 1 -type f \( -name '*.R' -o -name '*.py' \) 2>/dev/null | wc -l)
-        while IFS= read -r f; do
+    # Enumeration goes through _vcheck_stage_files so this check agrees with
+    # stage-thinness and comment-intent about which files are stages. Rule 3's
+    # sibling lookup therefore resolves against each file's OWN directory
+    # rather than a single flat stage dir, which is what makes the nested
+    # 02_analysis/scripts/{compute,figures}/ layout work.
+    local f base rel dir num suffix stem found_sib e
+    while IFS= read -r f; do
             [[ -f "$f" ]] || continue
             base=$(basename "$f")
+            dir=$(dirname "$f")
             rel="${f#$projdir/}"
             _vcheck_is_exempt "$rel" && continue
             case "$base" in *.R|*.py) ;; *) continue ;; esac
@@ -1076,19 +1100,22 @@ _lint_check_stage_layout() {
             fi
 
             # rule 3: orphan viz — no same-number, same-stem compute sibling.
-            if [[ "$stage_file_count" -gt 1 && "$base" =~ ^([0-9]+[a-zA-Z]?)_(.+)_viz\.(R|py)$ ]]; then
+            # Applied literally per doc 09 §3.3, with no minimum-file-count
+            # gate: a viz stage with nothing to visualise is exactly the
+            # severed pair the rule names, and a lone one is the clearest case
+            # of it rather than an exception to it.
+            if [[ "$base" =~ ^([0-9]+[a-zA-Z]?)_(.+)_viz\.(R|py)$ ]]; then
                 num="${BASH_REMATCH[1]}"; stem="${BASH_REMATCH[2]}"
                 found_sib=0
                 for e in R py; do
-                    [[ -f "$d/${num}_${stem}.$e" ]] && { found_sib=1; break; }
+                    [[ -f "$dir/${num}_${stem}.$e" ]] && { found_sib=1; break; }
                 done
                 if [[ "$found_sib" -eq 0 ]]; then
                     _vcheck_emit "$strict" "$quiet" stage-layout \
                         "$rel: orphan viz — no sibling ${num}_${stem}.{R,py} compute stage (doc 09 §1.4)" || rc=1
                 fi
             fi
-        done < <(find "$d" -maxdepth 1 -type f 2>/dev/null)
-    done
+    done < <(_vcheck_stage_files "$projdir")
 
     return $rc
 }

@@ -43,6 +43,9 @@ paths:
   results: "03_results/"
 YAML
 echo "print('viz')" > "$CONF/02_analysis/scripts/10_qc_viz.py"
+# Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+# same-stem compute stage. Without it this fixture is itself non-conformant.
+echo "print('qc')" > "$CONF/02_analysis/scripts/10_qc.py"
 touch "$CONF/03_results/01_qc/figures/_overview/qc.screen.png"
 touch "$CONF/03_results/01_qc/tables/_overview/qc.csv"
 cat > "$CONF/03_results/01_qc/README.md" <<'MD'
@@ -150,6 +153,9 @@ stages:
   - id: "01_qc"
 YAML
 echo "print('viz')" > "$PVG/02_analysis/scripts/10_qc_viz.py"
+# Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+# same-stem compute stage. Without it this fixture is itself non-conformant.
+echo "print('qc')" > "$PVG/02_analysis/scripts/10_qc.py"
 touch "$PVG/03_results/01_qc/figures/_overview/qc.screen.png"
 touch "$PVG/03_results/01_qc/tables/_overview/qc.csv"
 cat > "$PVG/03_results/01_qc/README.md" <<'MD'
@@ -274,6 +280,9 @@ stages:
   - id: "01_qc"
 YAML
 echo "1" > "$ST/02_analysis/stages/10_qc_viz.R"
+# Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+# same-stem compute stage. Without it this fixture is itself non-conformant.
+echo "1" > "$ST/02_analysis/stages/10_qc.R"
 echo "1" > "$ST/02_analysis/helpers/plot_utils.R"
 touch "$ST/03_results/01_qc/figures/_overview/qc.screen.png"
 touch "$ST/03_results/01_qc/tables/_overview/qc.csv"

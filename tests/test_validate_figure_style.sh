@@ -43,6 +43,10 @@ cfg = load_figure_config()
 set_paper_style(config=cfg)
 save_overview(fig, "01_qc", "qc_counts", table=rows, config=cfg)
 PY
+    # Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+    # same-stem compute stage. Without it this "conformant" fixture is itself
+    # non-conformant once --check all includes stage-layout.
+    echo "print('qc')" > "$p/02_analysis/scripts/10_qc.py"
     touch "$p/03_results/01_qc/figures/_overview/qc_counts.png"
     touch "$p/03_results/01_qc/tables/_overview/qc_counts.csv"
     cat > "$p/03_results/01_qc/README.md" <<'MD'
