@@ -20,7 +20,19 @@
 #   - absent      → create CLAUDE.md containing just `@AGENTS.md`
 #   - present, has import → no-op
 #   - present, no import  → prepend the import, preserving existing content
+#
+# Ownership record ($_CLAUDE_MD_STATE, plain text):
+#   line 1: "created" (we wrote the whole file) or "prepended" (file
+#           pre-existed; we added the import header in front of it)
+#   line 2: sha1 — of the whole file as written (created), or of the
+#           pre-existing content BEFORE we prepended (prepended)
+# claude_md_shim_teardown (below) consults this exactly once to reverse
+# precisely what we did, or to cede ownership with a warning if the file has
+# since been edited/replaced. No state is written for the already-has-import
+# no-op — there is nothing for teardown to reverse.
 # ---------------------------------------------------------------------------
+_CLAUDE_MD_STATE=".sciagent/claude_md.state"
+
 ensure_claude_md_shim() {
     local f="CLAUDE.md"
     local import="@AGENTS.md"
@@ -30,6 +42,8 @@ ensure_claude_md_shim() {
             return 1
         }
         echo "wrote: $f (@AGENTS.md import shim)"
+        mkdir -p "$(dirname "$_CLAUDE_MD_STATE")"
+        printf 'created\n%s\n' "$(_sciagent_sha1_file "$f")" > "$_CLAUDE_MD_STATE"
         return 0
     fi
     # Already imports AGENTS.md (a bare `@AGENTS.md` line) → nothing to do.
@@ -37,12 +51,72 @@ ensure_claude_md_shim() {
         return 0
     fi
     # Present but missing the import — prepend it, preserving existing bytes.
+    local orig_hash
+    orig_hash=$(_sciagent_sha1_file "$f")
     local tmp
     tmp=$(mktemp)
     printf '%s\n\n' "$import" > "$tmp"
     cat "$f" >> "$tmp"
-    mv "$tmp" "$f"
+    cp "$tmp" "$f"
+    rm -f "$tmp"
     echo "updated: $f (added @AGENTS.md import shim)"
+    mkdir -p "$(dirname "$_CLAUDE_MD_STATE")"
+    printf 'prepended\n%s\n' "$orig_hash" > "$_CLAUDE_MD_STATE"
+}
+
+# claude_md_shim_teardown
+# Reverse ensure_claude_md_shim using the saved state (see above):
+#   created    → remove CLAUDE.md iff its content is unchanged since we wrote it.
+#   prepended  → strip exactly the "@AGENTS.md\n\n" header we added, iff the
+#                remainder still hashes to the pre-existing content we snapshotted;
+#                otherwise leave the file untouched.
+# Either way, mismatched content is left in place with a warning — never
+# silently discarded — and the state file is removed regardless, so a second
+# deactivate is a silent no-op (idempotent) rather than re-warning forever.
+claude_md_shim_teardown() {
+    [[ -f "$_CLAUDE_MD_STATE" ]] || return 0
+    local tag stored f="CLAUDE.md"
+    tag=$(sed -n '1p' "$_CLAUDE_MD_STATE")
+    stored=$(sed -n '2p' "$_CLAUDE_MD_STATE")
+
+    case "$tag" in
+        created)
+            if [[ -f "$f" ]]; then
+                local cur
+                cur=$(_sciagent_sha1_file "$f")
+                if [[ "$cur" == "$stored" ]]; then
+                    rm -f "$f"
+                else
+                    echo "sciagent: warning — $f was modified since sciagent created it; leaving it in place" >&2
+                fi
+            fi
+            ;;
+        prepended)
+            if [[ -f "$f" ]]; then
+                local prefix=$'@AGENTS.md\n\n'
+                local prefix_len=${#prefix}
+                # Compare as byte streams via cmp, not `$(...)` — command
+                # substitution strips trailing newlines, which would make
+                # a 2-trailing-newline prefix ("@AGENTS.md\n\n") spuriously
+                # mismatch the freshly-written file every time.
+                if head -c "$prefix_len" "$f" | cmp -s - <(printf '%s' "$prefix"); then
+                    local remainder_hash tmp
+                    remainder_hash=$(tail -c "+$((prefix_len + 1))" "$f" | sciagent_sha1_stream)
+                    if [[ "$remainder_hash" == "$stored" ]]; then
+                        tmp=$(mktemp)
+                        tail -c "+$((prefix_len + 1))" "$f" > "$tmp"
+                        cp "$tmp" "$f"
+                        rm -f "$tmp"
+                    else
+                        echo "sciagent: warning — $f content was modified since sciagent added the @AGENTS.md import; leaving it in place" >&2
+                    fi
+                else
+                    echo "sciagent: warning — $f's @AGENTS.md import was modified since sciagent added it; leaving it in place" >&2
+                fi
+            fi
+            ;;
+    esac
+    rm -f "$_CLAUDE_MD_STATE"
 }
 
 cmd_activate() {

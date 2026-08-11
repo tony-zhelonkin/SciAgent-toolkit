@@ -55,6 +55,32 @@ _sha1() {
     sha1sum | awk '{print $1}'
 }
 
+# ---------------------------------------------------------------------------
+# Public hashing helpers — sciagent_sha1_file / sciagent_sha1_stream
+#
+# block.sh is the single home for `sha1sum` in lib/ (enforced by
+# tests/test_block_marker_boundary.sh, the 5.3 invariant). These two wrappers
+# exist so callers that need a content hash for something OTHER than a managed
+# block do not have to re-implement it and trip that guard.
+#
+# The other user is the deactivate-side ownership records: statusline.sh, the
+# hook bodies and the CLAUDE.md shim are reversed only if their content still
+# hashes to what sciagent wrote, so a user edit is detected and ceded rather
+# than clobbered. That is the same question block_hash_check asks of a managed
+# block body, so it belongs on the same primitive rather than a second one.
+#
+# Prints the empty string if the path is unreadable — callers treat an empty
+# hash as "cannot verify", which fails safe (leave the artifact alone).
+# ---------------------------------------------------------------------------
+sciagent_sha1_file() {
+    [[ -f "$1" ]] || return 0
+    _sha1 < "$1"
+}
+
+sciagent_sha1_stream() {
+    _sha1
+}
+
 # _block_require_id <id> <caller-name>
 # Every public function below calls this before touching the filesystem.
 # There is no default id (see file header) — a missing/empty id is a caller

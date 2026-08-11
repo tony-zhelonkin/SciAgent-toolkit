@@ -3,15 +3,40 @@
 
 # shellcheck shell=bash
 
+# _deactivate_prune_empty_agents_md
+# Remove AGENTS.md iff removing our blocks left it completely empty.
+#
+# block_write's append path creates AGENTS.md when it is absent, so activating
+# in a project that had no AGENTS.md leaves a 0-byte file behind once both
+# blocks are torn down — residue of exactly the kind this teardown exists to
+# eliminate. A user's own AGENTS.md always survives, because it still has their
+# bytes in it after block_remove and so is not empty.
+#
+# No ownership record is needed for this one: at 0 bytes the "is it ours?"
+# question has no consequence — an empty AGENTS.md carries no information, so
+# neither keeping nor removing it can lose anything. That is the only reason a
+# size test is sufficient here rather than a content hash.
+_deactivate_prune_empty_agents_md() {
+    [[ -f AGENTS.md && ! -s AGENTS.md ]] && rm -f AGENTS.md
+    return 0
+}
+
 cmd_deactivate() {
     case "${1:-}" in
         -h|--help)
             cat <<'USAGE'
 sciagent deactivate [<role>]
   No argument: full teardown of the active stack (all mounted symlinks,
-  the ROLES/CRAFT managed blocks, and the manifest).
+  the ROLES/CRAFT managed blocks, and the manifest) AND of the
+  project-level artifacts activate ensures unconditionally: .claude/
+  statusline.sh, .claude/hooks/*.sh, the settings.json key-backfill, and
+  the CLAUDE.md @AGENTS.md import. Each is reversed only if unchanged
+  since sciagent created/modified it; anything edited or replaced since
+  is left in place with a warning on stderr, never silently discarded.
   <role>: partial teardown — removing the base implies removing the
-  overlay too; removing the overlay re-activates solo-base.
+  overlay too (same full reversal as above); removing the overlay
+  re-activates solo-base (stack-only; the project-level artifacts above
+  are untouched, since a stack remains active).
 USAGE
             return 0 ;;
     esac
@@ -31,6 +56,21 @@ USAGE
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
         block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
+        # Full teardown also reverses the project-level artifacts activate
+        # ensures unconditionally (statusline.sh, the hook bodies, the
+        # settings.json key-backfill, the CLAUDE.md shim) — these are not
+        # stack-specific, so they are only reversed here (a full deactivate),
+        # never on activate.sh's re-activation preamble. Each is a no-op if we
+        # never created/modified it, or if it has already been reversed.
+        claude_settings_teardown_project_artifacts
+        claude_md_shim_teardown
+        _deactivate_prune_empty_agents_md
+        # Best-effort: .claude/ and .sciagent/ themselves, now that every
+        # subpath we own has been removed above. rmdir (never rm -r) — a
+        # non-empty directory means real content remains (ours or the
+        # user's) and is left in place by construction.
+        rmdir .claude 2>/dev/null || true
+        rmdir .sciagent 2>/dev/null || true
         if [[ "$had_manifest" -eq 1 ]]; then
             echo "deactivated"
         elif [[ "${_SCIAGENT_TEARDOWN_COUNT:-0}" -gt 0 ]]; then
@@ -68,6 +108,14 @@ USAGE
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
         block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
+        # See the no-arg branch above: this is also a full teardown (removing
+        # the base implies the overlay too), so the project-level artifacts
+        # get reversed here as well.
+        claude_settings_teardown_project_artifacts
+        claude_md_shim_teardown
+        _deactivate_prune_empty_agents_md
+        rmdir .claude 2>/dev/null || true
+        rmdir .sciagent 2>/dev/null || true
         echo "deactivated (removed base implies overlay too)"
         return 0
     fi
