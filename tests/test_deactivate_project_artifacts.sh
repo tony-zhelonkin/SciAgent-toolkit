@@ -241,4 +241,44 @@ assert_grep '# user addition' .claude/hooks/no_ephemeral.sh "case7: hook edit pr
 [[ -e .claude/hooks/caption_sweep.sh ]] && { echo "FAIL [$_TEST_NAME] case7: untouched hook not removed"; exit 1; }
 cd ..
 
+# ---------------------------------------------------------------------------
+# case8: a hand-written settings.json comes back BYTE-identical, not merely
+# semantically identical.
+#
+# The backfill merges with `jq -s`, which re-serialises the whole document — so
+# a single-line file a human wrote returns pretty-printed. Deleting our keys at
+# teardown cannot undo that: the content matches, the bytes do not, and the
+# user's formatting is quietly gone. Teardown therefore restores the original
+# bytes it snapshotted, but only while the file is still exactly what we wrote.
+# Single-line input on purpose: a fixture that was already pretty-printed would
+# pass this assertion without the restore path existing at all.
+# ---------------------------------------------------------------------------
+mkdir project8 && cd project8
+git init -q .
+mkdir -p .claude
+printf '{"theme":"dark","permissions":{"allow":["Bash"]}}\n' > .claude/settings.json
+cp .claude/settings.json ../settings8.orig
+
+"$SCIAGENT" activate base >/dev/null
+# Sanity: activate must actually have changed the file, or this proves nothing.
+cmp -s ../settings8.orig .claude/settings.json \
+    && { echo "FAIL [$_TEST_NAME] case8 fixture: activate did not modify settings.json" >&2; exit 1; }
+
+"$SCIAGENT" deactivate >/dev/null
+cmp -s ../settings8.orig .claude/settings.json || {
+    echo "FAIL [$_TEST_NAME] case8: settings.json not restored byte-identically" >&2
+    diff <(cat ../settings8.orig) <(cat .claude/settings.json) >&2 || true
+    exit 1
+}
+
+# And when the user HAS changed it since, the original must NOT be force-restored
+# over their edit — per-key deletion instead, keeping what they added.
+"$SCIAGENT" activate base >/dev/null
+jq '.myKey = 1' .claude/settings.json > ../s8b && cp ../s8b .claude/settings.json
+"$SCIAGENT" deactivate >/dev/null
+assert_eq "$(jq -r '.myKey' .claude/settings.json)" "1" "case8: user's own key survives teardown"
+assert_eq "$(jq -r '.theme' .claude/settings.json)" "dark" "case8: user's original key survives"
+assert_eq "$(jq -r 'has("statusLine")' .claude/settings.json)" "false" "case8: backfilled key still removed"
+cd ..
+
 pass

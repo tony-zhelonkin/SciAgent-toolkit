@@ -368,6 +368,10 @@ claude_settings_ensure_project_defaults() {
             local new_keys added_keys
             new_keys=$(jq -r 'keys[]' "$tmp" 2>/dev/null | sort)
             added_keys=$(comm -13 <(printf '%s\n' "$old_keys") <(printf '%s\n' "$new_keys"))
+            # Snapshot the user's bytes BEFORE the merge overwrites them —
+            # after `cp "$tmp" "$dst"` the original is gone (see the
+            # written_hash note below for why we keep it).
+            cp "$dst" "${state}.orig" 2>/dev/null || true
             cp "$tmp" "$dst"
             rm -f "$tmp"
             echo "updated: $dst (backfilled missing default keys)"
@@ -378,7 +382,24 @@ claude_settings_ensure_project_defaults() {
                     v=$(jq -c --arg k "$k" '.[$k]' "$dst")
                     state_json=$(printf '%s' "$state_json" | jq --arg k "$k" --argjson v "$v" '.added[$k]=$v')
                 done <<< "$added_keys"
+                # Also keep the user's original bytes and the hash of what we
+                # wrote. The `jq -s` merge above re-serialises the whole file,
+                # so a hand-written single-line settings.json comes back
+                # pretty-printed: semantically identical, byte-different.
+                # Deleting our keys at teardown cannot undo that reformatting.
+                # With the original bytes on hand we can restore them verbatim
+                # — but ONLY when the file is still exactly what we wrote, or
+                # we would discard whatever the user changed since. When it has
+                # moved on, teardown falls back to per-key deletion, which
+                # preserves their edit and accepts the reformatting.
+                state_json=$(printf '%s' "$state_json" \
+                    | jq --arg h "$(_sciagent_sha1_file "$dst")" '.written_hash=$h')
                 printf '%s\n' "$state_json" > "$state"
+            else
+                # No keys added (merge changed only formatting): nothing for
+                # teardown to delete, so drop the snapshot rather than leave a
+                # stale .orig lying around.
+                rm -f "${state}.orig"
             fi
         else
             rm -f "$tmp"
@@ -426,6 +447,25 @@ claude_settings_teardown_project_defaults() {
             fi
             ;;
         existed-backfilled)
+            # Fast path: the file is still byte-for-byte what we wrote, so the
+            # user has changed nothing since — restore their original bytes
+            # verbatim. This is the only way to undo the reformatting the
+            # `jq -s` merge applied (a hand-written single-line settings.json
+            # comes back pretty-printed otherwise). Guarded on the hash
+            # precisely because restoring blindly would discard any edit the
+            # user made after activation; if it does not match we fall through
+            # to per-key deletion, which keeps their edit.
+            local _orig="${state}.orig" _wh _cur
+            _wh=$(jq -r '.written_hash // empty' "$state" 2>/dev/null)
+            if [[ -f "$_orig" && -f "$dst" && -n "$_wh" ]]; then
+                _cur=$(_sciagent_sha1_file "$dst")
+                if [[ "$_cur" == "$_wh" ]]; then
+                    cp "$_orig" "$dst"
+                    rm -f "$_orig" "$state"
+                    return 0
+                fi
+            fi
+            rm -f "$_orig"
             if [[ -f "$dst" ]]; then
                 local keys k stored_val cur_val tmp
                 keys=$(jq -r '.added | keys[]' "$state" 2>/dev/null)
