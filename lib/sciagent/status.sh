@@ -63,14 +63,10 @@ cmd_status() {
 #   _BLOCK_HASH_OK              "ok" | "drift" | "missing" | "corrupt"
 #   _SYMLINKS_OK                "ok" | "broken"
 #   SKILL_ORDER[], AGENTS_ORDER[], COMMANDS_ORDER[]
-#   INJECTED_SKILLS[], INJECTED_AGENTS[], INJECTED_COMMANDS[]
-#                                names of injected entries, partitioned by kind
-#   INJECTED_SKILLS_OVERLAY[]   parallel: overlay each injected skill lives in
-#   INJECTED_AGENTS_OVERLAY[]   parallel: overlay each injected agent lives in
-#   INJECTED_COMMANDS_OVERLAY[] parallel: overlay each injected command lives in
 #   SKILLS[name]=role, AGENTS_M[name]=role, COMMANDS_M[name]=role
 #   SKILL_SHADOWS[name]=role, AGENT_SHADOWS[name]=role, COMMAND_SHADOWS[name]=role
-#   OUTPUT_STYLE, OUTPUT_STYLE_ROLE
+# output_style is no longer role-scoped (Phase 5d) — status does not track it;
+# see `.claude/settings.local.json`'s outputStyle key for the applied value.
 _status_load_state() {
     local stack
     stack=$(manifest_stack)
@@ -101,34 +97,6 @@ _status_load_state() {
         fi
     done < <(manifest_symlinks)
 
-    # Collect injected entries from the manifest, partitioned by kind so each
-    # consumer site reads only its own bucket. Conflating kinds here misroutes
-    # injected agents/commands into the "Skills (N effective)" section and into
-    # the _mounted_skill collision set (a false "skill+agent" overlap).
-    # Manifest rows lacking a kind column predate PR-A; treat those as skill,
-    # mirroring the default in manifest_injected (lib/sciagent/symlinks.sh:341).
-    INJECTED_SKILLS=();   INJECTED_SKILLS_OVERLAY=()
-    INJECTED_AGENTS=();   INJECTED_AGENTS_OVERLAY=()
-    INJECTED_COMMANDS=(); INJECTED_COMMANDS_OVERLAY=()
-    local _ov nm _via _kind
-    while IFS='|' read -r _ov nm _via _kind; do
-        [[ -n "$_ov" ]] || continue
-        case "${_kind:-skill}" in
-            skill)
-                INJECTED_SKILLS+=("$nm")
-                INJECTED_SKILLS_OVERLAY+=("$_ov")
-                ;;
-            agent)
-                INJECTED_AGENTS+=("$nm")
-                INJECTED_AGENTS_OVERLAY+=("$_ov")
-                ;;
-            command)
-                INJECTED_COMMANDS+=("$nm")
-                INJECTED_COMMANDS_OVERLAY+=("$_ov")
-                ;;
-        esac
-    done < <(manifest_injected)
-
     # Collect skill names mounted on disk per manifest (one per `.claude/skills/*`
     # symlink). The walker above only sees role-yaml entries, so anything mounted
     # by some earlier verb shows up here and not in SKILL_ORDER.
@@ -145,7 +113,6 @@ _status_load_state() {
     declare -gA SKILLS=() AGENTS_M=() COMMANDS_M=()
     declare -gA SKILL_SHADOWS=() AGENT_SHADOWS=() COMMAND_SHADOWS=()
     SKILL_ORDER=(); AGENTS_ORDER=(); COMMANDS_ORDER=()
-    OUTPUT_STYLE=""; OUTPUT_STYLE_ROLE=""
 
     local kind n2 provider shadow
     while IFS=$'\t' read -r kind n2 provider shadow; do
@@ -165,21 +132,17 @@ _status_load_state() {
                 COMMAND_SHADOWS[$n2]="$shadow"
                 COMMANDS_ORDER+=("$n2")
                 ;;
-            STYLE)
-                OUTPUT_STYLE="$n2"
-                OUTPUT_STYLE_ROLE="$provider"
-                ;;
         esac
     done < <(stack_walk "$_STK_BASE" "$_STK_OVERLAY")
 
-    # Skills present on disk per the manifest but absent from every role yaml
-    # and the injected list. Normally empty now that the whole catalog is
-    # mounted; a legacy manifest from a curated mount can still carry entries. Depends on SKILL_ORDER, INJECTED_SKILLS, and MANIFEST_SKILLS
-    # all being populated above. Use a temp associative array as a set.
+    # Skills present on disk per the manifest but absent from every role yaml.
+    # Normally empty now that the whole catalog is mounted; a legacy manifest
+    # from a curated mount can still carry entries. Depends on SKILL_ORDER and
+    # MANIFEST_SKILLS being populated above. Use a temp associative array as a
+    # set.
     declare -A _inh_declared_set=()
     local _inh_n
     for _inh_n in "${SKILL_ORDER[@]:-}";     do [[ -n "$_inh_n" ]] && _inh_declared_set[$_inh_n]=1; done
-    for _inh_n in "${INJECTED_SKILLS[@]:-}"; do [[ -n "$_inh_n" ]] && _inh_declared_set[$_inh_n]=1; done
     INHERITED_SKILLS=()
     for _inh_n in "${MANIFEST_SKILLS[@]:-}"; do
         [[ -z "$_inh_n" ]] && continue
@@ -204,7 +167,7 @@ _status_render_text() {
     printf '\n'
 
     local n note total
-    total=$(( ${#SKILL_ORDER[@]} + ${#INJECTED_SKILLS[@]} + ${#INHERITED_SKILLS[@]} ))
+    total=$(( ${#SKILL_ORDER[@]} + ${#INHERITED_SKILLS[@]} ))
     printf 'Skills (%d effective):\n' "$total"
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
@@ -212,17 +175,13 @@ _status_render_text() {
         [[ -n "${SKILL_SHADOWS[$n]:-}" ]] && note="    (shadows ${SKILL_SHADOWS[$n]})"
         printf '  %-24s %s%s\n' "$n" "${SKILLS[$n]}" "$note"
     done
-    for n in "${INJECTED_SKILLS[@]:-}"; do
-        [[ -z "$n" ]] && continue
-        printf '  %-24s %s\n' "$n" "injected"
-    done
     for n in "${INHERITED_SKILLS[@]:-}"; do
         [[ -z "$n" ]] && continue
         printf '  %-24s %s\n' "$n" "on disk, not declared"
     done
     printf '\n'
 
-    local agent_total=$(( ${#AGENTS_ORDER[@]} + ${#INJECTED_AGENTS[@]} ))
+    local agent_total=${#AGENTS_ORDER[@]}
     printf 'Sub-agents (%d effective, Claude-only):\n' "$agent_total"
 
     # Try to load frontmatter parser for enriched agent info.
@@ -250,23 +209,15 @@ _status_render_text() {
         fi
         printf '  %-24s %-8s%s%s\n' "$n" "${AGENTS_M[$n]}" "$_agent_extra" "$note"
     done
-    for n in "${INJECTED_AGENTS[@]:-}"; do
-        [[ -z "$n" ]] && continue
-        printf '  %-24s %s\n' "$n" "injected"
-    done
     printf '\n'
 
-    local command_total=$(( ${#COMMANDS_ORDER[@]} + ${#INJECTED_COMMANDS[@]} ))
+    local command_total=${#COMMANDS_ORDER[@]}
     printf 'Slash commands (%d effective, Claude-only):\n' "$command_total"
     for n in "${COMMANDS_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue
         note=""
         [[ -n "${COMMAND_SHADOWS[$n]:-}" ]] && note="    (shadows ${COMMAND_SHADOWS[$n]})"
         printf '  /%-23s %s%s\n' "$n" "${COMMANDS_M[$n]}" "$note"
-    done
-    for n in "${INJECTED_COMMANDS[@]:-}"; do
-        [[ -z "$n" ]] && continue
-        printf '  /%-23s %s\n' "$n" "injected"
     done
     printf '\n'
 
@@ -326,19 +277,13 @@ _status_render_notes() {
 
     # --- (2) Collision detection (requires optional collisions_enumerate helper) ---
     if declare -F collisions_enumerate >/dev/null 2>&1; then
-        # Build the active mount set: kind -> set of names. Each injected entry
-        # contributes to the bucket matching its kind only — leaking an injected
-        # agent into _mounted_skill would synthesise a fake "skill and agent"
-        # collision for any name that exists in both namespaces.
+        # Build the active mount set: kind -> set of names.
         declare -A _mounted_skill=() _mounted_agent=() _mounted_command=()
         local n
-        for n in "${SKILL_ORDER[@]:-}";       do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-        for n in "${MANIFEST_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-        for n in "${INJECTED_SKILLS[@]:-}";   do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
-        for n in "${AGENTS_ORDER[@]:-}";      do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
-        for n in "${INJECTED_AGENTS[@]:-}";   do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
-        for n in "${COMMANDS_ORDER[@]:-}";    do [[ -n "$n" ]] && _mounted_command[$n]=1; done
-        for n in "${INJECTED_COMMANDS[@]:-}"; do [[ -n "$n" ]] && _mounted_command[$n]=1; done
+        for n in "${SKILL_ORDER[@]:-}";     do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+        for n in "${MANIFEST_SKILLS[@]:-}"; do [[ -n "$n" ]] && _mounted_skill[$n]=1;   done
+        for n in "${AGENTS_ORDER[@]:-}";    do [[ -n "$n" ]] && _mounted_agent[$n]=1;   done
+        for n in "${COMMANDS_ORDER[@]:-}";  do [[ -n "$n" ]] && _mounted_command[$n]=1; done
 
         # Walk every collision; intersect with what this stack actually mounted.
         local col_name col_kinds
@@ -412,13 +357,10 @@ _status_collision_in_allowlist() {
 
 _status_render_effective() {
     local n
-    for n in "${SKILL_ORDER[@]:-}";       do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${INJECTED_SKILLS[@]:-}";   do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${INHERITED_SKILLS[@]:-}";  do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${AGENTS_ORDER[@]:-}";      do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${INJECTED_AGENTS[@]:-}";   do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${COMMANDS_ORDER[@]:-}";    do [[ -n "$n" ]] && echo "$n"; done
-    for n in "${INJECTED_COMMANDS[@]:-}"; do [[ -n "$n" ]] && echo "$n"; done
+    for n in "${SKILL_ORDER[@]:-}";      do [[ -n "$n" ]] && echo "$n"; done
+    for n in "${INHERITED_SKILLS[@]:-}"; do [[ -n "$n" ]] && echo "$n"; done
+    for n in "${AGENTS_ORDER[@]:-}";     do [[ -n "$n" ]] && echo "$n"; done
+    for n in "${COMMANDS_ORDER[@]:-}";   do [[ -n "$n" ]] && echo "$n"; done
     return 0
 }
 
@@ -433,14 +375,6 @@ _status_render_source() {
         fi
         return 0
     done
-    # Injected skills: report overlay name for clarity.
-    local i _ninj_skills=${#INJECTED_SKILLS[@]}
-    for (( i=0; i<_ninj_skills; i++ )); do
-        [[ "${INJECTED_SKILLS[$i]}" == "$q" ]] || continue
-        local ov="${INJECTED_SKILLS_OVERLAY[$i]:-_injected}"
-        echo "injected (into $ov)"
-        return 0
-    done
     # On disk per the manifest, declared by nothing.
     for n in "${INHERITED_SKILLS[@]:-}"; do
         [[ "$n" == "$q" ]] || continue
@@ -451,23 +385,9 @@ _status_render_source() {
         [[ "$n" == "$q" ]] || continue
         echo "${AGENTS_M[$n]}"; return 0
     done
-    local _ninj_agents=${#INJECTED_AGENTS[@]}
-    for (( i=0; i<_ninj_agents; i++ )); do
-        [[ "${INJECTED_AGENTS[$i]}" == "$q" ]] || continue
-        local ov="${INJECTED_AGENTS_OVERLAY[$i]:-_injected}"
-        echo "injected (into $ov)"
-        return 0
-    done
     for n in "${COMMANDS_ORDER[@]:-}"; do
         [[ "$n" == "$q" ]] || continue
         echo "${COMMANDS_M[$n]}"; return 0
-    done
-    local _ninj_commands=${#INJECTED_COMMANDS[@]}
-    for (( i=0; i<_ninj_commands; i++ )); do
-        [[ "${INJECTED_COMMANDS[$i]}" == "$q" ]] || continue
-        local ov="${INJECTED_COMMANDS_OVERLAY[$i]:-_injected}"
-        echo "injected (into $ov)"
-        return 0
     done
     echo "not in active stack: $q" >&2
     return 1
@@ -506,7 +426,7 @@ _status_render_json() {
     fi
     printf '],'
 
-    # skills (with role + injected list embedded)
+    # skills (with role embedded)
     printf '"skills":['
     first=1
     local n
@@ -514,13 +434,6 @@ _status_render_json() {
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","source":"%s"}' "$(_json_esc "$n")" "$(_json_esc "${SKILLS[$n]}")"
-    done
-    local i _ninj_json=${#INJECTED_SKILLS[@]}
-    for (( i=0; i<_ninj_json; i++ )); do
-        n="${INJECTED_SKILLS[$i]}"
-        [[ -z "$n" ]] && continue
-        if (( first )); then first=0; else printf ','; fi
-        printf '{"name":"%s","source":"injected"}' "$(_json_esc "$n")"
     done
     for n in "${INHERITED_SKILLS[@]:-}"; do
         [[ -z "$n" ]] && continue
@@ -550,14 +463,6 @@ _status_render_json() {
             "$(_json_esc "$n")" "$(_json_esc "${AGENTS_M[$n]}")" \
             "$(_json_esc "$_aj_domain")" "$(_json_esc "$_aj_desc")"
     done
-    _ninj_json=${#INJECTED_AGENTS[@]}
-    for (( i=0; i<_ninj_json; i++ )); do
-        n="${INJECTED_AGENTS[$i]}"
-        [[ -z "$n" ]] && continue
-        if (( first )); then first=0; else printf ','; fi
-        printf '{"name":"%s","source":"injected","domain":"","description_brief":""}' \
-            "$(_json_esc "$n")"
-    done
     printf '],'
 
     # commands
@@ -567,13 +472,6 @@ _status_render_json() {
         [[ -z "$n" ]] && continue
         if (( first )); then first=0; else printf ','; fi
         printf '{"name":"%s","source":"%s"}' "$(_json_esc "$n")" "$(_json_esc "${COMMANDS_M[$n]}")"
-    done
-    _ninj_json=${#INJECTED_COMMANDS[@]}
-    for (( i=0; i<_ninj_json; i++ )); do
-        n="${INJECTED_COMMANDS[$i]}"
-        [[ -z "$n" ]] && continue
-        if (( first )); then first=0; else printf ','; fi
-        printf '{"name":"%s","source":"injected"}' "$(_json_esc "$n")"
     done
     printf '],'
 

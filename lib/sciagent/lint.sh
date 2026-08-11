@@ -20,7 +20,10 @@
 #   hooks           every hook registered in .claude/settings.json exists and is
 #                   executable (a registered-but-absent hook silently disables
 #                   the (c) GUARDRAIL layer).
-#   stage-thinness  see docs 09 §3.N (stub; implemented in a parallel change).
+#   stage-thinness  02_analysis/stages|scripts function-def count (>2),
+#                   summed function-body lines (>60), total LOC (>500) per
+#                   file; see docs 09 §3.1. `# stage-detail: <reason>` exempts
+#                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
 # These run ONLY when --check <name> (or --check all, or no --check at all —
@@ -679,29 +682,413 @@ USAGE
 # ---------------------------------------------------------------------------
 # Check: stage-thinness
 # ---------------------------------------------------------------------------
-# Implemented in Phase 5; see docs 09 §3.N.
+# See docs 09 §3.1. Three rules, evaluated per stage file under an accepted
+# stage dir (_VCHECK_STAGE_DIRS — both `stages/` and `scripts/` spellings, per
+# the migration window; see the comment above that array). `helpers/` is out
+# of scope by construction: it is never one of _VCHECK_STAGE_DIRS, so a
+# function living there never reaches this check at all — that is where
+# definitions belong, per §1.2/§2.1.
+#
+#   1. function definitions in one stage file            > 2
+#   2. total lines inside (non-exempt) function bodies    > 60
+#      in one stage file (summed across its definitions)
+#   3. total stage file length                            > 500 LOC
+#
+# Per §0, thresholds are aspirational (a backlog, not a baseline): this check
+# ships warn-only like its siblings, hard-fail only under --strict.
+#
+# Escape hatch (§3.1): a `# stage-detail: <reason>` comment on the line
+# immediately above a definition exempts THAT definition from both the
+# def-count and the body-line tally. The reason must be non-empty — a bare
+# `# stage-detail:` does not exempt, since the reason text is itself the
+# required intent documentation.
+#
+# Detection, and its known blind spots (see _vcheck_stage_scan_defs):
+#   R      `name <- function(...)`, `name = function(...)`, and the `\(x)`
+#          lambda shorthand when bound to a name (`f <- \(x) ...`). Anonymous
+#          `function(...)` passed inline (e.g. to `lapply`) is NOT counted —
+#          only named top-level bindings read as "a definition" to a human.
+#   Python `def name(...)` / `async def name(...)` at ANY indent level — this
+#          deliberately also catches methods/nested defs inside a class, per
+#          spec.
+#   sh     `name() { ... }` / `function name { ... }`.
+#
+#   Blind spots, documented rather than silently under-reported:
+#   - R/sh: multiple defs on one line are only matched once per line (the
+#     regex anchors at line start) — vanishingly rare in the corpus.
+#   - R/sh body-line counting is brace-balance from the first `{` after the
+#     def line to its match; a brace-less one-liner (`f <- \(x) x + 1`) has
+#     no braces to balance and is approximated as a 1-line body.
+#   - Python body-line counting is indentation-based: every subsequent line
+#     indented strictly deeper than the `def` line is body, ending at the
+#     first line at or below that indent. Blank lines strictly between two
+#     body statements are counted as body; but trailing blank lines that
+#     separate a function from the NEXT construct at shallower indent get
+#     attributed to the preceding function's body too (indentation alone
+#     can't distinguish "blank line inside" from "blank line after") — a
+#     documented over-count, not a silent one.
+#   - A `def`/`function(` token that only *looks* like one inside a string
+#     literal or docstring is not special-cased; ordinary text lines rarely
+#     start with `def `/`name <- function(` so this is low-incidence.
 _lint_check_stage_thinness() {
     local projdir="$1" strict="$2" quiet="$3"
-    # Implemented in Phase 5; see docs 09 §3.N.
-    return 0
+    local rc=0
+    local -a stage_dirs=()
+    local _d
+    while IFS= read -r _d; do stage_dirs+=("$_d"); done < <(_vcheck_stage_dirs "$projdir")
+    [[ ${#stage_dirs[@]} -gt 0 ]] || return 0
+
+    local f rel lang loc scan defcount bodytotal
+    while IFS= read -r f; do
+        [[ -f "$f" ]] || continue
+        rel="${f#$projdir/}"
+        _vcheck_is_exempt "$rel" && continue
+        case "$f" in
+            *.R) lang=R ;;
+            *.py) lang=py ;;
+            *.sh) lang=sh ;;
+            *) continue ;;
+        esac
+
+        loc=$(wc -l < "$f" 2>/dev/null); loc=${loc:-0}
+
+        scan=$(_vcheck_stage_scan_defs "$f" "$lang")
+        defcount=$(printf '%s\n' "$scan" | awk -F: '$1=="DEFCOUNT"{print $2}')
+        bodytotal=$(printf '%s\n' "$scan" | awk -F: '$1=="BODYTOTAL"{print $2}')
+        defcount=${defcount:-0}
+        bodytotal=${bodytotal:-0}
+
+        if [[ "$defcount" -gt 2 ]]; then
+            _vcheck_emit "$strict" "$quiet" stage-thinness \
+                "$rel: $defcount function definitions (> 2) — carve machinery into helpers/" || rc=1
+        fi
+        if [[ "$bodytotal" -gt 60 ]]; then
+            _vcheck_emit "$strict" "$quiet" stage-thinness \
+                "$rel: $bodytotal lines inside function bodies (> 60) — carve machinery into helpers/" || rc=1
+        fi
+        if [[ "$loc" -gt 500 ]]; then
+            _vcheck_emit "$strict" "$quiet" stage-thinness \
+                "$rel: $loc lines (> 500 LOC) — split the stage or extract helpers" || rc=1
+        fi
+    done < <(find "${stage_dirs[@]}" -maxdepth 2 -type f \( -name '*.R' -o -name '*.py' -o -name '*.sh' \) 2>/dev/null)
+
+    return $rc
+}
+
+# _vcheck_stage_scan_defs <file> <lang>
+# Print `DEFCOUNT:<n>` and `BODYTOTAL:<n>` — the count of non-exempt function
+# definitions and the sum of their body-line counts — for <file>. <lang> is
+# one of R|py|sh. See the stage-thinness header comment above for the
+# per-language detection rules, the escape-hatch handling, and known blind
+# spots.
+_vcheck_stage_scan_defs() {
+    local file="$1" lang="$2"
+    awk -v lang="$lang" '
+    {
+        lines[NR] = $0
+    }
+    END {
+        n = NR
+        defcount = 0
+        bodytotal = 0
+        for (i = 1; i <= n; i++) {
+            line = lines[i]
+            isdef = 0
+            if (lang == "R") {
+                if (line ~ /^[ \t]*[A-Za-z_.][A-Za-z0-9_.]*[ \t]*(<-|=)[ \t]*function[ \t]*\(/) isdef = 1
+                else if (line ~ /^[ \t]*[A-Za-z_.][A-Za-z0-9_.]*[ \t]*(<-|=)[ \t]*\\\(/) isdef = 1
+            } else if (lang == "py") {
+                if (line ~ /^[ \t]*(async[ \t]+)?def[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*\(/) isdef = 1
+            } else if (lang == "sh") {
+                if (line ~ /^[ \t]*(function[ \t]+)?[A-Za-z_][A-Za-z0-9_]*[ \t]*\(\)/) isdef = 1
+                else if (line ~ /^[ \t]*function[ \t]+[A-Za-z_][A-Za-z0-9_]*[ \t]*\{?[ \t]*$/) isdef = 1
+            }
+            if (!isdef) continue
+
+            exempt = 0
+            if (i > 1) {
+                prev = lines[i-1]
+                if (match(prev, /^[ \t]*#[ \t]*stage-detail:[ \t]*[^ \t]/)) exempt = 1
+            }
+
+            blen = 0
+            if (lang == "py") {
+                defindent = match(line, /[^ \t]/)
+                if (defindent == 0) defindent = 1
+                j = i + 1
+                bodyend = i
+                while (j <= n) {
+                    bl = lines[j]
+                    if (bl ~ /^[ \t]*$/) { bodyend = j; j++; continue }
+                    ind = match(bl, /[^ \t]/)
+                    if (ind == 0) ind = 1
+                    if (ind <= defindent) break
+                    bodyend = j
+                    j++
+                }
+                blen = bodyend - i
+                if (blen < 0) blen = 0
+            } else {
+                depth = 0
+                started = 0
+                bodystart = i
+                bodyend = i
+                k = i
+                done = 0
+                while (k <= n && !done) {
+                    cl = lines[k]
+                    # Blank out simple quoted-string contents before counting
+                    # braces: R/glue()/f-string-style interpolation routinely
+                    # embeds literal { }  inside "..."/(quotes (e.g. glue(
+                    # "id: {tag}")), which would otherwise desync the brace
+                    # balance. This is a line-local, escape-naive strip (does
+                    # not track escaped quotes across lines) — a documented
+                    # approximation, not a full tokenizer.
+                    gsub(/"[^"]*"/, "\"\"", cl)
+                    gsub(/\047[^\047]*\047/, "\047\047", cl)
+                    clen = length(cl)
+                    for (cpos = 1; cpos <= clen; cpos++) {
+                        ch = substr(cl, cpos, 1)
+                        if (ch == "{") {
+                            if (!started) { started = 1; bodystart = k }
+                            depth++
+                        } else if (ch == "}") {
+                            depth--
+                            if (started && depth == 0) { bodyend = k; done = 1; break }
+                        }
+                    }
+                    k++
+                }
+                if (started) {
+                    blen = bodyend - bodystart
+                } else {
+                    blen = 1
+                }
+            }
+
+            if (!exempt) {
+                defcount++
+                bodytotal += blen
+            }
+        }
+        print "DEFCOUNT:" defcount
+        print "BODYTOTAL:" bodytotal
+    }
+    ' "$file"
 }
 
 # ---------------------------------------------------------------------------
 # Check: comment-intent
 # ---------------------------------------------------------------------------
-# Implemented in Phase 5; see docs 09 §3.N.
+# See docs 09 §3.2. Exactly two rules — the rejected candidates (history
+# markers, docstring-beyond-contract, comment-restates-next-line) are recorded
+# in §3.4 and deliberately NOT implemented here.
+#
+#   1. Banner / separator comment: `^#\s*[=\-*#]{6,}` (any line, any file).
+#   2. Mid-file comment run of >= 6 CONSECUTIVE comment lines, where the run
+#      STARTS after line 25 (§3.2's literal wording — "starting after line
+#      25", not merely overlapping it). This is what keeps a file HEADER
+#      legal: a stage should still open with a comment block stating what it
+#      does and what it writes (§3.2, §1.4). A run that starts at or before
+#      line 25 is exempt in full, even if it continues past line 25 — the
+#      whole run is "the header", not just its first 25 lines.
+#
+# Scope decision (documented per the task): STAGE FILES ONLY, via
+# _vcheck_stage_dirs/_vcheck_is_stage_path — the same accepted-dirs list
+# stage-thinness uses (both `stages/` and `scripts/` spellings; see the
+# comment on _VCHECK_STAGE_DIRS). helpers/ is NOT scanned. Justification:
+# §3.1 exempts helpers/ from stage-thinness "by definition" because that is
+# where machinery/definitions belong; the comment-intent rules exist to keep
+# a STAGE's narrative readable top-to-bottom (§1.4, §2.1 "a stage is
+# narrative... implementation lives in helpers/, not inline") — the CRAFT
+# comment bullet (§2.2) is written against that same narrative-readability
+# rationale ("if intent needs six lines mid-body, the code needs a helper
+# with a name"), which is a statement about STAGES, not about helpers'
+# already-unordered machinery. Scoping to stages/ keeps this check
+# consistent with its siblings stage-thinness/stage-layout, both of which are
+# stage-only per §3.1/§3.3.
+#
+# Blank-line handling (documented): a blank line BREAKS a comment run. §3.2
+# says "consecutive comment lines"; a blank line is not a comment line, so it
+# ends the run. This also naturally separates a header block (lines 1..~20)
+# from an unrelated mid-file block below it, without extra bookkeeping.
+#
+# False-positive sources, documented rather than special-cased away:
+#   - A line that is `#` inside a string/docstring literal (not a real
+#     comment) is not distinguished from a real comment — same blind spot
+#     _vcheck_stage_scan_defs already accepts for `def`/`function(` tokens.
+#   - A Python shebang `#!/usr/bin/env python3` on line 1 matches neither
+#     rule in practice (it isn't 6+ fill chars, and a lone line 1 can't reach
+#     a 6-line run by itself), so no special-case is needed; documented here
+#     because the task explicitly flagged it as a thing to consider.
+#   - A legitimate `# -----` section divider inside a long helper is out of
+#     scope entirely under the stages-only decision above, so it is not a
+#     false positive here (helpers/ is never scanned).
 _lint_check_comment_intent() {
     local projdir="$1" strict="$2" quiet="$3"
-    # Implemented in Phase 5; see docs 09 §3.N.
-    return 0
+    local rc=0
+    local -a stage_dirs=()
+    local _d
+    while IFS= read -r _d; do stage_dirs+=("$_d"); done < <(_vcheck_stage_dirs "$projdir")
+    [[ ${#stage_dirs[@]} -gt 0 ]] || return 0
+
+    local f rel
+    while IFS= read -r f; do
+        [[ -f "$f" ]] || continue
+        rel="${f#$projdir/}"
+        _vcheck_is_exempt "$rel" && continue
+        case "$f" in
+            *.R|*.py|*.sh) ;;
+            *) continue ;;
+        esac
+
+        # --- rule 1: banner / separator comments -------------------------
+        local hit
+        while IFS= read -r hit; do
+            [[ -n "$hit" ]] || continue
+            _vcheck_emit "$strict" "$quiet" comment-intent \
+                "$rel:${hit%%:*}: banner/separator comment — drop it, per craft.yaml's comments bullet" || rc=1
+        done < <(grep -nE '^#\s*[=*#-]{6,}' "$f" 2>/dev/null)
+
+        # --- rule 2: mid-file comment run >= 6 lines starting after line 25
+        local run_start=0 run_len=0 lineno=0 line
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            lineno=$((lineno + 1))
+            if [[ "$line" =~ ^[[:space:]]*#.*$ && -n "${line//[[:space:]]/}" ]]; then
+                [[ "$run_len" -eq 0 ]] && run_start=$lineno
+                run_len=$((run_len + 1))
+            else
+                if [[ "$run_len" -ge 6 && "$run_start" -gt 25 ]]; then
+                    _vcheck_emit "$strict" "$quiet" comment-intent \
+                        "$rel:$run_start: mid-file comment run of $run_len lines — extract a named helper instead" || rc=1
+                fi
+                run_len=0
+            fi
+        done < "$f"
+        # File-end flush: a run may run to EOF without a trailing non-comment line.
+        if [[ "$run_len" -ge 6 && "$run_start" -gt 25 ]]; then
+            _vcheck_emit "$strict" "$quiet" comment-intent \
+                "$rel:$run_start: mid-file comment run of $run_len lines — extract a named helper instead" || rc=1
+        fi
+    done < <(find "${stage_dirs[@]}" -maxdepth 3 -type f \( -name '*.R' -o -name '*.py' -o -name '*.sh' \) 2>/dev/null)
+
+    return $rc
 }
 
 # ---------------------------------------------------------------------------
 # Check: stage-layout
 # ---------------------------------------------------------------------------
-# Implemented in Phase 5; see docs 09 §3.N.
+# Cheap structural companion to doc 09 §1 / §3.3. Six rules, all emitted via
+# _vcheck_emit (which itself collapses "violation" vs "warn" — see the doc
+# comment above _vcheck_emit / the header block: there is only soft-WARN vs
+# --strict hard-ERROR, no third severity channel, so §3.3's "violation" and
+# "warn" language both land as the same finding class here):
+#   1. a *_viz stage that writes tables         -> finding
+#   2. a non-_viz stage that writes figures     -> finding
+#   3. a NN_<topic>_viz with no NN_<topic> sibling (same number, same stem)
+#                                                -> finding (orphan viz)
+#   4. a stray file directly under 02_analysis/ that is neither in a subdir
+#      nor a known entry point                  -> finding
+#   5. a stage number with a letter suffix (03d, 06b)      -> finding
+#   6. a single-digit stage number (4_... not 04_...)      -> finding
+#
+# Rules 1/2 reuse the exact figure-write regex from figure-style
+# (ggsave/.savefig/save_figure/save_overview) so the two checks never diverge
+# on what "writes a figure" means; there is no existing "writes a table"
+# notion anywhere in lint.sh (results-layout reasons from artifacts already on
+# disk, not from script source), so that regex is new here.
 _lint_check_stage_layout() {
     local projdir="$1" strict="$2" quiet="$3"
-    # Implemented in Phase 5; see docs 09 §3.N.
-    return 0
+    local rc=0
+    local -a stage_dirs=()
+    local _d
+    while IFS= read -r _d; do stage_dirs+=("$_d"); done < <(_vcheck_stage_dirs "$projdir")
+
+    # --- rule 4: stray files directly under 02_analysis/ --------------------
+    # "Known entry point" = docs (README.md/AGENTS.md), build/orchestration
+    # (Makefile, run_*.sh), env/dependency manifests (renv.lock,
+    # requirements.txt, pyproject.toml, environment.yml, .Rprofile), and
+    # dotfiles (.gitkeep, .gitignore, ...). Anything else at the namespace
+    # root — e.g. a stray config.py — is neither narrative nor machinery nor
+    # config-by-convention, so it warns.
+    local analysis_root="$projdir/02_analysis"
+    if [[ -d "$analysis_root" ]]; then
+        local f base rel
+        while IFS= read -r f; do
+            [[ -f "$f" ]] || continue
+            base=$(basename "$f")
+            rel="${f#$projdir/}"
+            _vcheck_is_exempt "$rel" && continue
+            case "$base" in
+                .*) continue ;;
+                README.md|AGENTS.md|Makefile) continue ;;
+                run_*.sh) continue ;;
+                renv.lock|requirements.txt|pyproject.toml|environment.yml|.Rprofile) continue ;;
+            esac
+            _vcheck_emit "$strict" "$quiet" stage-layout \
+                "$rel: stray file directly under 02_analysis/ — not in a subdir and not a known entry point (README.md/AGENTS.md/Makefile/run_*.sh/env manifests)" || rc=1
+        done < <(find "$analysis_root" -maxdepth 1 -type f 2>/dev/null)
+    fi
+
+    [[ ${#stage_dirs[@]} -gt 0 ]] || return $rc
+
+    # --- rules 1, 2, 3, 5, 6: per-stage-file checks --------------------------
+    local d
+    for d in "${stage_dirs[@]}"; do
+        local f base rel num suffix stem found_sib e
+        # Rule 3 (orphan viz) needs at least two stage files to mean anything —
+        # a lone viz script in an otherwise-empty stage dir is a self-contained
+        # utility, not evidence of a severed pair. Gate on the narrative
+        # actually having more than one beat before judging it broken.
+        local stage_file_count
+        stage_file_count=$(find "$d" -maxdepth 1 -type f \( -name '*.R' -o -name '*.py' \) 2>/dev/null | wc -l)
+        while IFS= read -r f; do
+            [[ -f "$f" ]] || continue
+            base=$(basename "$f")
+            rel="${f#$projdir/}"
+            _vcheck_is_exempt "$rel" && continue
+            case "$base" in *.R|*.py) ;; *) continue ;; esac
+
+            # rules 5 & 6: stage-number shape (letter suffix / single digit).
+            if [[ "$base" =~ ^([0-9]+)([a-zA-Z]?)_ ]]; then
+                num="${BASH_REMATCH[1]}"
+                suffix="${BASH_REMATCH[2]}"
+                if [[ -n "$suffix" ]]; then
+                    _vcheck_emit "$strict" "$quiet" stage-layout \
+                        "$rel: stage number carries a letter suffix ('$num$suffix') — use decade numbering instead (doc 09 §1.5)" || rc=1
+                elif [[ "${#num}" -eq 1 ]]; then
+                    _vcheck_emit "$strict" "$quiet" stage-layout \
+                        "$rel: single-digit stage number ('$num') — zero-pad to two digits so lexical order matches narrative order (doc 09 §1.5)" || rc=1
+                fi
+            fi
+
+            # rules 1 & 2: viz/compute write-target contract.
+            if [[ "$base" == *_viz.R || "$base" == *_viz.py ]]; then
+                if grep -Eq 'write\.csv\(|write\.table\(|saveRDS\(|write_csv\(|write_tsv\(|fwrite\(|\.to_csv\(|\.to_parquet\(|write_parquet\(' "$f" 2>/dev/null; then
+                    _vcheck_emit "$strict" "$quiet" stage-layout \
+                        "$rel: _viz stage writes tables — viz never computes (doc 09 §1.4)" || rc=1
+                fi
+            else
+                if grep -Eq 'ggsave\(|\.savefig\(|save_figure\(|save_overview\(' "$f" 2>/dev/null; then
+                    _vcheck_emit "$strict" "$quiet" stage-layout \
+                        "$rel: non-viz stage writes figures — compute never plots (doc 09 §1.4)" || rc=1
+                fi
+            fi
+
+            # rule 3: orphan viz — no same-number, same-stem compute sibling.
+            if [[ "$stage_file_count" -gt 1 && "$base" =~ ^([0-9]+[a-zA-Z]?)_(.+)_viz\.(R|py)$ ]]; then
+                num="${BASH_REMATCH[1]}"; stem="${BASH_REMATCH[2]}"
+                found_sib=0
+                for e in R py; do
+                    [[ -f "$d/${num}_${stem}.$e" ]] && { found_sib=1; break; }
+                done
+                if [[ "$found_sib" -eq 0 ]]; then
+                    _vcheck_emit "$strict" "$quiet" stage-layout \
+                        "$rel: orphan viz — no sibling ${num}_${stem}.{R,py} compute stage (doc 09 §1.4)" || rc=1
+                fi
+            fi
+        done < <(find "$d" -maxdepth 1 -type f 2>/dev/null)
+    done
+
+    return $rc
 }

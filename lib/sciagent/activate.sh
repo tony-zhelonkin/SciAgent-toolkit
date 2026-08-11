@@ -1,7 +1,14 @@
-# lib/sciagent/activate.sh — sciagent activate <base> [overlay]
+# lib/sciagent/activate.sh — sciagent activate <base> [overlay] [--output-style <name>]
 # Computes the effective merged stack (last-wins on name collisions), creates
 # dual symlinks, rewrites the AGENTS.md managed block, writes manifest.
 # Stack-walking and block-body rendering are delegated to stack.sh.
+#
+# Output style (Phase 5d) is no longer role-scoped — it is a SELECTION (one
+# style exists on disk today), not a filter, so roles cannot express it via
+# provenance the way skills/agents/commands do. Resolution precedence:
+#   1. --output-style <name> flag (this invocation)
+#   2. craft.yaml's `output_style:` key (toolkit-wide default)
+#   3. none (no style mounted, no outputStyle written to settings.local.json)
 
 # shellcheck shell=bash
 
@@ -39,8 +46,29 @@ ensure_claude_md_shim() {
 }
 
 cmd_activate() {
+    # Parse --output-style anywhere in the args; everything else is positional
+    # (base [overlay]). --output-style wins over craft.yaml's output_style:
+    # key when both are given; omitting both mounts no style at all.
+    local -a _pos=()
+    local OUTPUT_STYLE_FLAG=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --output-style)
+                if [[ -z "${2:-}" ]]; then
+                    echo "usage: sciagent activate <base> [overlay] [--output-style <name>]" >&2
+                    return 1
+                fi
+                OUTPUT_STYLE_FLAG="$2"
+                shift 2 ;;
+            *)
+                _pos+=("$1")
+                shift ;;
+        esac
+    done
+    set -- "${_pos[@]+"${_pos[@]}"}"
+
     if [[ $# -lt 1 ]]; then
-        echo "usage: sciagent activate <base> [overlay]" >&2
+        echo "usage: sciagent activate <base> [overlay] [--output-style <name>]" >&2
         return 1
     fi
     if [[ $# -gt 2 ]]; then
@@ -85,7 +113,6 @@ cmd_activate() {
     # the filesystem.
     local -a SKILL_ORDER=() AGENT_ORDER=() COMMAND_ORDER=()
     declare -A SKILLS=() AGENTS_M=() COMMANDS_M=()
-    local OUTPUT_STYLE="" OUTPUT_STYLE_ROLE=""
 
     local kind name provider _shadow
     while IFS=$'\t' read -r kind name provider _shadow; do
@@ -93,18 +120,35 @@ cmd_activate() {
             SKILL)   SKILLS[$name]="$provider";   SKILL_ORDER+=("$name") ;;
             AGENT)   AGENTS_M[$name]="$provider";  AGENT_ORDER+=("$name") ;;
             COMMAND) COMMANDS_M[$name]="$provider"; COMMAND_ORDER+=("$name") ;;
-            STYLE)   OUTPUT_STYLE="$name"; OUTPUT_STYLE_ROLE="$provider" ;;
         esac
     done < <(stack_walk "$base" "$overlay")
 
+    # Resolve the output style (Phase 5d: no longer role-scoped). Precedence:
+    # --output-style flag > craft.yaml's `output_style:` key > none.
+    local OUTPUT_STYLE="" OUTPUT_STYLE_SOURCE=""
+    if [[ -n "$OUTPUT_STYLE_FLAG" ]]; then
+        OUTPUT_STYLE="$OUTPUT_STYLE_FLAG"
+        OUTPUT_STYLE_SOURCE="--output-style flag"
+    else
+        local _craft_yaml _craft_style
+        _craft_yaml=$(_craft_yaml_path)
+        if [[ -f "$_craft_yaml" ]]; then
+            _craft_style=$(role_scalar "$_craft_yaml" output_style)
+            if [[ -n "$_craft_style" ]]; then
+                OUTPUT_STYLE="$_craft_style"
+                OUTPUT_STYLE_SOURCE="craft.yaml"
+            fi
+        fi
+    fi
+
     # Resolve output_style → system-prompts/<file>.md by frontmatter name.
-    # Validate before any filesystem mutation so a drifted role spec leaves
+    # Validate before any filesystem mutation so a drifted request leaves
     # the project untouched (no half-state).
     local STYLE_SRC=""
     if [[ -n "$OUTPUT_STYLE" ]]; then
         STYLE_SRC=$(system_prompt_path "$OUTPUT_STYLE") || true
         if [[ -z "$STYLE_SRC" ]]; then
-            echo "sciagent: role '$OUTPUT_STYLE_ROLE' requests output_style '$OUTPUT_STYLE'," >&2
+            echo "sciagent: $OUTPUT_STYLE_SOURCE requests output_style '$OUTPUT_STYLE'," >&2
             echo "  but no file in system-prompts/ has frontmatter 'name: $OUTPUT_STYLE'." >&2
             echo "  Available styles (frontmatter name → file):" >&2
             local pname pfile
@@ -122,29 +166,7 @@ cmd_activate() {
     # re-activation rather than racing against the new apply.
     # Deferred until AFTER skill_resolve_transitive succeeds, so a failed
     # resolution leaves the previous stack intact.
-    #
-    # Inject lifecycle note: activate is clean-slate w.r.t. injected entries
-    # The previous manifest's injected rows are about to be torn down with 
-    # the rest of the stack. Surface them on STDERR before teardown so 
-    # the loss is attributed to this activate, not buried under the 
-    # post-activation summary line. Exit code stays 0.
     if manifest_exists; then
-        local -a _dropped_injected=()
-        local _ov _sk _via _kind
-        while IFS='|' read -r _ov _sk _via _kind; do
-            [[ -z "$_sk" ]] && continue
-            _dropped_injected+=("${_kind:-skill} $_sk")
-        done < <(manifest_injected 2>/dev/null || true)
-        if [[ "${#_dropped_injected[@]}" -gt 0 ]]; then
-            {
-                echo "sciagent: warning — activate is a clean-slate operation; dropping injected entries:"
-                local _d
-                for _d in "${_dropped_injected[@]}"; do
-                    echo "  - $_d"
-                done
-                echo "  to preserve, run 'sciagent deactivate' first and re-inject after."
-            } >&2
-        fi
         claude_settings_teardown
         symlink_teardown_all
         block_remove AGENTS.md 2>/dev/null || true
@@ -214,6 +236,6 @@ cmd_activate() {
     echo "  agents:   ${#AGENT_ORDER[@]}"
     echo "  commands: ${#COMMAND_ORDER[@]}"
     if [[ -n "$OUTPUT_STYLE" ]]; then
-        echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_ROLE) [settings.local.json: $STYLE_APPLIED_TAG]"
+        echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_SOURCE) [settings.local.json: $STYLE_APPLIED_TAG]"
     fi
 }

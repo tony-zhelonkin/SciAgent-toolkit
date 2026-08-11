@@ -1,8 +1,12 @@
 #!/usr/bin/env bash
-# A role that requests an output_style with no matching frontmatter name
-# in system-prompts/ must fail cleanly at activate-time: non-zero exit,
+# A `--output-style` request with no matching frontmatter name in
+# system-prompts/ must fail cleanly at activate-time: non-zero exit,
 # actionable stderr, and no filesystem mutation (no manifest, no
 # symlinks, no AGENTS.md block).
+#
+# Phase 5d: output_style moved off roles (a role field can no longer request
+# a style at all — role_load() doesn't emit it). This test now exercises the
+# same drift-detection guarantee through the `--output-style` flag instead.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -11,15 +15,6 @@ FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
 export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
-
-# Add a role whose output_style does not exist anywhere in system-prompts/.
-cat > "$FAKE/roles/with_ghost_style.yaml" <<EOF
-name: with_ghost_style
-description: fixture role requesting a non-existent style
-output_style: ghost-style
-skills:
-  - s_a
-EOF
 
 mkdir project && cd project
 cat > AGENTS.md <<'EOF'
@@ -31,7 +26,7 @@ cp AGENTS.md AGENTS.md.orig
 
 # Activate should fail with non-zero exit.
 set +e
-out=$("$SCIAGENT" activate with_ghost_style 2>&1)
+out=$("$SCIAGENT" activate base --output-style ghost-style 2>&1)
 rc=$?
 set -e
 

@@ -23,7 +23,11 @@ usage() {
 sciagent — per-project AI-harness context manager
 
 Usage:
-  sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
+  sciagent activate <base> [overlay] [--output-style <name>]
+                                       Activate role(s) (max stack depth 2);
+                                       roles are provenance-only, --output-style
+                                       (else craft.yaml's output_style:) selects
+                                       the mounted/applied Claude system prompt
   sciagent deactivate [<role>]         Tear down the stack (or one role)
   sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
                                        Force resolution to one kind

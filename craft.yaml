@@ -12,6 +12,11 @@
 
 version: 1
 
+# output_style: <name>   # optional; toolkit-wide default Claude output style,
+#                         # resolved by frontmatter `name:` in system-prompts/.
+#                         # `sciagent activate --output-style <name>` overrides
+#                         # this per invocation. Omit (default) to mount none.
+
 floors:
   figure_base_size: 14          # one legible tier — base font floor (pt)
   context_budget_pct: 35        # one phase ~= this share of a 200k context

@@ -129,14 +129,6 @@ _manifest_record_symlink() {
     _manifest_syms+=("$1")
 }
 
-_manifest_record_injected() {
-    local overlay="$1" skill="$2" via="${3:-}" kind="${4:-skill}"
-    _manifest_injected_overlays+=("$overlay")
-    _manifest_injected_skills+=("$skill")
-    _manifest_injected_vias+=("$via")
-    _manifest_injected_kinds+=("$kind")
-}
-
 # _manifest_write_json <block_hash>
 # Serialise accumulated state into $_manifest_staging as pretty JSON.
 _manifest_write_json() {
@@ -445,44 +437,6 @@ manifest_block_hash() {
     fi
 }
 
-# manifest_update_stack <new-stack>  — rewrite "stack" value in-place.
-manifest_update_stack() {
-    local new_stack="$1"   # space-separated
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    # Re-read current manifest fields, rebuild JSON with updated stack.
-    local old_syms old_inj old_hash
-    old_syms=$(manifest_symlinks)
-    old_inj=$(manifest_injected)
-    old_hash=$(manifest_block_hash)
-
-    # Reconstruct via staging.
-    _manifest_stack_val="$new_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done <<< "$old_syms"
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done <<< "$old_inj"
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$old_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
-}
-
 # manifest_update_block_hash <hash>  — rewrite "block_hash" in-place.
 manifest_update_block_hash() {
     local new_hash="$1"
@@ -553,51 +507,4 @@ symlink_create_helper_lib() {
         ln -sfn "$rel_target" "$link_path"
         _manifest_record_symlink "$link_path"
     done
-}
-
-# manifest_append_symlinks_and_injected <sym1> <sym2> ... -- <overlay> <skill>
-# Appends new symlinks and one injected entry to the existing manifest in-place.
-# Call signature: manifest_append_inject <claude_sym> <agents_sym> <overlay> <skill> [via] [kind]
-# via:  empty string for named-skill injections; "tag:<name>" for tag-driven injections.
-# kind: one of "skill", "agent", "command"; defaults to "skill" when omitted
-#       (preserves the pre-PR-A call shape for skill-only callers).
-manifest_append_inject() {
-    local claude_sym="$1" agents_sym="$2" target_overlay="$3" skill="$4" via="${5:-}" kind="${6:-skill}"
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    local old_stack old_hash
-    old_stack=$(manifest_stack)
-    old_hash=$(manifest_block_hash)
-
-    _manifest_stack_val="$old_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done < <(manifest_symlinks)
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done < <(manifest_injected)
-
-    # Append new entries.
-    _manifest_syms+=("$claude_sym" "$agents_sym")
-    _manifest_injected_overlays+=("$target_overlay")
-    _manifest_injected_skills+=("$skill")
-    _manifest_injected_vias+=("$via")
-    _manifest_injected_kinds+=("$kind")
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$old_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
 }

@@ -1,6 +1,6 @@
 # lib/sciagent/stack.sh — shared stack-walking and block-body rendering.
 #
-# Consumers: activate.sh, inject.sh, status.sh.
+# Consumers: activate.sh, status.sh.
 # The dispatcher (bin/sciagent) does not source this directly; verb modules do.
 
 # shellcheck shell=bash
@@ -36,23 +36,36 @@ _sw_record() {
 #   SKILL    <name>  <providing-role>  <shadowed-roles-csv-or-empty>
 #   AGENT    <name>  <providing-role>  <shadowed>
 #   COMMAND  <name>  <providing-role>  <shadowed>
-#   STYLE    <name>  <providing-role>  <shadowed>
 #
 # Last-wins resolution is applied across the stack. Output order:
-#   SKILL entries (insertion order), then AGENT, then COMMAND, then STYLE.
+#   SKILL entries (insertion order), then AGENT, then COMMAND.
 # The _injected synthetic role is silently skipped (no YAML file).
+# output_style is no longer role-scoped (Phase 5d) — see activate.sh's
+# `--output-style` flag and craft.yaml's `output_style:` key instead.
 #
-# SKILLS ARE NOT FILTERED BY ROLE. The whole catalog is always resolved; a
-# role's `skills:` list only affects PROVENANCE (which role a skill is
-# attributed to in the managed block), never visibility.
+# NOTHING IS FILTERED BY ROLE. The whole catalog — skills, agents, commands —
+# is always resolved; a role's `skills:`/`agents:`/`commands:` lists only
+# affect PROVENANCE (which role an item is attributed to in the managed
+# block), never visibility. Roles are pure provenance labels (Phase 5d).
 #
-# Why: subsetting the catalog saved ~6k tokens (~3% of a 200k context) while
-# breaking cross-references — 20 of 43 mounted skills in Meta-Aging/14616-DM
-# pointed at skills that were not mounted, so the agent was routed to skills it
-# could not see. Harnesses also load only `name` + `description` per skill
-# (~100 tokens) until a skill is activated, so the platform already does the
-# token optimization the filter was invented for, and does it without severing
-# the routing graph. See docs 07a-07d.
+# Why (skills, original rationale): subsetting the catalog saved ~6k tokens
+# (~3% of a 200k context) while breaking cross-references — 20 of 43 mounted
+# skills in Meta-Aging/14616-DM pointed at skills that were not mounted, so
+# the agent was routed to skills it could not see. Harnesses also load only
+# `name` + `description` per skill (~100 tokens) until a skill is activated,
+# so the platform already does the token optimization the filter was invented
+# for, and does it without severing the routing graph. See docs 07a-07d.
+#
+# Why (agents, commands — Phase 5d): unlike skills, agents/commands had no
+# fallback and were still genuinely gated by role — `base` mounted 8/21
+# agents and 3/24 commands. The preload cost of mounting the rest is ~250
+# tokens for all 21 agent descriptions combined; commands carry no
+# `description:` frontmatter at all, so their preload cost is 0 tokens. That
+# is negligible next to the ~6k tokens the skill filter saved (and which was
+# judged not worth severing the routing graph for), so there is no token
+# argument for keeping agents/commands gated either. The owner's call: roles
+# are obsolete and were never actively used as a curation mechanism, so
+# de-gate them the same way skills already are.
 stack_walk() {
     local base="$1"
     local overlay="${2:-}"
@@ -60,7 +73,6 @@ stack_walk() {
     declare -A _sw_skills=() _sw_agents=() _sw_commands=()
     declare -A _sw_skill_shadows=() _sw_agent_shadows=() _sw_command_shadows=()
     local -a _sw_skill_order=() _sw_agent_order=() _sw_command_order=()
-    local _sw_style="" _sw_style_role="" _sw_style_shadow=""
 
     local role line kind name
     for role in "$base" ${overlay:+"$overlay"}; do
@@ -75,9 +87,6 @@ stack_walk() {
                     _sw_record _sw_agents   _sw_agent_shadows   _sw_agent_order   "$name" "$role" ;;
                 COMMAND)
                     _sw_record _sw_commands _sw_command_shadows _sw_command_order "$name" "$role" ;;
-                OUTPUT_STYLE)
-                    [[ -n "$_sw_style" ]] && _sw_style_shadow="$_sw_style_role"
-                    _sw_style="$name"; _sw_style_role="$role" ;;
             esac
         done < <(role_load "$role")
     done
@@ -95,7 +104,30 @@ stack_walk() {
         _sw_record _sw_skills _sw_skill_shadows _sw_skill_order "$_sw_name" catalog
     done < <(find "$SCIAGENT_TOOLKIT/skills" -mindepth 2 -maxdepth 2 -name SKILL.md 2>/dev/null | sort)
 
-    # Emit: SKILL entries first, then AGENT, COMMAND, STYLE.
+    # AGENT/COMMAND catalog-fallback (Phase 5d): same treatment as SKILL above.
+    # agents/**/*.md and commands/**/*.md are nested under a subdirectory
+    # (e.g. agents/analysis-base/captions.md); the mounted NAME is the
+    # filename without extension (matches resolve_canonical's by-filename
+    # search and _list_agents/_list_commands), not any frontmatter field.
+    # README.md files and any path with an underscore-prefixed segment
+    # (scaffolding/retired, e.g. commands/architect/_superseded/) are skipped.
+    while IFS= read -r _sw_sk; do
+        _sw_name=$(basename "$_sw_sk" .md)
+        [[ "$_sw_name" == "README" ]] && continue
+        case "$_sw_sk" in */_*) continue ;; esac
+        [[ -n "${_sw_agents[$_sw_name]:-}" ]] && continue   # already attributed to a role
+        _sw_record _sw_agents _sw_agent_shadows _sw_agent_order "$_sw_name" catalog
+    done < <(find "$SCIAGENT_TOOLKIT/agents" -type f -name '*.md' 2>/dev/null | sort)
+
+    while IFS= read -r _sw_sk; do
+        _sw_name=$(basename "$_sw_sk" .md)
+        [[ "$_sw_name" == "README" ]] && continue
+        case "$_sw_sk" in */_*) continue ;; esac
+        [[ -n "${_sw_commands[$_sw_name]:-}" ]] && continue   # already attributed to a role
+        _sw_record _sw_commands _sw_command_shadows _sw_command_order "$_sw_name" catalog
+    done < <(find "$SCIAGENT_TOOLKIT/commands" -type f -name '*.md' 2>/dev/null | sort)
+
+    # Emit: SKILL entries first, then AGENT, then COMMAND.
     local n
     for n in "${_sw_skill_order[@]+"${_sw_skill_order[@]}"}"; do
         printf 'SKILL\t%s\t%s\t%s\n' "$n" "${_sw_skills[$n]}" "${_sw_skill_shadows[$n]:-}"
@@ -106,25 +138,19 @@ stack_walk() {
     for n in "${_sw_command_order[@]+"${_sw_command_order[@]}"}"; do
         printf 'COMMAND\t%s\t%s\t%s\n' "$n" "${_sw_commands[$n]}" "${_sw_command_shadows[$n]:-}"
     done
-    if [[ -n "$_sw_style" ]]; then
-        printf 'STYLE\t%s\t%s\t%s\n' "$_sw_style" "$_sw_style_role" "${_sw_style_shadow:-}"
-    fi
 }
 
-# render_block_body <base> <overlay> [injected-skill ...]
+# render_block_body <base> <overlay>
 # Produces the body text that goes between the BEGIN/END managed-block markers
 # per architecture §4. Reads the role YAMLs via stack_walk.
-# Injected skills are listed in a separate "## Injected (overlay)" subsection.
 render_block_body() {
-    local base="$1"; shift
-    local overlay="$1"; shift
-    local -a injected=( "$@" )
+    local base="$1"
+    local overlay="${2:-}"
 
     # Run stack walk and load results into arrays.
     declare -A _rb_skills=() _rb_agents=() _rb_commands=()
     declare -A _rb_skill_shadows=() _rb_agent_shadows=() _rb_command_shadows=()
     local -a _rb_skill_order=() _rb_agent_order=() _rb_command_order=()
-    local _rb_style="" _rb_style_role=""
 
     local kind name provider shadow
     while IFS=$'\t' read -r kind name provider shadow; do
@@ -143,10 +169,6 @@ render_block_body() {
                 _rb_commands[$name]="$provider"
                 _rb_command_shadows[$name]="$shadow"
                 _rb_command_order+=("$name")
-                ;;
-            STYLE)
-                _rb_style="$name"
-                _rb_style_role="$provider"
                 ;;
         esac
     done < <(stack_walk "$base" "$overlay")
@@ -178,14 +200,6 @@ render_block_body() {
             printf '\n'
         fi
 
-        if [[ ${#injected[@]} -gt 0 ]]; then
-            printf '## Injected (overlay)\n'
-            for n in "${injected[@]}"; do
-                printf -- '- `%s` — (injected)\n' "$n"
-            done
-            printf '\n'
-        fi
-
         if [[ ${#_rb_agent_order[@]} -gt 0 ]]; then
             printf '## Sub-agents (effective, Claude-only)\n'
             for n in "${_rb_agent_order[@]}"; do
@@ -205,44 +219,5 @@ render_block_body() {
             done
             printf '\n'
         fi
-
-        if [[ -n "$_rb_style" ]]; then
-            printf '## Output style\n'
-            printf -- '- `%s` — (%s)\n' "$_rb_style" "$_rb_style_role"
-        fi
-    }
-}
-
-# block_render_and_write [<agents-file>]
-# Canonical "recompute the managed block from current manifest + role YAMLs
-# and write it" routine. Lives here because it needs render_block_body, but
-# delegates ALL byte I/O to block.sh (stack.sh → block.sh, never the reverse).
-# Called by inject.sh, activate.sh, eject.sh. Returns block.sh's write status.
-block_render_and_write() {
-    local file="${1:-AGENTS.md}"
-    local stack base overlay
-    stack=$(manifest_stack)
-    base=$(printf '%s\n' "$stack" | awk '{print $1}')
-    overlay=$(printf '%s\n' "$stack" | awk '{print $2}')
-
-    # Only skill-kind injected rows feed the "## Injected (overlay)" block;
-    # agent/command injections surface via the role-walk path.
-    local -a injected=()
-    local ov nm _via kind
-    while IFS='|' read -r ov nm _via kind; do
-        [[ -n "$ov" ]] || continue
-        [[ "${kind:-skill}" == "skill" ]] || continue
-        injected+=("$nm")
-    done < <(manifest_injected)
-
-    local body
-    body=$(render_block_body "$base" "$overlay" "${injected[@]+"${injected[@]}"}")
-    block_write "$file" "$body" || {
-        echo "sciagent: failed to write managed block to $file" >&2
-        return 1
-    }
-    manifest_update_block_hash "$(block_stored_hash "$file")" || {
-        echo "sciagent: failed to update manifest block hash" >&2
-        return 1
     }
 }
