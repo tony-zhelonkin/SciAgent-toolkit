@@ -70,6 +70,28 @@ _block_require_id() {
     return 0
 }
 
+# _block_replace_preserving_mode <tmp> <target>
+# Move <tmp> over <target>, keeping <target>'s permission bits.
+#
+# mktemp creates 0600, and a bare `mv` carries that mode onto the target — so
+# every in-place block rewrite silently stripped group/other read. That already
+# happened across the fleet: AGENTS.md sits at 0600 in eleven analysis repos,
+# including a shared lab tree where its own siblings are 0644 and colleagues
+# consequently cannot read it. AGENTS.md is a file other people are meant to
+# read; a managed-block rewrite has no business changing who can.
+#
+# The mode is captured BEFORE the mv, since the target is replaced. If stat is
+# unavailable or the target vanished, fall back to the plain mv rather than
+# failing the write — losing the mode is bad, losing the block is worse.
+_block_replace_preserving_mode() {
+    local tmp="$1" target="$2"
+    local mode=""
+    [[ -f "$target" ]] && mode=$(stat -c '%a' "$target" 2>/dev/null || true)
+    mv "$tmp" "$target" || return 1
+    [[ -n "$mode" ]] && chmod "$mode" "$target" 2>/dev/null
+    return 0
+}
+
 _count_lines() {
     # echo a numeric count of matching lines for a fixed-string pattern.
     local pat="$1" file="$2"
@@ -211,7 +233,7 @@ block_write() {
             state==1 { next }
             { print }
         ' "$file" > "$tmp"
-        mv "$tmp" "$file"
+        _block_replace_preserving_mode "$tmp" "$file" || return 1
         return 0
     fi
 
@@ -259,5 +281,5 @@ block_remove() {
             for (i=end_n+1; i<=NR; i++) print lines[i]
         }
     ' "$file" > "$tmp"
-    mv "$tmp" "$file"
+    _block_replace_preserving_mode "$tmp" "$file"
 }
