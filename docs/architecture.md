@@ -8,7 +8,17 @@ This is the canonical design spec for sciagent: a harness-agnostic, per-project 
 
 One job: **manage AI-harness context per project**. The user wears different hats (bioinformatician, software engineer, architect). Each hat = a *role*. Activating a role mounts the whole catalog of skills, sub-agents, and slash commands into the project so the active harness session picks them up natively; the role's own `skills:`/`agents:`/`commands:` lists only decide provenance attribution (§5).
 
-Non-goals: installing harnesses, managing MCPs, managing API keys, multi-provider posture, anything global to the user's home directory.
+Non-goals: installing harnesses, managing MCPs, managing API keys.
+
+**Scope of "per project."** Every *mounting* verb — `activate`, `deactivate`, `update`, `craft`, `lint`, `status` — is strictly project-scoped and writes nothing outside the project directory. That is what makes the reproducibility claim meaningful: the project, plus the toolkit commit it pins, fully determines the mounted context.
+
+One capability sits deliberately outside that scope, and this list used to deny it. `sciagent provision` seeds *user-global* baselines across detected harnesses (see `lib/sciagent/provision.sh`) — the shared `SCIAGENT:CONTEXT` block in each harness's global root, and power-user settings defaults. It exists because a devcontainer wants to run it once at create time. Per **ADR-D4** it is an **opt-in personal bootstrap**, not a tier of normal activation:
+
+- no project verb calls it, and it never calls `activate` or `validate`;
+- it is not part of what the toolkit *distributes* — packaging must not select or configure harnesses (**ADR-D3**);
+- only the Claude adapter is implemented fully; the other harnesses' settings adapters are logged honestly and skipped, never faked.
+
+Multi-provider posture is therefore a *partial* goal, not a non-goal, and it is worth being exact about how partial: source directories are harness-neutral, `AGENTS.md` + `.agents/skills` are the neutral binding surface, and detection plus global-context paths exist for five harnesses — but full project materialization exists for Claude Code only, with `.agents` mirrors alongside. See `docs/proposals/2026-08-11-offline-distribution/` for the adapter layer this is headed toward (**ADR-D5**).
 
 ## 2. Mental model: roles as RPG combo classes
 

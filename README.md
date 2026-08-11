@@ -188,13 +188,30 @@ stale `manifest.json` cannot strand a mount. Anything that is not such a symlink
 is left alone, which is why a file or symlink of your own inside `.claude/skills/`
 survives untouched.
 
-**`deactivate` is not a full inverse of `activate`.** The four `.claude/` entries
-above marked *created* — `settings.json`, `statusline.sh`, both hooks — and the
-`@AGENTS.md` line in `CLAUDE.md` are **not** removed, and the hooks stay
-registered and live. There is currently no verb that unwinds them; remove them by
-hand if you want a clean tree. Only the output-style key in
-`settings.local.json` is reversed, and only when an output-style was actually
-applied.
+**`deactivate` (no argument) is a full inverse of `activate`.** Beyond the blocks
+and symlinks, it also reverses the project-level artifacts `activate` writes
+unconditionally: `settings.json`'s key-backfill, `statusline.sh`, both hook
+bodies, the output-style key in `settings.local.json`, and the `@AGENTS.md`
+import line in `CLAUDE.md`.
+
+Reversal is *ownership-checked*, never blind. Each artifact carries a record of
+what sciagent wrote — a content hash, or a state tag saying whether the file was
+created outright or only prepended to. On teardown:
+
+| Record | Action |
+|---|---|
+| absent | touch nothing — sciagent never wrote it |
+| matches | reverse exactly (delete the file, or strip only the header it added) |
+| differs | leave the file in place and warn — an edit is ceded, never clobbered |
+
+So a hook body or statusline you have since edited survives, and the warning
+tells you which one. Ceding is permanent: the record is cleared either way, so a
+second `deactivate` is a silent no-op rather than a recurring warning.
+
+Note this is the *full* teardown only. `deactivate <role>` for a partial
+teardown that leaves a base active does not touch the project-level artifacts —
+they are not stack-specific, so removing an overlay must not unregister the
+hooks.
 
 ## Harness support
 

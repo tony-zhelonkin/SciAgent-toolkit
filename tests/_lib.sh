@@ -173,4 +173,3 @@ EOF
     ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
     ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
 }
-

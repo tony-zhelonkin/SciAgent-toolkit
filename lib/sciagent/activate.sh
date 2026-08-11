@@ -43,7 +43,7 @@ ensure_claude_md_shim() {
         }
         echo "wrote: $f (@AGENTS.md import shim)"
         mkdir -p "$(dirname "$_CLAUDE_MD_STATE")"
-        printf 'created\n%s\n' "$(_sciagent_sha1_file "$f")" > "$_CLAUDE_MD_STATE"
+        printf 'created\n%s\n' "$(sciagent_sha1_file "$f")" > "$_CLAUDE_MD_STATE"
         return 0
     fi
     # Already imports AGENTS.md (a bare `@AGENTS.md` line) → nothing to do.
@@ -52,7 +52,7 @@ ensure_claude_md_shim() {
     fi
     # Present but missing the import — prepend it, preserving existing bytes.
     local orig_hash
-    orig_hash=$(_sciagent_sha1_file "$f")
+    orig_hash=$(sciagent_sha1_file "$f")
     local tmp
     tmp=$(mktemp)
     printf '%s\n\n' "$import" > "$tmp"
@@ -83,7 +83,7 @@ claude_md_shim_teardown() {
         created)
             if [[ -f "$f" ]]; then
                 local cur
-                cur=$(_sciagent_sha1_file "$f")
+                cur=$(sciagent_sha1_file "$f")
                 if [[ "$cur" == "$stored" ]]; then
                     rm -f "$f"
                 else
