@@ -1,30 +1,7 @@
 ---
 name: mofa-cellular
-description: MOFAcellulaR — single-cell pseudo-bulk preprocessing and downstream-association layer on top of MOFA2. Use for cross-condition single-cell atlases where donors are rows and cell types become MOFA views (donor × cell-type-pseudobulk grain, not cell grain). Wraps filtering, TMM/log-CPM normalisation, per-view centring, pseudo-bulk reshape (pb_dat2MOFA), MOFA fitting via MOFA2, and ANOVA/regression of factor scores against donor metadata. For per-cell MOFA fits use mofa-r directly; for Python use mofa-mofapy2; for downstream Python viz use mofa-mofax.
+description: "MOFAcellulaR — pseudo-bulk preprocessing and downstream-association layer on top of MOFA2. Use for cross-condition single-cell atlases where donors are rows and cell types become MOFA views (donor x cell-type grain, not cell grain). Wraps filtering, TMM/log-CPM, per-view centring, MOFA fitting, and ANOVA of factors against donor metadata."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: integration
-  tier: standard
-  tags:
-  - factor-analysis
-  - integration
-  - pathway
-  - multimodal
-  complementary-skills:
-  - mofa-framework
-  - mofa-r
-  - scrna-pipeline-conventions
-  contraindications:
-  - Do not use at per-cell grain. MOFAcellulaR's whole point is donor × cell-type pseudo-bulk; for per-cell use mofa-r or mofa-mofapy2.
-  - Do not interpret plot_sample_2D's UMAP as a factor scatter. It runs uwot::umap on Z (plot_sample_2D.R:89), discarding the linearity that makes Z interpretable in the first place.
-  - Do not run with n_donors << 30 without resampling stability. The n≪p regime is acute at donor grain; latent-lens stability gates apply.
-  - Do not use without removing the cell type with fewest cells/donors first; filt_profiles defaults need review per dataset.
-  version: 0.1.0
-  upstream-docs: https://saezlab.github.io/MOFAcellulaR/
 ---
 
 # MOFAcellulaR: Donor Pseudo-Bulk × Cell-Type Views
@@ -193,3 +170,22 @@ Both are inherited from `mofa.md` §1.3 and apply on top of every caveat in `mof
 - **Vignette (in-source):** `MOFAcellulaR/vignettes/get-started.Rmd`
 - **Paper (Ramirez-Flores et al., 2023):** https://www.biorxiv.org/content/10.1101/2023.02.23.529642v1
 - **saezlab homepage:** https://saezlab.org/
+
+---
+
+## When not to use
+
+- Do not use at per-cell grain. MOFAcellulaR's whole point is donor × cell-type pseudo-bulk; for per-cell use mofa-r or mofa-mofapy2.
+- Do not interpret plot_sample_2D's UMAP as a factor scatter. It runs uwot::umap on Z (plot_sample_2D.R:89), discarding the linearity that makes Z interpretable in the first place.
+- Do not run with n_donors << 30 without resampling stability. The n≪p regime is acute at donor grain; latent-lens stability gates apply.
+- Do not use without removing the cell type with fewest cells/donors first; filt_profiles defaults need review per dataset.
+
+---
+
+## See also
+
+- `mofa-framework`
+- `mofa-r`
+- `scrna-pipeline-conventions`
+
+Upstream docs: https://saezlab.github.io/MOFAcellulaR/

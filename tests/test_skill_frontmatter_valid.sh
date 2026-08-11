@@ -2,7 +2,8 @@
 # tests/test_skill_frontmatter_valid.sh — every skill SKILL.md must have:
 #   1. A YAML frontmatter block (lines 1..N delimited by ---)
 #   2. A `name:` top-level field that matches the parent directory name
-#   3. A `metadata:` top-level block
+#   3. NO `metadata:` block — taxonomy lives in the body, not the frontmatter
+#   4. A `description:` within the length cap enforced by `sciagent validate`
 #
 # The _TEMPLATE directory is exempt.
 
@@ -10,6 +11,7 @@ set -u
 . "$(dirname "$0")/_lib.sh"
 
 declare -i fail_count=0
+declare desc=""
 
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
@@ -55,9 +57,24 @@ for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
         continue
     fi
 
-    # 3. metadata: block present
-    if ! printf '%s\n' "$fm" | grep -q '^metadata:[ \t]*$'; then
-        echo "FAIL [$_TEST_NAME] $name: missing top-level 'metadata:' block" >&2
+    # 3. metadata: block ABSENT. Cross-references and caveats belong in the
+    # body (## Prerequisites / ## When not to use / ## See also); a taxonomy
+    # block is dead weight preloaded for every skill in the catalog.
+    if printf '%s\n' "$fm" | grep -q '^metadata:[ \t]*$'; then
+        echo "FAIL [$_TEST_NAME] $name: has a 'metadata:' block; move it into the body" >&2
+        fail_count+=1
+        continue
+    fi
+
+    # 4. description: present and within the cap.
+    desc="$(printf '%s\n' "$fm" | awk '/^description:[ \t]/ {sub(/^description:[ \t]*/, ""); sub(/[ \t]+$/, ""); gsub(/^["'\'']|["'\'']$/, ""); print; exit}')"
+    if [[ -z "$desc" ]]; then
+        echo "FAIL [$_TEST_NAME] $name: missing top-level 'description:' in frontmatter" >&2
+        fail_count+=1
+        continue
+    fi
+    if (( ${#desc} > 350 )); then
+        echo "FAIL [$_TEST_NAME] $name: description is ${#desc} chars (max 350)" >&2
         fail_count+=1
         continue
     fi

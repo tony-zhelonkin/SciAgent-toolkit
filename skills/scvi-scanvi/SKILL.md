@@ -2,29 +2,6 @@
 name: scvi-scanvi
 description: scANVI — semi-supervised deep generative model for scRNA-seq with partial cell type labels. Use when you have seed labels (full or partial) and need label transfer with better bio-conservation than scVI alone. Always initialize from a trained scVI model. For unsupervised integration use scvi-basic.
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: annotation
-  tier: standard
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-framework
-  - scvi-basic
-  - anndata
-  - scvi-scarches-reference-mapping
-  - cellxgene-census-annotation
-  contraindications:
-  - Do not use without any labeled cells. scANVI is semi-supervised — it needs seed labels.
-  - Do not use on normalized data. Raw counts required.
-  - Do not use without training scVI first. Always initialize scANVI from scVI.
-  - Do not use for scATAC-seq or multiome.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/scanvi.html
 ---
 
 # scANVI: Semi-Supervised Label Transfer
@@ -233,3 +210,23 @@ sc.tl.leiden(uncertain_adata, resolution=0.3)
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/scanvi.html
 - **Seed Labeling:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/seed_labeling.html
 - **Paper:** https://www.embopress.org/doi/full/10.15252/msb.20209620
+
+---
+
+## When not to use
+
+- Do not use without any labeled cells. scANVI is semi-supervised — it needs seed labels.
+- Do not use on normalized data. Raw counts required.
+- Do not use without training scVI first. Always initialize scANVI from scVI.
+- Do not use for scATAC-seq or multiome.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-basic`
+- `anndata`
+- `scvi-scarches-reference-mapping`
+- `cellxgene-census-annotation`
+- `treearches-hierarchy-learning` — for open-set detection of novel cell types not present in the label set, or for building a hierarchical ontology on top of the scANVI latent space

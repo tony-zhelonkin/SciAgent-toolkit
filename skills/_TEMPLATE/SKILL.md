@@ -3,8 +3,10 @@
 # CANONICAL SKILL FRONTMATTER (SciAgent-toolkit conventions)
 # =============================================================================
 # Allowed top-level keys (Claude Code / Desktop skill loader schema):
-#   name, description, license, metadata, allowed-tools, compatibility
-# Any other top-level key fails the validator. All taxonomy goes under `metadata:`.
+#   name, description, license, allowed-tools, compatibility
+# Any other top-level key fails the validator. Cross-references and caveats go
+# in the body, not the frontmatter: `## Prerequisites`, `## When not to use`,
+# `## See also`.
 #
 # Validate with:
 #   python skills/skill-creator/scripts/quick_validate.py skills/<this-skill>/
@@ -25,75 +27,14 @@ description: "[Tool or method name] — [one-line function, dash-joined]. Use wh
 #     - Follow with an em-dash and a one-line function summary
 #     - Give a concrete "Use when" trigger — specific, not generic
 #     - Give 1-2 "For X use other-skill" pointers (disambiguates from siblings)
-#     - 2-5 sentences, ≤1024 chars, include trigger keywords for activation
+#     - 2-4 sentences, ≤350 chars (`sciagent validate` enforces the cap),
+#       including the trigger keywords that should activate it
 #     - NO angle brackets `<` `>` anywhere (validator rejects them — use square
 #       brackets `[...]` for placeholders above, or just write plain prose)
 #     - If the text contains a raw colon, wrap the whole string in double quotes
 #       OR use a YAML block scalar (`description: |`)
 
 license: MIT
-
-metadata:
-  # ---- Provenance -----------------------------------------------------------
-  skill-author: SciAgent-toolkit
-  last-reviewed: YYYY-MM-DD       # ISO date of last human review
-  version: 0.1.0                  # Semver of THIS skill (not the upstream tool)
-  upstream-docs: https://example.org/docs
-
-  # ---- Taxonomy -------------------------------------------------------------
-  scope: implementation
-  # ^ one of:
-  #   concept        — durable orientation / methodology / "step-back" perspective that
-  #                    persists across tooling changes (e.g. architecture-first-dev,
-  #                    tf-footprint-differential-analysis). Cap: ≤500 body lines.
-  #   implementation — practical tool wrapper, concrete swappable kit, specific method
-  #                    skill (e.g. scvi-basic, pycistopic-atac-topic-modeling).
-  #                    Cap: ≤350 body lines.
-  # See ADR-003 in docs/proposals/sciagent-extension-design-spec.md.
-
-  requires: []
-  # ^ Names of other skills that MUST be installed before this one activates.
-  #   Plain skill names only (no version syntax). Example: [scvi-framework, anndata]
-  #   Missing requires hard-fail activation (see ADR-002).
-
-  complementary-skills:
-    - related-skill-a             # Prerequisite: must run before this skill
-    - related-skill-b             # Next step:    runs after this skill's output
-    - related-skill-c             # Alternative:  does the same job differently
-    - related-skill-d             # Extension:    extends this skill's outputs
-  # ^ Skill names WITHOUT `.md`. Keep the list short (3-6 entries). Missing
-  #   complementary-skills trigger a soft warn at activation time (ADR-002).
-  #   The relationship is spelled out in the body's "Complementary Skills" table.
-
-  contraindications:
-    - "Do not use for [case]. Use [other-skill] instead."
-    - "Do not use on [data condition, e.g. log-normalized counts]. [Preferred tool or preprocessing step] is required."
-  # ^ Canonical form: "Do not use for X. Use Y instead." — a single sentence
-  #   stating the anti-case AND the correct alternative. Covers the cases
-  #   where a user MIGHT reach for this skill but shouldn't. 1-4 entries.
-
-  tags:
-    - annotation
-    - qc
-  # ^ Values MUST exist in tags.yaml at the toolkit root (ADR-001 tag vocabulary).
-  #   Tags are thematic FAMILIES (inject --tag pulls the whole family), not
-  #   tool/format details. Use the shortest-unambiguous form: de, qc, viz.
-  #   See tags.yaml for the full vocabulary; add new tags via tags.yaml PR first.
-
-  category: foundation
-  # ^ one of:
-  #   foundation   — core data structures, formats, I/O (anndata, scanpy)
-  #   integration  — batch correction, multi-sample models (scvi-basic, mrvi)
-  #   annotation   — cell-type labels, transfer learning (scanvi, cellxgene)
-  #   analysis     — downstream biology (velocity, DE, GRN, topic modeling)
-  #   workflow     — pipelines stitching multiple tools (scenic+, multiome)
-  #   practice     — methodology, QC, reproducibility patterns
-
-  tier: standard
-  # ^ one of:
-  #   simple   — SKILL.md only. One use case, ≲200 lines. Decision tree optional.
-  #   standard — SKILL.md + references/. Multiple use cases, progressive depth.
-  #   rich     — SKILL.md + references/ + scripts/ + checks/. Executable verification.
 ---
 
 # [Skill Title — Human-Readable, Not Kebab-Case]
@@ -199,19 +140,6 @@ For automated verification: `python checks/check_<thing>.py` *(rich tier only)*
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| [Upstream preprocessing] | `prereq-skill` | Prerequisite |
-| [Downstream visualization or DE] | `next-skill` | Next step |
-| [Same job, different approach] | `alt-skill` | Alternative |
-| [Extend this skill's outputs] | `ext-skill` | Extension |
-
-*Required for `rich` tier, recommended for `standard`, optional for `simple`.*
-
----
-
 ## Resources
 
 - **Docs:** https://example.org/docs
@@ -219,3 +147,27 @@ For automated verification: `python checks/check_<thing>.py` *(rich tier only)*
 - **Repository:** https://github.com/org/repo
 
 *Prefer primary sources (official docs, original papers). Avoid link rot — don't cite blog posts unless authoritative.*
+
+---
+
+## When not to use
+
+- Do not use for [case]. Use [other-skill] instead.
+- Do not use on [data condition, e.g. log-normalized counts]. [Preferred tool or preprocessing step] is required.
+
+---
+
+## See also
+
+Each entry is `` - `skill-name` — Relationship; purpose ``: a short relationship
+label (`Prerequisite`, `Next step`, `Alternative`, `Downstream consumer`,
+`Sibling convention`, ... — pick the word that names the *edge*, not the
+target's job) followed by a semicolon and one clause saying what the target
+skill actually does for/against this one. Don't let the purpose clause just
+restate the relationship word (e.g. avoid `Voter; voter for X` — say what
+kind of vote). Keep it to one line per entry.
+
+- `related-skill-a` — Prerequisite; produces the input this skill consumes
+- `related-skill-b` — Next step; consumes this skill's output for [task]
+- `related-skill-c` — Alternative; use instead when [condition]
+- `related-skill-d` — Sibling convention; shares [contract/house style] with this skill

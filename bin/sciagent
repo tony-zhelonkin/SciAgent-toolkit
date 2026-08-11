@@ -18,31 +18,43 @@ export SCIAGENT_TOOLKIT
 
 LIB="$SCIAGENT_TOOLKIT/lib/sciagent"
 
+# Source the toolkit-locality predicate unconditionally and early (before the
+# verb dispatch below, and before any mutating code path runs). It is pure
+# detection with no side effects (see symlinks.sh), so sourcing it for every
+# verb is cheap and lets both this dispatcher's guard AND any lib code that
+# re-enters a mutating path in-process (e.g. deactivate.sh re-activating
+# solo-base) share one definition of "is the active toolkit the project's own
+# in-repo one" instead of drifting out of sync.
+# shellcheck source=/dev/null
+. "$LIB/symlinks.sh"
+
 usage() {
     cat <<EOF
 sciagent — per-project AI-harness context manager
 
 Usage:
-  sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
+  sciagent activate <base> [overlay] [--output-style <name>]
+                                       Activate role(s) (max stack depth 2);
+                                       roles are provenance-only, --output-style
+                                       (else craft.yaml's output_style:) selects
+                                       the mounted/applied Claude system prompt
   sciagent deactivate [<role>]         Tear down the stack (or one role)
-  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
-  sciagent inject <name>               Add one skill/agent/command (auto-detect)
-  sciagent inject --skill|--agent|--command <name>
-                                       Force resolution to one kind
-  sciagent inject --tag <name>         Add all skills tagged <name>
-  sciagent eject <name>                Remove one previously-injected entry
-  sciagent eject --skill|--agent|--command <name>
-                                       Disambiguate when same name spans kinds
-  sciagent eject --tag <name>          Remove all skills injected via tag
+  sciagent validate [--quiet]          Check skill frontmatter shape + cross-namespace
+                                       name collisions (soft-warn); --check <name>...
+                                       is deprecated and delegates to sciagent lint
+  sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]
+                                       Opt-in PROJECT guardrail checks (the
+                                       (c) GUARDRAIL layer) against an analysis repo
   sciagent status [--json|--effective|--source <name>]
                                        Report active stack and effective tables
   sciagent list [roles|skills|agents|commands]
                                        List available content
   sciagent list role <name>            Detailed view of a specific role
-  sciagent list deps <skill>           Transitive requires closure (leaves first)
-  sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
   sciagent new project|role|skill|agent [args]
                                        Scaffold from templates
+  sciagent craft [--project-dir D] [--force] [--quiet]
+                                       Render/refresh the SCIAGENT:CRAFT block in
+                                       D/AGENTS.md; mounts nothing
   sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
   sciagent update [--to <ref>] [--no-pin] [--quiet]
                                        Re-pin toolkit submodule + re-activate current stack
@@ -69,34 +81,33 @@ verb="$1"; shift
 #
 #   block.sh            leaf: managed-block file I/O + hashing, no sciagent deps
 #   craft.sh            CRAFT block renderer (depends on block.sh)
+#   craft_verb.sh       `craft` verb: block-only render (depends on block.sh, craft.sh)
 #   frontmatter.sh      leaf: YAML frontmatter parser, no sciagent deps
 #   roles.sh            leaf: role/skill YAML reads
 #   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
-#   skill_deps.sh       requires-graph resolver (depends on roles.sh)
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
 #   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
-#   validate.sh         depends on skill_deps.sh, collisions.sh
-#   inject.sh           depends on roles.sh, stack.sh, block.sh, symlinks.sh, collisions.sh
+#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh)
+#   validate.sh         depends on collisions.sh, lint.sh (delegates `validate --check`)
 #   activate.sh         depends on ~everything above
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
-#   eject.sh            depends on inject.sh + stack.sh + block.sh + collisions.sh
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh; lazy-loads frontmatter.sh
 #   update.sh           depends on activate.sh closure + craft.sh (re-pin + re-activate)
 #
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 # ---------------------------------------------------------------------------
 declare -A VERB_MODULES=(
-    [activate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh"
-    [deactivate]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
-    [inject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh"
-    [eject]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh stack.sh inject.sh eject.sh"
-    [status]="block.sh symlinks.sh roles.sh skill_deps.sh stack.sh collisions.sh status.sh"
-    [list]="roles.sh skill_deps.sh status.sh"
-    [validate]="block.sh craft.sh skill_deps.sh collisions.sh validate.sh"
+    [activate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh"
+    [deactivate]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
+    [status]="block.sh symlinks.sh roles.sh stack.sh collisions.sh status.sh"
+    [list]="roles.sh status.sh"
+    [validate]="block.sh craft.sh collisions.sh lint.sh validate.sh"
+    [lint]="block.sh craft.sh lint.sh"
     [new]="new.sh"
+    [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"
-    [update]="block.sh craft.sh symlinks.sh roles.sh skill_deps.sh collisions.sh validate.sh stack.sh claude_settings.sh activate.sh inject.sh update.sh"
+    [update]="block.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
     [provision]="block.sh harness.sh claude_settings.sh provision.sh"
 )
 
@@ -104,12 +115,12 @@ declare -A VERB_MODULES=(
 declare -A VERB_ENTRY=(
     [activate]=cmd_activate
     [deactivate]=cmd_deactivate
-    [inject]=cmd_inject
-    [eject]=cmd_eject
     [status]=cmd_status
     [list]=cmd_list
     [validate]=cmd_validate
+    [lint]=cmd_lint
     [new]=cmd_new
+    [craft]=cmd_craft
     [gitignore]=cmd_gitignore
     [update]=cmd_update
     [provision]=cmd_provision
@@ -117,14 +128,29 @@ declare -A VERB_ENTRY=(
 
 # ---------------------------------------------------------------------------
 # Mutating verbs — those that write symlinks/blocks into the project. Guarded
-# by _guard_toolkit_locality (see below). deactivate is intentionally NOT
-# guarded: it only removes what its own manifest owns, so it is safe (and
-# desirable) to run even against an external toolkit to clean up.
+# by _guard_toolkit_locality (see below), which runs once for the TOP-LEVEL
+# verb before any lib module is even sourced.
+#
+# `update` calls `cmd_activate` in-process (update.sh, both the --no-pin path
+# and the re-exec path's freshly-loaded process) — it must be guarded exactly
+# like `activate`, or `SCIAGENT_TOOLKIT=<external> sciagent update --no-pin`
+# silently re-mounts the project against the wrong checkout, escaping the
+# submodule pin the guard exists to protect.
+#
+# `deactivate` is intentionally NOT in this map: its full/base-removal paths
+# only ever DELETE (symlink_teardown_all resolves ownership from each link's
+# own target — see symlinks.sh — and additionally sweeps every path the
+# manifest recorded, so it tears down what this project actually mounted
+# regardless of which toolkit is currently active), which is safe and
+# desirable to run against any toolkit. Its one MUTATING sub-path —
+# `deactivate <overlay>` re-activating solo-base via `cmd_activate` in-process
+# — checks `_sciagent_toolkit_locality_ok` (symlinks.sh) itself before doing
+# so, rather than gating the whole verb (which would also block the always-safe
+# delete-only paths).
 # ---------------------------------------------------------------------------
 declare -A MUTATING_VERB=(
     [activate]=1
-    [inject]=1
-    [eject]=1
+    [update]=1
 )
 
 # _guard_toolkit_locality
@@ -144,6 +170,13 @@ _guard_toolkit_locality() {
     # No in-repo toolkit → nothing to protect; any resolution is fine.
     [[ -d "$in_repo" ]] || return 0
 
+    # Boolean check delegated to the shared predicate (symlinks.sh, sourced
+    # unconditionally above) so this dispatcher-level guard and any lib code
+    # that re-enters a mutating path in-process (deactivate.sh's solo-base
+    # re-activation) can never drift apart on what "in-repo" means.
+    _sciagent_toolkit_locality_ok && return 0
+
+    # Mismatch: recompute the resolved paths for the error message below.
     local in_repo_real active_real
     if command -v realpath >/dev/null 2>&1; then
         in_repo_real="$(realpath "$in_repo" 2>/dev/null || printf '%s' "$in_repo")"
@@ -152,9 +185,6 @@ _guard_toolkit_locality() {
         in_repo_real="$(cd "$in_repo" 2>/dev/null && pwd -P || printf '%s' "$in_repo")"
         active_real="$(cd "$SCIAGENT_TOOLKIT" 2>/dev/null && pwd -P || printf '%s' "$SCIAGENT_TOOLKIT")"
     fi
-
-    # Resolved toolkit already IS the in-repo one → allowed.
-    [[ "$active_real" == "$in_repo_real" ]] && return 0
 
     # Mismatch: external toolkit while an in-repo one exists.
     echo "sciagent: refusing to $verb against an external toolkit" >&2

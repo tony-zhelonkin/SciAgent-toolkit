@@ -2,18 +2,6 @@
 name: reasoning-trace
 description: "Persist reasoning and decisions to disk before returning. Use whenever a non-trivial method, parameter, or phase-boundary choice is made; on a surprising result; at a handoff; or anytime a chat summary would be the only record. A decision with no trace is non-reproducible — capture the answer, delete the shell."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-23
-  category: provenance
-  tier: standard
-  tags:
-  - provenance
-  complementary-skills:
-  - scrna-pipeline-conventions
-  - figure-style
 ---
 
 # Reasoning-Trace Skill
@@ -52,7 +40,7 @@ One sentence: what question or phase this note covers.
 
 ## Sources
 - What was read, run, or consulted to reach the decisions below.
-- Include script paths, data file paths, or paper DOIs as applicable.
+- Include stage paths, data file paths, or paper DOIs as applicable.
 
 ## Decision 1 — <short label>
 
@@ -77,7 +65,7 @@ Keep the note skimmable: one block per decision, no prose padding, no restating 
 
 **Once a probe yields an answer**, the answer moves into a reasoning trace and the probe is deleted or left in `_scratch/`. The trace is what gets committed.
 
-**Every `03_results/` artifact** must be reproducible from a committed `02_analysis/scripts/NN_*` script. A result that cannot be traced back to a committed script is not a result — it is a guess.
+**Every `03_results/` artifact** must be reproducible from a committed `02_analysis/stages/NN_*` stage. A result traceable to no committed stage is a guess.
 
 Do not write to `/tmp` and reference the path in a note. Write the *number*, *table*, or *conclusion* into the note directly; the shell that computed it can be deleted.
 
@@ -92,12 +80,19 @@ Write before proceeding whenever:
 - A **surprising result** appears — record what was expected, what was observed, and the leading hypothesis.
 - A **handoff** occurs — the note is the context packet for the next session or agent.
 
-Routine operations (re-running a committed script with no parameter changes) do not require a trace.
+Routine operations (re-running a committed stage with no parameter changes) do not require a trace.
 
 ---
 
 ## Done when
 
 - The decision and at least one rejected alternative are written to `docs/_internal/reasoning/` or `docs/_internal/research/`.
-- Every `03_results/` artifact produced since the last committed script has a committed `02_analysis/scripts/NN_*` that reproduces it.
+- Every `03_results/` artifact produced since the last committed stage has a committed `02_analysis/stages/NN_*` that reproduces it.
 - No non-trivial reasoning lives only in chat or in a `/tmp` file.
+
+---
+
+## See also
+
+- `scrna-pipeline-conventions`
+- `figure-style`

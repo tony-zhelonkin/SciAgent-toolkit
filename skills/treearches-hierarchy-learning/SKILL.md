@@ -1,27 +1,7 @@
 ---
 name: treearches-hierarchy-learning
-description: Learns unified hierarchical cell-type trees across multiple scRNA-seq reference atlases using scArches + scHPL on scVI/scANVI latent spaces. Use when harmonizing conflicting cell-type nomenclatures across references, extending a hierarchy with new labeled datasets, or detecting novel cell types absent from existing references. For single-reference label transfer only, use scvi-scanvi or cellxgene-census-annotation.
+description: "Learns unified hierarchical cell-type trees across multiple scRNA-seq reference atlases using scArches + scHPL on scVI/scANVI latent spaces. Use when harmonizing conflicting cell-type nomenclatures across references, extending a hierarchy with new labeled data, or detecting novel cell types. For single-reference transfer use scvi-scanvi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scarches.org/
-  category: annotation
-  tier: standard
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-scarches-reference-mapping
-  - scvi-scanvi
-  - scvi-framework
-  - cellxgene-census-annotation
-  contraindications:
-  - Do not use for single-reference label transfer. Use scvi-scanvi or cellxgene-census-annotation.
-  - Do not use without a pre-trained scVI/scANVI reference model — train one first via scvi-scarches-reference-mapping.
 ---
 
 # treeArches Hierarchical Cell Type Learning Skill
@@ -809,3 +789,19 @@ treeArches fits into the broader scArches pipeline:
 - **scArches GitHub:** https://github.com/theislab/scarches
 - **scHPL GitHub:** https://github.com/lcmmichielsen/scHPL
 - **Foundation Skill:** `scvi-scarches-reference-mapping.md`
+
+---
+
+## When not to use
+
+- Do not use for single-reference label transfer. Use scvi-scanvi or cellxgene-census-annotation.
+- Do not use without a pre-trained scVI/scANVI reference model — train one first via scvi-scarches-reference-mapping.
+
+---
+
+## See also
+
+- `scvi-scarches-reference-mapping`
+- `scvi-scanvi`
+- `scvi-framework`
+- `cellxgene-census-annotation`

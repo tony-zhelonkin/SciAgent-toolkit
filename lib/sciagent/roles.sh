@@ -1,8 +1,12 @@
 # lib/sciagent/roles.sh — minimal YAML role parser (bash-only).
 #
 # Schema (per architecture §6): name, description, optional skills[],
-# agents[], commands[], output_style. Strict YAML edge cases (quoting,
-# nesting, anchors) are out of scope.
+# agents[], commands[]. Strict YAML edge cases (quoting, nesting, anchors)
+# are out of scope. Roles are pure provenance (Phase 5d): none of skills/
+# agents/commands gate what's mounted — see stack.sh:stack_walk's catalog
+# fallback. `output_style` is intentionally NOT part of this schema anymore;
+# it moved to `sciagent activate --output-style` / craft.yaml (see
+# activate.sh).
 #
 # Resolution: roles live in <toolkit>/roles/<name>.yaml. The toolkit root
 # is the SCIAGENT_TOOLKIT env var (set by bin/sciagent) or the parent of
@@ -80,7 +84,11 @@ role_array() {
 #   SKILL <name>
 #   AGENT <name>
 #   COMMAND <name>
-#   OUTPUT_STYLE <name>
+# output_style is no longer role-scoped (Phase 5d): it is a SELECTION, not a
+# filter (exactly one style exists on disk), so it moved to an explicit
+# setting — `sciagent activate --output-style <name>` and/or craft.yaml's
+# `output_style:` key. See activate.sh. A role yaml may still carry a stale
+# `output_style:` key; it is simply never read here.
 role_load() {
     local name="$1"
     local file
@@ -99,9 +107,6 @@ role_load() {
     while IFS= read -r item; do
         [[ -n "$item" ]] && printf 'COMMAND %s\n' "$item"
     done < <(role_array "$file" commands)
-    local style
-    style=$(role_scalar "$file" output_style)
-    [[ -n "$style" ]] && printf 'OUTPUT_STYLE %s\n' "$style"
     return 0
 }
 

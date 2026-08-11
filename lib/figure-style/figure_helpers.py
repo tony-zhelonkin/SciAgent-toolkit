@@ -1,7 +1,7 @@
 """
 figure_helpers.py — the SciAgent-toolkit cross-language FIGURE-STYLE CONTRACT (Python side).
 ============================================================================================
-ONE place that owns the project's figure format so phase viz scripts never reinvent it. This
+ONE place that owns the project's figure format so phase viz stages never reinvent it. This
 is the Python half of a two-language contract; the R half (`figure_helpers.R`, same directory)
 has FUNCTION PARITY — identical public names, equivalent semantics — and both read the SAME
 `analysis_config.yaml:figures` block. Centralizing styling here is the load-bearing capability
@@ -33,11 +33,11 @@ LAZY HEAVY-IMPORT DESIGN (important — read before editing):
 Reuse (one import, a few calls):
   from figure_helpers import set_paper_style, save_overview, overview_path, write_caption
   config = load_figure_config("02_analysis/config/analysis_config.yaml")
-  set_paper_style(config=config)                          # once, top of the viz script
+  set_paper_style(config=config)                          # once, top of the viz stage
   fig = ...                                               # build ONE matplotlib Figure
   save_overview(fig, "04_gsea", "gsea_hallmark_heatmap", table=rows,
                 finding="Hallmark IFN-alpha/gamma dominate the ISD90 response.",
-                script="02_analysis/scripts/11_gsea_viz.py", fn="save_overview",
+                script="02_analysis/stages/11_gsea_viz.py", fn="save_overview",
                 config_kv="figures.nes_cap = 3.5", input="03_results/objects/gsea.rds",
                 how_to_read="Rows = pathways; color = NES (orange up / blue down); * = padj<0.05.",
                 config=config)                             # figure + sibling table + caption, atomic
@@ -105,7 +105,7 @@ _DEFAULT_CONFIG_PATH = "02_analysis/config/analysis_config.yaml"
 def load_figure_config(path: Union[str, Path, None] = None) -> Dict[str, Any]:
     """Load the project `analysis_config.yaml` and return the full parsed dict.
 
-    Pass the parsed dict to every other function as `config=`. Reading once per script and
+    Pass the parsed dict to every other function as `config=`. Reading once per stage file and
     threading it keeps these helpers free of global state and import-time side effects.
     `path` defaults to `02_analysis/config/analysis_config.yaml` under the cwd.
     """
@@ -205,7 +205,7 @@ def set_paper_style(base_size: Optional[float] = None, variant: Optional[str] = 
 
     Bold title/strip, PLAIN (non-bold) axis titles, no top/right spines, Illustrator-editable text
     (`pdf.fonttype=42`). There is no per-variant tier — the sizes are legible BOTH shrunk to a
-    journal column AND projected to a room. Call ONCE near the top of a viz script. Raises a clear
+    journal column AND projected to a room. Call ONCE near the top of a viz stage. Raises a clear
     ImportError if matplotlib is absent. `variant` is accepted for drop-in compat but IGNORED.
     """
     try:
@@ -269,7 +269,7 @@ def _fig_geometry(config: Optional[Dict[str, Any]], width: Optional[float] = Non
 def okabe_palette(config: Optional[Dict[str, Any]] = None) -> List[str]:
     """Return the Okabe-Ito colorblind-safe palette from `colors.okabe_ito` (config) or the
     canonical 8-colour default. The matplotlib analog of the R `scale_color_okabe`/`scale_fill_okabe`
-    helpers (matplotlib has no scale objects, so a viz script passes this list to `color=`/`cmap`)."""
+    helpers (matplotlib has no scale objects, so a viz stage passes this list to `color=`/`cmap`)."""
     colors = ((config or {}).get("colors", {}) or {}).get("okabe_ito", {}) or {}
     vals = list(colors.values()) if isinstance(colors, dict) else list(colors)
     return vals if vals else list(_OKABE_ITO_DEFAULT)
@@ -412,7 +412,7 @@ def purge_figures(stage: str, prefix: str, contrast: Optional[str] = None,
     """Delete `<prefix>*.{png,pdf}` under the resolved stage figures dir (DC semantics).
 
     Removes orphaned stems a fresh run no longer produces (e.g. a dropped gene panel). Scoped by
-    `prefix` so scripts sharing a figures/ dir don't clobber each other. Needs NO plotting
+    `prefix` so stages sharing a figures/ dir don't clobber each other. Needs NO plotting
     backend (stdlib only) — safe to call on a bare box. Returns the count removed.
     """
     # Resolve the dir WITHOUT creating it if it already does not exist (avoid empty dir spam).
@@ -629,7 +629,7 @@ def append_master_table(df_or_rows: Any, database: str, stage: str, name: str,
                 f"database={str(carried)!r} but the call passed database={database!r}. "
                 "The dedupe key is compared against that column, so a mismatch would never "
                 "match and the table would gain a duplicate generation on every run. Set the "
-                "column to the key this call owns (it must be unique per call, so a script "
+                "column to the key this call owns (it must be unique per call, so a stage "
                 "that appends in a loop needs one key per iteration), or pass the value the "
                 "rows already carry."
             )

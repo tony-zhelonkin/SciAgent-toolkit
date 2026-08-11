@@ -1,27 +1,7 @@
 ---
 name: scenic-grn-inference
-description: SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons linking TF to region to gene) from paired scRNA-seq and scATAC-seq by integrating motif enrichment with expression correlation. Use when you need mechanistic TF-to-enhancer-to-target gene edges and have multiome or matched RNA+ATAC data with pycisTopic + pycistarget outputs ready. For scRNA-only regulon inference use classic pySCENIC; for unpaired RNA/ATAC integration use scglue-unpaired-multiomics-integration.
+description: "SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons linking TF to region to gene) from paired scRNA and scATAC by integrating motif enrichment with expression correlation. Use when you need mechanistic TF-enhancer-target edges and have pycisTopic + pycistarget outputs ready. For scRNA-only regulons use pySCENIC."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://scenicplus.readthedocs.io/
-  category: analysis
-  tier: simple
-  tags:
-  - grn
-  complementary-skills:
-  - pycistopic-atac-topic-modeling
-  - pycistarget-motif-enrichment
-  - cellranger-arc-multiome
-  - scvi-multivi
-  contraindications:
-  - Do not use without pycisTopic + pycistarget prerequisites. Run those skills first.
-  - Do not use for scRNA-only GRN inference. Use pySCENIC instead.
-  - Do not use for unpaired RNA/ATAC where cells are not shared. Use scglue-unpaired-multiomics-integration.
 ---
 
 # SCENIC+ GRN Inference Skill
@@ -459,8 +439,22 @@ For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, ci
 - [ ] RNA and ATAC annotations use identical label vocabulary
 - [ ] ≥50 cells per group for robust metacells
 
-## Related Skills
+---
 
-- [scenic-r-python-interop](scenic-r-python-interop.md) — R → Python data handoff (Signac export, RNA raw preservation)
-- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling (prerequisite)
-- [pycistarget](pycistarget-motif-enrichment.md) — Standalone motif enrichment
+## When not to use
+
+- Do not use without pycisTopic + pycistarget prerequisites. Run those skills first.
+- Do not use for scRNA-only GRN inference. Use pySCENIC instead.
+- Do not use for unpaired RNA/ATAC where cells are not shared. Use scglue-unpaired-multiomics-integration.
+
+---
+
+## See also
+
+- `pycistopic-atac-topic-modeling` — ATAC topic modeling (prerequisite)
+- `pycistarget-motif-enrichment` — Standalone motif enrichment
+- `cellranger-arc-multiome`
+- `scvi-multivi`
+- `scenic-r-python-interop` — R → Python data handoff (Signac export, RNA raw preservation)
+
+Upstream docs: https://scenicplus.readthedocs.io/

@@ -23,11 +23,38 @@ EOF
 }
 
 cmd_gitignore() {
-    local target="${1:-$(pwd)/.gitignore}"
+    local target=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -h|--help)
+                cat <<'USAGE'
+sciagent gitignore [<path>]
+  Add or update the SCIAGENT:GITIGNORE managed block in a .gitignore file.
+  Creates the file if it does not exist.
 
-    # Create the file if it doesn't exist.
+  <path>   Path to the .gitignore file to manage (default: ./.gitignore).
+           Use `--` before <path> if it begins with a dash.
+USAGE
+                return 0 ;;
+            --)
+                shift
+                [[ $# -gt 0 ]] && { target="$1"; shift; }
+                ;;
+            -*)
+                echo "sciagent gitignore: unknown option '$1'" >&2
+                echo "usage: sciagent gitignore [<path>]" >&2
+                return 1 ;;
+            *)
+                target="$1"; shift ;;
+        esac
+    done
+    target="${target:-$(pwd)/.gitignore}"
+
+    # Create the file if it doesn't exist. `--` guards against a target that
+    # (despite the option parsing above) still starts with a dash, so it can
+    # never be misparsed as an option by touch/mv.
     if [[ ! -e "$target" ]]; then
-        touch "$target"
+        touch -- "$target"
     fi
 
     if grep -qF "$_SCIAGENT_GITIGNORE_BEGIN" "$target"; then
@@ -47,7 +74,7 @@ cmd_gitignore() {
             cat "$tmpfile"
             _sciagent_gitignore_block
         } > "$target.tmp"
-        mv "$target.tmp" "$target"
+        mv -- "$target.tmp" "$target"
         rm -f "$tmpfile"
         echo "updated SCIAGENT:GITIGNORE block in: $target"
     else

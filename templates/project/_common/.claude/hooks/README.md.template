@@ -7,11 +7,11 @@ conventions LLMs tend to break under pressure:
 
 ### no_ephemeral.sh (PreToolUse / Bash)
 
-**Convention E: results must be reproducible from a committed script.**
+**Convention E: results must be reproducible from a committed stage.**
 
 Detects when a Bash command would write under `03_results/` using an
 inline interpreter (`python3 -c`, `python -c`, `Rscript -e`) or a
-script located outside `02_analysis/scripts/`.  Such ephemeral writes
+script located outside `02_analysis/stages/`.  Such ephemeral writes
 cannot be reproduced from the committed codebase.
 
 - Advisory message names the rule and suggests `_scratch/` or a

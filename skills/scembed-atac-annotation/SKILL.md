@@ -1,27 +1,7 @@
 ---
 name: scembed-atac-annotation
-description: scEmbed transfers cell-type labels to scATAC-seq queries using pre-trained region2vec embeddings and KNN search in a vector database (Qdrant/ChromaDB/FAISS), with no model retraining. Use for fast scATAC annotation when a matching HuggingFace databio reference model exists (e.g., luecken2021, craft100k) and you want EV-projection to place query cells in the reference UMAP. For scRNA-informed ATAC annotation use scvi-multivi; for scvi-based reference mapping use scvi-scarches-reference-mapping.
+description: "scEmbed transfers cell-type labels to scATAC queries using pre-trained region2vec embeddings and KNN search in a vector database, with no retraining. Use for fast annotation when a matching HuggingFace databio reference model exists and you want EV-projection into the reference UMAP. For scRNA-informed ATAC annotation use scvi-multivi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://github.com/databio/geniml
-  category: annotation
-  tier: simple
-  tags:
-  - annotation
-  - chromatin
-  complementary-skills:
-  - scvi-scarches-reference-mapping
-  - scvi-peakvi
-  - iterative-peak-merging
-  - single-cell-vector-search
-  contraindications:
-  - Do not mix reference and query embeddings from different pre-trained models — shared embedding space is required or annotations will be garbage.
-  - Do not use for scRNA-informed annotation of multiome. Use scvi-multivi or label transfer via the RNA modality.
 ---
 
 # scEmbed - Transfer Learning for scATAC-seq Cell-Type Annotation
@@ -321,3 +301,21 @@ docker run -d -p 6333:6333 qdrant/qdrant  # Start Qdrant
 ```bash
 python -c "from geniml.scembed import ScEmbed; from qdrant_client import QdrantClient; print('Ready')"
 ```
+
+---
+
+## When not to use
+
+- Do not mix reference and query embeddings from different pre-trained models — shared embedding space is required or annotations will be garbage.
+- Do not use for scRNA-informed annotation of multiome. Use scvi-multivi or label transfer via the RNA modality.
+
+---
+
+## See also
+
+- `scvi-scarches-reference-mapping`
+- `scvi-peakvi`
+- `iterative-peak-merging`
+- `single-cell-vector-search`
+
+Upstream docs: https://github.com/databio/geniml

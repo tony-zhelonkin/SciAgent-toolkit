@@ -1,27 +1,7 @@
 ---
 name: scvi-scarches-reference-mapping
-description: Performs scArches architectural surgery to map a query dataset onto an existing scvi-tools or scArches reference model (scVI, scANVI, totalVI, MultiVI, trVAE). Covers prepare_query_anndata for gene padding, load_query_data to add adapter layers, fine-tuning with a frozen encoder (weight_decay=0), scANVI or weighted-KNN label transfer, novel-cell-state detection from low confidence, and the required reference-training flags use_layer_norm=both, use_batch_norm=none, encode_covariates=True. Use when the reference already exists and you want to project query cells without retraining from scratch. Unlike scvi-hub-models, which only browses and loads pretrained models, this skill owns the actual surgery and fine-tuning workflow. For hierarchical ontology transfer use treearches-hierarchy-learning; for de novo integration without a reference use scvi-basic.
+description: "scArches architectural surgery to map a query dataset onto an existing scvi-tools reference (scVI, scANVI, totalVI, MultiVI, trVAE): gene padding, adapter layers, fine-tuning with a frozen encoder, weighted-KNN label transfer, and novel-state detection. Use when the reference exists and you want to project queries without retraining."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scarches.org/en/latest/
-  category: annotation
-  tier: simple
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-framework
-  - scvi-hub-models
-  - treearches-hierarchy-learning
-  - scvi-scanvi
-  contraindications:
-  - Do not use for de novo integration without a pretrained reference. Use scvi-basic or scvi-framework.
-  - Do not use for hierarchical cell-type ontology mapping. Use treearches-hierarchy-learning.
 ---
 
 # scArches: Query-to-Reference Mapping
@@ -292,3 +272,21 @@ torch.load = _torch_load_trusted
 - **scarches:** https://docs.scarches.org/
 - **HLCA:** https://www.nature.com/articles/s41591-023-02327-2
 - **Paper:** https://www.nature.com/articles/s41587-021-01133-0
+
+---
+
+## When not to use
+
+- Do not use for de novo integration without a pretrained reference. Use scvi-basic or scvi-framework.
+- Do not use for hierarchical cell-type ontology mapping. Use treearches-hierarchy-learning.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-hub-models`
+- `treearches-hierarchy-learning`
+- `scvi-scanvi`
+
+Upstream docs: https://docs.scarches.org/en/latest/

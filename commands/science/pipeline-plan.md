@@ -1,6 +1,6 @@
 # Pipeline Plan
 
-Plan AND orchestrate a multi-phase analysis pipeline with explicit model-tiering and a runnable acceptance gate. Opus decomposes a scope-doc into bite-sized phases (one phase == one script == one implementer); Sonnet implementers execute them dependency-ordered; Opus reviews every N phases by **actually running the script and asserting its artifacts exist**.
+Plan AND orchestrate a multi-phase analysis pipeline with explicit model-tiering and a runnable acceptance gate. Opus decomposes a scope-doc into bite-sized phases (one phase == one stage == one implementer); Sonnet implementers execute them dependency-ordered; Opus reviews every N phases by **actually running the stage and asserting its artifacts exist**.
 
 This command **composes on top of** `/plan`/`/implement`/`/verify` — it does NOT replace them. It adds science-flavored decomposition (the 14839 gold-standard INDEX/phase format), model-tiering (Opus plan, Sonnet implement, Opus review), and a runnable+artifacts gate the software commands lack. Where per-phase mechanics fit the software flow, delegate to `/implement`; the drift check to `/verify`.
 
@@ -11,7 +11,7 @@ This command **composes on top of** `/plan`/`/implement`/`/verify` — it does N
 | `slug` | `$ARGUMENTS[0]` (positional, **required**) | — | Plan slug. Resolves the plan dir to `docs/_internal/plans/{today}-{slug}/` (date = `date +%F`). |
 | `--scope-doc <path>` | flag | latest `docs/_internal/research/{date}-{slug}/` synthesis (prefer `_SYNTHESIS.md`, else newest `*.md`) | The synthesis/context the Opus planner reads to decompose. |
 | `--n-planners <int>` | flag | `1` | Number of parallel Opus decomposers. `>1` fan-outs alternative decompositions; you then pick/merge into one INDEX. |
-| `--context-budget <int>` | flag | `35` | Target % of a 200k Sonnet context per phase == one script == one bounded brief. Drives how finely the planner splits phases. |
+| `--context-budget <int>` | flag | `35` | Target % of a 200k Sonnet context per phase == one stage == one bounded brief. Drives how finely the planner splits phases. |
 | `--review-every <int>` | flag | `3` | Opus REVIEW CHECKPOINT cadence, in phases. A checkpoint row is inserted after every this-many substantive phases. |
 | `--background <auto\|on\|off>` | flag | `auto` | Long non-blocking phases run in monitorable tmux (`run_in_background`). `auto` = decide per phase from `depends_on`; `on` = always background long phases; `off` = strictly sequential. |
 
@@ -55,7 +55,7 @@ Dispatch `--n-planners` Opus planner(s). Each planner:
    - `00_INDEX.md` from `templates/plan/00_INDEX.md.template`,
    - one `NN_<slug>.md` per phase from `templates/plan/NN_slug.md.template`.
 
-3. **Sizes each phase** so a single Sonnet implementer stays **≤ `--context-budget`%** of a 200k context == **one script == one bounded brief**. A phase that needs more than that is too big — split it. Compute and viz are separate phases (compute never plots, viz never computes).
+3. **Sizes each phase** so a single Sonnet implementer stays **≤ `--context-budget`%** of a 200k context == **one stage == one bounded brief**. A phase that needs more than that is too big — split it. Compute and viz are separate phases (compute never plots, viz never computes).
 
 4. **Fills the INDEX phase table** with columns `seq | slug | title | tier | concern | depends_on`. Substantive phases are `tier: Sonnet`; open-judgement/design phases are `tier: Opus`. `depends_on` lists prior `seq` ids (comma-separated, `—` for none).
 
@@ -71,7 +71,7 @@ After the INDEX is written, **surface the phase table for a glance-check** (wron
 
 Walk the INDEX phase table in dependency order (topological by `depends_on`). For each substantive (non-review) phase:
 
-1. Dispatch **one Sonnet implementer** for that phase. Delegate the per-phase mechanics to `/implement` where natural (the phase brief is the contract; the implementer creates exactly the script + artifacts the brief declares, following `map.md`/existing patterns, minimal surface area).
+1. Dispatch **one Sonnet implementer** for that phase. Delegate the per-phase mechanics to `/implement` where natural (the phase brief is the contract; the implementer creates exactly the stage + artifacts the brief declares, following `map.md`/existing patterns, minimal surface area).
 2. **Respect `depends_on`.** A phase does not start until every phase in its `depends_on` is complete (its declared artifacts exist).
 3. **Background overlap (`--background`).** A phase that is long-running AND does not block its successors launches in tmux via `run_in_background` (monitorable). Later phases whose `depends_on` is already satisfied proceed in parallel — dependency-aware overlap. Under `--background off`, run strictly sequentially. Under `auto`, background only phases with no un-started dependents.
 4. Stamp each phase's `NN_<slug>.md` frontmatter `status:` as the implementer finishes (same canonical schema `/implement` uses), so the reviewer and `/verify` can read completion state.
@@ -84,11 +84,11 @@ At each `RN` checkpoint, dispatch **one Opus reviewer** over the phases the chec
 
 > **(a) Adherence + hygiene.** Confirm each gated phase did what its `NN_<slug>.md` brief specified — plan adherence, code cleanliness, namespace separation (the phase's identifiers/stage-ids are grep-isolable and disjoint from peers), and no drift/rot (no out-of-scope edits, no second homes, no dead code left behind).
 >
-> **(b) Runnable + artifacts gate — RUN THE SCRIPT.** For each gated phase, **actually execute the phase's `02_analysis/scripts/NN_*` script (or confirm its committed/logged run), then assert every artifact the phase's §4 Outputs declares under `03_results/` exists AND is non-empty.** A phase whose script does not run, or whose declared artifacts are absent or empty, FAILS the checkpoint — regardless of how good the diff looks. This runnable+artifacts assertion is the thing the owner otherwise re-types by hand; it is the point of the review.
+> **(b) Runnable + artifacts gate — RUN THE STAGE.** For each gated phase, **actually execute the phase's `02_analysis/stages/NN_*` stage (or confirm its committed/logged run), then assert every artifact the phase's §4 Outputs declares under `03_results/` exists AND is non-empty.** A phase whose stage does not run, or whose declared artifacts are absent or empty, FAILS the checkpoint — regardless of how good the diff looks. This runnable+artifacts assertion is the thing the owner otherwise re-types by hand; it is the point of the review.
 >
 > **(c) Persist the review.** Write the review verdict + evidence (commands run, artifact `ls`/size output, any failures) to `docs/_internal/reasoning/{date}_RN_{checkpoint-slug}.md`. A review that lives only in chat is non-reproducible.
 
-If a checkpoint fails, STOP dispatch of downstream phases and surface the failure with the exact phase, the missing/empty artifact, and the script command that failed. Do not paper over it by advancing.
+If a checkpoint fails, STOP dispatch of downstream phases and surface the failure with the exact phase, the missing/empty artifact, and the stage command that failed. Do not paper over it by advancing.
 
 ## Phase 4: Output summary
 
@@ -105,7 +105,7 @@ Model tiering:  planner = Opus · implementers = Sonnet · reviewers = Opus
 Reviews persisted to: docs/_internal/reasoning/{date}_RN_*.md
 
 Per-phase:
-  01 {slug} ✅ — {script} ran, artifacts present
+  01 {slug} ✅ — {stage} ran, artifacts present
   02 {slug} ✅ — ...
   R1 ✅ — adherence + tests green + artifacts non-empty
   ...
@@ -113,13 +113,13 @@ Per-phase:
 Next: /verify {slug}   (mechanical drift check: plan + scope-doc vs current code)
 ```
 
-If stopped at a failed checkpoint, report the failing phase, the missing/empty artifact path, and the failed script command instead, and recommend the fix-then-re-review loop.
+If stopped at a failed checkpoint, report the failing phase, the missing/empty artifact path, and the failed stage command instead, and recommend the fix-then-re-review loop.
 
 ## Rules
 
 1. **Model tiering is explicit, throughout.** Planner = **Opus** (open-judgement decomposition). Implementers = **Sonnet** (bounded per-phase edits). Reviewers = **Opus** (the gate). State the tier at every dispatch — never silently downgrade the reviewer.
-2. **The review gate RUNS code.** A checkpoint is not satisfied by a grep or a clean-looking diff. It is satisfied only when the phase's script runs and its declared `03_results/` artifacts exist and are non-empty. This is non-negotiable — it is the convention the owner re-types.
-3. **One phase == one script == one implementer (~`--context-budget`%).** If a phase exceeds the budget, split it. Compute and viz are always separate phases (compute never plots; viz never computes).
+2. **The review gate RUNS code.** A checkpoint is not satisfied by a grep or a clean-looking diff. It is satisfied only when the phase's stage runs and its declared `03_results/` artifacts exist and are non-empty. This is non-negotiable — it is the convention the owner re-types.
+3. **One phase == one stage == one implementer (~`--context-budget`%).** If a phase exceeds the budget, split it. Compute and viz are always separate phases (compute never plots; viz never computes).
 4. **Composition, not replacement.** `/pipeline-plan` wraps `/plan`/`/implement`/`/verify` — it adds the science INDEX/phase templates, model-tiering, and the runnable+artifacts gate. It delegates per-phase mechanics to `/implement` and the final drift check to `/verify`. The software architect pipeline is untouched.
 5. **Fill the templates; don't free-form.** The plan IS the P16 templates (`templates/plan/00_INDEX.md.template` + `NN_slug.md.template`) filled — same fixed section order, same `seq|slug|title|tier|concern|depends_on` table. Reviewers grep section headers.
 6. **Ground in the scope-doc; never invent context.** Missing scope-doc → stop and recommend `/explore-and-plan`. Phase briefs cite the scope-doc precisely so implementers don't re-explore.

@@ -12,12 +12,12 @@ Some user-owned content above.
 EOF
 
 body=$'# Active roles\nstack: base\n'
-block_write AGENTS.md "$body"
+block_write AGENTS.md "$body" ROLES
 
-read_back=$(block_read AGENTS.md)
+read_back=$(block_read AGENTS.md ROLES)
 assert_eq "$read_back" "${body%$'\n'}" "block_read returned body"
 
-assert_exit 0 block_hash_check AGENTS.md
+assert_exit 0 block_hash_check AGENTS.md ROLES
 
 # Surrounding content preserved.
 assert_grep '^# Project AGENTS.md' AGENTS.md "header preserved"

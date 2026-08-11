@@ -1,31 +1,7 @@
 ---
 name: peak-atlas-unpaired
-description: "Define a consensus scATAC peak atlas from unpaired data (separate scRNA and scATAC pools from the same biological system) — bridge modalities via a gene-activity matrix plus staged CCA label transfer, call peaks with coarse, refined, and label-free strategies (A/B/C), fold in an external-dataset consensus, then tier-stratify and gate risky single-strategy peaks on external correlation. Use when RNA and ATAC are NOT in the same cells and cell identity must be transferred rather than read off. Builds on peak-atlas-framework (the shared CALL-MERGE-FILTER-TIER-VALIDATE spine). For paired 10x Multiome (RNA+ATAC in the same cells) use peak-atlas-multiome; for the bare within-study summit merge use iterative-peak-merging."
+description: "Consensus scATAC peak atlas from unpaired data (separate scRNA/scATAC pools): bridges modalities via gene-activity + staged CCA transfer, calls peaks (coarse/refined/label-free), tier-stratifies, gates risky peaks on external correlation. Use when RNA/ATAC aren't the same cells. For true multiome use peak-atlas-multiome."
 license: MIT
-metadata:
-  scope: implementation
-  status: stable
-  requires:
-  - peak-atlas-framework
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-25
-  version: 1.0.0
-  upstream-docs: https://stuartlab.org/signac/
-  category: analysis
-  tier: rich
-  tags:
-  - chromatin
-  - multimodal
-  - preprocessing
-  complementary-skills:
-  - peak-atlas-framework
-  - peak-atlas-multiome
-  - seurat-unpaired-cross-modality
-  - signac-chromatin-analysis
-  - iterative-peak-merging
-  contraindications:
-  - "Do not use for paired 10x Multiome (RNA+ATAC in the same cells). Use peak-atlas-multiome instead."
-  - "Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework."
 ---
 
 # Unpaired Consensus Peak Atlas (transferred-identity scATAC)
@@ -222,3 +198,21 @@ Run the framework battery (FRiP retention, marker promoter retention, embedding)
 - MACS3: https://macs3-project.github.io/MACS/
 - ENCODE blacklist (Amemiya et al. 2019): https://github.com/Boyle-Lab/Blacklist
 - Iterative-overlap origin (Corces & Granja, Science 2018): https://www.science.org/doi/10.1126/science.aav1898
+
+
+---
+
+## When not to use
+
+- Do not use for paired 10x Multiome (RNA+ATAC in the same cells). Use peak-atlas-multiome instead.
+- Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework.
+
+---
+
+## See also
+
+- `peak-atlas-framework`
+- `peak-atlas-multiome`
+- `seurat-unpaired-cross-modality`
+- `signac-chromatin-analysis`
+- `iterative-peak-merging`

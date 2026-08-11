@@ -1,26 +1,7 @@
 ---
 name: bulk-rnaseq-activity-inference
-description: 'DecoupleR activity inference pipeline -- infers transcription factor activities (ULM + CollecTRI regulatory network) and signaling pathway activities (MLM + PROGENy consensus signatures, 14 canonical pathways: JAK-STAT, MAPK, NFkB, PI3K, TGFb, TNFa, EGFR, WNT, p53, Hypoxia, Androgen, Estrogen, Trail, VEGF) from bulk RNA-seq DE results, plus publication-quality visualization. Use when computing TF or pathway activity scores from limma/edgeR DE output, identifying differentially active transcription factors, building master_tf_activities.csv or master_progeny_activities.csv, or generating barplots/volcanos/target-gene scatter plots. Routes to: references/tf-activity.md (DecoupleR ULM + CollecTRI), references/progeny.md (PROGENy MLM), references/visualization.md (barplots, volcanos, scatter). For gene-set enrichment against MSigDB or custom databases use bulk-rnaseq-gsea. For interactive UMAP pathway explorer use bulk-rnaseq-pathway-explorer.'
+description: "DecoupleR activity inference from bulk RNA-seq DE results — transcription-factor activities (ULM + CollecTRI) and pathway activities (MLM + PROGENy, 14 canonical pathways), plus barplots, volcanos, and target-gene scatters. Use when scoring TF or pathway activity from limma/edgeR output. For MSigDB gene-set enrichment use bulk-rnaseq-gsea."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://saezlab.github.io/decoupleR/
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  complementary-skills:
-  - bulk-rnaseq-gsea
-  - bulk-rnaseq-pathway-explorer
-  - gatom-metabolomic-predictions
-  contraindications:
-  - Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead.
-  - Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead.
-  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
 ---
 
 # Bulk RNA-seq Activity Inference (DecoupleR)
@@ -225,16 +206,6 @@ fed to the geometry layer is the full set ∩ universe, decoupled from the per-c
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) | `bulk-rnaseq-gsea` | Parallel analysis (different question) |
-| Interactive UMAP pathway/TF/PROGENy explorer HTML | `bulk-rnaseq-pathway-explorer` | Next step (consumes master CSVs) |
-| Topology-aware metabolic module discovery | `gatom-metabolomic-predictions` | Extension |
-
----
-
 ## Resources
 
 - **DecoupleR docs:** https://saezlab.github.io/decoupleR/
@@ -251,3 +222,19 @@ fed to the geometry layer is the full set ∩ universe, decoupled from the per-c
 - `references/progeny.md` — PROGENy MLM: 14 pathway table, .mor="weight" pitfall, concordance analysis, comparison to GSEA, species support, master table schema
 - `references/visualization.md` — barplot/volcano/direction-summary/distribution patterns, PROGENy significance stars, target-gene scatter with concordance coloring, README generation, output organization
 - `references/known-issues.md` — OmniPath/decoupleR fetch failures (`get_collectri`/`get_progeny` "argument is of length zero") and the local-network fallback (`progeny::getModel`, `dorothea_mm`, Zenodo CollecTRI + babelgene)
+
+---
+
+## When not to use
+
+- Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead.
+- Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead.
+- Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
+
+---
+
+## See also
+
+- `bulk-rnaseq-gsea` — Parallel analysis; gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) is a different question
+- `bulk-rnaseq-pathway-explorer` — Next step; interactive UMAP pathway/TF/PROGENy explorer HTML (consumes master CSVs)
+- `gatom-metabolomic-predictions` — Extension; topology-aware metabolic module discovery

@@ -1,27 +1,7 @@
 ---
 name: single-cell-rna-qc
-description: 'Performs scverse/sc-best-practices quality control on single-cell RNA-seq (.h5ad or .h5) using MAD-based (Median Absolute Deviation) adaptive outlier detection on log1p_total_counts, log1p_n_genes_by_counts, and pct_counts_mt — data-driven thresholds that generalize across protocols, tissues, and species where fixed cutoffs fail. Also annotates mitochondrial, ribosomal, and hemoglobin gene sets (species-aware: MT-/RPL/RPS for human, mt-/Rpl/Rps for mouse), produces QC visualizations, and points to scrublet/scDblFinder for the downstream doublet-detection step. Use when running QC from scratch on raw 10x or .h5ad data, filtering low-quality cells, or when a user asks for MAD-based or scverse-style QC. Unlike scanpy''s inline fixed-threshold filtering (min_genes, max_pct_mt), this skill provides adaptive thresholds. Do not use on already-QC''d data (check adata.obs for pct_counts_mt), on bulk RNA-seq, or on non-RNA modalities.'
+description: "scverse/sc-best-practices QC for single-cell RNA-seq using MAD-based adaptive outlier detection on counts, gene counts, and pct_counts_mt — data-driven thresholds that generalize where fixed cutoffs fail. Also annotates MT/ribo/hemoglobin gene sets, species-aware. Use when running QC from scratch on raw 10x or .h5ad data."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: foundation
-  tier: standard
-  tags:
-  - qc
-  - preprocessing
-  complementary-skills:
-  - anndata
-  - scanpy
-  - scvi-basic
-  contraindications:
-  - Do not use on already-QC'd data. Check adata.obs for pct_counts_mt first.
-  - Do not use for bulk RNA-seq (this is single-cell specific).
-  - Do not use for ATAC-seq or other non-RNA modalities.
-  version: 1.0.0
-  upstream-docs: https://www.sc-best-practices.org/
 ---
 
 # Single-Cell RNA-seq Quality Control
@@ -298,3 +278,19 @@ final milestone deliverable to save memory. At packaging, keep only the base met
 - scverse Best Practices: https://www.sc-best-practices.org/preprocessing_visualization/quality_control.html
 - Luecken & Theis (2019): Current best practices in single-cell RNA-seq analysis
 - Germain et al. (2020): Doublet identification in single-cell sequencing data using scDblFinder
+
+---
+
+## When not to use
+
+- Do not use on already-QC'd data. Check adata.obs for pct_counts_mt first.
+- Do not use for bulk RNA-seq (this is single-cell specific).
+- Do not use for ATAC-seq or other non-RNA modalities.
+
+---
+
+## See also
+
+- `anndata`
+- `scanpy`
+- `scvi-basic`

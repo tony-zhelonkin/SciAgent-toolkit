@@ -1,25 +1,7 @@
 ---
 name: scvi-hub-models
-description: Browses and loads pretrained scvi-tools models (scVI, scANVI, totalVI, MultiVI, MrVI, PeakVI, contrastiveVI) from the Hugging Face scvi-hub, and selects which scvi variant fits a given modality (RNA, CITE-seq, multiome, ATAC, perturbation, multi-sample). Use when choosing between scvi models, loading a HubModel, fetching a reference atlas checkpoint, or saving/sharing a minified model. Unlike scvi-scarches-reference-mapping, this skill does NOT perform architectural surgery or fine-tune a query model; once the reference is loaded, hand off to scvi-scarches-reference-mapping for the mapping procedure. For hierarchical label transfer use treearches-hierarchy-learning; for Census-backed models use cellxgene-census-annotation.
+description: "Browses and loads pretrained scvi-tools models from the Hugging Face scvi-hub, and picks which scvi variant fits a modality (RNA, CITE-seq, multiome, ATAC, perturbation). Use when loading a HubModel, fetching a reference atlas checkpoint, or minifying a model. It does no surgery — for mapping, hand off to scvi-scarches-reference-mapping."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/use_case/hub.html
-  category: integration
-  tier: simple
-  tags: []
-  complementary-skills:
-  - scvi-framework
-  - scvi-scarches-reference-mapping
-  - treearches-hierarchy-learning
-  - cellxgene-census-annotation
-  contraindications:
-  - Do not use for training scvi models from scratch on your own data. Use scvi-basic or scvi-framework.
-  - Do not use for non-scvi reference atlases (e.g., Symphony, scPoli-only). Use scvi-scarches-reference-mapping for cross-framework mapping.
 ---
 
 # scvi-hub Pretrained Models Skill
@@ -277,7 +259,7 @@ denoised_rna, denoised_prot = totalvi.get_normalized_expression(
 
 ### MultiVI (RNA + ATAC, paired or unpaired)
 
-**See: [MultiVI Multiomics Integration Skill](multivi-multiomics-integration.md) for comprehensive documentation.**
+**See: [`scvi-multivi`](../scvi-multivi/SKILL.md) for comprehensive documentation.**
 
 MultiVI integrates scRNA-seq, scATAC-seq, and paired multiome data into a shared latent space. Quick setup:
 
@@ -484,3 +466,21 @@ print(adata.uns["_scvi"])
 - [ ] `setup_anndata()` called before model creation
 - [ ] GPU enabled if available (`scvi.settings.device = "cuda"`)
 - [ ] Model saved with `save_anndata=True` for sharing
+
+---
+
+## When not to use
+
+- Do not use for training scvi models from scratch on your own data. Use scvi-basic or scvi-framework.
+- Do not use for non-scvi reference atlases (e.g., Symphony, scPoli-only). Use scvi-scarches-reference-mapping for cross-framework mapping.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-scarches-reference-mapping`
+- `treearches-hierarchy-learning`
+- `cellxgene-census-annotation`
+
+Upstream docs: https://docs.scvi-tools.org/en/stable/user_guide/use_case/hub.html

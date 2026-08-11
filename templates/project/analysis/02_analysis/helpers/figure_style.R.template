@@ -1,10 +1,10 @@
 ## 02_analysis/helpers/figure_style.R — per-project figure-style shim.
 ## =====================================================================
-## ONE import per viz script. Delegates to the SciAgent-toolkit contract
+## ONE import per viz stage. Delegates to the SciAgent-toolkit contract
 ## lib (02_analysis/helpers/figure-style/figure_helpers.R, symlinked by
 ## `sciagent activate`) and loads the project analysis_config.yaml.
 ##
-## Usage in any viz script:
+## Usage in any viz stage:
 ##   source("02_analysis/helpers/figure_style.R")
 ##   p <- ggplot(...) + project_theme(config = FIG_CFG)
 ##   save_overview(p, "04_gsea", "name", table = df, ..., config = FIG_CFG)

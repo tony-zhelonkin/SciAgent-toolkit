@@ -4,9 +4,10 @@
 # state tag (delete the file if we created it; strip the key if we added
 # it to a pre-existing file).
 #
-# Uses the real architect role (which sets `output_style: architect-mentor`)
+# Uses the real architect role with an explicit `--output-style
+# architect-mentor` flag (Phase 5d: output_style is no longer role-scoped)
 # rather than the fake-toolkit fixture, because the fixture roles don't
-# request a style.
+# ship a matching system-prompts/ fixture.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -18,7 +19,7 @@ export SCIAGENT_TOOLKIT="$TOOLKIT_ROOT"
 mkdir case1 && cd case1
 echo "# stub" > AGENTS.md
 
-"$SCIAGENT" activate architect >/dev/null
+"$SCIAGENT" activate architect --output-style architect-mentor >/dev/null
 
 assert_file_exists .claude/settings.local.json "case1: file created"
 assert_file_exists .sciagent/claude_settings.state "case1: state file written"
@@ -48,7 +49,7 @@ cat > .claude/settings.local.json <<'EOF'
 EOF
 cp .claude/settings.local.json /tmp/.case2-orig.json
 
-"$SCIAGENT" activate architect >/dev/null
+"$SCIAGENT" activate architect --output-style architect-mentor >/dev/null
 
 state=$(cat .sciagent/claude_settings.state)
 assert_eq "$state" "existed-no-style" "case2: state tag is 'existed-no-style'"
@@ -82,7 +83,7 @@ cat > .claude/settings.local.json <<'EOF'
 }
 EOF
 
-out=$("$SCIAGENT" activate architect 2>&1)
+out=$("$SCIAGENT" activate architect --output-style architect-mentor 2>&1)
 
 state=$(cat .sciagent/claude_settings.state)
 assert_eq "$state" "existed-with-style" "case3: state tag is 'existed-with-style'"

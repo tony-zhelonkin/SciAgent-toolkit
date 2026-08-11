@@ -1,32 +1,12 @@
 ---
 name: te-reference-saf-build
 description: >-
-  RepeatMasker/TE reference build — construct the shared TE GTF + grouped
-  subfamily SAF + exon-subtracted no-exon SAF for TE-compatible RNA-seq
-  preprocessing. Acquire the TEtranscripts pre-generated RepeatMasker GTF, collapse
-  loci to a Subfamily:Family:Class grouped SAF via awk, then bedtools-subtract gene
-  exons to a no-exon SAF. Use when setting up a NEW genome build / species for TE
-  preprocessing (build-once, shared across datasets). For the per-dataset
-  alignment+counting recipe use star-te-preprocessing. For locus-level TE
-  references use SQuIRE/Telescope (out of scope here).
+  Use when setting up a NEW genome build / species for TE-compatible
+  RNA-seq preprocessing (build-once, shared across datasets). Builds the
+  TE GTF + subfamily SAF + exon-subtracted no-exon SAF from the
+  TEtranscripts RepeatMasker GTF. For per-dataset alignment+counting use
+  star-te-preprocessing. For locus-level TE references use SQuIRE/Telescope.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-09
-  version: 1.0.0
-  upstream-docs: https://www.mghlab.org/software/tetranscripts
-  scope: implementation
-  category: workflow
-  tier: standard
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - star-te-preprocessing
-  contraindications:
-    - "Do not use per-dataset — these artifacts are built once per genome build and reused across every dataset. For the per-run alignment+counting recipe use star-te-preprocessing."
-    - "Do not use for locus-level TE references — this builds subfamily-grouped SAFs (one meta-feature per subfamily). For copy-resolved/locus-level annotations use Telescope or SQuIRE."
-    - "Do not use to build a combined gene+TE GTF or a Dfam annotation — the TE source here is the TEtranscripts pre-generated RepeatMasker GTF, kept separate from the gene GTF."
 ---
 
 # TE Reference SAF Build (build-once, shared)
@@ -321,18 +301,6 @@ After building, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Per-dataset STAR alignment + featureCounts against this reference | `star-te-preprocessing` | Next step (downstream consumer of the no-exon SAF) |
-| Locus-level / copy-resolved TE quantification | SQuIRE / Telescope (external) | Alternative (out of scope — locus-level) |
-
-This skill sits **upstream** of `star-te-preprocessing` in the handoff graph:
-`te-reference-saf-build → star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`.
-
----
-
 ## Handoff to star-te-preprocessing
 
 Once `*_GROUPED_all_noExon.saf` exists for the build, hand it to
@@ -352,3 +320,20 @@ all datasets on the same build reuse this one file.
 - **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.1** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
 - **TE GTF source:** TEtranscripts — https://www.mghlab.org/software/tetranscripts
 - **TE-ID parser** (label `Subfamily:Family:Class`): TE-RNAseq-toolkit — `R/te_utils.R::parse_te_id`.
+
+---
+
+## When not to use
+
+- Do not use per-dataset — these artifacts are built once per genome build and reused across every dataset. For the per-run alignment+counting recipe use star-te-preprocessing.
+- Do not use for locus-level TE references — this builds subfamily-grouped SAFs (one meta-feature per subfamily). For copy-resolved/locus-level annotations use Telescope or SQuIRE.
+- Do not use to build a combined gene+TE GTF or a Dfam annotation — the TE source here is the TEtranscripts pre-generated RepeatMasker GTF, kept separate from the gene GTF.
+
+---
+
+## See also
+
+This skill sits **upstream** of `star-te-preprocessing` in the handoff graph:
+`te-reference-saf-build → star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea`. For locus-level / copy-resolved TE quantification (out of scope here), see SQuIRE/Telescope (external).
+
+- `star-te-preprocessing` — Next step; downstream consumer of the no-exon SAF for per-dataset STAR alignment + featureCounts

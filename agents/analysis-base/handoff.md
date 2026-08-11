@@ -78,19 +78,18 @@ Write `<sessions_dir>/YYYY-MM-DD_<slug>.md` using this template (aim for 40–80
 - **Checkpoints:** [most recent checkpoint path + what it holds]
 - **Gotchas:** [warnings, memory/container requirements, known issues]
 
-## Scripts run
-<!-- Every analysis script executed this session, by its COMMITTED path. -->
-<!-- If a script was run but not yet committed, flag it with [UNCOMMITTED]. -->
-- `02_analysis/scripts/NN_<name>.R` — [one-line purpose]
-- `02_analysis/scripts/NN_<name>.R` — [one-line purpose]
+## Stages run
+<!-- Every stage executed this session, by its COMMITTED path; [UNCOMMITTED] if not yet committed. -->
+- `02_analysis/stages/NN_<name>.R` — [one-line purpose]
+- `02_analysis/stages/NN_<name>.R` — [one-line purpose]
 - [or "none"]
-<!-- Uncommitted scripts that were run: -->
+<!-- Uncommitted stages that were run: -->
 - [UNCOMMITTED] `_scratch/<name>.R` — [purpose; must be committed before next session]
 
 ## Artifacts produced
-<!-- 03_results/ artifacts created or updated this session, tied to the script that made them. -->
-- `03_results/<stage>/figures/_overview/<file>` — produced by `02_analysis/scripts/NN_<name>.R`
-- `03_results/<stage>/tables/<file>` — produced by `02_analysis/scripts/NN_<name>.R`
+<!-- 03_results/ artifacts created or updated this session, tied to the stage that made them. -->
+- `03_results/<stage>/figures/_overview/<file>` — produced by `02_analysis/stages/NN_<name>.R`
+- `03_results/<stage>/tables/<file>` — produced by `02_analysis/stages/NN_<name>.R`
 - [or "none"]
 
 ## Open decisions
@@ -112,7 +111,7 @@ Write `<sessions_dir>/YYYY-MM-DD_<slug>.md` using this template (aim for 40–80
 ### Step 4: Summary report
 
 Report to the user: the handoff path written, the current stage, the next action, the count
-of uncaptioned artifacts found, the count of scripts run (flagging any uncommitted), and the
+of uncaptioned artifacts found, the count of stages run (flagging any uncommitted), and the
 count of open decisions (flagging any without a reasoning trace).
 
 ## Content Guidelines
@@ -132,9 +131,9 @@ Before finalizing:
 - [ ] Filename is `YYYY-MM-DD_<slug>.md`.
 - [ ] Quick Orientation section is present.
 - [ ] All file paths are exact.
-- [ ] `## Scripts run` lists every analysis script executed this session by its committed
-      `02_analysis/scripts/NN_*` path; any uncommitted script is flagged `[UNCOMMITTED]`.
-- [ ] `## Artifacts produced` maps each `03_results/` artifact to the script that made it.
+- [ ] `## Stages run` lists every stage executed this session by its committed
+      `02_analysis/stages/NN_*` path; any uncommitted stage is flagged `[UNCOMMITTED]`.
+- [ ] `## Artifacts produced` maps each `03_results/` artifact to the stage that made it.
 - [ ] `## Open decisions` links each non-trivial decision to its `docs/_internal/reasoning/`
       trace; decisions without a trace are flagged `[MISSING TRACE]`.
 - [ ] `## Uncaptioned artifacts` reflects the Step 2 scan.

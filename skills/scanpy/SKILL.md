@@ -1,27 +1,7 @@
 ---
 name: scanpy
-description: 'Standard scanpy scRNA-seq analysis pipeline: normalization, HVG selection, PCA/UMAP/t-SNE, Leiden/Louvain clustering, rank_genes_groups marker identification, score_genes gene-set scoring, and scverse-style plots (dotplot, heatmap, violin, UMAP). Use for exploratory single-cell analysis and standard scverse workflows once cells have been QC''d. Unlike single-cell-rna-qc (dedicated MAD-based outlier detection and doublet-aware filtering following sc-best-practices), this skill only offers basic fixed-threshold QC — for data-driven QC or doublet detection use single-cell-rna-qc instead. For multi-sample probabilistic batch correction use scvi-basic; for semi-supervised label transfer use scvi-scanvi; for RNA velocity / trajectory direction use rna-velocity-trajectory; for multi-assay containers use multimodal-anndata-mudata; for AnnData-only format operations use anndata.'
+description: "Standard scanpy scRNA-seq pipeline: normalization, HVG selection, PCA/UMAP/t-SNE, Leiden clustering, rank_genes_groups markers, score_genes, and scverse plots. Use for exploratory analysis once cells are QC'd — its own QC is fixed-threshold only, so for MAD-based QC or doublet detection use single-cell-rna-qc; for batch correction use scvi-basic."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: analysis
-  tier: standard
-  tags: []
-  complementary-skills:
-  - anndata
-  - single-cell-rna-qc
-  - scvi-basic
-  - rna-velocity-trajectory
-  contraindications:
-  - Do not use for dedicated quality control. For MAD-based outlier detection and doublet-aware filtering, use single-cell-rna-qc.
-  - Do not use for multi-sample probabilistic batch correction. Use scvi-basic.
-  - Do not use for semi-supervised label transfer. Use scvi-scanvi.
-  - Do not use for multi-assay containers. Use multimodal-anndata-mudata.
-  version: 1.0.0
-  upstream-docs: https://scanpy.readthedocs.io/
 ---
 
 # Scanpy: Standard scRNA-seq Analysis
@@ -346,3 +326,21 @@ sc.pl.umap(adata_hvg, color='myeloid_score', cmap='RdYlBu_r')
 - Best practices: Luecken & Theis (2019) "Current best practices in scRNA-seq analysis"
 - scverse ecosystem: https://scverse.org/
 - Tutorial: https://scanpy.readthedocs.io/en/stable/tutorials/
+
+---
+
+## When not to use
+
+- Do not use for dedicated quality control. For MAD-based outlier detection and doublet-aware filtering, use single-cell-rna-qc.
+- Do not use for multi-sample probabilistic batch correction. Use scvi-basic.
+- Do not use for semi-supervised label transfer. Use scvi-scanvi.
+- Do not use for multi-assay containers. Use multimodal-anndata-mudata.
+
+---
+
+## See also
+
+- `anndata`
+- `single-cell-rna-qc`
+- `scvi-basic`
+- `rna-velocity-trajectory`

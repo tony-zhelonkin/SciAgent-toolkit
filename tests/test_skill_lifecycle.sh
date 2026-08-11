@@ -1,12 +1,15 @@
 #!/usr/bin/env bash
-# tests/test_skill_lifecycle.sh — lightweight skill lifecycle (status + _attic).
+# tests/test_skill_lifecycle.sh — lightweight skill lifecycle (_attic).
 #
 # Asserts the three lifecycle invariants, all against a synthetic toolkit:
 #   (a) _attic skills are NOT in the active enumeration and NOT resolvable by
 #       activate (no symlink is created, activate still succeeds);
-#   (b) `list skills` surfaces a non-stable metadata.status (e.g. experimental)
-#       as a [tag], and lists _attic skills in a separate Attic section;
+#   (b) `list skills` lists _attic skills in a separate Attic section and does
+#       not mix them in with the active ones;
 #   (c) validate ignores _attic (no choke on the retired skill).
+#
+# Retirement is now the _attic move alone: the frontmatter `status:` field went
+# with the rest of the metadata block in Phase 4.
 #
 # The lifecycle is a soft convention: no hooks, no fail-closed checks. See
 # docs/skill-lifecycle.md.
@@ -21,34 +24,12 @@ export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
 
 # --- Fixtures ----------------------------------------------------------------
-# Give s_a a real frontmatter with an experimental status (default-stable means
-# the bare s_b/s_c fixtures stay "stable" and untagged).
-cat > "$FAKE/skills/s_a/SKILL.md" <<'EOF'
----
-name: s_a
-description: experimental fixture skill
-metadata:
-  scope: implementation
-  status: experimental
-  requires: []
-  tags: []
----
-body
-EOF
-
-# Plant a retired skill in the attic, complete with a deprecated status.
+# Plant a retired skill in the attic.
 mkdir -p "$FAKE/skills/_attic/retired_skill"
 cat > "$FAKE/skills/_attic/retired_skill/SKILL.md" <<'EOF'
 ---
-name: retired_skill
+name: WRONG_NAME_ON_PURPOSE
 description: a skill that was retired to the attic
-metadata:
-  scope: implementation
-  status: deprecated
-  requires:
-    - this_target_does_not_exist
-  tags:
-    - definitely-not-a-real-tag
 ---
 > **Deprecated.** Reference-only.
 body
@@ -110,22 +91,8 @@ if [[ -e "$TMPDIR_TEST/proj_base/.claude/skills/retired_skill" ]]; then
 fi
 
 # =============================================================================
-# (b) list skills surfaces a non-stable status + an Attic section
+# (b) list skills separates the Attic from the active catalog
 # =============================================================================
-
-# s_a (experimental) must be tagged.
-if ! printf '%s\n' "$skills_out" | grep -Eq 's_a[[:space:]]+\[experimental\]'; then
-    echo "FAIL [$_TEST_NAME] experimental status not surfaced for s_a in 'list skills'" >&2
-    printf '%s\n' "$skills_out" >&2
-    exit 1
-fi
-
-# Stable skills (s_b) stay untagged.
-if printf '%s\n' "$skills_out" | grep -Eq 's_b[[:space:]]+\['; then
-    echo "FAIL [$_TEST_NAME] stable skill s_b should not carry a status tag" >&2
-    printf '%s\n' "$skills_out" >&2
-    exit 1
-fi
 
 # The Attic section must be present and list the retired skill.
 if ! printf '%s\n' "$skills_out" | grep -q 'Attic (retired'; then
@@ -142,8 +109,8 @@ fi
 # =============================================================================
 # (c) validate ignores _attic
 # =============================================================================
-# retired_skill carries a dangling `requires:` target and a bogus tag — both
-# would hard-fail validate IF the attic were walked. It must not be.
+# retired_skill's frontmatter `name:` deliberately disagrees with its directory,
+# which hard-fails validate IF the attic is walked. It must not be.
 if ! "$SCIAGENT" validate --quiet; then
     echo "FAIL [$_TEST_NAME] validate --quiet failed; _attic skill was likely walked" >&2
     "$SCIAGENT" validate >&2 || true

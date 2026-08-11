@@ -25,9 +25,14 @@ See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full referen
 
 ---
 
-## Taxonomy: Scope Classes & `requires:` Inheritance
+## Taxonomy: Scope Classes (curatorial only)
 
-Every skill's `metadata.scope:` field declares which of three classes it belongs to. The activator (`sciagent activate`) treats them identically — the distinction is purely curatorial, intended to keep individual SKILL.md files focused.
+Skills informally fall into three shapes, distinguished by scope and depth. There
+is no frontmatter field for this — no `metadata:` block exists in the canonical
+schema (see "Fill the SKILL.md frontmatter" below) — it's a naming/authoring
+convention enforced by review, not by the resolver. `sciagent activate` mounts
+the whole catalog regardless of shape; roles are provenance labels only, never
+a filter (see `docs/architecture.md`).
 
 | Scope class | Line cap (target) | Role | Example |
 |---|---|---|---|
@@ -35,35 +40,15 @@ Every skill's `metadata.scope:` field declares which of three classes it belongs
 | `foundation` | ~600 LOC | Shared container / methodology referenced by many other skills. | `anndata`, `scanpy`, `scvi-framework`, `multimodal-anndata-mudata` |
 | `orchestrator` | ~250 LOC | Entry point that routes between leaves; contains decision tree + cross-cutting pitfalls but **no per-tool tutorial content** — that lives in the leaves. | `muon-multimodal-analysis`, `seurat-multimodal-analysis`, `scvi-hub-models` |
 
-### `requires:` mechanism (added in ADR-0002)
-
-A skill may declare other skills it transitively depends on via `metadata.requires:`. When a role activates a skill, the resolver walks its `requires:` graph (post-order DFS) and symlinks every transitive dependency into `.claude/skills/` and `.agents/skills/`. Inherited entries appear in the `AGENTS.md` block under a dedicated subsection:
-
-```markdown
-## Skills (inherited via requires:)
-- `snapatac2-atac-preprocessing` — (via `muon-multimodal-analysis`)
-- `harmonypy-batch-integration`   — (via `muon-multimodal-analysis`)
-- ...
-```
-
-**Worked example** — adding `muon-multimodal-analysis` to a role pulls in:
-
-```yaml
-# skills/muon-multimodal-analysis/SKILL.md
-metadata:
-  scope: orchestrator
-  requires:
-    - multimodal-anndata-mudata
-    - scanpy
-    - snapatac2-atac-preprocessing
-    - harmonypy-batch-integration
-    - atac-differential-accessibility
-    - pyranges-peak-gene-linkage
-    - pygenometracks-coverage-plots
-    - scvi-multivi
-```
-
-→ the role YAML stays terse; activating muon brings the whole multimodal leaf set with it. Cyclic and missing dependencies are caught **before** any filesystem mutation (the previous active stack is left intact on resolver failure).
+Cross-references between skills (an orchestrator pointing at its leaves, a leaf
+pointing back at its foundation) live in the SKILL.md body — a `## See also` /
+"For X use other-skill" sentence in the description, not a machine-resolved
+graph. There used to be a `metadata.requires:` field with a resolver that
+auto-mounted a skill's transitive dependency closure; that mechanism (and the
+`metadata:` frontmatter block it lived under) has been removed. Every skill in
+the catalog is mounted unconditionally now, so there is nothing left to
+auto-pull — write the cross-reference as prose and let the reader (human or
+agent) follow it.
 
 ---
 
@@ -101,7 +86,7 @@ Working with format questions (.h5ad reading, subsetting, concat)?
 
 The scvi-tools ecosystem provides probabilistic deep learning models for single-cell analysis. All skills follow a consistent pattern and share installation/configuration via the framework document.
 
-**Architecture (2026-04-20):** `scvi-framework/` is the **Rich-tier router** for this cluster. Shared patterns (`setup_anndata`, batch vs sample keys, scArches flags, hub loading, gotchas, count distributions, GPU, troubleshooting) live in `scvi-framework/references/` and are referenced by every child SKILL.md instead of being duplicated. The cross-reference manifest at `scvi-framework/references/cross-refs.yaml` is the single source of truth for each child's `complementary-skills:` graph. Self-evolution hooks: `scvi-framework/references/troubleshooting.md` (append-only failure log) and `scvi-framework/checks/pre-train-checklist.md` (extend on encounter).
+**Architecture (2026-04-20):** `scvi-framework/` is the **Rich-tier router** for this cluster. Shared patterns (`setup_anndata`, batch vs sample keys, scArches flags, hub loading, gotchas, count distributions, GPU, troubleshooting) live in `scvi-framework/references/` and are referenced by every child SKILL.md instead of being duplicated. The cross-reference manifest at `scvi-framework/references/cross-refs.yaml` is a curated design record of the intended routing graph for this cluster — not a source of truth and not enforced by any validator, so it can drift from each child's `## See also` prose (see the taxonomy-removal note below). Self-evolution hooks: `scvi-framework/references/troubleshooting.md` (append-only failure log) and `scvi-framework/checks/pre-train-checklist.md` (extend on encounter).
 
 | Skill | Purpose | Modality |
 |-------|---------|----------|
@@ -156,7 +141,7 @@ scRNA-seq → ──────────────────────
 
 ### Multimodal Analysis (Paired & Unpaired Data)
 
-The two monolith multimodal skills were dissected in ADR-0002 into orchestrator + leaf form. The orchestrators stay as the entry points; the leaves are pulled in automatically via `requires:`.
+The two monolith multimodal skills were dissected in ADR-0002 into orchestrator + leaf form. The orchestrators stay as the entry points and route to the leaves in prose; the leaves are mounted alongside everything else in the catalog (there is no `requires:` auto-pull anymore — see "Taxonomy" above).
 
 #### Orchestrators
 
@@ -412,26 +397,29 @@ The template ships with `name: SKILL_IDENTIFIER` as a placeholder. That value in
 
 ### 2. Fill the SKILL.md frontmatter
 
-The **canonical Claude Code skill schema** only allows these top-level keys:
-`name`, `description`, `license`, `metadata`, `allowed-tools`, `compatibility`.
+The **canonical Claude Code skill schema** allows these top-level keys:
+`name`, `description`, `license`, `allowed-tools`, `compatibility` (plus
+`metadata`, per the upstream schema — but SciAgent-toolkit does not populate
+it; there is no taxonomy nested under it here). Anything outside that set
+causes canonical validators (e.g. `skill-creator/scripts/quick_validate.py`,
+Claude Desktop plugin loader) to fail.
 
-Anything else causes canonical validators (e.g. `skill-creator/scripts/quick_validate.py`,
-Claude Desktop plugin loader) to fail. All v3 taxonomy fields must therefore be
-**nested under `metadata:`**.
+An earlier "v3 taxonomy" nested `category`, `tier`, `tags`,
+`complementary-skills`, `contraindications`, `requires`, and provenance
+fields under `metadata:`, with a resolver that auto-mounted a skill's
+`requires:` closure. That taxonomy and its resolver have been removed —
+`sciagent activate` mounts the whole catalog unconditionally now (see
+`docs/architecture.md`). Put cross-references, contraindications, and
+provenance notes in the body instead (`## See also`, `## When not to use`,
+a one-line "Use for X; for Y use other-skill" in the description).
 
 Required (top-level):
 - `name` — matches directory name; kebab-case; `^[a-z0-9-]+$`
 - `description` — 1-3 sentences, include trigger keywords so the AI activates on intent. If your description contains a raw colon (e.g. `"scVI: integration..."`), wrap it in quotes or use YAML block scalar (`|`).
 
-Recommended (nested under `metadata:`):
-- `category` — `foundation` | `integration` | `annotation` | `analysis` | `workflow` | `practice`
-- `tier` — `simple` | `standard` | `rich` (see below)
-- `tags` — free-form discovery tags (YAML list)
-- `complementary-skills` — related skill names (YAML list)
-- `contraindications` — when NOT to use this skill (YAML list of strings)
-- `version` — semver of the skill itself
-- `upstream-docs` — canonical documentation URL
-- `skill-author`, `last-reviewed` — provenance
+Optional (top-level):
+- `license` — e.g. `MIT`
+- `allowed-tools`, `compatibility` — per the upstream Claude Code schema
 
 **Canonical frontmatter example:**
 
@@ -440,18 +428,6 @@ Recommended (nested under `metadata:`):
 name: my-skill
 description: One sentence. Use when <trigger>. For <other case> use other-skill.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://example.org/docs
-  category: foundation
-  tier: standard
-  tags: [tag-a, tag-b]
-  complementary-skills:
-    - related-skill-a
-  contraindications:
-    - "Do not use for X. Use other-skill instead."
 ---
 ```
 
@@ -478,7 +454,20 @@ Skills are promoted from Simple → Standard → Rich additively. Start simple; 
 | Progressive Depth (Basic/Intermediate/Advanced) | Optional | REQUIRED | REQUIRED |
 | Verification Checklist | REQUIRED | REQUIRED | REQUIRED |
 | Common Pitfalls (Symptom/Cause/Fix) | REQUIRED | REQUIRED | REQUIRED |
-| Complementary Skills | Optional | RECOMMENDED | REQUIRED |
+| See also | Optional | RECOMMENDED | REQUIRED |
+
+**`## See also` format.** Each entry is one bullet:
+`` - `skill-name` — Relationship; purpose ``. `Relationship` is a short label
+naming the *edge* between the two skills (`Prerequisite`, `Next step`,
+`Alternative`, `Downstream consumer`, `Sibling convention`, `Voter`, ... —
+whatever fits, but name the edge, not the target's job). `purpose` is one
+clause saying what the target skill actually does for or against this one —
+don't let it just restate the relationship word (e.g. avoid `Voter; voter
+for X`; say what kind of vote). This replaced an older `## Complementary
+Skills` table format (`| When you need... | Use skill | Relationship |`)
+during the 2026 metadata-taxonomy removal — that heading and table shape are
+retired; don't reintroduce them. `skills/_TEMPLATE/SKILL.md` demonstrates
+the current convention.
 
 ### 5. Keep SKILL.md provider-agnostic
 

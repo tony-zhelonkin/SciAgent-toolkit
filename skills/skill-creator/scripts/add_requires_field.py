@@ -1,5 +1,25 @@
 #!/usr/bin/env python3
 """
+==============================================================================
+DO NOT RUN THIS SCRIPT. HISTORICAL / INERT — kept as a record only.
+==============================================================================
+
+The `metadata.requires` / `metadata.scope` frontmatter fields this script
+injects were part of the role/taxonomy layer that has since been demolished
+(see `docs/architecture.md` and `skills/README.md` "taxonomy removed" note).
+`metadata:` is no longer populated on any SKILL.md, there is no resolver
+that reads `requires:` or `scope:`, and `sciagent activate` mounts the whole
+catalog unconditionally regardless of these keys.
+
+Running this script today would resurrect exactly the frontmatter block a
+later refactor deliberately deleted across all 83 skills. It is retained
+in the repo purely as a historical record of the M1 migration step, not as
+a tool to invoke. `main()` hard-exits before touching any file — see below.
+
+------------------------------------------------------------------------------
+Original docstring (historical, describes what the script DID when it was
+a live migration step; no longer applicable):
+
 Migration helper (M1, per ADR-0002 §5): ensure every SKILL.md under
 SciAgent-toolkit/skills/ carries `metadata.requires: []` and
 `metadata.scope: atomic`.
@@ -16,12 +36,9 @@ Rules:
     preserved by operating on the raw text rather than round-tripping
     through PyYAML.
 
-Run from the repository root:
-
-    python3 skills/skill-creator/scripts/add_requires_field.py
-
-The script is idempotent — re-running it on an already-migrated tree
-makes zero changes.
+The script was idempotent — re-running it on an already-migrated tree
+made zero changes. That property is irrelevant now: it must not be run
+at all.
 """
 
 from __future__ import annotations
@@ -147,6 +164,21 @@ def migrate_one(path: Path) -> str:
 
 
 def main() -> int:
+    print(
+        "This script is INERT and must not be run: it injects "
+        "`metadata.requires` / `metadata.scope` frontmatter for a "
+        "role/taxonomy layer that has been removed from SciAgent-toolkit. "
+        "Running it would resurrect frontmatter a later refactor "
+        "deliberately deleted from every SKILL.md. See the module "
+        "docstring at the top of this file for details. Exiting without "
+        "changing any file.",
+        file=sys.stderr,
+    )
+    return 1
+
+
+def _disabled_main() -> int:
+    """Historical body of main(), preserved for reference. Not called."""
     if not SKILLS_DIR.is_dir():
         print(f"skills dir not found: {SKILLS_DIR}", file=sys.stderr)
         return 1

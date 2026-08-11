@@ -1,31 +1,7 @@
 ---
 name: peak-atlas-multiome
-description: "Define a consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC in the same cells) — call peaks per RNA, ATAC, WNN, and cell-type grouping with pseudo-replicate reproducibility, vote across the four strategies, then quantify-then-prune with a Primary+Rescue adaptive per-cell-type filter that protects rare populations. Use when you have paired multiome and want a peak set called from RNA-informed cell identities and validated cross-modally. Builds on peak-atlas-framework. For unpaired RNA+ATAC (separate cell pools) use peak-atlas-unpaired."
+description: "Consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC, same cells): peaks per RNA/ATAC/WNN/cell-type grouping, pseudo-replicate reproducibility, four-way vote, then Primary+Rescue quantify-and-prune protecting rare populations. Use when RNA+ATAC are paired. For unpaired data use peak-atlas-unpaired; builds on peak-atlas-framework."
 license: MIT
-metadata:
-  scope: implementation
-  status: stable
-  requires:
-  - peak-atlas-framework
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-25
-  version: 1.0.0
-  upstream-docs: https://stuartlab.org/signac/
-  category: analysis
-  tier: rich
-  tags:
-  - chromatin
-  - multimodal
-  - preprocessing
-  complementary-skills:
-  - peak-atlas-framework
-  - peak-atlas-unpaired
-  - signac-chromatin-analysis
-  - iterative-peak-merging
-  - chromvar-motif-accessibility
-  contraindications:
-  - "Do not use for unpaired RNA+ATAC (separate cell pools). Use peak-atlas-unpaired instead."
-  - "Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework."
 ---
 
 # Peak Atlas from True 10x Multiome (paired RNA + ATAC)
@@ -159,18 +135,6 @@ Validate per the framework battery: rare-marker promoter-peak retention `>= 0.95
 
 ---
 
-## Complementary skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The shared CALL/MERGE/FILTER/TIER/VALIDATE methodology | `peak-atlas-framework` | Foundation (this child links up to it) |
-| Unpaired RNA+ATAC (separate pools, transferred identity) | `peak-atlas-unpaired` | Sibling (other data regime) |
-| Peak quantification, coverage, `CallPeaks`, ChromatinAssay mechanics | `signac-chromatin-analysis` | Upstream / downstream |
-| The bare within-study merge primitive from MACS summit BEDs | `iterative-peak-merging` | Embedded merge primitive |
-| TF-motif activity validation of the finished atlas | `chromvar-motif-accessibility` | Downstream validation |
-
----
-
 ## Resources
 
 - Signac (multiome / ChromatinAssay): https://stuartlab.org/signac/
@@ -178,3 +142,21 @@ Validate per the framework battery: rare-marker promoter-peak retention `>= 0.95
 - ArchR / iterative-overlap (Granja et al., Nat Genet 2021): https://www.nature.com/articles/s41588-021-00790-6
 - Corces & Granja et al., Science 2018: https://www.science.org/doi/10.1126/science.aav1898
 - MACS3: https://macs3-project.github.io/MACS/
+
+
+---
+
+## When not to use
+
+- Do not use for unpaired RNA+ATAC (separate cell pools). Use peak-atlas-unpaired instead.
+- Do not use to learn the shared merge/voting/validation methodology. That lives in peak-atlas-framework.
+
+---
+
+## See also
+
+- `peak-atlas-framework` — Foundation; this child links up to the shared CALL/MERGE/FILTER/TIER/VALIDATE methodology
+- `peak-atlas-unpaired` — Sibling (other data regime); unpaired RNA+ATAC (separate pools, transferred identity)
+- `signac-chromatin-analysis` — Upstream / downstream; peak quantification, coverage, `CallPeaks`, ChromatinAssay mechanics
+- `iterative-peak-merging` — Embedded merge primitive; the bare within-study merge primitive from MACS summit BEDs
+- `chromvar-motif-accessibility` — Downstream validation; TF-motif activity validation of the finished atlas

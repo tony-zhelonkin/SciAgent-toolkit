@@ -1,27 +1,7 @@
 ---
 name: iterative-peak-merging
-description: Iterative overlap peak merging creates an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces & Granja 2018 method), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified peak set for downstream scATAC quantification, or when bedtools merge/cluster produce artificially wide or undercalled peaks. For peak calling itself use MACS2/MACS3; for peak-level DA use Signac/ArchR.
+description: "Iterative overlap merging builds an optimal fixed-width 501bp merged peak set across ATAC-seq samples (Corces 2018), avoiding daisy-chaining and preserving cell-type-specific peaks. Use when consolidating per-cluster MACS2 peaks into a unified set, or when bedtools merge produces artificially wide peaks. For peak calling use MACS3 (external tool)."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://www.science.org/doi/10.1126/science.aav1898
-  category: foundation
-  tier: simple
-  tags:
-  - chromatin
-  - preprocessing
-  complementary-skills:
-  - cellranger-arc-multiome
-  - scvi-peakvi
-  - chromvar-motif-accessibility
-  - pycistopic-atac-topic-modeling
-  contraindications:
-  - Do not use as a substitute for peak calling. Requires MACS2/MACS3 summit files as input.
-  - Do not use bedtools merge or bedtools cluster for the same task — they cause daisy-chaining or undercalling.
 ---
 
 # ATAC-seq Iterative Overlap Peak Merging Skill
@@ -548,3 +528,21 @@ ArchR handles pseudo-bulk generation, normalization, and tiered merging automati
 - **ATAC-seq Protocol**: Buenrostro et al., Nature Protocols 2015
 - **Blacklists**: Amemiya et al., Scientific Reports 2019
 - **GitHub Repository**: https://github.com/corceslab/ATAC_IterativeOverlapPeakMerging
+
+---
+
+## When not to use
+
+- Do not use as a substitute for peak calling. Requires MACS2/MACS3 summit files as input.
+- Do not use bedtools merge or bedtools cluster for the same task — they cause daisy-chaining or undercalling.
+
+---
+
+## See also
+
+- `cellranger-arc-multiome`
+- `scvi-peakvi`
+- `chromvar-motif-accessibility`
+- `pycistopic-atac-topic-modeling`
+
+Upstream docs: https://www.science.org/doi/10.1126/science.aav1898

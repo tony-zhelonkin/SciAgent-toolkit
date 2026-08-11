@@ -1,25 +1,7 @@
 ---
 name: louper-seurat-conversion
-description: Convert AnnData (.h5ad) to 10x Loupe Browser (.cloupe) via Seurat, using loupeR and anndataR. Use when you need to share scRNA-seq data with collaborators who prefer Loupe Browser, or when generating .cloupe files from non-10x data (requires cellid_ barcode format). For R↔Python round-tripping without Loupe export, use anndatar-seurat-scanpy-conversion.
+description: "Convert AnnData (.h5ad) to 10x Loupe Browser (.cloupe) via Seurat, using loupeR and anndataR. Use when sharing scRNA-seq data with collaborators who prefer Loupe Browser, or generating .cloupe from non-10x data (needs cellid_ barcode format). For R/Python round-tripping without Loupe export use anndatar-seurat-scanpy-conversion."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: foundation
-  tier: rich
-  tags:
-  - conversion
-  complementary-skills:
-  - anndatar-seurat-scanpy-conversion
-  - anndata
-  contraindications:
-  - Do not use create_loupe() with argument name 'counts' — v1.1.5 expects 'count_mat'.
-  - Do not pass non-10x barcodes unchanged. Use cellid_XXXXXXXXX format.
-  - Do not rely on force=TRUE to bypass barcode validation — it only skips output-file overwrite.
-  version: 1.1.5
-  upstream-docs: https://github.com/10XGenomics/loupeR
 ---
 
 # loupeR — h5ad → Seurat → Loupe Browser
@@ -219,3 +201,20 @@ production export script. Covers:
 - Parameterised layer names and cluster columns
 - Configurable UMAP obsm key
 - Cell ID traceability pattern
+
+---
+
+## When not to use
+
+- Do not use create_loupe() with argument name 'counts' — v1.1.5 expects 'count_mat'.
+- Do not pass non-10x barcodes unchanged. Use cellid_XXXXXXXXX format.
+- Do not rely on force=TRUE to bypass barcode validation — it only skips output-file overwrite.
+
+---
+
+## See also
+
+- `anndatar-seurat-scanpy-conversion`
+- `anndata`
+
+Upstream docs: https://github.com/10XGenomics/loupeR

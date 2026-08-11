@@ -1,42 +1,12 @@
 ---
 name: te-gene-featurecounts
 description: >-
-  featureCounts TE+gene counting workflow, packaged with its own locked,
-  version-pinned container (te-fc:2.0.2, featureCounts v2.0.2). Two-pass driver:
-  integer Random-One TE counting (grouped Subfamily:Family:Class SAF, -M,
-  NO --fraction) plus per-library-stranded gene counting, then a row-bound
-  combined matrix. TE strandedness is context-dependent (field is SPLIT): -s 0
-  (unstranded) matches the dominant tool's default (TEtranscripts --stranded no)
-  for standalone work; stranded sense/antisense (--te-strand sense_antisense)
-  matched to genes is the more principled best-practice for a joint matrix
-  (grade B, not a standard). Use when you have nf-core/rnaseq star_salmon BAMs (including
-  the lean markdup.sorted.bam path) and need the runnable, env-locked step that
-  turns them into gene + TE subfamily count matrices. For the upstream STAR
-  Random-One alignment recipe use star-te-preprocessing; for building the TE SAF
-  use te-reference-saf-build; for annotating the resulting matrices use
-  annotate-bulk-rnaseq-data.
+  Use when you have nf-core/rnaseq star_salmon BAMs and a pre-built TE SAF,
+  and need gene + TE subfamily count matrices. Env-locked featureCounts
+  driver: integer Random-One TE counting, row-bound with gene counts. For
+  STAR alignment use star-te-preprocessing. For the TE SAF use
+  te-reference-saf-build. For annotation use annotate-bulk-rnaseq-data.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-15
-  version: 1.0.3
-  upstream-docs: https://subread.sourceforge.net/
-  scope: implementation
-  category: workflow
-  tier: packaged
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - te-reference-saf-build
-    - star-te-preprocessing
-    - annotate-bulk-rnaseq-data
-  contraindications:
-    - "Recipe is integer Random-One everywhere (-M, NO --fraction) — primary AND the optional sense/antisense aux passes. Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments --outSAMmultNmax 100 + -M --fraction, non-integer) — see the Decision Tree."
-    - "Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead."
-    - "Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF."
-    - "Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2)."
-    - "Do not perform DE, annotation, or DGEList assembly here. Hand the matrices to annotate-bulk-rnaseq-data."
 ---
 
 # TE + Gene featureCounts Counting (env-locked, packaged)
@@ -348,19 +318,6 @@ It is **not a replacement** for short-read TE DE.
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Build the grouped, exon-subtracted TE SAF | `te-reference-saf-build` | Prerequisite (produces the SAF this skill consumes) |
-| Produce the Random-One STAR BAMs + the alignment/counting contract | `star-te-preprocessing` | Prerequisite (produces the BAMs; owns the contract) |
-| Annotate matrices, parse TE IDs, build combined DGEList | `annotate-bulk-rnaseq-data` | Next step (consumes these matrices) |
-| Locus-level / copy-resolved TE quantification | SQuIRE / Telescope (external) | Alternative (out of scope) |
-
-The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **`te-gene-featurecounts`** → `annotate-bulk-rnaseq-data`.
-
----
-
 ## Resources
 
 - **Locked image:** `env/Dockerfile` + `env/build.sh` → `te-fc:2.0.2` (featureCounts v2.0.2).
@@ -372,3 +329,23 @@ The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **
 - **Runnable QC suite:** `qc/run_qc.sh BAM_DIR SAF STRAND OUTDIR` — the parameterized, operator-invoked "QC a new TE dataset end-to-end" suite (the `-R CORE` regime witness, closure-table audit, `-O` silent-loss attribution, young gate, SAF-geometry concordance, DE_precheck). Container/bedtools tools skip gracefully when absent. See `qc/README.md`.
 - **QC doctrine:** the strand-split invariant, the `excess/ambiguous` directional meter, the working principles, the warning-flag taxonomy, and the GREEN/RED gate live in the toolkit `docs/QC.md`.
 - **subread/featureCounts:** https://subread.sourceforge.net/ (release 2.0.2).
+
+---
+
+## When not to use
+
+- Recipe is integer Random-One everywhere (-M, NO --fraction) — primary AND the optional sense/antisense aux passes. Fractional 'Strategy B' is an equally-valid alternative (Teissandier) but a different config (STAR all-alignments --outSAMmultNmax 100 + -M --fraction, non-integer) — see the Decision Tree.
+- Do not use for locus-level / copy-resolved TE quantification. The grouped SAF is subfamily-level; use SQuIRE/Telescope instead.
+- Do not use to build the TE SAF or run STAR. The SAF is built by te-reference-saf-build and the Random-One BAMs by star-te-preprocessing; this skill begins at pre-built BAMs + SAF.
+- Do not run featureCounts from scdock-r-dev:v0.5.x — those images lack subread. Use the locked te-fc:2.0.2 (or legacy scdock-r-dev:v0.2).
+- Do not perform DE, annotation, or DGEList assembly here. Hand the matrices to annotate-bulk-rnaseq-data.
+
+---
+
+## See also
+
+The canonical chain is `te-reference-saf-build` + `star-te-preprocessing` → **`te-gene-featurecounts`** → `annotate-bulk-rnaseq-data`. For locus-level / copy-resolved TE quantification (out of scope here), see SQuIRE/Telescope (external).
+
+- `te-reference-saf-build` — Prerequisite; builds the grouped, exon-subtracted TE SAF this skill consumes
+- `star-te-preprocessing` — Prerequisite; produces the BAMs and owns the alignment/counting contract
+- `annotate-bulk-rnaseq-data` — Next step; annotate matrices, parse TE IDs, build combined DGEList

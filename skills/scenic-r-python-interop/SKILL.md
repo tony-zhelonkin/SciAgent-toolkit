@@ -2,28 +2,6 @@
 name: scenic-r-python-interop
 description: R-to-Python data handoff for the SCENIC+ ecosystem (pycisTopic, pycistarget, SCENIC+). Covers Seurat/Signac → pycisTopic count export, cisTopic R → pycisTopic model bridging, existing peak-atlas reuse, and metadata/fragment harmonisation. Use as the bridge skill before any pycisTopic/pycistarget/SCENIC+ run on data originating in R.
 license: MIT
-metadata:
-  scope: implementation
-  requires:
-  - anndatar-seurat-scanpy-conversion
-  tools:
-  - Seurat
-  - Signac
-  - anndataR
-  - pycisTopic
-  - cisTopic
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-01-17
-  category: interop
-  tier: standard
-  tags:
-  - grn
-  - conversion
-  complementary-skills:
-  - pycistopic-atac-topic-modeling
-  - pycistarget-motif-enrichment
-  - scenic-grn-inference
-  contraindications: []
 ---
 
 # SCENIC+ R → Python Data Handoff
@@ -413,10 +391,12 @@ print(f"ATAC-only: {len(atac_barcodes - rna_barcodes)}")
 
 ---
 
-## Related Skills
+---
 
-- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling (Stage 5 uses cisTopic object from this skill)
-- [pycistarget](pycistarget-motif-enrichment.md) — Motif enrichment on binarized topics
-- [SCENIC+ GRN](scenic-grn-inference.md) — eRegulon inference (Python API + Snakemake)
-- [Seurat ↔ AnnData](anndatar-seurat-scanpy-conversion.md) — General conversion patterns
-- [Multimodal AnnData/MuData](multimodal-anndata-mudata.md) — Multi-assay conversion
+## See also
+
+- `pycistopic-atac-topic-modeling` — ATAC topic modeling (Stage 5 uses the cisTopic object from this skill)
+- `pycistarget-motif-enrichment` — Motif enrichment on binarized topics
+- `scenic-grn-inference` — eRegulon inference (Python API + Snakemake)
+- `anndatar-seurat-scanpy-conversion` — General conversion patterns (Seurat ↔ AnnData)
+- `multimodal-anndata-mudata` — Multi-assay conversion

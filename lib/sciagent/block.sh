@@ -1,15 +1,36 @@
 # lib/sciagent/block.sh — AGENTS.md managed-block primitives.
 #
-# Markers (parametric, default id=ROLES):
+# Markers (parametric; id is MANDATORY on every public call — there is no
+# default):
 #   <!-- BEGIN SCIAGENT:<ID> v1 hash=<sha1> -->
 #   <!-- END SCIAGENT:<ID> -->
 #
 # For id=ROLES this is byte-identical to the original hard-coded markers.
+# Three ids are in production use: ROLES (the effective-stack block written
+# by activate.sh, checked by status.sh), CRAFT (craft.sh, the owner's
+# standing craft conventions), and CONTEXT (provision.sh). All three coexist
+# in the same AGENTS.md, each independently drift-checked.
+#
+# id used to default to ROLES on every function below. That default is
+# GONE (2026-08, Phase 5c follow-up): a bare `block_write AGENTS.md "$body"`
+# silently meant "write the ROLES block", which is exactly the kind of trap
+# that outlives the person who understood it — it briefly looked, from the
+# call sites alone, like ROLES might be a dead id nothing writes any more.
+# It isn't; the default was just hiding it. Every call site now names its
+# id explicitly. Public functions below reject a missing/empty id outright.
 #
 # Exit conventions:
 #   block_read         0=ok, 1=no markers, 2=one marker only
 #   block_hash_check   0=match, 1=no block, 2=corrupted, 3=drift
 #   block_write/remove always 0 unless I/O fails
+#   any public function with a missing/empty id: returns 4, prints to stderr
+#
+# rc=4 is its own code, distinct from every function's own rc=1 ("no block" /
+# "no markers"). A caller bug (forgot the id) must never be mistaken for a
+# legitimate "there is no block here" — that collision would let e.g.
+# `block_hash_check "$f" "$maybe_empty_var"` take the "safe to write, no
+# block yet" branch on what was actually a bug, which is the most
+# destructive branch available. See test_block_id_required.sh.
 
 # shellcheck shell=bash
 
@@ -34,6 +55,69 @@ _sha1() {
     sha1sum | awk '{print $1}'
 }
 
+# ---------------------------------------------------------------------------
+# Public hashing helpers — sciagent_sha1_file / sciagent_sha1_stream
+#
+# block.sh is the single home for `sha1sum` in lib/ (enforced by
+# tests/test_block_marker_boundary.sh, the 5.3 invariant). These two wrappers
+# exist so callers that need a content hash for something OTHER than a managed
+# block do not have to re-implement it and trip that guard.
+#
+# The other user is the deactivate-side ownership records: statusline.sh, the
+# hook bodies and the CLAUDE.md shim are reversed only if their content still
+# hashes to what sciagent wrote, so a user edit is detected and ceded rather
+# than clobbered. That is the same question block_hash_check asks of a managed
+# block body, so it belongs on the same primitive rather than a second one.
+#
+# Prints the empty string if the path is unreadable — callers treat an empty
+# hash as "cannot verify", which fails safe (leave the artifact alone).
+# ---------------------------------------------------------------------------
+sciagent_sha1_file() {
+    [[ -f "$1" ]] || return 0
+    _sha1 < "$1"
+}
+
+sciagent_sha1_stream() {
+    _sha1
+}
+
+# _block_require_id <id> <caller-name>
+# Every public function below calls this before touching the filesystem.
+# There is no default id (see file header) — a missing/empty id is a caller
+# bug, not "assume ROLES". Callers propagate this as rc=4, NOT rc=1 — rc=1
+# already means "no block"/"no markers" for block_read/block_hash_check, and
+# a caller-bug code must never collide with a legitimate result code.
+_block_require_id() {
+    local id="$1" caller="$2"
+    if [[ -z "$id" ]]; then
+        echo "$caller: missing required <id> argument (no default — pass ROLES/CRAFT/CONTEXT explicitly)" >&2
+        return 1
+    fi
+    return 0
+}
+
+# _block_replace_preserving_mode <tmp> <target>
+# Move <tmp> over <target>, keeping <target>'s permission bits.
+#
+# mktemp creates 0600, and a bare `mv` carries that mode onto the target — so
+# every in-place block rewrite silently stripped group/other read. That already
+# happened across the fleet: AGENTS.md sits at 0600 in eleven analysis repos,
+# including a shared lab tree where its own siblings are 0644 and colleagues
+# consequently cannot read it. AGENTS.md is a file other people are meant to
+# read; a managed-block rewrite has no business changing who can.
+#
+# The mode is captured BEFORE the mv, since the target is replaced. If stat is
+# unavailable or the target vanished, fall back to the plain mv rather than
+# failing the write — losing the mode is bad, losing the block is worse.
+_block_replace_preserving_mode() {
+    local tmp="$1" target="$2"
+    local mode=""
+    [[ -f "$target" ]] && mode=$(stat -c '%a' "$target" 2>/dev/null || true)
+    mv "$tmp" "$target" || return 1
+    [[ -n "$mode" ]] && chmod "$mode" "$target" 2>/dev/null
+    return 0
+}
+
 _count_lines() {
     # echo a numeric count of matching lines for a fixed-string pattern.
     local pat="$1" file="$2"
@@ -48,7 +132,8 @@ _count_lines() {
 
 block_read() {
     local file="$1"
-    local id="${2:-ROLES}"
+    local id="${2:-}"
+    _block_require_id "$id" "block_read" || return 4
     [[ -f "$file" ]] || return 1
     local beg_prefix end_marker has_begin has_end
     beg_prefix=$(_block_begin_prefix "$id")
@@ -74,7 +159,8 @@ block_read() {
 # block_write, so canonicalisation rules live in exactly one place.
 block_stored_hash() {
     local file="$1"
-    local id="${2:-ROLES}"
+    local id="${2:-}"
+    _block_require_id "$id" "block_stored_hash" || return 4
     local beg_prefix end_marker
     beg_prefix=$(_block_begin_prefix "$id")
     end_marker=$(_block_end_marker "$id")
@@ -84,13 +170,14 @@ block_stored_hash() {
         | sed -e "s|^$beg_prefix||" -e 's| -->$||'
 }
 
-# block_line_range <file> [id]
+# block_line_range <file> <id>
 # Print "<begin-line> <end-line>" (1-based) for the managed block, or nothing
 # (return 1) when there is no complete block. Keeps marker-string knowledge in
 # block.sh so consumers (e.g. status.sh) never grep the literals themselves.
 block_line_range() {
     local file="$1"
-    local id="${2:-ROLES}"
+    local id="${2:-}"
+    _block_require_id "$id" "block_line_range" || return 4
     [[ -f "$file" ]] || return 1
     local beg_prefix end_marker
     beg_prefix=$(_block_begin_prefix "$id")
@@ -105,7 +192,8 @@ block_line_range() {
 
 block_hash_check() {
     local file="$1"
-    local id="${2:-ROLES}"
+    local id="${2:-}"
+    _block_require_id "$id" "block_hash_check" || return 4
     [[ -f "$file" ]] || return 1
     local beg_prefix end_marker has_begin has_end
     beg_prefix=$(_block_begin_prefix "$id")
@@ -128,12 +216,13 @@ block_hash_check() {
     fi
 }
 
-# block_write <file> <body> [id]
+# block_write <file> <body> <id>
 # Idempotent. Preserves bytes outside markers.
 block_write() {
     local file="$1"
     local body="$2"
-    local id="${3:-ROLES}"
+    local id="${3:-}"
+    _block_require_id "$id" "block_write" || return 4
     # INVARIANT: body must be hashed AFTER trailing-newline canonicalisation,
     # so the stored hash matches block_read's awk-based reconstruction (awk
     # `print` always emits a trailing \n).
@@ -170,7 +259,7 @@ block_write() {
             state==1 { next }
             { print }
         ' "$file" > "$tmp"
-        mv "$tmp" "$file"
+        _block_replace_preserving_mode "$tmp" "$file" || return 1
         return 0
     fi
 
@@ -185,12 +274,13 @@ block_write() {
     printf '%s\n%s%s\n' "$begin" "$body" "$end_marker" >> "$file"
 }
 
-# block_remove <file> [id]
+# block_remove <file> <id>
 # Removes block plus the single blank line immediately preceding BEGIN
 # (the separator block_write inserts). Bytes elsewhere unchanged.
 block_remove() {
     local file="$1"
-    local id="${2:-ROLES}"
+    local id="${2:-}"
+    _block_require_id "$id" "block_remove" || return 4
     [[ -f "$file" ]] || return 0
     local beg_prefix end_marker
     beg_prefix=$(_block_begin_prefix "$id")
@@ -217,5 +307,5 @@ block_remove() {
             for (i=end_n+1; i<=NR; i++) print lines[i]
         }
     ' "$file" > "$tmp"
-    mv "$tmp" "$file"
+    _block_replace_preserving_mode "$tmp" "$file"
 }

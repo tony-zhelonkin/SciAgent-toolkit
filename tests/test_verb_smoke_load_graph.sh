@@ -39,6 +39,7 @@ run_verb list
 run_verb validate --quiet
 run_verb inject s_c
 run_verb eject s_c
+run_verb craft
 run_verb deactivate
 run_verb new role smoke-role
 

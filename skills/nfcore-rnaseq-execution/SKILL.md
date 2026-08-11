@@ -1,33 +1,12 @@
 ---
 name: nfcore-rnaseq-execution
 description: >-
-  nf-core/rnaseq — reproducibly run the Nextflow bulk RNA-seq pipeline (Docker
-  profile, star_salmon) on an HPC/workstation. Use when you have bulk RNA-seq
-  FASTQs and need STAR BAMs / gene counts via nf-core: building the samplesheet,
-  exporting NXF_UID/NXF_GID, work/temp dirs on a big disk, maxForks resource
-  caps, -resume, and post-run verify/cleanup that never touches published
-  outputs. For the TE-specific STAR --extra_star_align_args + featureCounts
-  recipe ALSO load star-te-preprocessing. For 10x single-cell velocity alignment
-  use starsolo-spliced-unspliced. For annotating/DE of the resulting count
-  matrices use annotate-bulk-rnaseq-data.
+  Use when you have bulk RNA-seq FASTQs and need STAR BAMs / gene counts
+  via nf-core/rnaseq (Docker, star_salmon) — samplesheet, container UID,
+  disk, resource caps, -resume, cleanup. For the TE-specific recipe also
+  load star-te-preprocessing. For 10x velocity alignment use
+  starsolo-spliced-unspliced. For annotation/DE use annotate-bulk-rnaseq-data.
 license: MIT
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-08
-  version: 1.1.0
-  upstream-docs: https://nf-co.re/rnaseq/3.26.0
-  scope: implementation
-  category: workflow
-  tier: standard
-  tags:
-    - preprocessing
-  requires: []
-  complementary-skills:
-    - star-te-preprocessing
-    - annotate-bulk-rnaseq-data
-  contraindications:
-    - "Do not use for 10x single-cell velocity alignment. Use starsolo-spliced-unspliced instead."
-    - "Do not use for count-matrix annotation/DE. Use annotate-bulk-rnaseq-data instead."
 ---
 
 # nf-core/rnaseq Execution
@@ -193,15 +172,6 @@ After the run, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The TE-compatible STAR `--extra_star_align_args` + featureCounts SAF recipe + `te_star.config` | `star-te-preprocessing` | **Co-load for TE runs** (owns the recipe this skill points to) |
-| Annotate / build DGEList / run DE on the resulting count matrices | `annotate-bulk-rnaseq-data` | Next step (downstream) |
-
----
-
 ## Resources
 
 - **nf-core/rnaseq docs:** https://nf-co.re/rnaseq/3.26.0
@@ -210,3 +180,17 @@ After the run, confirm:
 - **TE recipe + canonical config:** `star-te-preprocessing/references/te_star.config` (owner — do not duplicate)
 - **Per-dataset provenance template:** `references/dataset-record-template.md` (instantiate per run)
 - **Samplesheet generator:** `scripts/make_samplesheet.sh` (tested; `tests/run_skill_tests.sh`)
+
+---
+
+## When not to use
+
+- Do not use for 10x single-cell velocity alignment. Use starsolo-spliced-unspliced instead.
+- Do not use for count-matrix annotation/DE. Use annotate-bulk-rnaseq-data instead.
+
+---
+
+## See also
+
+- `star-te-preprocessing` — Co-load for TE runs; owns the TE-compatible STAR `--extra_star_align_args` + featureCounts SAF recipe (`te_star.config`) this skill points to
+- `annotate-bulk-rnaseq-data` — Next step (downstream); annotate / build DGEList / run DE on the resulting count matrices

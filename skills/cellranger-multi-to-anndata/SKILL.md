@@ -1,29 +1,7 @@
 ---
 name: cellranger-multi-to-anndata
-description: cellranger-multi-to-anndata — build a single pooled AnnData from CellRanger Multi per-sample outputs across N pools, with robust gene-union concatenation, sample provenance in obs (orig_ident, sample_id, pool_id, barcode), and biomart Ensembl→symbol annotation. Use when starting an scRNA-seq project from a multi-pool cellranger multi run (the per_sample_outs/[sample]/count/sample_filtered_feature_bc_matrix.h5 layout), optionally joining sample metadata, and producing the canonical 00_raw.h5ad checkpoint. Defaults to mouse (mt-, Rpl, Rps prefixes downstream); switchable via species parameter. For 10x Multiome (RNA + ATAC paired) data use muon-multimodal-analysis; for STARsolo intronic/spliced+unspliced counting use starsolo-spliced-unspliced; for I/O on an already-built .h5ad use anndata. Pairs with scrna-pipeline-conventions for the project layout this checkpoint lands in.
+description: "Build one pooled AnnData from CellRanger Multi per-sample outputs across N pools, with gene-union concatenation, sample provenance in obs, and biomaRt Ensembl-to-symbol annotation. Use when starting a project from a multi-pool cellranger multi run, to produce the canonical 00_raw.h5ad checkpoint. For 10x Multiome use muon-multimodal-analysis."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-29
-  category: foundation
-  tier: standard
-  version: 0.1.0
-  upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
-  tags:
-  - preprocessing
-  - conversion
-  complementary-skills:
-  - anndata
-  - single-cell-rna-qc
-  - scvi-basic
-  - scrna-pipeline-conventions
-  contraindications:
-  - Do not use for 10x Multiome (RNA + ATAC paired) data. Use muon-multimodal-analysis instead.
-  - Do not use for STARsolo intron-aware or spliced/unspliced counts. Use starsolo-spliced-unspliced instead.
-  - Do not use on an already-built .h5ad. Use anndata directly for I/O on existing objects.
-  - Do not use on cellranger count (single-sample) output. Read the single .h5 with scanpy.read_10x_h5 directly.
 ---
 
 # CellRanger Multi → AnnData
@@ -281,22 +259,29 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Operate on the produced `.h5ad` (subset, save, copy) | `anndata` | Adjacent / prerequisite-adjacent |
-| Run MAD-based QC on the produced `.h5ad` | `single-cell-rna-qc` | Next step (Stage 1) |
-| Integrate batches and learn a latent space | `scvi-basic` | Downstream (Stage 2) |
-| House style for the project this lands in | `scrna-pipeline-conventions` | Convention; references `03_results/checkpoints/` layout |
-| Multiome RNA + ATAC paired ingestion | `muon-multimodal-analysis` | Alternative (different modality) |
-| Spliced/unspliced or intronic counting | `starsolo-spliced-unspliced` | Alternative (different counting strategy) |
-
----
-
 ## Resources
 
 - 10x CellRanger Multi: https://www.10xgenomics.com/support/software/cell-ranger/latest/analysis/running-pipelines/cr-multi
 - AnnData docs: https://anndata.readthedocs.io
 - Scanpy biomart queries: https://scanpy.readthedocs.io/en/stable/api/scanpy.queries.biomart_annotations.html
 - Reference codebase patterns (read-only, in-repo): `01_modules/.ref/<ref-scrna>/02_Analysis/00_build_anndata.py` and `01_modules/.ref/<ref-scrna>/01_Scripts/Python_scripts/anndata_utils.py`
+
+---
+
+## When not to use
+
+- Do not use for 10x Multiome (RNA + ATAC paired) data. Use muon-multimodal-analysis instead.
+- Do not use for STARsolo intron-aware or spliced/unspliced counts. Use starsolo-spliced-unspliced instead.
+- Do not use on an already-built .h5ad. Use anndata directly for I/O on existing objects.
+- Do not use on cellranger count (single-sample) output. Read the single .h5 with scanpy.read_10x_h5 directly.
+
+---
+
+## See also
+
+- `anndata` — Adjacent / prerequisite-adjacent; operate on the produced `.h5ad` (subset, save, copy)
+- `single-cell-rna-qc` — Next step (Stage 1); run MAD-based QC on the produced `.h5ad`
+- `scvi-basic` — Downstream (Stage 2); integrate batches and learn a latent space
+- `scrna-pipeline-conventions` — Convention; house style for the project this lands in, references the `03_results/checkpoints/` layout
+- `muon-multimodal-analysis` — Alternative (different modality); multiome RNA + ATAC paired ingestion
+- `starsolo-spliced-unspliced` — Alternative (different counting strategy); spliced/unspliced or intronic counting

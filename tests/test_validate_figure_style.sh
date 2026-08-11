@@ -43,6 +43,10 @@ cfg = load_figure_config()
 set_paper_style(config=cfg)
 save_overview(fig, "01_qc", "qc_counts", table=rows, config=cfg)
 PY
+    # Compute sibling: doc 09 §3.3 rule 3 (orphan viz) requires a same-number,
+    # same-stem compute stage. Without it this "conformant" fixture is itself
+    # non-conformant once --check all includes stage-layout.
+    echo "print('qc')" > "$p/02_analysis/scripts/10_qc.py"
     touch "$p/03_results/01_qc/figures/_overview/qc_counts.png"
     touch "$p/03_results/01_qc/tables/_overview/qc_counts.csv"
     cat > "$p/03_results/01_qc/README.md" <<'MD'
@@ -164,5 +168,43 @@ set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: plain validate over violation expected exit 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'figure-style' \
     && { echo "FAIL [$_TEST_NAME] test5: plain validate must NOT run figure-style"; printf '%s\n' "$out" >&2; exit 1; }
+
+# ---------------------------------------------------------------------------
+# Test 6: migration window — viz scripts are scanned under the canonical
+# 02_analysis/stages/ as well as the legacy 02_analysis/scripts/, including
+# when both dirs coexist mid-rename.
+# ---------------------------------------------------------------------------
+STG="$TMPDIR_TEST/stg"
+mkdir -p "$STG/02_analysis/stages"
+cat > "$STG/02_analysis/stages/10_qc_viz.R" <<'R'
+library(ggplot2)
+p <- ggplot(df) + theme(text = element_text(size = 8))
+ggsave("x.png", p, width = 7, height = 5)
+R
+set +e
+out=$("$SCIAGENT" validate --check figure-style --project-dir "$STG" 2>&1); rc=$?
+set -e
+printf '%s\n' "$out" | grep -q 'WARN figure-style:.*02_analysis/stages/10_qc_viz.R' \
+    || { echo "FAIL [$_TEST_NAME] test6: stages/ viz script not scanned"; printf '%s\n' "$out" >&2; exit 1; }
+
+# Both dirs present: findings from each are reported.
+mkdir -p "$STG/02_analysis/scripts"
+cp "$STG/02_analysis/stages/10_qc_viz.R" "$STG/02_analysis/scripts/09_old_viz.R"
+set +e
+out=$("$SCIAGENT" validate --check figure-style --project-dir "$STG" 2>&1); rc=$?
+set -e
+printf '%s\n' "$out" | grep -q '02_analysis/scripts/09_old_viz.R' \
+    || { echo "FAIL [$_TEST_NAME] test6: legacy scripts/ dir no longer scanned"; printf '%s\n' "$out" >&2; exit 1; }
+printf '%s\n' "$out" | grep -q '02_analysis/stages/10_qc_viz.R' \
+    || { echo "FAIL [$_TEST_NAME] test6: stages/ dir dropped when both present"; printf '%s\n' "$out" >&2; exit 1; }
+
+# ---------------------------------------------------------------------------
+# Test 7: the new `sciagent lint --check` surface covers the same ground.
+# ---------------------------------------------------------------------------
+set +e
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$STG" 2>&1); rc=$?
+set -e
+printf '%s\n' "$out" | grep -q 'WARN figure-style:.*02_analysis/stages/10_qc_viz.R' \
+    || { echo "FAIL [$_TEST_NAME] test7: lint --check figure-style did not scan stages/"; printf '%s\n' "$out" >&2; exit 1; }
 
 pass

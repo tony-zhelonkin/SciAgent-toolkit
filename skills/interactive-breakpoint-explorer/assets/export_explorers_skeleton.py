@@ -2,7 +2,7 @@
 """
 export_explorers.py — build compact interactive-explorer tables (utility, not a stage).
 =======================================================================================
-SKELETON — copy this into `02_analysis/scripts/export_explorers.py` and fill the
+SKELETON — copy this into `02_analysis/stages/export_explorers.py` and fill the
 `# TODO(project):` stubs. It is NOT symlinked: each project owns its exporter because the
 per-stage checkpoints, marker genes, and signatures are project-specific.
 
@@ -12,7 +12,7 @@ never opens a multi-GB checkpoint. This is a READ-ONLY projection of already-com
 checkpoints; it recomputes NO biology.
 
 Re-run whenever an upstream checkpoint changes:
-    python 02_analysis/scripts/export_explorers.py
+    python 02_analysis/stages/export_explorers.py
 
 Outputs (03_results/interactive/): one `<stage>_explore.parquet` per gated inflection point,
 each = x,y coords + a few obs columns + a handful of marker/score columns, indexed by barcode.

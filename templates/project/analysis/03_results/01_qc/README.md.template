@@ -16,14 +16,14 @@ Entry format — one block per artifact:
 
 | | |
 |---|---|
-| Script   | `02_analysis/scripts/<NN_script>.py` or `.R` |
+| Script   | `02_analysis/stages/<NN_stage>.py` or `.R` |
 | Function | `exact_function_name()` |
 | Config   | `path.to.key = value` |
 | Input    | `<primary input path>` |
 ```
 
 Rules: Finding is scientific (paper-legend grade), Function is the exact name read from the
-script (never guessed), Config is the active key=value at production time, and entries never
+stage (never guessed), Config is the active key=value at production time, and entries never
 reference `docs/_internal/`.
 
 ---
@@ -34,7 +34,7 @@ reference `docs/_internal/`.
 
 | | |
 |---|---|
-| Script   | `02_analysis/scripts/01_qc.py` |
+| Script   | `02_analysis/stages/01_qc.py` |
 | Function | `replace_with_real_function()` |
 | Config   | `thresholds.de_fdr = 0.05` |
 | Input    | `00_data/processed/<input>` |

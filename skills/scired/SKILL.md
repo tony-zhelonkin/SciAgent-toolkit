@@ -1,30 +1,7 @@
 ---
 name: scired
-description: sciRED — Python package for interpreting scRNA-seq factor analysis via Poisson-GLM nuisance regression + PCA + varimax/promax rotation + a supervised factor-covariate association table (FCAT) and factor-interpretability scoring tool (FIST). Use when you already have a cell × gene count matrix and want to (a) residualise known confounders gene-by-gene, (b) extract rotated factors, (c) rank each factor's association with every covariate level via an ensemble of supervised classifiers, and (d) score factors on bimodality/specificity/diversity for downstream interpretation. Not a biplot generator and not a multi-view tool — for multi-view factor analysis use mofa-framework; for geometric biplots use factor-analysis-framework's L1 supplementary-projection patch.
+description: "sciRED — Python package for interpreting scRNA-seq factor analysis via Poisson-GLM nuisance regression, PCA, varimax rotation, a factor-covariate association table, and interpretability scoring. Use to residualise known confounders, extract rotated factors, and rank factor-covariate associations. For multi-view factor analysis use mofa-framework."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: analysis
-  tier: standard
-  tags:
-  - factor-analysis
-  - annotation
-  complementary-skills:
-  - factor-analysis-framework
-  - mofa-framework
-  - scanpy
-  - anndata
-  contraindications:
-  - Do not pass log-normalised data to poissonGLM. The GLM expects raw integer counts; pass the raw counts and log-normalise downstream if needed.
-  - Do not interpret varimax-rotated `explained_variance_ratio_` as a Benzécri inertia budget. Varimax breaks SVD uniqueness; per-factor variance is non-orthogonal and non-additive.
-  - Do not use plot_factor_loading as a biplot. It is a one-block gene-loadings scatter on F_x × F_y; the cell-scatter is a separate figure with no shared rescaling.
-  - Do not use FCAT/FIST without resampling stability. Classifier-based scoreboards are sensitive to seed and to varimax sign/order; cross-run comparability requires Procrustes alignment, which sciRED does not provide.
-  - Do not run on > ~10⁵ cells. The PCA core is dense `sklearn.decomposition.PCA`; the per-gene Poisson GLM loop is sequential; memory and runtime grow accordingly.
-  version: 0.1.0
-  upstream-docs: https://github.com/delipouya/sciRED
 ---
 
 # sciRED: Supervised-Scoreboard Interpretation of scRNA Factor Analysis
@@ -294,17 +271,6 @@ Both overlays can be plotted on the same `plot_factor_scatter` axes — they are
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Conceptual framing (why sciRED strips three Benzécri properties) | `factor-analysis-framework` | Parent / super-family |
-| Multi-view / multi-omic factor analysis | `mofa-framework` → `mofa-mofapy2` | Alternative family |
-| HVG selection, count loading, AnnData manipulation | `scanpy`, `anndata` | Prerequisite |
-| L1 supplementary projection (level barycenters, continuous arrows) | `factor-analysis-framework/references/supplementary-projection.md` | Extension on top of sciRED's outputs |
-
----
-
 ## Resources
 
 - **Repository:** https://github.com/delipouya/sciRED
@@ -312,3 +278,23 @@ Both overlays can be plotted on the same `plot_factor_scatter` axes — they are
 - **Tutorials (in-source):** `tutorial1_scMixology.ipynb`, `tutorial2_stimulatedPBMC.ipynb`
 - **Examples (in-source):** `example_scMixology.py`, `example_stimulatedPBMC.py`, `example_healthyHumanLiver.py`, `example_healthyHumanKidney.py`, `example_healthyRatLiver.py`
 - **Internal audit:** `docs/vision/latent/sciRED.md` — full file:line breakdown
+
+---
+
+## When not to use
+
+- Do not pass log-normalised data to poissonGLM. The GLM expects raw integer counts; pass the raw counts and log-normalise downstream if needed.
+- Do not interpret varimax-rotated `explained_variance_ratio_` as a Benzécri inertia budget. Varimax breaks SVD uniqueness; per-factor variance is non-orthogonal and non-additive.
+- Do not use plot_factor_loading as a biplot. It is a one-block gene-loadings scatter on F_x × F_y; the cell-scatter is a separate figure with no shared rescaling.
+- Do not use FCAT/FIST without resampling stability. Classifier-based scoreboards are sensitive to seed and to varimax sign/order; cross-run comparability requires Procrustes alignment, which sciRED does not provide.
+- Do not run on > ~10⁵ cells. The PCA core is dense `sklearn.decomposition.PCA`; the per-gene Poisson GLM loop is sequential; memory and runtime grow accordingly.
+
+---
+
+## See also
+
+- `factor-analysis-framework` — Parent / super-family; conceptual framing for why sciRED strips three Benzécri properties
+- `mofa-framework` — Alternative family; multi-view / multi-omic factor analysis
+- `mofa-mofapy2` — the `mofa-framework` engine used for that alternative-family analysis
+- `scanpy` — Prerequisite; HVG selection (`pp.highly_variable_genes`) and standard preprocessing before the factor decomposition
+- `anndata` — Prerequisite; count loading and the AnnData object manipulation sciRED operates on

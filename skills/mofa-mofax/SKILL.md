@@ -1,27 +1,7 @@
 ---
 name: mofa-mofax
-description: mofax — Python read-side helper for trained MOFA+ models. Use to load an HDF5 model produced by mofapy2 or MOFA2 (R) and access expectations (Z, W), variance-explained (R²), MEFISTO covariates, samples/features metadata, and a small library of seaborn-based factor/weight/variance plots. Read-only; cannot fit. For fitting use mofa-mofapy2 (Python) or mofa-r (R); for single-cell pseudo-bulk pipelines use mofa-cellular.
+description: "mofax — the Python read-side helper for trained MOFA+ models. Use to load an HDF5 model from mofapy2 or MOFA2 and access expectations (Z, W), variance explained, MEFISTO covariates, metadata, and a small library of factor and weight plots. Read-only; it cannot fit. For fitting use mofa-mofapy2 or mofa-r."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: integration
-  tier: simple
-  tags:
-  - factor-analysis
-  - viz
-  complementary-skills:
-  - mofa-framework
-  - mofa-mofapy2
-  - anndata
-  contraindications:
-  - Do not use to fit a model. mofax is read-only; use mofa-mofapy2 or mofa-r.
-  - Do not expect a biplot. mofax mirrors MOFA2's plot family — no co-projection of Z and W on shared axes (see mofa-framework/references/geometric-caveats.md).
-  - Do not forget to close the HDF5 handle (`model.close()`) at end of session; mofax holds a readonly file handle.
-  version: 0.1.0
-  upstream-docs: https://github.com/gtca/mofax
 ---
 
 # mofax: Python Read-Side Helper for Trained MOFA Models
@@ -138,3 +118,19 @@ Utility:
 - **In-source notebooks:** `notebooks/getting_started_pbmc10k.ipynb`, `notebooks/training_pbmc10k.ipynb`
 - **MOFA+ paper:** https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02015-1
 - **MOFA2 site (training side):** https://biofam.github.io/MOFA2/
+
+---
+
+## When not to use
+
+- Do not use to fit a model. mofax is read-only; use mofa-mofapy2 or mofa-r.
+- Do not expect a biplot. mofax mirrors MOFA2's plot family — no co-projection of Z and W on shared axes (see mofa-framework/references/geometric-caveats.md).
+- Do not forget to close the HDF5 handle (`model.close()`) at end of session; mofax holds a readonly file handle.
+
+---
+
+## See also
+
+- `mofa-framework`
+- `mofa-mofapy2`
+- `anndata`

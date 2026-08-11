@@ -1,24 +1,12 @@
 ---
 name: delegate-cli
 description: >-
-  Hand off or consult work to the local `codex` (OpenAI) and `agy` (Gemini) CLIs in headless mode.
-  Trigger when Anton says "implement/do X via codex/agy", "consult codex/agy", "have codex/agy do/write
-  X", "have agy web-research X", or similar. Covers headless flags, local model/account quirks,
-  sandbox fallbacks, installation, and safe multi-agent fan-out.
+  Hand off or consult work to the local `codex` (OpenAI) and `agy` (Gemini)
+  CLIs in headless mode. Trigger when Anton says "implement/do X via
+  codex/agy", "consult codex/agy", "have codex/agy do/write X", "have agy
+  web-research X", or similar. Covers headless flags, model/account quirks,
+  sandbox fallbacks, installation, and multi-agent fan-out.
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-08-03
-  category: workflow
-  tier: standard
-  tags:
-  - tooling
-  - planning
-  complementary-skills:
-  - reasoning-trace
-  - architecture-first-dev
 ---
 
 # Delegating to codex & agy (headless)
@@ -417,3 +405,10 @@ Practical mechanics, both verified:
   Most generator scripts self-`chdir`, so check before granting `cd` at all.
 - **Probe writes separately from reads.** A passing read-only probe says nothing about whether the
   worker can edit: write a throwaway file under a `_scratch/` path and read it back.
+
+---
+
+## See also
+
+- `reasoning-trace`
+- `architecture-first-dev`

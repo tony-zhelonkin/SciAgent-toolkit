@@ -1,7 +1,13 @@
 # lib/sciagent/provision.sh — sciagent provision [flags]
 #
-# User-level / global cross-harness provisioning (Tier 1). Seeds the baseline
-# every project inherits, idempotently and non-clobberingly:
+# User-level / global cross-harness provisioning — an OPT-IN PERSONAL BOOTSTRAP
+# (ADR-D4), not a tier of normal activation. It is the one verb that writes
+# outside a project directory, so nothing may call it implicitly: no project
+# verb invokes it, and it is not part of what the toolkit distributes (ADR-D3 —
+# packaging must not select or configure harnesses). See docs/architecture.md §1
+# and docs/proposals/2026-08-11-offline-distribution/50_ADRs.md.
+#
+# Seeds the baseline every project inherits, idempotently and non-clobberingly:
 #   --context   drop the shared global AGENTS.md-class context file into each
 #               detected harness's global root (block.sh SCIAGENT:CONTEXT block).
 #   --settings  seed power-user defaults. claude is implemented fully (folds in

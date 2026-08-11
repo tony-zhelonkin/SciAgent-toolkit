@@ -1,23 +1,7 @@
 ---
 name: te-geneset-gsea
-description: "TE family/class GMT to TE-aware GSEA — runs clusterProfiler::GSEA on TE subfamily-ranked DE lists using family/class GMTs produced by annotate-bulk-rnaseq-data (TE path). Use when running GSEA on TE subfamily ranks (GMT gene_symbol = subfamily IDs, not Ensembl symbols). For gene/MSigDB GSEA use bulk-rnaseq-gsea. Routes to references/te-gsea.md for the full GMT-to-clusterProfiler column contract and pitfall walkthroughs."
+description: "TE-aware GSEA — runs clusterProfiler::GSEA on TE subfamily-ranked DE lists using the family/class GMTs produced by annotate-bulk-rnaseq-data (TE path). Use when running GSEA on TE subfamily ranks, where GMT gene_symbol holds subfamily IDs rather than Ensembl symbols. For gene or MSigDB GSEA use bulk-rnaseq-gsea."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-17
-  version: 0.1.0
-  upstream-docs: https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  complementary-skills:
-  - annotate-bulk-rnaseq-data
-  - bulk-rnaseq-gsea
-  contraindications:
-  - Do not use for gene-symbol or MSigDB GSEA. Use bulk-rnaseq-gsea instead.
 ---
 
 # TE Geneset GSEA (TE Family/Class GMT)
@@ -175,17 +159,21 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Build the TE family/class GMTs and combined DGEList | `annotate-bulk-rnaseq-data` | Prerequisite (TE path) |
-| Gene-symbol or MSigDB GSEA (Hallmark/KEGG/Reactome) | `bulk-rnaseq-gsea` | Alternative (gene GSEA; shares clusterProfiler machinery) |
-
----
-
 ## Resources
 
 - **clusterProfiler:** https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
 - **TE-RNAseq-toolkit v0.1.0:** `01_modules/TE-RNAseq-toolkit/` — `R/create_te_genesets.R`, `R/te_utils.R`
 - **Deeper reference (load on demand):** `references/te-gsea.md` — full GMT column contract, `gs_name`/`gene_symbol` vs `term`/`gene` distinction, annotated GSEA code, overlap-check pattern, class-GMT min_size guidance
+
+---
+
+## When not to use
+
+- Do not use for gene-symbol or MSigDB GSEA. Use bulk-rnaseq-gsea instead.
+
+---
+
+## See also
+
+- `annotate-bulk-rnaseq-data` — Prerequisite (TE path); build the TE family/class GMTs and combined DGEList
+- `bulk-rnaseq-gsea` — Alternative; gene-symbol or MSigDB GSEA (Hallmark/KEGG/Reactome), shares clusterProfiler machinery

@@ -1,24 +1,7 @@
 ---
 name: anndata
-description: AnnData data structure — foundation for the entire scverse ecosystem. Use for format operations (reading .h5ad, writing, subsetting, concatenating), understanding data slots, and debugging shape/index issues. For analysis workflows use scanpy; for probabilistic models use scvi-tools; for population-scale queries use cellxgene-census.
+description: AnnData — foundation for the scverse ecosystem. Use for format operations (.h5ad read/write, subsetting, concatenating), data-slot structure, and shape/index debugging. For analysis workflows use scanpy; for probabilistic models use scvi-framework (scvi-tools); for population-scale queries use cellxgene-census-annotation.
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: foundation
-  tier: standard
-  tags: []
-  complementary-skills:
-  - scanpy
-  - anndatar-seurat-scanpy-conversion
-  - scvi-framework
-  contraindications:
-  - Do not use alone for full scRNA-seq analysis. Pair with scanpy.
-  - Do not use for multi-assay containers (CITE-seq, multiome). Use multimodal-anndata-mudata.
-  version: 1.0.0
-  upstream-docs: https://anndata.readthedocs.io/
 ---
 
 # AnnData: The scverse Data Container
@@ -355,3 +338,18 @@ print(adata.X.min(), adata.X.max())   # Normalized or raw? (raw: integers, norm:
 - Documentation: https://anndata.readthedocs.io/
 - GitHub: https://github.com/scverse/anndata
 - scverse ecosystem: https://scverse.org/
+
+---
+
+## When not to use
+
+- Do not use alone for full scRNA-seq analysis. Pair with scanpy.
+- Do not use for multi-assay containers (CITE-seq, multiome). Use multimodal-anndata-mudata.
+
+---
+
+## See also
+
+- `scanpy`
+- `anndatar-seurat-scanpy-conversion`
+- `scvi-framework`

@@ -1,26 +1,7 @@
 ---
 name: crescendo-scatac-cre-analysis
-description: CREscendo detects differential cis-regulatory element (CRE) usage within individual scATAC peaks by projecting ENCODE SCREEN cCREs onto peaks and testing Tn5 cleavage counts per sub-element via chi-square. Use when peak-level DA is weak or ambiguous and you suspect within-peak regulatory shifts (e.g., different enhancers driving same gene in cDC1A vs cDC1B). For peak-level differential accessibility use Signac/ArchR FindMarkers; for motif-level activity use chromvar-motif-accessibility.
+description: "CREscendo detects differential cis-regulatory element usage within individual scATAC peaks by projecting ENCODE SCREEN cCREs onto peaks and testing Tn5 cleavage per sub-element. Use when peak-level DA is weak and you suspect within-peak shifts. For peak-level DA use Signac/ArchR; for motif activity use chromvar-motif-accessibility."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://github.com/GreenleafLab/CREscendo
-  category: analysis
-  tier: simple
-  tags:
-  - chromatin
-  complementary-skills:
-  - iterative-peak-merging
-  - chromvar-motif-accessibility
-  - tf-footprint-differential-analysis
-  - scvi-peakvi
-  contraindications:
-  - Do not use for standard peak-level differential accessibility. Use Signac/ArchR FindMarkers.
-  - Do not use on peaks that do not overlap 2+ ENCODE cCREs. CREscendo requires an external CRE catalog for sub-peak segmentation.
 ---
 
 # CREscendo Skill
@@ -223,3 +204,21 @@ Run within a cell type across conditions (e.g., cDC1A_WT vs cDC1A_IL12), not jus
 - [ ] Sufficient cells per group (>100 recommended)
 - [ ] TxDb + annoDb match genome
 - [ ] CRE annotations loaded for correct genome
+
+---
+
+## When not to use
+
+- Do not use for standard peak-level differential accessibility. Use Signac/ArchR FindMarkers.
+- Do not use on peaks that do not overlap 2+ ENCODE cCREs. CREscendo requires an external CRE catalog for sub-peak segmentation.
+
+---
+
+## See also
+
+- `iterative-peak-merging`
+- `chromvar-motif-accessibility`
+- `tf-footprint-differential-analysis`
+- `scvi-peakvi`
+
+Upstream docs: https://github.com/GreenleafLab/CREscendo

@@ -39,7 +39,7 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 {{PROJECT_ID}}/
 ├── 00_data/{raw,processed,references}   # READ-ONLY input data
 ├── 01_modules/                          # toolkits (submodules)
-├── 02_analysis/{config,helpers,scripts,notebooks}
+├── 02_analysis/{config,helpers,stages,notebooks}
 ├── 03_results/
 │   ├── objects/                         # checkpoint state (.h5ad, .rds) — NOT a deliverable
 │   ├── 01_qc/{tables,figures}/          # QC-phase deliverables
@@ -51,7 +51,12 @@ Run `sciagent status` to see the current stack, effective skills, agents, and co
 └── logs/
 ```
 
-Each `NN_<slug>/` stage holds the tables **and** figures for that phase. Stage ids are declared
+`02_analysis/stages/` holds the narrative: `NN_<topic>.{R,py}` files read top-to-bottom as the
+dataset's story, each with an optional viz twin `NN_<topic>_viz` sharing its number and stem.
+`02_analysis/helpers/` holds the machinery they call — a stage that defines its own machinery
+buries the story in it. Stage numbering and thinness are specified in the CRAFT block below.
+
+Each `NN_<slug>/` results stage holds the tables **and** figures for that phase. Stage ids are declared
 in `analysis_config.yaml:stages` (two-digit prefix, lowercase snake_case); append a stage there
 before writing to it. Checkpoints live in `objects/`, cross-stage tables in `master/`.
 
@@ -66,7 +71,7 @@ the durable record.
 
 ## Figures
 
-Viz scripts source `02_analysis/helpers/figure_style.{R,py}` (the project shim, which loads the
+Viz stages source `02_analysis/helpers/figure_style.{R,py}` (the project shim, which loads the
 toolkit-symlinked `figure-style` lib) and save figures via `save_overview()` or
 `save_figure()` — never inline `ggsave`/`plt.savefig` or `theme()`. See the
 `figure-style` skill for the full contract (one legible tier, dual-format PDF + PNG from one plot object, font floors, captioning).

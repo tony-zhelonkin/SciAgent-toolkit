@@ -31,12 +31,11 @@
 name: architect
 description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement
 
-# Output style (main-agent system prompt) — resolved by `name:` frontmatter
-# in system-prompts/<file>.md. The toolkit-side source dir is `system-prompts/`
-# (provider-agnostic naming); the Claude Code consumer mounts the resolved
-# file into `.claude/output-styles/<name>.md`. Symlinked by `sciagent activate`.
-# Omit this field to leave the existing outputStyle alone.
-output_style: architect-mentor
+# Output style (main-agent system prompt) is no longer set here (Phase 5d —
+# roles are pure provenance, and output_style is a selection, not a role
+# filter). To get the architect-mentor style, pass it explicitly:
+#   sciagent activate architect --output-style architect-mentor
+# or set `output_style: architect-mentor` in the toolkit's craft.yaml.
 
 # Agents activate into .claude/agents/ via symlink
 agents:

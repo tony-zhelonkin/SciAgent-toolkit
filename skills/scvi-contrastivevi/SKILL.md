@@ -1,27 +1,7 @@
 ---
 name: scvi-contrastivevi
-description: contrastiveVI from scvi-tools — contrastive deep generative model that decomposes scRNA-seq variation into salient (target-specific) and background (shared) latent spaces. Use for Perturb-seq / CRISPR screens, drug-treatment vs control, or disease-vs-healthy comparisons where confounding variation (cell cycle, baseline heterogeneity) masks the effect of interest. Requires a clear target-vs-background cell split and raw counts. For standard integration use scvi-basic; for multi-sample cohort studies use scvi-mrvi.
+description: "contrastiveVI from scvi-tools — a contrastive deep generative model that splits scRNA-seq variation into salient (target-specific) and background (shared) latent spaces. Use for Perturb-seq, drug-vs-control, or disease-vs-healthy comparisons where confounding variation masks the effect. Needs a clear target-vs-background split and raw counts."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: integration
-  tier: simple
-  tags: []
-  complementary-skills:
-  - scvi-framework
-  - scvi-basic
-  - scvi-mrvi
-  - anndata
-  - scanpy
-  contraindications:
-  - Do not use on normalized / log-transformed data. Raw counts required.
-  - Do not use without a target / background split. contrastiveVI needs both groups.
-  - Do not use for unconfounded case-control (where scVI / scANVI already suffice).
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/contrastivevi.html
 ---
 
 # contrastiveVI: Perturbation Analysis
@@ -175,3 +155,23 @@ sc.pl.umap(target_adata, color=["perturbation"])
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/contrastive_vi.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/contrastiveVI.html
 - **Paper:** https://www.nature.com/articles/s41592-023-01955-3
+
+---
+
+## When not to use
+
+- Do not use on normalized / log-transformed data. Raw counts required.
+- Do not use without a target / background split. contrastiveVI needs both groups.
+- Do not use for unconfounded case-control (where scVI / scANVI already suffice).
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-basic`
+- `scvi-mrvi`
+- `anndata`
+- `scanpy`
+
+Upstream docs: https://docs.scvi-tools.org/en/stable/user_guide/models/contrastivevi.html

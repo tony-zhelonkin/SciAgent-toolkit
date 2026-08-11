@@ -4,8 +4,8 @@
 #   Overlay for orchestrating multi-phase analysis pipelines: Opus decomposes a
 #   plan into bite-sized phases (one script == one implementer), Sonnet
 #   implementers execute them, and Opus reviews every N phases that code RUNS
-#   and produces its declared artifacts. Adds the planning / figure / interpretation
-#   orchestration commands on top of base.
+#   and produces its declared artifacts. Claims the planning / figure /
+#   interpretation orchestration commands as this role's provenance.
 #
 # Use when
 #   - Planning or orchestrating a multi-phase analysis pipeline
@@ -23,22 +23,30 @@
 #   sciagent activate base science-architect
 #
 # Composes with
-#   - base — provides the full analysis agent suite, figure-style, reasoning-trace,
-#     scrna-pipeline-conventions and all scverse/bulk/ATAC skills
+#   - base — holds provenance for the analysis agent suite, figure-style,
+#     reasoning-trace, scrna-pipeline-conventions and the scverse/bulk/ATAC
+#     skills. All of it mounts with or without either role; pairing them just
+#     splits attribution the way `sciagent status` reports it.
 
 name: science-architect
-description: Overlay for orchestrating multi-phase analysis pipelines — Opus-decomposes a plan into bite-sized phases (one script == one implementer), runs Sonnet implementers, reviews every N phases that code RUNS and produces artifacts. Adds the planning/figure/interpretation orchestration commands on top of base.
+description: Overlay for orchestrating multi-phase analysis pipelines — Opus-decomposes a plan into bite-sized phases (one script == one implementer), runs Sonnet implementers, reviews every N phases that code RUNS and produces artifacts. Attributes the planning/figure/interpretation orchestration commands to this role.
 
-# Agents — base already ships the full day-to-day analysis suite (docs-librarian,
-# bio-interpreter, insight-explorer, captions, figure-audit, doc-curator,
-# code-reviewer, handoff). No additional agents are available for this role yet;
-# orchestration-specific subagents (pipeline planner, phase reviewer, etc.) will
-# be wired in by later phases alongside the commands they serve.
+# NOTE: these lists no longer control what is mounted. `activate` mounts the
+# entire catalog regardless of role; a role's lists only decide PROVENANCE —
+# which role a name is attributed to in `sciagent status` and the ROLES block,
+# and which slot wins when base and overlay both claim a name. An empty list
+# below means "attribute nothing", not "make nothing available".
+
+# Agents — none attributed to this overlay. The day-to-day analysis suite
+# (docs-librarian, bio-interpreter, insight-explorer, captions, figure-audit,
+# doc-curator, code-reviewer, handoff) is attributed to base. Orchestration-
+# specific subagents (pipeline planner, phase reviewer) are not written yet;
+# they will be attributed here alongside the commands they serve.
 agents: []
 
-# Skills — base already provides reasoning-trace, figure-style,
-# scrna-pipeline-conventions, and the full scverse/bulk/ATAC suite.
-# Orchestration-specific skills layered on top of base:
+# Skills attributed to this overlay. reasoning-trace, figure-style,
+# scrna-pipeline-conventions and the scverse/bulk/ATAC suite are attributed to
+# base; the three below are the orchestration-specific ones:
 skills:
   - delegate-cli            # hand off / consult work to the local codex (GPT-5.x) & agy (Gemini) headless CLIs — implementation → codex, web-research/large-context → agy
   - decision-gate-notebook  # at a pipeline inflection point, scaffold a read-only Quarto review notebook that re-plots the stage output and gates the next stage on decisions.<stage>.status: APPROVED in analysis_config.yaml

@@ -1,28 +1,7 @@
 ---
 name: coresh-signature-search
-description: 'CORESH -- rank ~80,000 public GEO datasets by how strongly a user-supplied gene signature is co-regulated in each, returning a PCA-inspired pctVar score and optional GESECA p-value for hypothesis generation and interpretation. Use when you have a short gene signature (10-200 genes: top DE hits, cluster markers, leading edge of a pathway) and want to find public datasets where those genes move together -- to connect a signature to biological context (cell types, perturbations, diseases), find perturbation analogs for wet-lab follow-up, or derive novel coregulation-based gene sets for downstream GSEA. For canonical-pathway interpretation of a signature or running GSEA on CORESH-derived gene sets use bulk-rnaseq-gsea; for metadata-based GEO search (keyword, organism) use the GEO web interface or RummaGEO.'
+description: "CORESH ranks ~80,000 public GEO datasets by how strongly a supplied gene signature is co-regulated in each, returning a pctVar score and optional GESECA p-value. Use with a short signature (10-200 genes) to find datasets where those genes move together. For pathway interpretation use bulk-rnaseq-gsea."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 0.1.0
-  upstream-docs: https://alserglab.wustl.edu/coresh/
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  - metaprogram
-  complementary-skills:
-  - bulk-rnaseq-gsea
-  - bulk-rnaseq-pathway-explorer
-  - gatom-metabolomic-predictions
-  contraindications:
-  - Do not use for MSigDB canonical-pathway interpretation of a signature. Use bulk-rnaseq-gsea instead.
-  - Do not use for metadata-based GEO search (organism, disease keyword, platform). Use the GEO web interface or RummaGEO -- CORESH is data-driven only.
-  - Do not pass gene symbols. The chunk rownames are integer Entrez IDs and match() silently returns all NAs on character input.
-  - Do not use human queries against mmu/ chunks (or vice versa). Species mismatch returns near-zero sizes with no error.
 ---
 
 # CORESH -- Gene Signature Search over Public GEO Data
@@ -245,17 +224,6 @@ Run these checks every time you use CORESH on a new signature:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Canonical-pathway interpretation (MSigDB Hallmark/KEGG/Reactome/GO) of the same signature | `bulk-rnaseq-gsea` | Alternative (prior-knowledge question) |
-| Run GSEA with CORESH-derived gene sets as a custom database | `bulk-rnaseq-gsea` | Next step (consumes `extract_gene_loadings.R` output) |
-| Interactive HTML dashboards over the resulting master table | `bulk-rnaseq-pathway-explorer` | Downstream (visualizes GSEA output) |
-| Topology-aware metabolic module discovery from DE | `gatom-metabolomic-predictions` | Alternative (module-level, not signature-level) |
-
----
-
 ## Resources
 
 - **Paper:** Sukhov V et al. *CORESH: a gene signature-based search engine for public gene expression datasets.* Nucleic Acids Res. 2025 Jul 7;53(W1):W187-W192. doi: [10.1093/nar/gkaf372](https://doi.org/10.1093/nar/gkaf372). PMID: 40322919; PMCID: PMC12230675.
@@ -277,3 +245,20 @@ Run these checks every time you use CORESH on a new signature:
 - `references/query-design.md` -- how to build good queries: size, filtering, DE-derived vs curated, project-specific guidance for cDC1/iron biology (Q1-Q12)
 - `references/coresh-to-gsea-bridge.md` -- full recipe for deriving gene sets from top hits and feeding them to `bulk-rnaseq-gsea` (custom-db reference)
 - `references/interpretation-protocol.md` -- read-the-top-20 protocol, positive/negative controls, expected-hit categories, red flags
+
+---
+
+## When not to use
+
+- Do not use for MSigDB canonical-pathway interpretation of a signature. Use bulk-rnaseq-gsea instead.
+- Do not use for metadata-based GEO search (organism, disease keyword, platform). Use the GEO web interface or RummaGEO -- CORESH is data-driven only.
+- Do not pass gene symbols. The chunk rownames are integer Entrez IDs and match() silently returns all NAs on character input.
+- Do not use human queries against mmu/ chunks (or vice versa). Species mismatch returns near-zero sizes with no error.
+
+---
+
+## See also
+
+- `bulk-rnaseq-gsea` — Alternative (canonical-pathway interpretation of the same signature via MSigDB Hallmark/KEGG/Reactome/GO) and next step (run GSEA with CORESH-derived gene sets as a custom database, consuming `extract_gene_loadings.R` output)
+- `bulk-rnaseq-pathway-explorer` — Downstream; interactive HTML dashboards over the resulting master table (visualizes GSEA output)
+- `gatom-metabolomic-predictions` — Alternative; topology-aware metabolic module discovery from DE (module-level, not signature-level)

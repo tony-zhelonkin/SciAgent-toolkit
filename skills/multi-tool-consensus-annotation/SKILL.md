@@ -1,32 +1,7 @@
 ---
 name: multi-tool-consensus-annotation
-description: Framework for annotating single-cell data as a PANEL of independent voters — broad markers, cluster-level public-atlas reference voting, public-atlas scANVI/scArches transfer, internal control→treatment scANVI, popV ensemble, treeArches open-set novelty, CELLxGENE Census scVI-KNN, tissue-specific expert dictionaries — harmonized into one canonical label space and reconciled by a conservative, flag-heavy consensus that emits annotation_confidence, basis_of_label, and novelty_flag per cell. Use when designing or reviewing a cell-type/state annotation pipeline that should not trust any single method, when reconciling disagreeing per-tool votes, or when a tally silently never agrees (the vocabulary "dead-tally" bug). This is the index/framework that composes the per-tool voter skills (scvi-scanvi, scvi-scarches-reference-mapping, treearches-hierarchy-learning, cellxgene-census-annotation, scembed-atac-annotation). For a reference-free multi-LLM consensus over marker genes use mllmcelltype-consensus-annotation.
+description: "Runs a PANEL of independent cell-type voters (markers, atlas transfer, scANVI/scArches, popV, treeArches novelty, Census scVI-KNN), reconciled into one label space by a conservative, flag-heavy consensus (confidence, basis_of_label, novelty_flag per cell). Use when no single method's confidence suffices. For single-method transfer use scvi-scanvi."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-05
-  version: 0.1.0
-  upstream-docs: ''
-  category: annotation
-  tier: rich
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-scanvi
-  - scvi-scarches-reference-mapping
-  - treearches-hierarchy-learning
-  - cellxgene-census-annotation
-  - scembed-atac-annotation
-  - mllmcelltype-consensus-annotation
-  - scanpy
-  - reasoning-trace
-  contraindications:
-  - Do not use for a reference-free multi-LLM consensus over marker genes. Use mllmcelltype-consensus-annotation.
-  - Do not use to run a single annotation method. Route to that method's own skill (scvi-scanvi, treearches-hierarchy-learning, cellxgene-census-annotation, ...); this skill is the framework that composes several.
-  - Do not treat the consensus as a way to manufacture agreement — its job is to preserve disagreement as Uncertain/Novel, not to coerce a label.
 ---
 
 # Multi-Tool Consensus Annotation
@@ -234,20 +209,28 @@ Freeze once; do not recluster or rename after the freeze. `annotation_confidence
 
 ---
 
-## Complementary skills
-
-| When you need… | Use skill | Relationship |
-|---|---|---|
-| Semi-supervised transfer voter (public or internal) | `scvi-scanvi` | Voter |
-| scArches surgery to project a query onto a frozen atlas | `scvi-scarches-reference-mapping` | Voter |
-| Open-set novelty / OOD rejection guard | `treearches-hierarchy-learning` | Voter (authoritative OOD) |
-| Supplementary public-atlas KNN vote | `cellxgene-census-annotation` | Voter (supplementary) |
-| scATAC reference-transfer voter | `scembed-atac-annotation` | Voter (ATAC modality) |
-| Reference-free multi-LLM marker consensus | `mllmcelltype-consensus-annotation` | Alternative voter / self-contained panel |
-| Marker scoring, clustering, `rank_genes_groups` | `scanpy` | Prerequisite (markers + coarse anchor) |
-| Persist the fusion policy + correlation structure | `reasoning-trace` | Provenance |
-
 ## Resources
 
 - The conservative multi-leg policy and the leg-independence caveat are the recurring pattern behind
   the per-tool voter skills above; this skill is the framework that composes them.
+
+---
+
+## When not to use
+
+- Do not use for a reference-free multi-LLM consensus over marker genes. Use mllmcelltype-consensus-annotation.
+- Do not use to run a single annotation method. Route to that method's own skill (scvi-scanvi, treearches-hierarchy-learning, cellxgene-census-annotation, ...); this skill is the framework that composes several.
+- Do not treat the consensus as a way to manufacture agreement — its job is to preserve disagreement as Uncertain/Novel, not to coerce a label.
+
+---
+
+## See also
+
+- `scvi-scanvi` — Voter; scANVI semi-supervised label transfer from seed cell-type labels (public or internal reference), always initialized from a trained scVI model
+- `scvi-scarches-reference-mapping` — Voter; scArches surgery to project a query onto a frozen atlas
+- `treearches-hierarchy-learning` — Voter (authoritative OOD); open-set novelty / OOD rejection guard
+- `cellxgene-census-annotation` — Voter (supplementary); pulls a CELLxGENE Census reference slice and takes a local KNN vote in its scVI embedding, without the tiledb stack
+- `scembed-atac-annotation` — Voter (ATAC modality); region2vec KNN vote against a pre-trained HuggingFace databio reference, no retraining
+- `mllmcelltype-consensus-annotation` — Alternative voter / self-contained panel; reference-free multi-LLM marker consensus
+- `scanpy` — Prerequisite (markers + coarse anchor); marker scoring, clustering, `rank_genes_groups`
+- `reasoning-trace` — Provenance; persist the fusion policy + correlation structure

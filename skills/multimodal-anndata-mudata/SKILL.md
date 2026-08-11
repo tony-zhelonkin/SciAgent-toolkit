@@ -1,26 +1,7 @@
 ---
 name: multimodal-anndata-mudata
-description: Converts multi-assay R Seurat objects to Python AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC (or CITE-seq) data from Seurat/Signac into the scverse ecosystem, handling ChromatinAssay extraction, or setting up obs_names for the right pairing semantics. For R-only analysis see seurat-multimodal-analysis; for end-to-end Python analysis see muon-multimodal-analysis.
+description: "Converts multi-assay Seurat objects to AnnData/MuData and explains MuData container semantics for paired, unpaired, and partially paired multi-omics. Use when moving RNA+ATAC or CITE-seq data from Seurat/Signac into scverse, extracting a ChromatinAssay, or setting obs_names for the right pairing semantics."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://mudata.readthedocs.io/
-  category: foundation
-  tier: standard
-  tags:
-  - multimodal
-  - conversion
-  complementary-skills:
-  - anndatar-seurat-scanpy-conversion
-  - muon-multimodal-analysis
-  - seurat-multimodal-analysis
-  contraindications:
-  - Do not use for single-assay Seurat conversion. Use anndatar-seurat-scanpy-conversion instead.
-  - Do not use for downstream multimodal analysis in Python. Use muon-multimodal-analysis.
 ---
 
 # Multimodal AnnData/MuData: Seurat → Python Conversion for Multi-Omics
@@ -407,3 +388,18 @@ Which tool?
 - **anndataR (Bioconductor):** https://bioconductor.org/packages/release/bioc/html/anndataR.html
 - **scverse MuData axes tutorial:** https://scverse-tutorials.readthedocs.io/en/latest/notebooks/tutorial_axes_anndata_mudata.html
 - **h5mu file format spec:** https://mudata.readthedocs.io/en/latest/io/h5mu.html
+
+---
+
+## When not to use
+
+- Do not use for single-assay Seurat conversion. Use anndatar-seurat-scanpy-conversion instead.
+- Do not use for downstream multimodal analysis in Python. Use muon-multimodal-analysis.
+
+---
+
+## See also
+
+- `anndatar-seurat-scanpy-conversion`
+- `muon-multimodal-analysis`
+- `seurat-multimodal-analysis`

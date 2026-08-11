@@ -3,8 +3,9 @@
 # The CRAFT block carries the owner's standing craft conventions (figure
 # legibility, results placement, README adjacency, planning decomposition,
 # reproducibility). Its single source of truth is <toolkit>/craft.yaml.
-# Rendered into AGENTS.md alongside SCIAGENT:ROLES by activate/inject/eject,
-# SHA1 drift-detected and idempotently re-rendered via block.sh (id=CRAFT).
+# Rendered into AGENTS.md alongside SCIAGENT:ROLES by `sciagent craft` (see
+# craft_verb.sh) and, as a side effect, by activate/update. SHA1 drift-detected
+# and idempotently re-rendered via block.sh (id=CRAFT).
 #
 # Depends on block.sh (block_write/block_remove with id=CRAFT). All managed-
 # block framing + hashing stays in block.sh; this module only assembles body

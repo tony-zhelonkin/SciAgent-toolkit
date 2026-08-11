@@ -1,12 +1,12 @@
-# Single-source-of-truth cross-reference manifest for the MOFA family skill cluster.
+# Curated cross-reference map for the MOFA family skill cluster — a design record
+# of the intended routing graph, kept for reference when writing or auditing the
+# "See also" prose in each skill's SKILL.md body.
 #
-# Each key is a skill name; each value is the list of skill names that belong in its
-# metadata.complementary-skills. The validator (scripts/validate_cross_refs.py)
-# compares this manifest against each child SKILL.md frontmatter and reports drift.
-#
-# Edit this file FIRST, then update child SKILL.md files to match. The validator is
-# advisory, not blocking, so individual skills can justify a temporary divergence
-# — but the long-term rule is: this YAML is authoritative.
+# Each key is a skill name; each value is the list of skill names it should route to.
+# There is no `metadata.complementary-skills` frontmatter anymore (that mechanism was
+# retired) and no automated validator checks this file against the SKILL.md bodies —
+# it is not enforced, so it can drift from the prose. Treat it as a curated starting
+# point when adding or reviewing routing edges, not as ground truth to diff against.
 
 mofa-framework:
   - factor-analysis-framework

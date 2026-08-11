@@ -5,6 +5,14 @@
 # a single-quoted string is allowed (it tears down the awk/subshell, not the
 # caller's shell). We therefore ignore any `exit` that sits inside a
 # single-quoted region, and flag only shell-level `exit` statements.
+#
+# Full-line `#` comments are dropped BEFORE quote counting. The quoted-region
+# tracker is a single-quote parity counter over the whole file, so an apostrophe
+# in ordinary prose ("what's mounted") silently flips the parity and misclassifies
+# every subsequent line. That produced a false positive on roles.sh once, and it
+# can equally produce a false NEGATIVE that masks a real top-level exit — the
+# failure mode this test exists to catch. A comment can never BE an exit, so
+# skipping comments costs no coverage.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -16,6 +24,9 @@ LIB="$TOOLKIT_ROOT/lib/sciagent"
 scan_shell_exits() {
     awk '
         { line = $0 }
+        # Drop full-line comments before any quote accounting: prose apostrophes
+        # would otherwise flip the parity tracker below.
+        line ~ /^[[:space:]]*#/ { next }
         # Toggle in_squote on every unescaped single quote in the line.
         {
             n = gsub(/'\''/, "&", line)   # count single quotes on this line

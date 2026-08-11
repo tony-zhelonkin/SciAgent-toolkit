@@ -1,32 +1,7 @@
 ---
 name: peak-atlas-framework
-description: "scATAC/multiome consensus peak-set construction — the multi-strategy to support-voting to iterative-overlap merge to quantify-then-prune to tier to validate methodology for defining a reproducible fixed-width peak atlas, with rare-cell-type protection as a first principle. Use when deciding how to build or evaluate a peak set from single-cell or single-nucleus ATAC (paired multiome or unpaired RNA+ATAC), or when choosing strategies, consensus thresholds, and filtration tradeoffs. Routes to peak-atlas-multiome (paired cells) or peak-atlas-unpaired (separate RNA and ATAC pools). For the bare within-study merge primitive use iterative-peak-merging; for de-novo calling or quantification use snapatac2-atac-preprocessing or signac-chromatin-analysis."
+description: "scATAC/multiome consensus peak-set methodology — multi-strategy calling, support voting, iterative-overlap merge, quantify-then-prune, tier, validate — with rare-cell-type protection as a first principle. Use when deciding how to build or evaluate a fixed-width peak set, or choosing strategies, thresholds, and filtration tradeoffs."
 license: MIT
-metadata:
-  scope: concept
-  status: stable
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-25
-  version: 1.0.0
-  upstream-docs: https://www.archrproject.com
-  category: foundation
-  tier: rich
-  tags:
-  - chromatin
-  - preprocessing
-  - multimodal
-  complementary-skills:
-  - peak-atlas-multiome
-  - peak-atlas-unpaired
-  - iterative-peak-merging
-  - snapatac2-atac-preprocessing
-  - signac-chromatin-analysis
-  - chromvar-motif-accessibility
-  contraindications:
-  - "Do not use to call peaks de novo. Use snapatac2-atac-preprocessing or signac-chromatin-analysis instead."
-  - "Do not use for the bare within-study merge primitive from MACS summits. Use iterative-peak-merging instead."
-  - "Do not use this router alone to run an analysis. Pair with peak-atlas-multiome (paired) or peak-atlas-unpaired (unpaired) instead."
 ---
 
 # Peak Atlas Framework and Router
@@ -114,19 +89,6 @@ A peak set is only as good as the signal it retains. Validate on four axes: **FR
 | Adaptive per-cluster threshold, stratified sampling, rescue, metadata pre-filter | `references/rare-celltype-protection.md` |
 | FRiP / TSS / peaks-per-cell / marker / embedding / chromVAR validation | `references/validation-battery.md` |
 
-## Complementary skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Paired multiome consensus (RNA+ATAC same cells) | `peak-atlas-multiome` | Child (paired regime) |
-| Unpaired consensus (transfer identity to ATAC) | `peak-atlas-unpaired` | Child (unpaired regime) |
-| Bare within-study merge from MACS summit BEDs | `iterative-peak-merging` | Embedded primitive |
-| De-novo peak calling + fragment/QC preprocessing | `snapatac2-atac-preprocessing` | Upstream calling |
-| Signac peak calling, quantification, coverage | `signac-chromatin-analysis` | Upstream / downstream |
-| Per-cell TF-motif activity once the atlas is fixed | `chromvar-motif-accessibility` | Downstream validation / use |
-
----
-
 ## Pitfalls
 
 | Symptom | Cause | Fix |
@@ -145,3 +107,22 @@ A peak set is only as good as the signal it retains. Validate on four axes: **FR
 - ArchR (Granja et al., Nat Genet 2021): https://www.nature.com/articles/s41588-021-00790-6
 - MACS3: https://macs3-project.github.io/MACS/
 - ENCODE blacklist (Amemiya et al. 2019): https://github.com/Boyle-Lab/Blacklist
+
+---
+
+## When not to use
+
+- Do not use to call peaks de novo. Use snapatac2-atac-preprocessing or signac-chromatin-analysis instead.
+- Do not use for the bare within-study merge primitive from MACS summits. Use iterative-peak-merging instead.
+- Do not use this router alone to run an analysis. Pair with peak-atlas-multiome (paired) or peak-atlas-unpaired (unpaired) instead.
+
+---
+
+## See also
+
+- `peak-atlas-multiome` — Child (paired regime); paired multiome consensus (RNA+ATAC same cells)
+- `peak-atlas-unpaired` — Child (unpaired regime); unpaired consensus (transfer identity to ATAC)
+- `iterative-peak-merging` — Embedded primitive; bare within-study merge from MACS summit BEDs
+- `snapatac2-atac-preprocessing` — Upstream calling; de-novo peak calling + fragment/QC preprocessing
+- `signac-chromatin-analysis` — Upstream / downstream; Signac peak calling, quantification, coverage
+- `chromvar-motif-accessibility` — Downstream validation / use; per-cell TF-motif activity once the atlas is fixed

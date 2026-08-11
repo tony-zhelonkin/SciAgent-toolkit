@@ -6,7 +6,7 @@
 #   2. no_ephemeral — python3 -c + 03_results write: default exit 0 + advisory;
 #                     SCIAGENT_STRICT=1: exit 2.
 #   3. no_ephemeral — _scratch/ target: exit 0, no advisory (sanctioned).
-#   4. no_ephemeral — committed-script run (Rscript 02_analysis/scripts/…): exit 0.
+#   4. no_ephemeral — committed-script run (Rscript 02_analysis/stages/…): exit 0.
 #   5. caption_sweep — figure present, no caption: exit 0, reminder on stderr.
 #   6. caption_sweep — conformant caption present: exit 0, no reminder.
 set -u
@@ -75,7 +75,7 @@ if [[ "$rc2a" -ne 0 ]]; then
     exit 1
 fi
 
-if ! printf '%s\n' "$out2a" | grep -qi 'reproducible\|02_analysis/scripts\|ephemeral\|no-ephemeral'; then
+if ! printf '%s\n' "$out2a" | grep -qi 'reproducible\|02_analysis/stages\|ephemeral\|no-ephemeral'; then
     echo "FAIL [$_TEST_NAME] test2a: expected advisory message in stderr output" >&2
     printf '%s\n' "$out2a" >&2
     exit 1
@@ -112,7 +112,7 @@ if [[ "$rc3" -ne 0 ]]; then
     exit 1
 fi
 
-if printf '%s\n' "$out3" | grep -qi 'reproducible\|02_analysis/scripts\|ephemeral\|no-ephemeral'; then
+if printf '%s\n' "$out3" | grep -qi 'reproducible\|02_analysis/stages\|ephemeral\|no-ephemeral'; then
     echo "FAIL [$_TEST_NAME] test3: _scratch/ target must NOT produce advisory" >&2
     printf '%s\n' "$out3" >&2
     exit 1
@@ -121,7 +121,7 @@ fi
 # ---------------------------------------------------------------------------
 # Test 4: normal committed-script run → exit 0, no block even under strict.
 # ---------------------------------------------------------------------------
-CMD_COMMITTED="Rscript 02_analysis/scripts/10_qc_viz.R"
+CMD_COMMITTED="Rscript 02_analysis/stages/10_qc_viz.R"
 PAYLOAD_COMMITTED=$(_make_pretool_json "$CMD_COMMITTED")
 
 set +e
@@ -138,6 +138,27 @@ fi
 if printf '%s\n' "$out4" | grep -qi 'no-ephemeral.*convention'; then
     echo "FAIL [$_TEST_NAME] test4: committed script must not produce ephemeral advisory" >&2
     printf '%s\n' "$out4" >&2
+    exit 1
+fi
+
+# Migration window: a repo that has not yet renamed scripts/ -> stages/ must
+# still pass. Dropping this case is how the rename would start blocking real
+# runs in every unrenamed repo.
+PAYLOAD_LEGACY=$(_make_pretool_json "Rscript 02_analysis/scripts/10_qc_viz.R")
+set +e
+out4b=$(printf '%s\n' "$PAYLOAD_LEGACY" | SCIAGENT_STRICT=1 bash "$HOOK_EPHEMERAL" 2>&1)
+rc4b=$?
+set -e
+
+if [[ "$rc4b" -ne 0 ]]; then
+    echo "FAIL [$_TEST_NAME] test4b: legacy scripts/ path must exit 0 under STRICT, got $rc4b" >&2
+    printf '%s\n' "$out4b" >&2
+    exit 1
+fi
+
+if printf '%s\n' "$out4b" | grep -qi 'no-ephemeral.*convention'; then
+    echo "FAIL [$_TEST_NAME] test4b: legacy scripts/ path must not produce ephemeral advisory" >&2
+    printf '%s\n' "$out4b" >&2
     exit 1
 fi
 

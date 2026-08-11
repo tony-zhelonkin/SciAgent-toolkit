@@ -21,10 +21,13 @@ if grep -q '"reviewer"' .sciagent/manifest.json; then
     exit 1
 fi
 
-# Overlay-only artifacts gone.
-[[ -e .claude/skills/s_c     ]] && { echo "FAIL: s_c (overlay-only) still present"; exit 1; }
-[[ -e .claude/agents/ag_b.md ]] && { echo "FAIL: ag_b (overlay-only) still present"; exit 1; }
-[[ -e .claude/commands/c_b.md ]] && { echo "FAIL: c_b (overlay-only) still present"; exit 1; }
+# NOTHING is role-scoped anymore (Phase 5d): the whole catalog — skills,
+# agents, commands — mounts regardless of stack, so ag_b/c_b/s_c all survive
+# deactivating the overlay that happened to name them. Roles supply
+# provenance only, never visibility (see stack.sh:stack_walk).
+assert_symlink .claude/agents/ag_b.md
+assert_symlink .claude/commands/c_b.md
+assert_symlink .claude/skills/s_c
 
 # Base-only artifacts still present.
 assert_symlink .claude/skills/s_a

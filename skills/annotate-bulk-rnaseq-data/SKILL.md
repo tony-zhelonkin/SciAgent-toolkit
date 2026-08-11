@@ -1,29 +1,7 @@
 ---
 name: annotate-bulk-rnaseq-data
-description: 'Router for annotating bulk RNA-seq featureCounts matrices before edgeR/limma DE. Branches into two paths: regular gene-symbol annotation (Ensembl/biomaRt, the usual case) and transposable-element annotation (parse TE IDs into Subfamily:Family:Class, build TE DGEList), with a combined gene+TE matrix when both are needed. R-based; enforces the rule "annotate before filtering." Use when preparing featureCounts gene (and TE) outputs for differential expression. Routes to references/gene-annotation.md (gene path) and references/te-annotation.md (TE path). For upstream STAR/featureCounts TE preprocessing use star-te-preprocessing. For single-cell count matrices use single-cell-rna-qc instead.'
+description: "Router for annotating bulk RNA-seq featureCounts matrices before edgeR/limma DE — gene-symbol annotation via Ensembl/biomaRt, and transposable-element IDs parsed into Subfamily:Family:Class. R-based; annotate before filtering. For upstream STAR/featureCounts TE prep use star-te-preprocessing; for single-cell matrices use single-cell-rna-qc."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-06-11
-  # CHANGELOG: 1.2.0 — update Resources to real pins (RNAseq-toolkit v0.2.0 / TE-RNAseq-toolkit v0.1.0);
-  #            point TE helpers at rich R/ factory files; add te-geneset-gsea complementary edge.
-  #            1.1.1 — added joint gene+TE analysis caveats at the combined-matrix handoff
-  #            (genes-only size factors, within-feature-type-only validity, no gene-vs-TE
-  #            magnitude comparison, no TPM for TEs).
-  #            1.1.0 — split into thin router + references/{gene,te}-annotation.md;
-  #            fixed TE-ID label to Subfamily:Family:Class; added star-te-preprocessing back-edge.
-  version: 1.2.0
-  category: workflow
-  tier: standard
-  tags: []
-  complementary-skills:
-  - star-te-preprocessing
-  - single-cell-rna-qc
-  contraindications:
-  - Do not filter low-count rows before annotation — you lose Ensembl IDs irreversibly.
-  - Do not use for single-cell scRNA-seq. Use single-cell-rna-qc and scanpy/Seurat workflows instead.
 ---
 
 # Annotate RNAseq Data (Genes + TEs)
@@ -86,22 +64,27 @@ If TE rows were counted stranded with a sense/antisense split upstream (`--te-st
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Produce the integer TE + gene count matrices this skill annotates (STAR Random-One, SAF, featureCounts) | `star-te-preprocessing` | Prerequisite (upstream step) |
-| Single-cell scRNA-seq QC and annotation | `single-cell-rna-qc` | Alternative (different modality) |
-| Downstream DE → GSEA on the annotated DGEList | `bulk-rnaseq-gsea` | Next step |
-| Run GSEA on TE family/class gene-sets produced by this skill | `te-geneset-gsea` | Next step (TE path) |
-
-The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea` (gene path) or `→ te-geneset-gsea` (TE path).
-
----
-
 ## Resources
 
 - **Gene path detail:** `references/gene-annotation.md`
 - **TE path detail:** `references/te-annotation.md`
 - **Gene helpers:** RNAseq-toolkit **v0.2.0** — `scripts/General/{io_helpers,annotate_genes,dge_helpers,provenance}.R`
 - **TE helpers:** TE-RNAseq-toolkit **v0.1.0** — `R/te_utils.R`, `R/validate_te_input.R`, `R/create_combined_dge.R`, `R/create_te_genesets.R`
+
+---
+
+## When not to use
+
+- Do not filter low-count rows before annotation — you lose Ensembl IDs irreversibly.
+- Do not use for single-cell scRNA-seq. Use single-cell-rna-qc and scanpy/Seurat workflows instead.
+
+---
+
+## See also
+
+The canonical handoff chain is `star-te-preprocessing → annotate-bulk-rnaseq-data → bulk-rnaseq-gsea` (gene path) or `→ te-geneset-gsea` (TE path).
+
+- `star-te-preprocessing` — Prerequisite; produces the integer TE + gene count matrices this skill annotates
+- `single-cell-rna-qc` — Alternative for single-cell scRNA-seq QC and annotation (different modality)
+- `bulk-rnaseq-gsea` — Next step; downstream DE → GSEA on the annotated DGEList
+- `te-geneset-gsea` — Next step (TE path); GSEA on TE family/class gene-sets produced here

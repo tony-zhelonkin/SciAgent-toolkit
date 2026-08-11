@@ -1,35 +1,7 @@
 ---
 name: interactive-breakpoint-explorer
-description: "Interactive breakpoint explorer — the live-kernel house pattern for looking at cells at a pipeline inflection point. A Python Quarto notebook drives jscatter (jupyter-scatter) linked panels to brush/lasso an embedding, pulls the selection into pandas, characterizes it, and persists selected barcodes + a labelled matplotlib snapshot before ending in a decisions.[stage] note. Use when a human must eyeball live structure (brush a suspicious pocket, compare color-bys) before signing off on an inflection point. It FEEDS the decision gate — for the static R sign-off surface use decision-gate-notebook; for the styling of the saved snapshot use figure-style."
+description: "The live-kernel house pattern for looking at cells at a pipeline inflection point: a Python Quarto notebook drives linked jscatter panels to brush an embedding, pulls the selection into pandas, and persists barcodes plus a labelled snapshot. Use when a human must eyeball live structure. For the static surface use decision-gate-notebook."
 license: MIT
-
-metadata:
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-07-03
-  version: 0.1.0
-  upstream-docs: https://jupyter-scatter.dev/
-
-  scope: concept
-  requires: []
-
-  complementary-skills:
-    - decision-gate-notebook          # the STATIC (R) sibling this explorer feeds; owns the config gate
-    - figure-style                    # styles the labelled matplotlib snapshot the explorer saves
-    - scrna-pipeline-conventions      # house style for the numbered scripts (incl. export_explorers.py)
-    - bulk-rnaseq-pathway-explorer    # a static, self-contained plotly explorer alternative (no live kernel)
-
-  contraindications:
-    - "Do not use for the sign-off itself. This explorer produces evidence + a barcode selection; the auditable APPROVED gate lives in decision-gate-notebook (analysis_config.yaml decisions.[stage])."
-    - "Do not open the multi-GB .h5ad in the live kernel. Always export a compact parquet under 03_results/interactive/ first (export-first discipline); the kernel loads that, not the checkpoint."
-    - "Do not build panels with a raw _mk loop in a cell. jscatter panels are ipywidgets that leak until closed; always drive them through grid()/close_panels()/live_panels() or you OOM the kernel."
-    - "Do not `quarto render` this as a headless artifact. It needs a live Python kernel (VS Code + Jupyter, or JupyterLab) — brushing has no meaning in a batch render."
-
-  tags:
-    - viz
-    - report
-
-  category: practice
-  tier: standard
 ---
 
 # Interactive Breakpoint Explorer
@@ -136,7 +108,7 @@ jscatter.compose([(s, c) for s, c in zip(PANELS, CHANNELS)], ...)
 ## Export-first discipline
 
 The live kernel must stay light. **Never open the multi-GB `.h5ad` checkpoint in the explorer
-kernel.** Instead, a project-owned `02_analysis/scripts/export_explorers.py` (copy
+kernel.** Instead, a project-owned `02_analysis/stages/export_explorers.py` (copy
 `assets/export_explorers_skeleton.py` and fill the `# TODO(project):` stubs) materializes a
 **compact parquet per inflection point** under `03_results/interactive/`:
 
@@ -191,13 +163,13 @@ mkdir -p 02_analysis/notebooks/01_qc_explore
 cp $SKILL/assets/explorer.qmd 02_analysis/notebooks/01_qc_explore/01_qc_explore.qmd
 
 # 2. copy the exporter skeleton into the project and fill the # TODO(project): stubs
-cp $SKILL/assets/export_explorers_skeleton.py 02_analysis/scripts/export_explorers.py
+cp $SKILL/assets/export_explorers_skeleton.py 02_analysis/stages/export_explorers.py
 
 # 3. add the interactive: block to config
 cat $SKILL/assets/interactive-config-snippet.yaml >> 02_analysis/config/analysis_config.yaml
 
 # 4. build the compact tables (once per checkpoint change), then open the .qmd on a LIVE kernel
-python 02_analysis/scripts/export_explorers.py
+python 02_analysis/stages/export_explorers.py
 ```
 
 **Verify it worked:**
@@ -301,19 +273,26 @@ After authoring an explorer, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| The static (R) sign-off surface that records the APPROVED gate | `decision-gate-notebook` | Static sibling (this feeds it) |
-| To style the labelled matplotlib snapshot the explorer saves | `figure-style` | Snapshot styling |
-| The numbered-script house style for `export_explorers.py` and the reviewed stages | `scrna-pipeline-conventions` | Sibling convention |
-| A static, self-contained HTML explorer (plotly, no live kernel) | `bulk-rnaseq-pathway-explorer` | Static alternative |
-
----
-
 ## Resources
 
 - **jupyter-scatter (jscatter):** https://jupyter-scatter.dev/
 - **Quarto with Jupyter (Python):** https://quarto.org/docs/computations/python.html
 - **Bundled templates:** `assets/explorer.qmd`, `assets/export_explorers_skeleton.py`, `assets/interactive-config-snippet.yaml`
+
+---
+
+## When not to use
+
+- Do not use for the sign-off itself. This explorer produces evidence + a barcode selection; the auditable APPROVED gate lives in decision-gate-notebook (analysis_config.yaml decisions.[stage]).
+- Do not open the multi-GB .h5ad in the live kernel. Always export a compact parquet under 03_results/interactive/ first (export-first discipline); the kernel loads that, not the checkpoint.
+- Do not build panels with a raw _mk loop in a cell. jscatter panels are ipywidgets that leak until closed; always drive them through grid()/close_panels()/live_panels() or you OOM the kernel.
+- Do not `quarto render` this as a headless artifact. It needs a live Python kernel (VS Code + Jupyter, or JupyterLab) — brushing has no meaning in a batch render.
+
+---
+
+## See also
+
+- `decision-gate-notebook` — Static sibling; the static (R) sign-off surface that records the APPROVED gate (this skill feeds it)
+- `figure-style` — Prerequisite; the styling/saving contract the labelled matplotlib snapshot goes through before it's written to `03_results/`
+- `scrna-pipeline-conventions` — Sibling convention; the numbered-stage house style for `export_explorers.py` and the reviewed stages
+- `bulk-rnaseq-pathway-explorer` — Static alternative; a static, self-contained HTML explorer (plotly, no live kernel)

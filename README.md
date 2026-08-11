@@ -22,7 +22,11 @@ Different data modalities, different goals, might require different context.
 - different agents, 
 - different skills, 
 - different commands. 
-Roles let you swap that context in one command. 
+Roles used to gate which of these got mounted; they don't anymore — the whole
+catalog is always mounted (see "The RPG model" below), and activating a role now
+labels provenance. The output-style is a separate choice at activation time
+(`--output-style <name>`, else `craft.yaml`'s `output_style:`), not a property of
+the role.
 Everything is by design per-project folder.
 
 Even with increased context window size I don\`t personally believe that 
@@ -82,11 +86,9 @@ sciagent --help     # verify it resolves
 # Bootstrap a new project directory with AGENTS.md, CLAUDE.md, docs/_internal/scientific-context.md
 sciagent new project
 
-# Activate a role — symlinks agents, skills, commands into .claude/ and .agents/
+# Activate a role — symlinks the whole skill/agent/command catalog into .claude/ and .agents/;
+# the role only decides provenance labels (output-style is a separate --output-style choice)
 sciagent activate base
-
-# Add one skill on top of the current stack
-sciagent inject simplify
 
 # Show the active stack, effective tables, and block/symlink health (add --json for a machine-readable manifest)
 sciagent status
@@ -103,7 +105,10 @@ sciagent deactivate
 A project has at most two active roles: 
 - a `base` (the foundation) 
 - and an optional `overlay` (the specialization). 
-Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
+Layering runs bottom-to-top for *provenance*: a role's `skills:`/`agents:`/`commands:`
+lists decide which role a mounted entry is attributed to (and which entry wins the
+attribution on a name collision), not whether it gets mounted — the full catalog is
+always mounted regardless of the active stack. `sciagent status` shows what got shadowed.
 
 Any role can occupy either slot; there's no enforced base/overlay typing. 
 Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `base` + `scatac-regulatory` to layer a chromatin stack on top of the scRNA foundation, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
@@ -120,59 +125,27 @@ Stack depth is for now capped at 2 to stay inspectable.
 |------|-------------|
 | `activate <base> [overlay]` | Activate role(s); replaces current stack |
 | `deactivate [<role>]` | Tear down the stack or remove one role |
-| `inject <name>` | Add one skill / agent / command (auto-detect; `--skill` / `--agent` / `--command` for explicit) |
-| `eject <name>` | Remove one injected entry (symmetric to `inject`) |
-| `validate [--quiet]` | Check toolkit integrity (requires-graph, tags, refs, name collisions) |
+| `validate [--quiet]` | Check skill frontmatter shape + cross-namespace name collisions |
+| `lint [--project-dir D] [--check <name>...]` | Opt-in PROJECT guardrail checks against an analysis repo |
 | `status [--json\|--effective\|--source <name>]` | Report active stack and effective tables |
 | `list [roles\|skills\|agents\|commands]` | List available content in the toolkit |
 | `new project\|role\|skill\|agent [args]` | Scaffold from templates |
+| `craft [--project-dir D]` | Render/refresh the SCIAGENT:CRAFT block in AGENTS.md |
+| `gitignore [<path>]` | Add/update the SCIAGENT:GITIGNORE block in .gitignore |
+| `update [--to <ref>]` | Re-pin the toolkit submodule + re-activate the current stack |
+| `provision [--harness <csv\|all>]` | Seed user-level / global context + settings per harness |
 
-Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
+Run `sciagent --help` for the terse reference.
 
-## inject · eject · validate
+## validate
 
-`inject <name>` auto-detects whether `<name>` is a skill, agent, or command:
+There is no `inject`/`eject` verb anymore — the whole catalog is always mounted, so
+there is nothing left to add or remove on top of a role's stack (see "The RPG model").
 
-```
-$ sciagent inject extra-skill
-injected: extra-skill (into _injected)
-
-$ sciagent inject extra-agent
-injected: extra-agent (into _injected)
-
-$ sciagent inject extra-command
-injected: extra-command (into _injected)
-```
-
-Ambiguous names hard-fail; the explicit flags resolve them:
-
-```
-$ sciagent inject dual-name
-error: ambiguous — 'dual-name' exists as both skill and command. use --skill <name>, --agent <name>, or --command <name>
-
-$ sciagent inject --command dual-name
-injected: dual-name (into _injected)
-note: companion skill 'dual-name' available — `inject --skill dual-name` to add
-```
-
-The companion-skill note is informational — the skill is not auto-mounted. Unknown names hard-fail:
-
-```
-$ sciagent inject definitely-does-not-exist
-error: 'definitely-does-not-exist' not found as skill, agent, or command
-```
-
-`eject <name>` is symmetric. Ambiguous when the same name was injected as 2+ kinds:
-
-```
-$ sciagent eject extra-agent
-ejected: extra-agent (agent)
-
-$ sciagent eject dual-name
-error: ambiguous — 'dual-name' is injected as both command and skill. use --skill <name>, --agent <name>, or --command <name>
-```
-
-`validate` checks toolkit integrity. Cross-namespace name collisions are soft-warns (mounting both is supported); other failures are hard. `--quiet` suppresses all output (exit code only):
+`validate` checks the frontmatter shape of every skill in the toolkit (matching
+`name:`, a `description:` under the length cap). Cross-namespace name collisions
+are soft-warns (mounting both is supported); frontmatter failures are hard.
+`--quiet` suppresses all output (exit code only):
 
 ```
 $ sciagent validate
@@ -190,22 +163,55 @@ $ sciagent validate --quiet
 ```
 project/
 ├── AGENTS.md                         # your file; sciagent appends a managed block
-├── CLAUDE.md                         # 1-line @AGENTS.md shim (from template)
+├── CLAUDE.md                         # created, or `@AGENTS.md` prepended to yours
 ├── .claude/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   └── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
+│   ├── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
+│   ├── settings.json                 # created, or missing keys backfilled
+│   ├── statusline.sh                 # created, +x
+│   └── hooks/{no_ephemeral,caption_sweep}.sh   # created, +x, registered in settings.json
 ├── .agents/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   └── commands/<name>.md  →  toolkit/commands/<name>.md
-└── .sciagent/manifest.json           # machine-readable state for safe teardown
+├── 02_analysis/helpers/{figure-style,interactive-style}  →  toolkit/lib/<name>
+└── .sciagent/manifest.json           # records the active stack + the links created
 ```
 
-The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown. On each run, sciagent recomputes the hash and warns if you've edited inside the block.
+The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown.
 
-`deactivate` removes the block and removes only symlinks it owns (tracked via `manifest.json`).
+`deactivate` removes both managed blocks and every symlink whose target resolves
+inside the toolkit — ownership is derived from the link target, so a lost or
+stale `manifest.json` cannot strand a mount. Anything that is not such a symlink
+is left alone, which is why a file or symlink of your own inside `.claude/skills/`
+survives untouched.
+
+**`deactivate` (no argument) is a full inverse of `activate`.** Beyond the blocks
+and symlinks, it also reverses the project-level artifacts `activate` writes
+unconditionally: `settings.json`'s key-backfill, `statusline.sh`, both hook
+bodies, the output-style key in `settings.local.json`, and the `@AGENTS.md`
+import line in `CLAUDE.md`.
+
+Reversal is *ownership-checked*, never blind. Each artifact carries a record of
+what sciagent wrote — a content hash, or a state tag saying whether the file was
+created outright or only prepended to. On teardown:
+
+| Record | Action |
+|---|---|
+| absent | touch nothing — sciagent never wrote it |
+| matches | reverse exactly (delete the file, or strip only the header it added) |
+| differs | leave the file in place and warn — an edit is ceded, never clobbered |
+
+So a hook body or statusline you have since edited survives, and the warning
+tells you which one. Ceding is permanent: the record is cleared either way, so a
+second `deactivate` is a silent no-op rather than a recurring warning.
+
+Note this is the *full* teardown only. `deactivate <role>` for a partial
+teardown that leaves a base active does not touch the project-level artifacts —
+they are not stack-specific, so removing an overlay must not unregister the
+hooks.
 
 ## Harness support
 

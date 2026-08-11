@@ -14,15 +14,15 @@ Existing line B.
 EOF
 cp AGENTS.md AGENTS.md.orig
 
-assert_exit 1 block_read AGENTS.md
+assert_exit 1 block_read AGENTS.md ROLES
 
-block_write AGENTS.md $'roles body\n'
+block_write AGENTS.md $'roles body\n' ROLES
 
 # Now contains markers, hash matches.
-assert_exit 0 block_hash_check AGENTS.md
+assert_exit 0 block_hash_check AGENTS.md ROLES
 
 # Removing restores original bytes.
-block_remove AGENTS.md
+block_remove AGENTS.md ROLES
 assert_file_eq AGENTS.md AGENTS.md.orig "block_remove restores original bytes"
 
 pass

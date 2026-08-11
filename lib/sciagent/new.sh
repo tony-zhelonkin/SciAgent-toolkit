@@ -100,7 +100,7 @@ _dirs_for_type() {
         analysis)
             echo "00_data/raw 00_data/processed 00_data/references" \
                  "01_modules" \
-                 "02_analysis/config 02_analysis/helpers 02_analysis/scripts 02_analysis/notebooks" \
+                 "02_analysis/config 02_analysis/helpers 02_analysis/stages 02_analysis/notebooks" \
                  "03_results/objects 03_results/master 03_results/interactive 03_results/_scratch" \
                  "03_results/01_qc/tables 03_results/01_qc/figures" \
                  "03_results/02_eda/tables 03_results/02_eda/figures" \
@@ -420,7 +420,6 @@ description: TODO — one-line description of $name role
 skills: []
 agents: []
 commands: []
-# output_style: architect-mentor   # optional, Claude-specific
 EOF
     echo "wrote: $out"
 }

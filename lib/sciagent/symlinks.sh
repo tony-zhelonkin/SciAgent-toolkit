@@ -6,25 +6,24 @@
 #     "version": 1,
 #     "stack": ["base", "reviewer"],
 #     "symlinks": ["/abs/or/relative/path"],
-#     "injected": [{"overlay": "_injected", "skill": "obsidian-vignette",
-#                    "via": "tag:pathway", "kind": "skill"}],
 #     "block_hash": "abc123..."
 #   }
 #
-# The "via" field: Named-skill injections carry via:"" (empty
-# string). Tag-driven injections carry via:"tag:<name>". Pre-PR-3 manifest
-# entries with no "via" key are treated as named-skill injections on read
-# (forward-compatible).
+# What the manifest is FOR, now that teardown no longer depends on it:
+#   - "stack" is the only machine-readable record of WHICH roles are active,
+#     and its presence is the is-a-stack-active flag (manifest_exists).
+#   - "symlinks" lets `status` notice a mount that has been DELETED. A
+#     target-ownership scan cannot: it sees what is present, not what is
+#     missing. Teardown reads it as a second source alongside link targets so
+#     that a teardown run against a different toolkit checkout still cleans up.
+#   - "block_hash" is written by activate and read by nothing. Retained for now
+#     only because dropping it changes the on-disk schema and a test asserts it.
 #
-# The "kind" field (cross-kind inject): Values are one of
-# "skill", "agent", "command". The legacy "skill" JSON key still names the
-# entry (e.g. `"skill": "code-reviewer"` for an injected sub-agent) — only
-# the "kind" discriminates which symlink tree the entry owns. 
-# The legacy manifest entries with no "kind" key default to "skill" on read
-# (forward-compatible).
+# An "injected" array was removed in 2026-08 along with the readers that
+# round-tripped it; it was residue of the retired `inject`/`eject` verbs and
+# was always emitted empty.
 #
-# jq is a dependency I couldn`t yet avoid 
-# jq used when available for reading; when absent, a targeted bash fallback
+# jq is used when available for reading; when absent, a targeted bash fallback
 # uses grep+sed against this well-known flat structure. The fallback does NOT
 # attempt general JSON parsing — it only supports this specific schema.
 # Writing always uses the bash _json_escape helper (no jq dependency).
@@ -108,33 +107,17 @@ _json_escape() {
 _manifest_staging=""
 _manifest_stack_val=""
 declare -a _manifest_syms=()
-declare -a _manifest_injected_overlays=()
-declare -a _manifest_injected_skills=()
-declare -a _manifest_injected_vias=()
-declare -a _manifest_injected_kinds=()
 
 manifest_begin() {
     local stack="$1"   # space-separated role names
     _manifest_staging=$(mktemp)
     _manifest_stack_val="$stack"
     _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
 }
 
 _manifest_record_symlink() {
     [[ -n "$_manifest_staging" ]] || return 0
     _manifest_syms+=("$1")
-}
-
-_manifest_record_injected() {
-    local overlay="$1" skill="$2" via="${3:-}" kind="${4:-skill}"
-    _manifest_injected_overlays+=("$overlay")
-    _manifest_injected_skills+=("$skill")
-    _manifest_injected_vias+=("$via")
-    _manifest_injected_kinds+=("$kind")
 }
 
 # _manifest_write_json <block_hash>
@@ -164,24 +147,6 @@ _manifest_write_json() {
                 (( first )) && first=0 || printf ',\n'
                 printf '"%s"' "$(_json_escape "$s")"
             done
-        fi
-        printf '],\n'
-
-        # injected array
-        printf '  "injected": ['
-        first=1
-        local _ninj=${#_manifest_injected_overlays[@]}
-        if (( _ninj > 0 )); then
-            local i
-            for (( i=0; i<_ninj; i++ )); do
-                (( first )) && first=0 || printf ','
-                printf '\n    {"overlay": "%s", "skill": "%s", "via": "%s", "kind": "%s"}' \
-                    "$(_json_escape "${_manifest_injected_overlays[$i]}")" \
-                    "$(_json_escape "${_manifest_injected_skills[$i]}")" \
-                    "$(_json_escape "${_manifest_injected_vias[$i]:-}")" \
-                    "$(_json_escape "${_manifest_injected_kinds[$i]:-skill}")"
-            done
-            printf '\n  '
         fi
         printf '],\n'
 
@@ -286,6 +251,10 @@ symlink_create_dual() {
             return 1
             ;;
     esac
+    # Adding a category here REQUIRES adding its directories to
+    # _SCIAGENT_MOUNT_DIRS. Since teardown derives ownership from link targets,
+    # that list is the only record of where to look — a mount in an unlisted
+    # directory is never torn down and never reported, silently, forever.
 
     mkdir -p "$(dirname "$claude_path")"
     ln -sfn "$(symlink_target_for "$claude_path" "$canonical")" "$claude_path"
@@ -299,30 +268,189 @@ symlink_create_dual() {
 }
 
 # ---------------------------------------------------------------------------
-# symlink_teardown_all — remove only the symlinks recorded in our manifest.
+# _sciagent_toolkit_locality_ok — pure predicate, no output, no mutation.
+# True (rc 0) iff EITHER the project ships no in-repo toolkit at
+# ./01_modules/SciAgent-toolkit (nothing to protect), OR the currently active
+# $SCIAGENT_TOOLKIT resolves to that in-repo toolkit. False (rc 1) iff an
+# in-repo toolkit exists and the active one is a different (external)
+# checkout.
+#
+# This is the boolean core of bin/sciagent's `_guard_toolkit_locality` —
+# factored out here (rather than duplicated) so that lib code which re-enters
+# a mutating path IN-PROCESS, bypassing the dispatcher's own guard call, can
+# still check locality before it mounts anything. `update` calling
+# `cmd_activate` in-process (update.sh) is exactly this shape, and so is
+# `deactivate <overlay>` re-activating solo-base (deactivate.sh) — the
+# dispatcher guard only runs once, for the TOP-LEVEL verb, before any lib code
+# is even sourced, so a verb that internally calls into another mutating verb
+# needs its own check. bin/sciagent sources this file unconditionally and
+# early (before its own guard call) so both call sites share one definition.
+# ---------------------------------------------------------------------------
+_sciagent_toolkit_locality_ok() {
+    local in_repo="./01_modules/SciAgent-toolkit"
+    [[ -d "$in_repo" ]] || return 0
+
+    local in_repo_real active_real
+    if command -v realpath >/dev/null 2>&1; then
+        in_repo_real="$(realpath "$in_repo" 2>/dev/null || printf '%s' "$in_repo")"
+        active_real="$(realpath "${SCIAGENT_TOOLKIT:-}" 2>/dev/null || printf '%s' "${SCIAGENT_TOOLKIT:-}")"
+    else
+        in_repo_real="$(cd "$in_repo" 2>/dev/null && pwd -P || printf '%s' "$in_repo")"
+        active_real="$(cd "${SCIAGENT_TOOLKIT:-}" 2>/dev/null && pwd -P || printf '%s' "${SCIAGENT_TOOLKIT:-}")"
+    fi
+
+    [[ "$active_real" == "$in_repo_real" ]]
+}
+
+# ---------------------------------------------------------------------------
+# Toolkit-ownership check (Phase 5c follow-up, "Option D").
+#
+# The manifest's "symlinks" array used to be the sole record of what
+# activate created, and teardown trusted it blindly. That has two failure
+# modes: (a) anything the manifest lost track of (crashed activate,
+# hand-edited/deleted manifest.json, a manual `ln -sfn` repair) is stranded
+# forever, never cleaned up; (b) it offers no protection beyond "not in this
+# list" — it doesn't independently verify a path is actually ours before
+# deleting it.
+#
+# Ownership is now a property of the LINK ITSELF: a mount is toolkit-owned
+# iff it is a symlink whose fully-resolved target lies inside the
+# (canonicalised) toolkit checkout. Everything else — a real user file/dir,
+# or a user's own symlink pointing OUTSIDE the toolkit — is left strictly
+# alone, independent of whatever the manifest does or doesn't know.
+# ---------------------------------------------------------------------------
+
+# _toolkit_canonical_root — fully-resolved (all symlink components followed)
+# absolute path to $SCIAGENT_TOOLKIT, or empty + rc=1 if it can't be
+# resolved (env unset, `realpath` unavailable, or the toolkit checkout is
+# itself gone). Callers MUST treat that as "ownership can't be determined,
+# do nothing" — never fall back to a bare string comparison, which is
+# exactly how "/toolkit-evil" would wrongly match a "/toolkit" prefix.
+_toolkit_canonical_root() {
+    [[ -n "${SCIAGENT_TOOLKIT:-}" ]] || return 1
+    command -v realpath >/dev/null 2>&1 || return 1
+    realpath -e "$SCIAGENT_TOOLKIT" 2>/dev/null
+}
+
+# _link_owned_by_toolkit <path> <toolkit_canonical_root>
+# True iff <path> is a symlink whose resolved target is the toolkit root
+# itself or a proper descendant of it. Path-boundary comparison (trailing
+# "/" on the toolkit side), not a string prefix — "/toolkit-evil" must not
+# match "/toolkit". `readlink -f` on a BROKEN toolkit-owned link (canonical
+# skill/agent file deleted out from under a live mount) still resolves to
+# the intended lexical path — verified empirically: GNU readlink -f only
+# requires all-but-the-LAST path component to exist — so a dangling
+# toolkit-owned link is correctly recognised and cleaned up here, not
+# stranded.
+#
+# Deliberate, accepted behavior (not an oversight — owner sign-off): a user
+# symlink that happens to point INTO the toolkit checkout is indistinguishable
+# from a toolkit-created mount by any means available here, and is therefore
+# treated as toolkit-owned and removed on deactivate, same as any other
+# toolkit-owned link.
+_link_owned_by_toolkit() {
+    local path="$1" toolkit_root="$2"
+    [[ -L "$path" ]] || return 1
+    [[ -n "$toolkit_root" ]] || return 1
+    local resolved
+    resolved=$(readlink -f "$path" 2>/dev/null) || return 1
+    [[ -n "$resolved" ]] || return 1
+    case "$resolved" in
+        "$toolkit_root")   return 0 ;;
+        "$toolkit_root"/*) return 0 ;;
+        *)                  return 1 ;;
+    esac
+}
+
+# Every directory sciagent ever mounts INTO, across the four catalog trees
+# (dual .claude/+.agents/ mirrors) plus the analysis-repo helper-lib mount.
+# maxdepth 1 when scanning these — resolve_canonical hides toolkit-side
+# subfolders, so a mount is always a flat entry directly inside one of these;
+# we must never recurse into a mounted skill DIRECTORY itself (that would
+# walk into the toolkit checkout through the symlink).
+_SCIAGENT_MOUNT_DIRS=(
+    .claude/skills .claude/agents .claude/commands .claude/output-styles
+    .agents/skills .agents/agents .agents/commands
+    02_analysis/helpers
+)
+
+# ---------------------------------------------------------------------------
+# symlink_teardown_all — remove exactly the symlinks sciagent mounted, via the
+# UNION of two independent sources:
+#
+#   1. Target-based ownership: sweep every _SCIAGENT_MOUNT_DIRS entry and
+#      remove any symlink whose fully-resolved target lies inside the
+#      CURRENTLY ACTIVE $SCIAGENT_TOOLKIT (see block comment above). This is
+#      the orphan-recovery path — it needs no manifest, so a lost/hand-edited/
+#      deleted manifest.json never strands a mount.
+#   2. Manifest-recorded paths: every path in a still-present manifest's
+#      "symlinks" array, if it is still a symlink. Trusting these unconditionally
+#      (regardless of what they currently resolve to) is safe because they were
+#      never guessed — every entry was written by OUR OWN
+#      symlink_create_dual/symlink_create_helper_lib at mount time, first-party
+#      bookkeeping, not an inference from a target path.
+#
+# Source 2 exists because source 1 alone regresses when $SCIAGENT_TOOLKIT
+# differs between mount time and teardown time — e.g. a project mounted
+# against its in-repo toolkit, then `deactivate` invoked with
+# SCIAGENT_TOOLKIT=<a different external checkout>. None of the mounts resolve
+# under that external root, so a target-only sweep silently finds nothing,
+# while the caller still deletes the manifest and the managed blocks — exactly
+# the "intermediate state worse than doing nothing or doing everything" this
+# union avoids. Source 1 alone remains necessary for the complementary case
+# (manifest missing/stale) that source 2 alone can't cover. `rm` unlinks the
+# symlink itself in every case below — never `rm -r`/`rm -rf`, and never
+# anything that would dereference into the toolkit checkout the link points
+# at.
+#
+# Sets _SCIAGENT_TEARDOWN_COUNT to the number of links removed, so a caller can
+# report what actually happened rather than guessing from manifest presence.
 # ---------------------------------------------------------------------------
 symlink_teardown_all() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 0
-    local -a syms
-    readarray -t syms < <(manifest_symlinks)
-    local path
-    for path in "${syms[@]+"${syms[@]}"}"; do
-        [[ -z "$path" ]] && continue
-        if [[ ! -e "$path" && ! -L "$path" ]]; then
-            echo "warning: $path already gone, skipping" >&2
-            continue
-        fi
-        if [[ ! -L "$path" ]]; then
-            echo "warning: $path is not a symlink, skipping" >&2
-            continue
-        fi
-        rm "$path"
+    _SCIAGENT_TEARDOWN_COUNT=0
+    # No manifest gate on purpose. Ownership comes from each link's target, so
+    # a missing manifest.json is not a reason to leave mounts behind — it is
+    # the exact orphan case this function exists to recover. Gating here made
+    # `rm -rf .sciagent` strand every mount permanently: the sweep below never
+    # ran, and nothing else ever removes them.
+    local toolkit_root=""
+    if ! toolkit_root=$(_toolkit_canonical_root); then
+        echo "warning: could not resolve \$SCIAGENT_TOOLKIT ('${SCIAGENT_TOOLKIT:-<unset>}'); skipping toolkit-owned symlink cleanup this run" >&2
+        toolkit_root=""
+    fi
+
+    local d entry
+    for d in "${_SCIAGENT_MOUNT_DIRS[@]}"; do
+        [[ -d "$d" ]] || continue
+        while IFS= read -r entry; do
+            [[ -z "$entry" ]] && continue
+            if [[ -n "$toolkit_root" ]] && _link_owned_by_toolkit "$entry" "$toolkit_root"; then
+                rm "$entry"
+                _SCIAGENT_TEARDOWN_COUNT=$((_SCIAGENT_TEARDOWN_COUNT + 1))
+            fi
+        done < <(find "$d" -mindepth 1 -maxdepth 1 -type l 2>/dev/null)
     done
+
+    # Source 2: manifest-recorded paths (see header comment above). Runs AFTER
+    # the target-based sweep and BEFORE the manifest is deleted below. A path
+    # already removed by source 1 simply fails the `-L` test here and is
+    # skipped — no double-count, no error.
+    if manifest_exists; then
+        local mpath
+        while IFS= read -r mpath; do
+            [[ -n "$mpath" ]] || continue
+            [[ -L "$mpath" ]] || continue
+            rm "$mpath"
+            _SCIAGENT_TEARDOWN_COUNT=$((_SCIAGENT_TEARDOWN_COUNT + 1))
+        done < <(manifest_symlinks 2>/dev/null)
+    fi
+
     rm -f "$_MANIFEST_PATH"
     rmdir .sciagent 2>/dev/null || true
-    # Best-effort: clean empty .claude/* and .agents/* dirs we created.
-    for d in .claude/skills .claude/agents .claude/commands .claude/output-styles \
-             .agents/skills .agents/agents .agents/commands; do
+    # Best-effort: clean empty dirs we may have mkdir -p'd at mount time. A
+    # non-empty dir here means real content remains (ours or the user's) —
+    # rmdir fails on a non-empty dir and we leave it, by construction.
+    for d in "${_SCIAGENT_MOUNT_DIRS[@]}"; do
         [[ -d "$d" ]] && rmdir "$d" 2>/dev/null || true
     done
     rmdir .agents 2>/dev/null || true
@@ -390,134 +518,20 @@ manifest_symlinks() {
     fi
 }
 
-# manifest_injected — print one "overlay|skill|via|kind" tuple per line.
-# The legacy entries without a "via" key emit an empty third field (treated as
-# named-skill injection by callers that inspect the via column).
-# The legacy entries without a "kind" key emit "skill" as the fourth field
-# (the legacy default — every pre-PR-A injection was a skill).
+# Removed 2026-08: manifest_injected / manifest_block_hash /
+# manifest_update_block_hash (~110 lines).
 #
-# Fields are pipe-separated rather than whitespace-separated so that an empty
-# "via" (named-skill injection) is preserved by `read -r`. Bash collapses
-# consecutive whitespace IFS characters (tab, space) into a single delimiter,
-# which would silently shift the fourth field into the third slot. Pipe is
-# safe because no legal value in the four columns can contain it: overlay
-# and skill names are bash-identifier-shaped, via is "" or "tag:<name>",
-# and kind is one of skill/agent/command. Callers must use
-# `IFS='|' read -r ...` (set IFS explicitly to avoid relying on caller env).
-manifest_injected() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-    if command -v jq >/dev/null 2>&1; then
-        jq -r '.injected[] | (.overlay + "|" + .skill + "|" + (.via // "") + "|" + (.kind // "skill"))' "$_MANIFEST_PATH"
-    else
-        # Fallback: each injected entry spans one line:
-        #   {"overlay": "X", "skill": "Y", "via": "Z", "kind": "K"}
-        # The legacy entries lack the "via" field; those emit empty third field.
-        # The legacy entries lack the "kind" field; those emit "skill" fourth field.
-        grep '"overlay"' "$_MANIFEST_PATH" | while IFS= read -r line; do
-            local ov sk via kind
-            ov=$(printf '%s' "$line" | sed 's/.*"overlay":[[:space:]]*"\([^"]*\)".*/\1/')
-            sk=$(printf '%s' "$line" | sed 's/.*"skill":[[:space:]]*"\([^"]*\)".*/\1/')
-            # Extract "via" when present; default to empty string when absent.
-            if printf '%s' "$line" | grep -q '"via"'; then
-                via=$(printf '%s' "$line" | sed 's/.*"via":[[:space:]]*"\([^"]*\)".*/\1/')
-            else
-                via=""
-            fi
-            # Extract "kind" when present; default to "skill" when absent.
-            if printf '%s' "$line" | grep -q '"kind"'; then
-                kind=$(printf '%s' "$line" | sed 's/.*"kind":[[:space:]]*"\([^"]*\)".*/\1/')
-            else
-                kind="skill"
-            fi
-            printf '%s|%s|%s|%s\n' "$ov" "$sk" "$via" "$kind"
-        done
-    fi
-}
-
-# manifest_block_hash — print stored block hash.
-manifest_block_hash() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-    if command -v jq >/dev/null 2>&1; then
-        jq -r '.block_hash' "$_MANIFEST_PATH"
-    else
-        grep '"block_hash"' "$_MANIFEST_PATH" \
-            | sed 's/.*"block_hash":[[:space:]]*"\([^"]*\)".*/\1/'
-    fi
-}
-
-# manifest_update_stack <new-stack>  — rewrite "stack" value in-place.
-manifest_update_stack() {
-    local new_stack="$1"   # space-separated
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    # Re-read current manifest fields, rebuild JSON with updated stack.
-    local old_syms old_inj old_hash
-    old_syms=$(manifest_symlinks)
-    old_inj=$(manifest_injected)
-    old_hash=$(manifest_block_hash)
-
-    # Reconstruct via staging.
-    _manifest_stack_val="$new_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done <<< "$old_syms"
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done <<< "$old_inj"
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$old_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
-}
-
-# manifest_update_block_hash <hash>  — rewrite "block_hash" in-place.
-manifest_update_block_hash() {
-    local new_hash="$1"
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    local old_stack old_syms old_inj
-    old_stack=$(manifest_stack)
-    old_syms=$(manifest_symlinks)
-    old_inj=$(manifest_injected)
-
-    _manifest_stack_val="$old_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done <<< "$old_syms"
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done <<< "$old_inj"
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$new_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
-}
+# All three were readers with no callers. manifest_injected served the retired
+# `inject`/`eject` verbs (Phase 2); its only remaining caller was
+# manifest_update_block_hash, which had no callers of its own, and
+# manifest_block_hash had none either — the drift guard reads the hash from the
+# AGENTS.md marker (block_hash_check), never from the manifest. A value that is
+# only ever read back in order to be written out unchanged is dead, so the
+# whole cluster went together with the "injected" JSON key it round-tripped.
+#
+# The manifest still carries a `block_hash` field that activate writes and
+# nothing reads. Left in place deliberately: removing it changes the on-disk
+# schema and a test asserts its presence, so it belongs in its own change.
 
 # ---------------------------------------------------------------------------
 # symlink_create_helper_lib
@@ -553,51 +567,4 @@ symlink_create_helper_lib() {
         ln -sfn "$rel_target" "$link_path"
         _manifest_record_symlink "$link_path"
     done
-}
-
-# manifest_append_symlinks_and_injected <sym1> <sym2> ... -- <overlay> <skill>
-# Appends new symlinks and one injected entry to the existing manifest in-place.
-# Call signature: manifest_append_inject <claude_sym> <agents_sym> <overlay> <skill> [via] [kind]
-# via:  empty string for named-skill injections; "tag:<name>" for tag-driven injections.
-# kind: one of "skill", "agent", "command"; defaults to "skill" when omitted
-#       (preserves the pre-PR-A call shape for skill-only callers).
-manifest_append_inject() {
-    local claude_sym="$1" agents_sym="$2" target_overlay="$3" skill="$4" via="${5:-}" kind="${6:-skill}"
-    [[ -f "$_MANIFEST_PATH" ]] || return 1
-
-    local old_stack old_hash
-    old_stack=$(manifest_stack)
-    old_hash=$(manifest_block_hash)
-
-    _manifest_stack_val="$old_stack"
-    _manifest_syms=()
-    _manifest_injected_overlays=()
-    _manifest_injected_skills=()
-    _manifest_injected_vias=()
-    _manifest_injected_kinds=()
-
-    local p
-    while IFS= read -r p; do
-        [[ -n "$p" ]] && _manifest_syms+=("$p")
-    done < <(manifest_symlinks)
-
-    local ov sk vi kn
-    while IFS='|' read -r ov sk vi kn; do
-        [[ -n "$ov" ]] && _manifest_injected_overlays+=("$ov") \
-            && _manifest_injected_skills+=("$sk") \
-            && _manifest_injected_vias+=("${vi:-}") \
-            && _manifest_injected_kinds+=("${kn:-skill}")
-    done < <(manifest_injected)
-
-    # Append new entries.
-    _manifest_syms+=("$claude_sym" "$agents_sym")
-    _manifest_injected_overlays+=("$target_overlay")
-    _manifest_injected_skills+=("$skill")
-    _manifest_injected_vias+=("$via")
-    _manifest_injected_kinds+=("$kind")
-
-    _manifest_staging=$(mktemp)
-    _manifest_write_json "$old_hash"
-    mv "$_manifest_staging" "$_MANIFEST_PATH"
-    _manifest_staging=""
 }

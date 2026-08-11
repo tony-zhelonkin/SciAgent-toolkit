@@ -1,25 +1,7 @@
 ---
 name: seurat-citeseq-wnn
-description: Seurat CITE-seq workflow — multi-assay RNA + ADT object creation, per-modality normalisation (SCTransform for RNA, CLR for ADT), and Weighted Nearest Neighbors (WNN) joint embedding. Use when analysing 10x CITE-seq data in R and you need a joint RNA+protein clustering. For ATAC + RNA WNN use signac-chromatin-analysis; for Seurat-to-Python conversion use anndatar-seurat-scanpy-conversion.
+description: "Seurat CITE-seq workflow — multi-assay RNA + ADT object creation, per-modality normalisation (SCTransform for RNA, CLR for ADT), and Weighted Nearest Neighbors joint embedding. Use when analysing 10x CITE-seq in R and you need joint RNA+protein clustering. For ATAC + RNA WNN use signac-chromatin-analysis."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 0.1.0
-  upstream-docs: https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis
-  category: integration
-  tier: simple
-  tags:
-  - multimodal
-  complementary-skills:
-  - signac-chromatin-analysis
-  - seurat-multimodal-analysis
-  - anndatar-seurat-scanpy-conversion
-  contraindications:
-  - Do not use for ATAC + RNA WNN — use signac-chromatin-analysis.
-  - Do not use to convert Seurat to AnnData — use anndatar-seurat-scanpy-conversion.
 ---
 
 # Seurat CITE-seq + WNN
@@ -216,3 +198,18 @@ FindClusters(graph.name = "wsnn", algorithm = 3)
 - WNN tutorial: https://satijalab.org/seurat/articles/weighted_nearest_neighbor_analysis
 - Seurat v5 docs: https://satijalab.org/seurat/
 - Stoeckius et al., Nature Methods 2017 (CITE-seq paper).
+
+---
+
+## When not to use
+
+- Do not use for ATAC + RNA WNN — use signac-chromatin-analysis.
+- Do not use to convert Seurat to AnnData — use anndatar-seurat-scanpy-conversion.
+
+---
+
+## See also
+
+- `signac-chromatin-analysis`
+- `seurat-multimodal-analysis`
+- `anndatar-seurat-scanpy-conversion`
