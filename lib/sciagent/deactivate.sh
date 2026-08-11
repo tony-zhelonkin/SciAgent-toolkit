@@ -5,17 +5,29 @@
 
 cmd_deactivate() {
     if [[ $# -eq 0 ]]; then
-        if ! manifest_exists; then
-            echo "no active stack"
-            return 0
-        fi
+        # Full teardown does NOT require a manifest. Ownership is derived from
+        # each link's target, so a lost/deleted manifest.json must not strand
+        # the mounts — recovering that state is the point of target-based
+        # teardown. Only the partial path below genuinely needs the manifest,
+        # because it has to know the stack to decide what to keep.
+        local had_manifest=0
+        manifest_exists && had_manifest=1
+
         claude_settings_teardown
         symlink_teardown_all
         # ROLES explicitly: full teardown removes the ROLES block sciagent
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
         block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
-        echo "deactivated"
+        if [[ "$had_manifest" -eq 1 ]]; then
+            echo "deactivated"
+        elif [[ "${_SCIAGENT_TEARDOWN_COUNT:-0}" -gt 0 ]]; then
+            # Orphaned mounts with no manifest: say so, because the count is
+            # evidence the manifest was lost rather than never written.
+            echo "deactivated ($_SCIAGENT_TEARDOWN_COUNT orphaned mounts removed; no manifest present)"
+        else
+            echo "no active stack"
+        fi
         return 0
     fi
 

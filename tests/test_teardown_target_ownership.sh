@@ -100,4 +100,47 @@ assert_eq "$(cat .claude/commands/user-real.md)" "user command note" "commands/ 
 [[ -e .sciagent/manifest.json ]] && { echo "FAIL [$_TEST_NAME] manifest still exists" >&2; exit 1; }
 assert_symlink .claude/skills/user-owned-link "user link still the only thing left in .claude/skills"
 
+# --- (e) the manifest FILE is gone entirely, not just an entry ---
+# Distinct from (a): (a) drops an entry from a manifest that still exists, so a
+# manifest-gated teardown still runs and merely misses one mount. Here the file
+# itself is deleted — `rm -rf .sciagent`, a botched clean, a partially restored
+# checkout. Teardown used to `return 0` on a missing manifest and strand EVERY
+# mount permanently, since nothing else removes them. Target-based ownership
+# needs no manifest, so this must recover fully.
+cd "$TMPDIR_TEST"
+mkdir project2 && cd project2
+"$SCIAGENT" activate base >/dev/null
+assert_symlink .claude/skills/s_a "sanity: mounted in project2"
+mounted_before=$(find .claude .agents -mindepth 2 -maxdepth 2 -type l | wc -l)
+[[ "$mounted_before" -gt 0 ]] || { echo "FAIL [$_TEST_NAME] fixture: nothing mounted in project2" >&2; exit 1; }
+
+# A user file that must survive teardown even on this path.
+echo "keep me" > .claude/skills/user-real.md
+
+rm -rf .sciagent
+[[ -e .sciagent/manifest.json ]] && { echo "FAIL [$_TEST_NAME] fixture: manifest not removed" >&2; exit 1; }
+
+out=$("$SCIAGENT" deactivate 2>&1)
+left=$(find .claude .agents -mindepth 2 -maxdepth 2 -type l 2>/dev/null | wc -l)
+[[ "$left" -eq 0 ]] || {
+    echo "FAIL [$_TEST_NAME] manifest-less teardown stranded $left of $mounted_before mounts" >&2
+    printf '%s\n' "$out" >&2
+    exit 1
+}
+assert_file_exists .claude/skills/user-real.md "user file survives manifest-less teardown"
+assert_eq "$(cat .claude/skills/user-real.md)" "keep me" "user file content untouched"
+# Reporting must reflect what happened: a removal count, not a bare
+# "deactivated" (which would imply a manifest existed) and not "no active
+# stack" (which would be a lie with N mounts on disk).
+printf '%s\n' "$out" | grep -q 'orphaned mounts removed' || {
+    echo "FAIL [$_TEST_NAME] expected an orphaned-mount count in output, got: $out" >&2
+    exit 1
+}
+
+# --- (f) genuinely nothing mounted: must NOT claim to have deactivated ---
+cd "$TMPDIR_TEST"
+mkdir project3 && cd project3
+out=$("$SCIAGENT" deactivate 2>&1)
+assert_eq "$out" "no active stack" "empty project reports no active stack, not a phantom teardown"
+
 pass

@@ -368,10 +368,17 @@ _SCIAGENT_MOUNT_DIRS=(
 # manifest's bookkeeping (see block comment above). `rm` unlinks the symlink
 # itself in every case below — never `rm -r`/`rm -rf`, and never anything
 # that would dereference into the toolkit checkout the link points at.
+#
+# Sets _SCIAGENT_TEARDOWN_COUNT to the number of links removed, so a caller can
+# report what actually happened rather than guessing from manifest presence.
 # ---------------------------------------------------------------------------
 symlink_teardown_all() {
-    [[ -f "$_MANIFEST_PATH" ]] || return 0
-
+    _SCIAGENT_TEARDOWN_COUNT=0
+    # No manifest gate on purpose. Ownership comes from each link's target, so
+    # a missing manifest.json is not a reason to leave mounts behind — it is
+    # the exact orphan case this function exists to recover. Gating here made
+    # `rm -rf .sciagent` strand every mount permanently: the sweep below never
+    # ran, and nothing else ever removes them.
     local toolkit_root=""
     if ! toolkit_root=$(_toolkit_canonical_root); then
         echo "warning: could not resolve \$SCIAGENT_TOOLKIT ('${SCIAGENT_TOOLKIT:-<unset>}'); skipping toolkit-owned symlink cleanup this run" >&2
@@ -385,6 +392,7 @@ symlink_teardown_all() {
             [[ -z "$entry" ]] && continue
             if [[ -n "$toolkit_root" ]] && _link_owned_by_toolkit "$entry" "$toolkit_root"; then
                 rm "$entry"
+                _SCIAGENT_TEARDOWN_COUNT=$((_SCIAGENT_TEARDOWN_COUNT + 1))
             fi
         done < <(find "$d" -mindepth 1 -maxdepth 1 -type l 2>/dev/null)
     done
