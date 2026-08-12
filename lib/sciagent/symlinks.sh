@@ -269,9 +269,9 @@ symlink_create_dual() {
 
 # ---------------------------------------------------------------------------
 # _sciagent_toolkit_locality_ok — pure predicate, no output, no mutation.
-# True (rc 0) iff EITHER the project ships no in-repo toolkit at
-# ./01_modules/SciAgent-toolkit (nothing to protect), OR the currently active
-# $SCIAGENT_TOOLKIT resolves to that in-repo toolkit. False (rc 1) iff an
+# True (rc 0) iff EITHER the project ships no in-repo toolkit at all (nothing
+# to protect — see _sciagent_in_repo_toolkit below for how that is decided),
+# OR the currently active $SCIAGENT_TOOLKIT resolves to it. False (rc 1) iff an
 # in-repo toolkit exists and the active one is a different (external)
 # checkout.
 #
@@ -286,9 +286,58 @@ symlink_create_dual() {
 # needs its own check. bin/sciagent sources this file unconditionally and
 # early (before its own guard call) so both call sites share one definition.
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# _sciagent_in_repo_toolkit — print the project's own toolkit path, or nothing.
+#
+# Returns 0 and echoes a path iff this project ships an in-repo toolkit;
+# returns 1 and echoes nothing otherwise.
+#
+# WHY THIS IS NOT JUST `./01_modules/SciAgent-toolkit`: that literal was
+# hardcoded in three places and matched CASE-SENSITIVELY, while the real fleet
+# uses four different container directories — measured 2026-08-11 across 23
+# checkouts: 17 `01_modules`, 2 `01_Scripts`, 2 `01_scripts`, 1 `01_Modules`.
+# In the six non-conforming projects the `-d` test failed, so the locality
+# guard concluded "no in-repo toolkit, nothing to protect" and permitted
+# mutation from ANY external checkout — precisely the escape it exists to
+# prevent, and silently. Two of those projects live in a SHARED lab tree
+# (/data2/users/JCRLab), which is exactly where a stray $SCIAGENT_TOOLKIT is
+# most likely to come from.
+#
+# Resolution order, most authoritative first:
+#   1. .gitmodules — git's own record of where the submodule lives. Verified
+#      correct in all four non-conforming consumers.
+#   2. the conventional path, for a project with no .gitmodules (vendored copy,
+#      not-yet-a-repo scaffold).
+#   3. any single-level container holding a SciAgent-toolkit directory.
+# ---------------------------------------------------------------------------
+_sciagent_in_repo_toolkit() {
+    local p
+    if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
+        p=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
+            | awk '{print $2}' | grep -E '(^|/)SciAgent-toolkit$' | head -1)
+        if [[ -n "$p" && -d "$p" ]]; then
+            printf '%s\n' "./$p"
+            return 0
+        fi
+    fi
+    if [[ -d "./01_modules/SciAgent-toolkit" ]]; then
+        printf '%s\n' "./01_modules/SciAgent-toolkit"
+        return 0
+    fi
+    # Unmatched globs stay literal, and `-d` is false for them, so this is safe
+    # in a project with no container directory at all.
+    for p in ./*/SciAgent-toolkit; do
+        if [[ -d "$p" ]]; then
+            printf '%s\n' "$p"
+            return 0
+        fi
+    done
+    return 1
+}
+
 _sciagent_toolkit_locality_ok() {
-    local in_repo="./01_modules/SciAgent-toolkit"
-    [[ -d "$in_repo" ]] || return 0
+    local in_repo
+    in_repo=$(_sciagent_in_repo_toolkit) || return 0
 
     local in_repo_real active_real
     if command -v realpath >/dev/null 2>&1; then

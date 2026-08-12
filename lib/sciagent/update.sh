@@ -33,6 +33,13 @@
 
 # shellcheck shell=bash
 
+# Default only. cmd_update re-derives this per invocation via
+# _sciagent_in_repo_toolkit (symlinks.sh), because the container directory is
+# NOT always `01_modules` — measured across the fleet: 01_modules, 01_Modules,
+# 01_scripts, 01_Scripts. Where the literal did not match, the `-d` test below
+# failed, `update` printed "not a submodule — skipped" and then RE-ACTIVATED
+# AGAINST A STALE TOOLKIT without re-pinning. Silently, and in ~6 of 23
+# consumers.
 _UPDATE_SUBMODULE_PATH="01_modules/SciAgent-toolkit"
 
 cmd_update() {
@@ -63,6 +70,15 @@ EOF
                 return 1 ;;
         esac
     done
+
+    # Resolve where THIS project's toolkit actually lives before any step uses
+    # the path. Falls back to the module-level default when the project ships
+    # no in-repo toolkit at all, so the "not a submodule" branch below still
+    # reports a sensible path.
+    local _discovered
+    if _discovered=$(_sciagent_in_repo_toolkit); then
+        _UPDATE_SUBMODULE_PATH="${_discovered#./}"
+    fi
 
     # -----------------------------------------------------------------------
     # Step 1: re-pin the submodule (unless --no-pin).

@@ -148,9 +148,19 @@ declare -A VERB_ENTRY=(
 # so, rather than gating the whole verb (which would also block the always-safe
 # delete-only paths).
 # ---------------------------------------------------------------------------
+# `new` is the MIRROR case, and was missing until 2026-08-11. activate/update
+# mount a PROJECT against the wrong toolkit; `new` writes CONTENT into the
+# wrong toolkit — _new_role (new.sh), _new_skill (cp -R + sed -i), and
+# _new_agent all write under $SCIAGENT_TOOLKIT. Unguarded,
+# `SCIAGENT_TOOLKIT=<external> sciagent new skill foo` silently authors into
+# another checkout, leaving it differing from its recorded commit with no
+# record anywhere. Authoring directly in a bare toolkit clone is unaffected:
+# such a checkout ships no in-repo toolkit of its own, so the guard's
+# "nothing to protect" branch returns 0.
 declare -A MUTATING_VERB=(
     [activate]=1
     [update]=1
+    [new]=1
 )
 
 # _guard_toolkit_locality
@@ -166,9 +176,12 @@ declare -A MUTATING_VERB=(
 #   --allow-external-toolkit            (per-invocation flag, stripped here)
 #   SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1   (env var)
 _guard_toolkit_locality() {
-    local in_repo="./01_modules/SciAgent-toolkit"
     # No in-repo toolkit → nothing to protect; any resolution is fine.
-    [[ -d "$in_repo" ]] || return 0
+    # Discovery is delegated to symlinks.sh (sourced unconditionally above) so
+    # the guard and the predicate can never disagree about WHERE the in-repo
+    # toolkit is — the container directory is not always `01_modules`.
+    local in_repo
+    in_repo=$(_sciagent_in_repo_toolkit) || return 0
 
     # Boolean check delegated to the shared predicate (symlinks.sh, sourced
     # unconditionally above) so this dispatcher-level guard and any lib code
@@ -193,7 +206,7 @@ _guard_toolkit_locality() {
     echo "  This project ships its own toolkit; using an external one would symlink" >&2
     echo "  .claude/.agents against the wrong copy and escape the submodule pin." >&2
     echo "  Fix by one of:" >&2
-    echo "    - run ./01_modules/SciAgent-toolkit/bin/sciagent $verb ..." >&2
+    echo "    - run $in_repo/bin/sciagent $verb ..." >&2
     echo "    - export SCIAGENT_TOOLKIT=$in_repo_real" >&2
     echo "    - pass --allow-external-toolkit (or set SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1) to override" >&2
     return 1
