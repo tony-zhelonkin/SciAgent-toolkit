@@ -7,7 +7,6 @@ description: >-
   web-research X", or similar. Covers headless flags, model/account quirks,
   sandbox fallbacks, installation, and multi-agent fan-out.
 license: MIT
-compatibility: "sciagent-scaffold: docs/_internal/reasoning/"
 ---
 
 # Delegating to codex & agy (headless)

@@ -652,9 +652,8 @@ symlink_create_helper_lib() {
 # THE DEFECT THIS FIXES. Those shims were materialized ONLY by
 # `sciagent new project`'s generic template walk (new.sh's _render_tree), so an
 # already-provisioned project never received one, and `activate` created the two
-# mounts with no importable module beside them. Every skill whose
-# `compatibility:` declaration names a shim path — figure-style,
-# interactive-breakpoint-explorer, decision-gate-notebook — was therefore
+# mounts with no importable module beside them. Figure-style,
+# interactive-breakpoint-explorer, and decision-gate-notebook were therefore
 # satisfiable only in a freshly scaffolded repo. This is the same blind spot as
 # the hook bodies and the status line: content written at scaffold time only,
 # never reaching the field.

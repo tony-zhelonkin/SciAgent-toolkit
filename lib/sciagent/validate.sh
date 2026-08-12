@@ -6,18 +6,10 @@
 # Checks:
 #   1. frontmatter shape      — every skill has `name:` matching its directory
 #                               and a `description:` of at most 350 chars
-#   2. compatibility shape    — if (and ONLY if) a skill declares the optional
-#                               `compatibility:` key, its value must parse as
-#                               the four-flavour clause grammar documented at
-#                               _validate_compatibility below, stay inside the
-#                               500-char canonical ceiling, and have every
-#                               toolkit-verifiable item resolve INSIDE THIS
-#                               CHECKOUT. A skill without the key is skipped
-#                               entirely — all 83 active skills predate it.
-#   3. (optional) skills-ref  — if installed, invoke per skill; surface exit
+#   2. (optional) skills-ref  — if installed, invoke per skill; surface exit
 #                               code as warning, not error; silently skip
 #                               when absent
-#   4. cross-namespace collision — names appearing in >=2 of
+#   3. cross-namespace collision — names appearing in >=2 of
 #                               skills/agents/commands/roles. Soft-warn only;
 #                               most overlaps are intentional family overlaps
 #                               (e.g. /architect → @architect → roles/architect).
@@ -52,7 +44,6 @@
 #
 # Hardness boundary:
 #   Hard-fail (exit 1): malformed skill frontmatter;
-#                       malformed / unresolvable `compatibility:` declaration;
 #                       any --check finding when --strict (delegated to lint.sh).
 #   Soft-warn:          skills-ref findings (when present);
 #                       cross-namespace name collisions;
@@ -68,14 +59,6 @@
 # per-context cost; the body is read only on activation.
 : "${SCIAGENT_DESC_MAX:=350}"
 
-# Ceiling on a skill `compatibility:`. This is NOT a SciAgent taste choice —
-# it mirrors the canonical validator exactly
-# (skills/skill-creator/scripts/quick_validate.py:86-92, which rejects a
-# compatibility value over 500 chars). If `sciagent validate` were laxer it
-# would green-light a skill that the canonical validator, and therefore any
-# consumer running it, rejects.
-: "${SCIAGENT_COMPAT_MAX:=500}"
-#
 # Output streams:
 #   stdout — "all checks passed" summary line on success (suppressed by --quiet)
 #   stderr — per-failure stanza on hard-fail; skills-ref warnings when present
@@ -143,227 +126,6 @@ _validate_env_hygiene() {
     return 0
 }
 
-# ---------------------------------------------------------------------------
-# `compatibility:` — the coupled-skill declaration
-# ---------------------------------------------------------------------------
-#
-# Grammar (authoritative copy: docs/packaged-skills.md; author-facing summary:
-# skills/README.md):
-#
-#   compatibility := clause ( "; " clause )*
-#   clause        := flavour ": " item ( ", " item )*
-#   flavour       := "sciagent-scaffold" | "sciagent-toolkit"
-#                  | "sibling-skill"     | "external-module"
-#   item          := non-empty token; no ";", no ",", no "#";
-#                    no leading or trailing whitespace
-#
-#   sciagent-scaffold  repo-root-relative path into the analysis-repo layout;
-#                      a trailing "/" means "directory".
-#   sciagent-toolkit   a directory name under this toolkit's lib/.
-#   sibling-skill      a directory name under this toolkit's skills/.
-#   external-module    free-form: a submodule or package the toolkit does NOT
-#                      provide (RNAseq-toolkit, TE-RNAseq-toolkit, ...).
-#
-# CRITICAL INVARIANT — this function may read ONLY the toolkit checkout.
-# `activate` calls `cmd_validate --quiet` as a pre-flight, so anything here
-# that stats a consumer project would let a project's state hard-block
-# activation — the exact bug that moved docs-layout out of this file (see the
-# header). Hence:
-#   * sciagent-toolkit / sibling-skill resolve under $tk_root and are rejected
-#     outright if the item contains a "/" (a bare directory name by grammar —
-#     the rejection doubles as the escape guard for `../../etc`);
-#   * sciagent-scaffold is checked for SHAPE ONLY (relative, no "..") and is
-#     never stat()ed: the project is by definition absent at validate time.
-#
-# Two `_fm_scalar` behaviours the grammar is written against:
-#   * it truncates the value at an unquoted "#", which is why "#" is not a
-#     legal item character — an inline YAML comment is honoured, not smuggled
-#     into a declaration;
-#   * it strips a trailing quote BEFORE trailing whitespace, so a line like
-#     `compatibility: "x" ` (space after the closing quote) parses to the
-#     stray-quote value `x"` rather than `x`. That is why the
-#     trailing-whitespace check below reads the RAW frontmatter line instead
-#     of the parsed value: on the parsed value the defect is either invisible
-#     (unquoted form, whitespace already stripped) or disguised as a bogus
-#     quote character (quoted form).
-#
-# _validate_compat_parse
-#   Reads one compatibility value on stdin. Emits, one per line:
-#     ERR<TAB><message>            a grammar violation
-#     ITEM<TAB><flavour><TAB><item>  a well-formed item, for semantic checks
-#   Grammar only — it knows nothing about the filesystem.
-_validate_compat_parse() {
-    awk -F '\n' '
-        BEGIN {
-            FLAV["sciagent-scaffold"] = 1
-            FLAV["sciagent-toolkit"]  = 1
-            FLAV["sibling-skill"]     = 1
-            FLAV["external-module"]   = 1
-            ALLOWED = "external-module, sciagent-scaffold, sciagent-toolkit, sibling-skill"
-        }
-        {
-            nc = split($0, cl, ";")
-            for (i = 1; i <= nc; i++) {
-                c = cl[i]
-                if (i > 1) {
-                    if (substr(c, 1, 1) != " ") {
-                        print "ERR\tclauses must be separated by \"; \" (found \";\" with no following space)"
-                        continue
-                    }
-                    c = substr(c, 2)
-                }
-                if (c == "")            { print "ERR\tempty clause"; continue }
-                if (c ~ /^[ \t]/)       { print "ERR\tclause \"" c "\" has leading whitespace"; continue }
-                if (c ~ /[ \t]$/)       { print "ERR\tclause \"" c "\" has trailing whitespace"; continue }
-                p = index(c, ":")
-                if (p == 0) {
-                    print "ERR\tclause \"" c "\" is not of the form \"<flavour>: <item>[, <item>]\""
-                    continue
-                }
-                fl = substr(c, 1, p - 1)
-                it = substr(c, p + 1)
-                if (!(fl in FLAV)) {
-                    print "ERR\tunknown flavour \"" fl "\" (allowed: " ALLOWED ")"
-                    continue
-                }
-                if (substr(it, 1, 1) != " ") {
-                    print "ERR\tflavour \"" fl "\" must be followed by \": \" (colon then one space)"
-                    continue
-                }
-                it = substr(it, 2)
-                if (it == "") { print "ERR\tflavour \"" fl "\" declares no items"; continue }
-                ni = split(it, items, ",")
-                for (j = 1; j <= ni; j++) {
-                    x = items[j]
-                    if (j > 1) {
-                        if (substr(x, 1, 1) != " ") {
-                            print "ERR\titems in the \"" fl "\" clause must be separated by \", \""
-                            continue
-                        }
-                        x = substr(x, 2)
-                    }
-                    if (x == "") { print "ERR\tempty item in the \"" fl "\" clause"; continue }
-                    if (x ~ /^[ \t]/ || x ~ /[ \t]$/) {
-                        print "ERR\titem \"" x "\" in the \"" fl "\" clause has leading or trailing whitespace"
-                        continue
-                    }
-                    print "ITEM\t" fl "\t" x
-                }
-            }
-        }
-    '
-}
-
-# _validate_compatibility <skill_name> <skill_fm> <tk_root>
-# Print one finding per line (empty output == the declaration is fine).
-# <skill_fm> is the already-extracted frontmatter block. Prints nothing and
-# returns 0 when the skill declares no `compatibility:` at all.
-_validate_compatibility() {
-    local skill="$1" skill_fm="$2" tk_root="$3"
-
-    # Check 1: absent key → nothing to check. This is what keeps all 83
-    # pre-existing skills passing on day one.
-    printf '%s\n' "$skill_fm" | grep -q '^compatibility:' || return 0
-
-    # Raw value, leading whitespace after the colon removed but TRAILING
-    # whitespace deliberately preserved — see the note above on why the parsed
-    # value cannot answer this question.
-    local raw val
-    raw="$(printf '%s\n' "$skill_fm" | awk '
-        /^compatibility:/ { sub(/^compatibility:[ \t]*/, ""); print; exit }')"
-    val="$(_fm_scalar compatibility <<< "$skill_fm")"
-
-    # Check 3a: trailing whitespace in the declared value (hard).
-    if [[ "$raw" =~ [[:space:]]$ ]]; then
-        printf '%s\n' "$skill: compatibility: has trailing whitespace"
-    fi
-
-    if [[ -z "$val" ]]; then
-        printf '%s\n' "$skill: compatibility: is present but empty"
-        return 0
-    fi
-
-    # Check 3b (beyond the eight originally specified — justification): a valid
-    # declaration ALWAYS contains ": ", which is not a legal plain YAML scalar.
-    # So an unquoted declaration is unparseable YAML: quick_validate.py errors
-    # and a harness loading the SKILL.md sees the whole frontmatter fail, not
-    # just this key. `_fm_scalar` is line-based and reads it happily, so
-    # without this check `sciagent validate` is the ONE parser that accepts a
-    # file nothing else can load. Cannot false-positive: every well-formed
-    # value needs quoting by construction.
-    #
-    # The two quote characters go through variables rather than being written
-    # inline: tests/test_no_exit_in_libs.sh scans this file with a single-quote
-    # PARITY counter, and a line carrying an odd number of apostrophes silently
-    # flips it and misclassifies every awk `exit` below. `_dq`/`_sq` each
-    # contribute an even count, so they cannot desync that scanner.
-    local _dq _sq
-    _dq='"'
-    _sq=$(printf '\047')
-    if [[ "$raw" != "$_dq"* && "$raw" != "$_sq"* ]]; then
-        printf '%s\n' "$skill: compatibility: must be a quoted scalar (the value contains a colon-space, which is not valid unquoted YAML)"
-    fi
-    # Residue of the strip-quote-before-whitespace behaviour, or a genuinely
-    # unbalanced quote. Either way the value is not what the author meant.
-    if [[ "$val" == *"$_dq" || "$val" == *"$_sq" ]]; then
-        printf '%s\n' "$skill: compatibility: value ends in a stray quote — check for whitespace after the closing quote"
-        return 0
-    fi
-
-    # Check 2: length ceiling (hard) — mirrors quick_validate.py.
-    local n=${#val}
-    if (( n > SCIAGENT_COMPAT_MAX )); then
-        printf '%s\n' "$skill: compatibility is $n chars (max $SCIAGENT_COMPAT_MAX)"
-    fi
-
-    # Checks 3c-7: grammar, then the per-flavour semantics.
-    local kind flavour item
-    while IFS=$'\t' read -r kind flavour item; do
-        case "$kind" in
-            ERR)
-                # For an ERR line the message lands in $flavour (field 2).
-                printf '%s\n' "$skill: compatibility: $flavour"
-                ;;
-            ITEM)
-                case "$flavour" in
-                    sciagent-toolkit)
-                        # Check 5. Bare directory name under the toolkit's lib/.
-                        if [[ "$item" == */* || "$item" == "." || "$item" == ".." ]]; then
-                            printf '%s\n' "$skill: compatibility: sciagent-toolkit item '$item' must be a bare directory name under the toolkit lib/ directory"
-                        elif [[ ! -d "$tk_root/lib/$item" ]]; then
-                            printf '%s\n' "$skill: compatibility: sciagent-toolkit '$item' — no such directory lib/$item in this toolkit"
-                        fi
-                        ;;
-                    sibling-skill)
-                        # Check 6. Bare directory name under the toolkit's skills/.
-                        if [[ "$item" == */* || "$item" == "." || "$item" == ".." ]]; then
-                            printf '%s\n' "$skill: compatibility: sibling-skill item '$item' must be a bare directory name under skills/"
-                        elif [[ ! -d "$tk_root/skills/$item" ]]; then
-                            printf '%s\n' "$skill: compatibility: sibling-skill '$item' — no such skill in this toolkit"
-                        fi
-                        ;;
-                    sciagent-scaffold)
-                        # Check 7. SHAPE ONLY — never stat()ed. The consumer
-                        # project is absent at validate time by design.
-                        if [[ "$item" == /* ]]; then
-                            printf '%s\n' "$skill: compatibility: sciagent-scaffold '$item' must be repo-root-relative (no leading '/')"
-                        elif [[ "$item" == ".." || "$item" == "../"* || "$item" == *"/.." || "$item" == *"/../"* ]]; then
-                            printf '%s\n' "$skill: compatibility: sciagent-scaffold '$item' must not contain a '..' component"
-                        fi
-                        ;;
-                    external-module)
-                        # Check 8. Unverifiable by construction: the whole
-                        # point of this flavour is that the toolkit does not
-                        # ship the thing being named.
-                        ;;
-                esac
-                ;;
-        esac
-    done < <(printf '%s\n' "$val" | _validate_compat_parse)
-
-    return 0
-}
-
 # ===========================================================================
 # PROJECT GUARDRAIL CHECKS (opt-in via --check) have moved to lib/sciagent/
 # lint.sh — `sciagent lint`. cmd_validate's --check branch below delegates to
@@ -385,8 +147,7 @@ cmd_validate() {
 sciagent validate [--quiet] [--project-dir <dir>] [--check <name>...] [--strict] [--env-hygiene]
   Check the frontmatter shape of every skill in the toolkit. Exits 0 on
   success, 1 on any hard-fail (missing/mismatched name, missing
-  description, a description over 350 chars, or a malformed /
-  unresolvable `compatibility:` declaration).
+  description, or a description over 350 chars).
 
   --quiet            Suppress the "all checks passed" summary on success.
   --project-dir <d>  Project directory for --check (default: .).
@@ -636,19 +397,7 @@ USAGE
             fi
         fi
 
-        # Check 2: `compatibility:` declaration (opt-in per skill — a skill
-        # that does not declare the key is skipped whole, which is what keeps
-        # the pre-existing catalog green). Hard-fail on any finding: an
-        # unresolvable or misspelled declaration is worse than no declaration,
-        # because it reads correct and enforces nothing.
-        local _compat_finding
-        while IFS= read -r _compat_finding; do
-            [[ -z "$_compat_finding" ]] && continue
-            failures+=("$_compat_finding")
-            fail=1
-        done < <(_validate_compatibility "$skill_name" "$skill_fm" "$tk_root")
-
-        # Check 3 (optional): skills-ref shell-out.
+        # Check 2 (optional): skills-ref shell-out.
         if command -v skills-ref >/dev/null 2>&1; then
             if ! skills-ref "$skill_file" >/dev/null 2>&1; then
                 # Warn-only; does not set fail.
@@ -669,7 +418,7 @@ USAGE
         return 1
     fi
 
-    # Check 4: cross-namespace collisions (soft-warn).
+    # Check 3: cross-namespace collisions (soft-warn).
     # Buffered then emitted after the "all checks passed" line so a clean
     # tree still produces zero stderr output. Quiet mode mutes the warnings
     # for the same reason it mutes the success line — scripted callers want

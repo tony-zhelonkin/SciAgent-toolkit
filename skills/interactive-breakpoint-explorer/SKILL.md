@@ -2,7 +2,6 @@
 name: interactive-breakpoint-explorer
 description: "The live-kernel house pattern for looking at cells at a pipeline inflection point: a Python Quarto notebook drives linked jscatter panels to brush an embedding, pulls the selection into pandas, and persists barcodes plus a labelled snapshot. Use when a human must eyeball live structure. For the static surface use decision-gate-notebook."
 license: MIT
-compatibility: "sciagent-toolkit: interactive-style; sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 02_analysis/helpers/interactive_style.py, 02_analysis/notebooks/, 02_analysis/stages/export_explorers.py, 03_results/interactive/, 03_results/objects/"
 ---
 
 # Interactive Breakpoint Explorer
@@ -153,6 +152,15 @@ All project-specific lists are config-driven — never hardcoded in the helper l
 | `summary_stats` | `[]` | composition stats in the selection summary (`{name, column, value?}`) |
 
 `grid_height`, `grid_rows`, and `cmap` are also read from this block with sensible floors.
+
+---
+
+## Prerequisites
+
+Run from an analysis project where SciAgent has materialized
+`02_analysis/helpers/interactive_style.py`, mounted the `interactive-style` contract library, and
+provided `02_analysis/config/analysis_config.yaml`. Exporters write compact inputs under
+`03_results/interactive/` from objects prepared by a committed stage.
 
 ---
 

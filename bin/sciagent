@@ -83,12 +83,9 @@ verb="$1"; shift
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
 #   claude_settings.sh  project hook registration and materialization (leaf-ish)
-#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh,
-#                       frontmatter.sh — the last for `--check skill-coupling`, which
-#                       reads each skill's `compatibility:` scalar)
-#   validate.sh         depends on frontmatter.sh, collisions.sh, lint.sh
-#                       (frontmatter.sh for the `compatibility:` scalar read;
-#                        lint.sh for the `validate --check` delegation)
+#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh)
+#   validate.sh         depends on collisions.sh and lint.sh
+#                       (lint.sh for the `validate --check` delegation)
 #   activate.sh         depends on ~everything above
 #   deactivate.sh       depends on activate.sh (may re-activate solo-base)
 #   status.sh           depends on stack.sh, collisions.sh, roles.sh; lazy-loads frontmatter.sh
@@ -96,28 +93,6 @@ verb="$1"; shift
 #
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 #
-# `frontmatter.sh` appears in FIVE rows, not one. validate.sh's
-# `compatibility:` check calls `_fm_extract`/`_fm_scalar`, so every verb whose
-# closure reaches `cmd_validate` needs the parser sourced — that is `validate`
-# AND the three verbs that reach that pre-flight: `activate` (which calls
-# `cmd_validate --quiet` directly) plus `deactivate` and `update`, which
-# re-enter `cmd_activate`. The fifth row is `[lint]`, for a different reason:
-# lint.sh's `--check skill-coupling` reads each skill's `compatibility:` scalar
-# through the same `_fm_extract`/`_fm_scalar` pair, and `lint` is the one verb
-# whose closure reaches lint.sh without passing through validate.sh.
-# Adding it to `[validate]` alone would leave
-# `activate` dying on an unbound function at exactly the moment it is guarding
-# a mutation — verified: `_fm_scalar: command not found`, once per declaring
-# skill, before anything is mounted.
-#
-# Sourcing the parser was preferred over re-inlining the scalar read inside
-# validate.sh (the other option): `_fm_scalar` has two behaviours the
-# compatibility grammar is written against — it truncates at an unquoted `#`
-# and it strips a trailing quote BEFORE trailing whitespace — and reusing it
-# keeps those semantics identical by construction instead of by a second
-# hand-copied awk that can drift. frontmatter.sh is a declared leaf with no
-# sciagent dependencies and no side effects at source time, so widening these
-# closures costs nothing but the source.
 # ---------------------------------------------------------------------------
 # ownership.sh carries the materialize-and-keep-current discipline shared by
 # claude_settings.sh (.claude/hooks/*.sh) and symlinks.sh
@@ -129,16 +104,16 @@ verb="$1"; shift
 # "command not found" at the moment of a mutation). It depends only on block.sh
 # (hashing), which every one of those closures already carries.
 declare -A VERB_MODULES=(
-    [activate]="block.sh ownership.sh craft.sh frontmatter.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh"
-    [deactivate]="block.sh ownership.sh craft.sh frontmatter.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
+    [activate]="block.sh ownership.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh"
+    [deactivate]="block.sh ownership.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh deactivate.sh"
     [status]="block.sh ownership.sh symlinks.sh roles.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh status.sh"
-    [validate]="block.sh craft.sh frontmatter.sh collisions.sh lint.sh validate.sh"
-    [lint]="block.sh craft.sh frontmatter.sh lint.sh"
+    [validate]="block.sh craft.sh collisions.sh lint.sh validate.sh"
+    [lint]="block.sh craft.sh lint.sh"
     [new]="new.sh"
     [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"
-    [update]="block.sh ownership.sh craft.sh frontmatter.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
+    [update]="block.sh ownership.sh craft.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
 )
 
 # Verb → cmd_* entrypoint.

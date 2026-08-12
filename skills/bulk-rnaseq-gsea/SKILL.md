@@ -2,7 +2,6 @@
 name: bulk-rnaseq-gsea
 description: "Bulk RNA-seq GSEA router — MSigDB execution via clusterProfiler/fgsea (Hallmark/KEGG/Reactome/GO), custom database integration, master-table assembly, and static figures. Use when running GSEA, adding a gene-set database, or normalizing gseaResult objects to CSV. For the interactive dashboard use bulk-rnaseq-pathway-explorer."
 license: MIT
-compatibility: "sciagent-scaffold: 02_analysis/config/config.R, 02_analysis/config/color_config.R, 02_analysis/config/pipeline.yaml, 02_analysis/helpers/normalize_gsea.R, 03_results/checkpoints/, 03_results/tables/, 03_results/plots/GSEA/, 03_results/interactive/; external-module: RNAseq-toolkit"
 ---
 
 # Bulk RNA-seq GSEA Pipeline
@@ -182,6 +181,11 @@ The most critical cross-stage failure modes:
 For detailed walkthroughs of each pitfall → see the relevant reference document.
 
 ---
+
+## Prerequisites
+
+The helper-backed workflow requires the project-vendored `RNAseq-toolkit` and the project config,
+normalization helper, checkpoint, table, plot, and interactive paths shown throughout this skill.
 
 ## Resources
 

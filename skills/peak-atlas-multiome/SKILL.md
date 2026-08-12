@@ -2,12 +2,15 @@
 name: peak-atlas-multiome
 description: "Consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC, same cells): peaks per RNA/ATAC/WNN/cell-type grouping, pseudo-replicate reproducibility, four-way vote, then Primary+Rescue quantify-and-prune protecting rare populations. Use when RNA+ATAC are paired. For unpaired data use peak-atlas-unpaired; builds on peak-atlas-framework."
 license: MIT
-compatibility: "sibling-skill: peak-atlas-framework"
 ---
 
 # Peak Atlas from True 10x Multiome (paired RNA + ATAC)
 
-**Foundation: `peak-atlas-framework` holds the shared spine.** This child only specializes WHICH groupings feed the paired-multiome regime; everything generic links UP. Jump directly to:
+## Prerequisites
+
+`peak-atlas-framework` is the required companion skill and holds the shared spine. This child only
+specializes which groupings feed the paired-multiome regime; everything generic links up. Jump
+directly to:
 
 - `peak-atlas-framework/references/macs3-scatac-params.md` — the MACS3 flags, the 501bp rationale, chromosome/blacklist/N filters
 - `peak-atlas-framework/references/iterative-overlap-merge.md` — the summit-faithful merge algorithm

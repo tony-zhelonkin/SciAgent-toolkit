@@ -133,9 +133,9 @@ te-geneset-gsea
 | **Toolkit coupling** — needs toolkit code reachable at runtime | `02_analysis/helpers/*` shims that source the contract libs `symlink_create_helper_lib` mounts (`symlinks.sh:547-570`) | `figure-style`, `anndatar-seurat-scanpy-conversion`, `bulk-rnaseq-gsea` (+ `mllmcelltype-consensus-annotation`, see below) |
 | **Project-scaffold coupling** — needs the analysis-repo *layout*, not toolkit code | `02_analysis/config/analysis_config.yaml`, `02_analysis/stages/`, `02_analysis/notebooks/` | the remaining ~11 |
 
-This distinction matters for ADR-D6: most of the 15 need a **scaffold-compatibility declaration**,
-not toolkit code — which is exactly what D6 already proposes. Single-skill export is coherent for
-~68 of 83 outright and for most of the rest behind one declared requirement.
+This distinction matters for ADR-D6: most of the 15 need a project-layout prerequisite in their
+body prose rather than toolkit code. Single-skill export is coherent for ~68 of 83 outright and
+for most of the rest once the reader satisfies the stated requirement.
 
 `mllmcelltype-consensus-annotation`'s `.claude/skills/` reference (`bin/mllmct:5`) is arguably **not**
 coupling at all: `packaged-skills.md` contract #3 *requires* the launcher to dereference its own
@@ -153,20 +153,18 @@ coupling at all: `packaged-skills.md` contract #3 *requires* the launcher to der
 > 2. **`anndatar-seurat-scanpy-conversion` is not coupled at all.** It is one of six audited false
 >    positives, with `mllmcelltype-consensus-annotation` (already suspected just above),
 >    `peak-atlas-framework`, `peak-atlas-unpaired`, `coresh-signature-search`, and
->    `scrna-pipeline-conventions`. They *mention* the layout; they do not *require* it. None of the
->    six carries a `compatibility:` declaration.
-> 3. **Two flavours are not enough, and the set is not these 15.** The shipped vocabulary is four:
->    `sciagent-toolkit` (**2** skills — `figure-style`, `interactive-breakpoint-explorer`; that is
->    the ceiling, by the loop body cited above), `sciagent-scaffold`, `sibling-skill`
->    (`peak-atlas-multiome` → `peak-atlas-framework`, which the table above mis-filed as scaffold
->    coupling), and `external-module` (4 skills, for `RNAseq-toolkit` / `TE-RNAseq-toolkit` /
->    `pathway-explorer`). Six skills this scan never flagged are genuinely coupled:
+>    `scrna-pipeline-conventions`. They *mention* the layout; they do not *require* it.
+> 3. **The set spans four kinds of requirement.** Toolkit code is needed by **2** skills —
+>    `figure-style` and `interactive-breakpoint-explorer`; that is the ceiling by the loop body
+>    cited above. `peak-atlas-multiome` needs the sibling `peak-atlas-framework` skill, four skills
+>    need `RNAseq-toolkit`, `TE-RNAseq-toolkit`, or `pathway-explorer`, and the remainder rely on
+>    project-layout paths. Six skills this scan never flagged are genuinely coupled:
 >    `cellranger-multi-to-anndata`, `consensus-nmf-multirun`, `scrna-cxg-host`,
 >    `bulk-rnaseq-pathway-explorer`, `iterative-peak-merging`, `delegate-cli`.
 >
-> Net: still 15 skills declaring `compatibility:`, but only 9 of them appear in the list above. The
-> corrected breakdown is in `50_ADRs.md` ADR-D6; the grammar is in `docs/packaged-skills.md`;
-> `sciagent validate` now hard-fails a malformed or unresolvable declaration.
+> Net: still 15 skills with reader-relevant coupling, but only 9 of them appear in the list above.
+> The corrected breakdown is in `50_ADRs.md` ADR-D6. The 2026-08-12 owner ruling places those facts
+> in skill-body prose and accepts the loss of the machine drift guard.
 >
 > *How it was determined:* each flagged skill was read in full — SKILL.md plus `scripts/`,
 > `references/`, `assets/`, `checks/` — and its requirements derived from what it actually reads and

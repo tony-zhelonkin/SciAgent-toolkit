@@ -89,92 +89,19 @@ The reference skill's files are the spec for each step above — when in doubt, 
 
 ---
 
-## 6. `compatibility:` — declaring what a skill needs from outside itself
+## 6. State external requirements in the skill body
 
-Applies to **every** skill, packaged or docs-only. Most skills need nothing outside their own
-directory and must **omit the key entirely**; declaring a dependency a skill does not have is as
-wrong as omitting one it does.
+A packaged skill records every runtime requirement where a reader encounters it. Use these body
+sections consistently:
 
-Add it only when the skill would misbehave — not merely read a little oddly — outside a SciAgent
-analysis repo. Place it after `license:`. It is a **quoted** YAML scalar (the value contains
-`: `, which is not a legal plain scalar) of at most **500 characters**
-(`skills/skill-creator/scripts/quick_validate.py:86-92`).
+- `## Prerequisites` — required modules, companion skills, version constraints, and project paths
+- `## When not to use` — cases that should route to another workflow
+- `## See also` — related or downstream skills
 
-```yaml
----
-name: figure-style
-description: ...
-license: MIT
-compatibility: "sciagent-toolkit: figure-style; sciagent-scaffold: 02_analysis/helpers/figure_style.R, 02_analysis/config/analysis_config.yaml, 03_results/"
----
-```
+Keep the statement concrete. For example: “Install `pathway-explorer` v2.0.0 and run from a project
+whose input is `03_results/tables/master_unified.csv`.” Git-tracked prose keeps the requirement next
+to the setup and examples that depend on it.
 
-**Grammar** — clauses joined by `"; "`, items within a clause by `", "`:
-
-```
-compatibility := clause ( "; " clause )*
-clause        := flavour ": " item ( ", " item )*
-flavour       := "sciagent-scaffold" | "sciagent-toolkit" | "sibling-skill" | "external-module"
-item          := non-empty token; no ";", no ",", no "#";
-                 no leading or trailing whitespace
-```
-
-**The four flavours** — the set is closed; anything else is a hard validate failure, because a
-misspelled flavour reads correct and enforces nothing:
-
-| Flavour | Item is | Checked by `sciagent validate` |
-|---|---|---|
-| `sciagent-scaffold` | a **repo-root-relative path** into the analysis-repo layout (`02_analysis/config/analysis_config.yaml`, `03_results/objects/`). A trailing `/` means "directory". | Shape only — must be relative, no `..`. The consumer project is absent at validate time and is deliberately never stat()ed: `activate` runs `validate --quiet` as a pre-flight, so a project-state check here could hard-block activation. |
-| `sciagent-toolkit` | a **bare directory name** under the toolkit's `lib/`. Only `figure-style` and `interactive-style` exist — those are the two `symlink_create_helper_lib` mounts into `02_analysis/helpers/`. | The directory must exist in this checkout. |
-| `sibling-skill` | a **bare directory name** under `skills/`. Use when the skill sources another skill's `scripts/` or requires its `references/`. | The skill directory must exist in this checkout. |
-| `external-module` | free-form: a submodule or package the toolkit does **not** provide — `RNAseq-toolkit`, `TE-RNAseq-toolkit`, `pathway-explorer`. | Nothing. Unverifiable by construction; that is the point of the flavour. |
-
-Do **not** file a `01_modules/<other-toolkit>` dependency under `sciagent-scaffold`: SciAgent does
-not ship it, and the declaration would be a lie. That is what `external-module` is for.
-
-**Do not use `metadata.requires:`.** That key belonged to a removed taxonomy resolver;
+The retired taxonomy key `metadata.requires:` remains unsupported;
 `skills/skill-creator/scripts/add_requires_field.py` is an inert tombstone that refuses to run. See
 `skills/README.md`.
-
-Enforcement lives in `lib/sciagent/validate.sh` (`_validate_compatibility`); every rule above is
-mutation-tested in `tests/test_validate_compatibility.sh`, and the shipped declarations are pinned
-by `tests/test_skill_compatibility_declared.sh`. The audit that produced the current set is
-`docs/proposals/2026-08-11-offline-distribution/50_ADRs.md` ADR-D6.
-
-### 6.1 Keeping a declaration true — `sciagent lint --check skill-coupling`
-
-`validate` answers *is this declaration well-formed?*. It cannot answer *is it still true?* — and
-ADR-D6's whole argument for declarations over a curated subset is that "declaring a requirement is
-self-maintaining". Nothing makes that so on its own: the coupled set went 8 → 15 → a *different* 15
-inside one audit. Without a drift check the declarations become the second corpus to keep in sync
-that ADR-D1 refuses for version strings.
-
-```bash
-sciagent lint --check skill-coupling
-```
-
-Three rules, all **warn-only — this check can never fail a build, even under `--strict`**, and it
-never runs on `activate`'s pre-flight:
-
-| Rule | Fires when |
-|---|---|
-| undeclared coupling | a skill's **code** depends on something of a flavour it declares no clause for |
-| stale declaration | a declared item is not mentioned *anywhere* in the skill directory |
-| unscaffolded root | a `sciagent-scaffold` item is rooted somewhere `sciagent new project` does not create |
-
-It is opt-in by name and is **not** part of `--check all`: its subject is the toolkit checkout, not
-`--project-dir`, and an analysis author linting their own repo should not be handed findings about
-files they do not own.
-
-The evidence scan reads **code files only, minus comment lines**. That exclusion is the design, not
-a detail: of the 15 skills the original static scan flagged, 6 were false positives — provenance
-citations in `#` comments (`peak-atlas-framework`, `peak-atlas-unpaired`) and documentation prose
-(`scrna-pipeline-conventions`, `anndatar-seurat-scanpy-conversion`, `coresh-signature-search`,
-`mllmcelltype-consensus-annotation`). Each cause needs its own exclusion; either alone silences only
-half of them. Scanning fenced code blocks inside `.md` was tried and rejected — it re-flags two of
-the six.
-
-The price is recall, stated plainly: coupling expressed only in prose (`figure-style`,
-`reasoning-trace`) is invisible to the undeclared-coupling rule. A drift guard that cries wolf gets
-ignored, and prose is where the wolves were. Calibrated over the shipped corpus, the check reports
-**one** finding. Fixtures and the corpus assertions are in `tests/test_lint_skill_coupling.sh`.

@@ -2,7 +2,6 @@
 name: te-geneset-gsea
 description: "TE-aware GSEA — runs clusterProfiler::GSEA on TE subfamily-ranked DE lists using the family/class GMTs produced by annotate-bulk-rnaseq-data (TE path). Use when running GSEA on TE subfamily ranks, where GMT gene_symbol holds subfamily IDs rather than Ensembl symbols. For gene or MSigDB GSEA use bulk-rnaseq-gsea."
 license: MIT
-compatibility: "sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 03_results/objects/, 03_results/master/; external-module: TE-RNAseq-toolkit"
 ---
 
 # TE Geneset GSEA (TE Family/Class GMT)
@@ -159,6 +158,11 @@ After running this skill, confirm:
 - **Fix:** Confirm size factors used in the combined DGEList came from the gene-only subset (this is the documented behavior of `create_combined_dge`). Compare TE log-fold changes to standalone TE-only edgeR results as a sanity check.
 
 ---
+
+## Prerequisites
+
+The TE path requires the project-vendored **TE-RNAseq-toolkit v0.1.0** and an
+`analysis_config.yaml`-based analysis layout.
 
 ## Resources
 

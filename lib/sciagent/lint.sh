@@ -39,15 +39,10 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
-#   skill-coupling  drift guard on skills' `compatibility:` declarations. THE
-#                   ODD ONE OUT: its subject is the TOOLKIT checkout, not
-#                   --project-dir, and it is warn-only even under --strict.
-#                   Opt-in BY NAME ONLY — deliberately not a member of `all`.
-#                   See its own header block for both decisions.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
 # `all` is the default) is given. They are SOFT warnings (exit 0) by default
-# and HARD failures (exit 1) under --strict (skill-coupling excepted — it can
-# never hard-fail). `_scratch/` and $TMPDIR are always exempt.
+# and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are always
+# exempt.
 #
 # Hardness boundary:
 #   Hard-fail (exit 1): any finding when --strict.
@@ -165,9 +160,8 @@ _vcheck_stage_files() {
 # _vcheck_toolkit_root
 # Echo the toolkit checkout this lint run belongs to: $SCIAGENT_TOOLKIT when the
 # dispatcher exported one (always, in practice — bin/sciagent sets it before any
-# module loads), else the checkout this very file lives in. Two checks need it
-# for different reasons — freshness compares a project against it,
-# skill-coupling audits it directly — so the resolution lives in one place.
+# module loads), else the checkout this very file lives in. The freshness check
+# compares a project against it.
 _vcheck_toolkit_root() {
     if [[ -n "${SCIAGENT_TOOLKIT:-}" ]]; then
         printf '%s' "$SCIAGENT_TOOLKIT"
@@ -741,13 +735,7 @@ _lint_check_hooks() {
 # `docs-layout` upholds the same "absent subject -> no findings" invariant
 # every other check here follows (see its own header comment above), so it is
 # a full member of `all` like everything else.
-#
-# `skill-coupling` is the ONE check `all` does not expand to, and the only one
-# that is runnable but unlisted there: its subject is the toolkit checkout
-# rather than <projdir>, so it is opt-in by name only. See its header block.
-#
 # Returns 1 if any check reports a (strict) hard failure, 0 otherwise.
-# `skill-coupling` can never contribute to that tally — it always returns 0.
 _lint_run_checks() {
     local projdir="$1"; shift
     local strict="$1"; shift
@@ -761,12 +749,11 @@ _lint_run_checks() {
     for n in "${names[@]}"; do
         case "$n" in
             all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|skill-coupling) run+=("$n") ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout) run+=("$n") ;;
             "") ;;
             *)
                 echo "sciagent lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout skill-coupling all" >&2
-                echo "  ('all' covers every name above except skill-coupling, whose subject is the toolkit, not a project)" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout all" >&2
                 return 1 ;;
         esac
     done
@@ -783,7 +770,6 @@ _lint_run_checks() {
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-layout)   _lint_check_stage_layout   "$projdir" "$strict" "$quiet" || rc=1 ;;
-            skill-coupling) _lint_check_skill_coupling "$projdir" "$strict" "$quiet" || rc=1 ;;
         esac
     done
 
@@ -809,19 +795,10 @@ sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
   --check <name>     Run only the named check(s). Repeatable.
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | hooks | docs-layout |
-                            stage-thinness | comment-intent | stage-layout |
-                            skill-coupling | all.
+                            stage-thinness | comment-intent | stage-layout | all.
                      Default (no --check given): all.
   --strict           Findings become HARD failures (exit 1) instead of WARN.
   --quiet            Suppress soft-WARN output on success/no-strict findings.
-
-  skill-coupling is the one check `all` does not include, and the one that
-  ignores --project-dir: it audits the TOOLKIT checkout's skills/ for drift
-  between a skill's `compatibility:` declaration and its actual content
-  (undeclared coupling, stale declarations, scaffold paths the toolkit does
-  not scaffold). Heuristic by nature, so it is warn-only even under --strict
-  and can never change this verb's exit code. Run it explicitly:
-      sciagent lint --check skill-coupling
 
   _scratch/ and $TMPDIR are always exempt from every check.
 
@@ -1269,351 +1246,4 @@ _lint_check_stage_layout() {
     done < <(_vcheck_stage_files "$projdir")
 
     return $rc
-}
-
-# ---------------------------------------------------------------------------
-# Check: skill-coupling — drift guard on skills' `compatibility:` declarations
-# ---------------------------------------------------------------------------
-# ADR-D6 chose per-skill `compatibility:` declarations over a curated public
-# subset because "declaring a requirement is self-maintaining; maintaining a
-# hand-picked list is not". On its own that is not true: nothing forces a
-# declaration to track the skill's actual content, so the declaration set
-# becomes exactly the second corpus ADR-D1 refuses to keep in sync. `sciagent
-# validate` checks the declaration's GRAMMAR (and that toolkit/sibling items
-# resolve); it cannot tell whether the declaration is still TRUE. This check
-# is the missing half.
-#
-# Three rules, all warn-only:
-#   1. undeclared coupling  — a skill's CODE shows a dependency of some flavour
-#                             and the skill declares no clause of that flavour.
-#   2. stale declaration    — a declared item is not mentioned ANYWHERE in the
-#                             skill directory (outside the declaration itself).
-#   3. unscaffolded root    — a `sciagent-scaffold` item whose first path
-#                             component is not a directory `sciagent new
-#                             project --type analysis` actually creates.
-#
-# ---- Why it is warn-only even under --strict ------------------------------
-# Rules 1 and 2 are heuristics over prose-and-code, and heuristics must not be
-# able to block. Note the ONE place strictness could leak: `_lint_run_checks`
-# ORs each check's return into its tally, and `_vcheck_emit <strict=1>` returns
-# 1. This check therefore calls `_vcheck_emit` with a HARDCODED strict=0 and
-# always `return 0` — its <strict> parameter is accepted and ignored on purpose.
-#
-# ---- Why it is not in `all` -----------------------------------------------
-# Every sibling check's subject is --project-dir; this one's subject is the
-# TOOLKIT CHECKOUT (`$SCIAGENT_TOOLKIT/skills/`), and it never touches the
-# project at all. `all` is the analysis-author's project sweep and is what a
-# bare `sciagent lint` runs, so folding a toolkit-corpus audit into it would
-# print findings about files the person linting does not own and cannot fix
-# from where they are standing. It is opt-in by name: `--check skill-coupling`.
-# The <projdir> parameter is likewise accepted and ignored, so the check keeps
-# the uniform `_lint_check_<name> <projdir> <strict> <quiet>` signature that
-# `_lint_run_checks` dispatches on.
-#
-# ---- Why the evidence scan reads CODE FILES ONLY, minus comment lines -----
-# This is the whole design, and it is calibrated against a known-wrong prior:
-# the static scan in 00_INDEX.md §5 flagged 15 skills of which the semantic
-# audit found 6 to be false positives — they MENTION the analysis-repo layout,
-# they do not REQUIRE it. Reproducing those 6 shows two distinct causes, and
-# the scan must defeat both:
-#   * provenance citations in `#` comments — `peak-atlas-framework`'s
-#     scripts/checks carry `#   /data2/.../02_analysis/config/...` headers
-#     crediting the project the code came from; `peak-atlas-unpaired` the same.
-#     Hence: a line whose first non-blank characters are `#` or `//` is never
-#     evidence.
-#   * documentation prose — `scrna-pipeline-conventions` is a skill ABOUT the
-#     layout, `anndatar-seurat-scanpy-conversion` and `coresh-signature-search`
-#     cite paths in reference notes. Hence: `.md` is never scanned.
-# Both are needed; each alone silences only half the six. A middle tier —
-# "fenced code blocks inside .md" — was tried and REJECTED: it re-flags
-# `coresh-signature-search` (references/coresh-to-gsea-bridge.md:76, a
-# `write_gmt(..., "03_results/...")` example) and `scrna-pipeline-conventions`
-# (SKILL.md's illustrative `03_results/objects/*.h5ad` tree), i.e. it fails on
-# exactly the corpus the exclusion exists for.
-#
-# The price is recall, stated plainly: a skill whose coupling lives only in
-# prose (`figure-style`, `reasoning-trace`) is invisible to rule 1. That is the
-# deliberate trade — a drift guard that cries wolf gets ignored, and prose is
-# where the wolves were. Rule 1 catches the case that matters most anyway: a
-# skill shipping RUNNABLE code against the scaffold without saying so.
-#
-# Rule 2 is deliberately asymmetric to rule 1: it acquits on a mention
-# ANYWHERE in the skill (prose, comments, any file type), because the question
-# it asks is the opposite one — not "is this required?" but "is there any trace
-# of this at all?". A declaration naming something the skill never once
-# mentions is dead text by any reading.
-#
-# Calibration over the shipped corpus (87 skill dirs, 15 declaring): rule 1 = 0
-# findings, rule 2 = 0 findings, rule 3 = 1 finding (`iterative-peak-merging`
-# declares `01_scripts/...`, which the toolkit does not scaffold). Zero on
-# rules 1/2 is the CORRECT reading of a corpus audited days earlier, not a
-# broken check — the mutation tests in tests/test_lint_skill_coupling.sh pin
-# both directions.
-
-# Path roots `sciagent new project --type analysis` actually creates: the
-# `00_data/... 02_analysis/... 03_results/...` list in new.sh's _new_project
-# plus the `docs/` tree it scaffolds alongside. `01_modules/` is created too
-# but is deliberately ABSENT here — docs/packaged-skills.md §6 forbids filing a
-# sibling submodule under `sciagent-scaffold` ("SciAgent does not ship it, and
-# the declaration would be a lie"), so a `01_modules/` item earns its own
-# use-external-module message below rather than passing as a scaffold root.
-_VCHECK_SCAFFOLD_ROOTS=(00_data 02_analysis 03_results docs)
-
-# Evidence regexes, one per flavour. Anchored with a leading
-# `(^|[^A-Za-z0-9_./-])` so an ABSOLUTE foreign path (`/data2/users/.../
-# 02_analysis/config/`) does not read as a repo-root-relative requirement —
-# those appear in the corpus and are provenance, not coupling.
-_VCHECK_COUPLE_RE_SCAFFOLD='(^|[^A-Za-z0-9_./-])(00_data|02_analysis|03_results|docs/_internal)/'
-# The two directories symlink_create_helper_lib mounts into 02_analysis/helpers/
-# (symlinks.sh's literal `for libdir in figure-style interactive-style`), by
-# their mounted shim spelling, plus the figure-style contract entry points a
-# skill can only call if that shim is present.
-_VCHECK_COUPLE_RE_TOOLKIT='(figure_style|interactive_style|project_theme\(|set_paper_style\(|save_figure\(|save_overview\()'
-
-# _vcheck_skill_code_files <skilldir>
-# Emit every CODE file under a skill, one per line. `.md` is excluded by
-# construction (see the header: prose is not evidence). Build/venv residue is
-# pruned — skills/mllmcelltype-consensus-annotation/.venv alone is 171MB.
-_vcheck_skill_code_files() {
-    local d="$1"
-    find "$d" \
-        \( -name '.venv' -o -name '__pycache__' -o -name 'node_modules' -o -name '.git' \) -prune -o \
-        -type f \( -name '*.R' -o -name '*.r' -o -name '*.py' -o -name '*.sh' \
-                   -o -name '*.bash' -o -name '*.js' -o -name '*.yaml' -o -name '*.yml' \) \
-        -print 2>/dev/null | sort
-}
-
-# _vcheck_skill_evidence <skilldir> <ere>
-# Echo `<file>:<line>` for the FIRST non-comment code line matching <ere>;
-# return 1 when there is none. A line whose first non-blank characters are `#`
-# (R/Python/shell/YAML) or `//` (JS) is skipped — see the header block.
-# Known, accepted blind spot: a `#` inside a string literal, and Python
-# docstrings, are not distinguished from real code (the same approximation
-# _vcheck_stage_scan_defs and _lint_check_comment_intent already make).
-_vcheck_skill_evidence() {
-    local d="$1" ere="$2"
-    local -a files=()
-    local f
-    while IFS= read -r f; do files+=("$f"); done < <(_vcheck_skill_code_files "$d")
-    [[ ${#files[@]} -gt 0 ]] || return 1
-    local hit
-    hit=$(awk -v pat="$ere" '
-        /^[ \t]*(#|\/\/)/ { next }
-        $0 ~ pat { printf "%s:%d\n", FILENAME, FNR; exit }
-    ' "${files[@]}" 2>/dev/null)
-    [[ -n "$hit" ]] || return 1
-    printf '%s' "$hit"
-    return 0
-}
-
-# _vcheck_skill_dirrefs <skilldir> <prefix-ere>
-# Echo `<name>|<file>:<line>` for every non-comment code line referencing
-# `<prefix>/<name>/`, where <prefix-ere> is an alternation like `skills|\.\.`.
-# The caller decides which names are meaningful (an existing sibling skill, an
-# existing 01_modules entry) — this only harvests candidates. That split is why
-# `skill-creator`'s `python utils/package_skill.py skills/public/my-skill` usage
-# string is silent: `public` is not a skill directory, so the caller drops it.
-_vcheck_skill_dirrefs() {
-    local d="$1" prefix="$2"
-    local -a files=()
-    local f
-    while IFS= read -r f; do files+=("$f"); done < <(_vcheck_skill_code_files "$d")
-    [[ ${#files[@]} -gt 0 ]] || return 0
-    awk -v pfx="$prefix" '
-        /^[ \t]*(#|\/\/)/ { next }
-        {
-            line = $0
-            re = "(" pfx ")/[A-Za-z0-9][A-Za-z0-9._-]*/"
-            while (match(line, re)) {
-                tok = substr(line, RSTART, RLENGTH)
-                sub("^[^/]*/", "", tok)     # drop the prefix
-                sub("/$", "", tok)          # drop the trailing slash
-                if (!(tok in seen)) {
-                    seen[tok] = 1
-                    printf "%s|%s:%d\n", tok, FILENAME, FNR
-                }
-                line = substr(line, RSTART + RLENGTH)
-            }
-        }
-    ' "${files[@]}" 2>/dev/null
-    return 0
-}
-
-# _vcheck_compat_items <skill_md>
-# Echo `<flavour><TAB><item>` for each declared item; nothing when the skill
-# declares no `compatibility:`.
-#
-# This parses LENIENTLY and on purpose: grammar enforcement belongs to
-# `sciagent validate` (`_validate_compat_parse`), which this file must not
-# depend on — validate.sh depends on lint.sh, not the reverse, and inverting
-# that would create the one source-time cycle bin/sciagent's load graph is
-# built to make impossible. A malformed declaration is validate's finding; here
-# it simply yields whatever splits cleanly, so the drift guard never
-# double-reports a grammar defect in different words.
-_vcheck_compat_items() {
-    local skill_md="$1" fm val
-    fm=$(_fm_extract "$skill_md")
-    printf '%s\n' "$fm" | grep -q '^compatibility:' || return 0
-    val=$(_fm_scalar compatibility <<< "$fm")
-    [[ -n "$val" ]] || return 0
-    printf '%s\n' "$val" | awk '
-        {
-            nc = split($0, cl, ";")
-            for (i = 1; i <= nc; i++) {
-                c = cl[i]
-                sub(/^[ \t]+/, "", c); sub(/[ \t]+$/, "", c)
-                p = index(c, ":")
-                if (p == 0) continue
-                fl = substr(c, 1, p - 1)
-                it = substr(c, p + 1)
-                ni = split(it, items, ",")
-                for (j = 1; j <= ni; j++) {
-                    x = items[j]
-                    sub(/^[ \t]+/, "", x); sub(/[ \t]+$/, "", x)
-                    if (x != "") printf "%s\t%s\n", fl, x
-                }
-            }
-        }'
-    return 0
-}
-
-# _vcheck_skill_mentions <skilldir> <needle>...
-# True (0) when any <needle> appears as a literal substring anywhere under the
-# skill — ANY file type, comments and prose included (see the header: rule 2
-# acquits broadly by design). The declaration line itself is excluded, since a
-# clause corroborating only itself is precisely the dead text being looked for.
-# `grep -I` skips binaries (.pyc, .sam fixtures).
-_vcheck_skill_mentions() {
-    local d="$1"; shift
-    local -a pats=()
-    local n
-    for n in "$@"; do pats+=(-e "$n"); done
-    grep -rIF "${pats[@]}" "$d" \
-        --exclude-dir='.venv' --exclude-dir='__pycache__' --exclude-dir='node_modules' \
-        2>/dev/null | grep -qv '/SKILL\.md:compatibility:'
-}
-
-# _vcheck_compat_has_flavour <want> [<flavour>...]
-# True (0) when <want> is among the declared flavours.
-_vcheck_compat_has_flavour() {
-    local want="$1"; shift
-    local f
-    for f in "$@"; do
-        [[ "$f" == "$want" ]] && return 0
-    done
-    return 1
-}
-
-# _lint_check_skill_coupling <projdir-IGNORED> <strict-IGNORED> <quiet>
-_lint_check_skill_coupling() {
-    local quiet="$3"
-    local tk_root
-    tk_root="$(_vcheck_toolkit_root)"
-    [[ -d "$tk_root/skills" ]] || return 0
-
-    local d skill skill_md rel
-    for d in "$tk_root"/skills/*/; do
-        [[ -d "$d" ]] || continue
-        skill="$(basename "$d")"
-        # `_archive`, `_attic`, `_TEMPLATE` are not shipped skills.
-        case "$skill" in _*) continue ;; esac
-        skill_md="$d/SKILL.md"
-        [[ -f "$skill_md" ]] || continue
-        rel="skills/$skill"
-
-        # --- read the declaration -----------------------------------------
-        local -a decl_flavours=() decl_items=()
-        local fl it
-        while IFS=$'\t' read -r fl it; do
-            [[ -n "$fl" ]] || continue
-            decl_flavours+=("$fl")
-            decl_items+=("$fl$(printf '\t')$it")
-        done < <(_vcheck_compat_items "$skill_md")
-
-        # --- rule 1: undeclared coupling ----------------------------------
-        local hit
-        if ! _vcheck_compat_has_flavour sciagent-scaffold ${decl_flavours[@]+"${decl_flavours[@]}"}; then
-            if hit=$(_vcheck_skill_evidence "$d" "$_VCHECK_COUPLE_RE_SCAFFOLD"); then
-                _vcheck_emit 0 "$quiet" skill-coupling \
-                    "$skill: undeclared sciagent-scaffold coupling — ${hit#$tk_root/} references the analysis-repo layout, but SKILL.md declares no 'sciagent-scaffold:' clause"
-            fi
-        fi
-        if ! _vcheck_compat_has_flavour sciagent-toolkit ${decl_flavours[@]+"${decl_flavours[@]}"}; then
-            if hit=$(_vcheck_skill_evidence "$d" "$_VCHECK_COUPLE_RE_TOOLKIT"); then
-                _vcheck_emit 0 "$quiet" skill-coupling \
-                    "$skill: undeclared sciagent-toolkit coupling — ${hit#$tk_root/} uses a helper the toolkit mounts (figure-style/interactive-style), but SKILL.md declares no 'sciagent-toolkit:' clause"
-            fi
-        fi
-        local ref name where
-        if ! _vcheck_compat_has_flavour sibling-skill ${decl_flavours[@]+"${decl_flavours[@]}"}; then
-            while IFS= read -r ref; do
-                [[ -n "$ref" ]] || continue
-                name="${ref%%|*}"; where="${ref#*|}"
-                [[ "$name" == "$skill" ]] && continue
-                [[ -f "$tk_root/skills/$name/SKILL.md" ]] || continue
-                _vcheck_emit 0 "$quiet" skill-coupling \
-                    "$skill: undeclared sibling-skill coupling — ${where#$tk_root/} reaches into skills/$name/, but SKILL.md declares no 'sibling-skill:' clause"
-            done < <(_vcheck_skill_dirrefs "$d" 'skills|\.\.')
-        fi
-        if ! _vcheck_compat_has_flavour external-module ${decl_flavours[@]+"${decl_flavours[@]}"}; then
-            while IFS= read -r ref; do
-                [[ -n "$ref" ]] || continue
-                name="${ref%%|*}"; where="${ref#*|}"
-                _vcheck_emit 0 "$quiet" skill-coupling \
-                    "$skill: undeclared external-module coupling — ${where#$tk_root/} reads 01_modules/$name, but SKILL.md declares no 'external-module:' clause"
-            done < <(_vcheck_skill_dirrefs "$d" '01_modules')
-        fi
-
-        # --- rules 2 and 3: per declared item ------------------------------
-        local pair item root
-        for pair in ${decl_items[@]+"${decl_items[@]}"}; do
-            fl="${pair%%$'\t'*}"
-            item="${pair#*$'\t'}"
-
-            # rule 3: scaffold item outside the scaffolded roots.
-            if [[ "$fl" == "sciagent-scaffold" ]]; then
-                root="${item%%/*}"
-                if [[ "$root" == "01_modules" ]]; then
-                    _vcheck_emit 0 "$quiet" skill-coupling \
-                        "$skill: sciagent-scaffold '$item' names a sibling submodule — SciAgent does not ship it; declare it as 'external-module' (docs/packaged-skills.md §6)"
-                else
-                    local known=0 r
-                    for r in "${_VCHECK_SCAFFOLD_ROOTS[@]}"; do
-                        [[ "$root" == "$r" ]] && { known=1; break; }
-                    done
-                    if [[ "$known" -eq 0 ]]; then
-                        _vcheck_emit 0 "$quiet" skill-coupling \
-                            "$skill: sciagent-scaffold '$item' is rooted at '$root/', which 'sciagent new project --type analysis' does not create — if the path is project-local, 'external-module' is truer"
-                    fi
-                fi
-            fi
-
-            # rule 2: the declared item is mentioned nowhere in the skill.
-            # Three spellings are accepted, each for a corpus reason:
-            #   * the item with any trailing '/' dropped, so a directory item
-            #     matches a mention that omits it;
-            #   * for `sciagent-toolkit`, the mounted underscore spelling —
-            #     lib/figure-style arrives as 02_analysis/helpers/figure_style.R;
-            #   * for a file item, the extension-less stem. `figure-style`
-            #     documents its two shims as `02_analysis/helpers/
-            #     figure_style.{R,py}` in brace shorthand, which no literal
-            #     search for the `.py` member can ever match. Without this the
-            #     check's very first run reported a stale declaration that is
-            #     plainly documented one line below it.
-            local needle alt stem
-            needle="${item%/}"
-            alt="$needle"
-            [[ "$fl" == "sciagent-toolkit" ]] && alt="${needle//-/_}"
-            stem="$needle"
-            [[ "$(basename "$needle")" == *.* ]] && stem="${needle%.*}"
-            if ! _vcheck_skill_mentions "$d" "$needle" "$alt" "$stem"; then
-                _vcheck_emit 0 "$quiet" skill-coupling \
-                    "$skill: stale declaration '$fl: $item' — '$needle' appears nowhere under $rel/ outside the declaration itself"
-            fi
-        done
-    done
-
-    # Never returns non-zero: this check must not be able to block anything,
-    # including under --strict. See the header block.
-    return 0
 }

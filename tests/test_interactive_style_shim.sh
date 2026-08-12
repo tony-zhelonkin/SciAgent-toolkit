@@ -16,7 +16,6 @@
 #       than degrading to silent stubs — a deliberate divergence from
 #       figure_style.py, whose stubs are safe because a mis-styled figure is
 #       still a figure, while a stubbed explorer persists nothing.
-#   (e) the skill's `compatibility:` declares the shim as a scaffold dependency.
 #
 # (c)/(d) skip gracefully when pyyaml is absent (interactive_helpers' only hard dep).
 set -u
@@ -49,13 +48,6 @@ PROJ="$TMPDIR_TEST/ana"
 assert_file_exists "$PROJ/$REL" \
     "new project did not materialize $REL (template present but never rendered)"
 assert_file_eq "$PROJ/$REL" "$TPL" "rendered shim differs from its template"
-
-# ---------------------------------------------------------------------------
-# (e) the skill declares the shim in `compatibility:`
-# ---------------------------------------------------------------------------
-assert_grep "^compatibility:.*02_analysis/helpers/interactive_style\.py" \
-    "$TOOLKIT_ROOT/skills/interactive-breakpoint-explorer/SKILL.md" \
-    "interactive-breakpoint-explorer must declare the shim it imports"
 
 # ---------------------------------------------------------------------------
 # (c)/(d) import behaviour — needs pyyaml (interactive_helpers' only hard dep)

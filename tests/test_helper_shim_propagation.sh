@@ -8,10 +8,10 @@
 # materialized exclusively by new.sh's generic template walk, which runs at
 # scaffold time and never again. `sciagent activate` created the two HYPHENATED
 # contract-lib mounts (02_analysis/helpers/{figure-style,interactive-style}) and
-# no importable module beside them, so every skill whose `compatibility:`
-# declaration names a shim path — figure-style, interactive-breakpoint-explorer,
-# decision-gate-notebook — was satisfiable only in a brand-new repo. Third
-# instance of one blind spot, after the hook bodies and the status line.
+# no importable module beside them, so figure-style,
+# interactive-breakpoint-explorer, and decision-gate-notebook were satisfiable
+# only in a brand-new repo. Third instance of one blind spot, after the hook
+# bodies and the status line.
 #
 # The fix reuses the ownership discipline in lib/sciagent/ownership.sh (moved
 # there out of claude_settings.sh, because an R helper is not a Claude artifact):

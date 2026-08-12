@@ -2,7 +2,6 @@
 name: bulk-rnaseq-activity-inference
 description: "DecoupleR activity inference from bulk RNA-seq DE results — transcription-factor activities (ULM + CollecTRI) and pathway activities (MLM + PROGENy, 14 canonical pathways), plus barplots, volcanos, and target-gene scatters. Use when scoring TF or pathway activity from limma/edgeR output. For MSigDB gene-set enrichment use bulk-rnaseq-gsea."
 license: MIT
-compatibility: "sciagent-scaffold: 02_analysis/config/config.R, 02_analysis/config/color_config.R, 03_results/checkpoints/, 03_results/tables/, 03_results/plots/"
 ---
 
 # Bulk RNA-seq Activity Inference (DecoupleR)

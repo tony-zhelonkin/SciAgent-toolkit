@@ -2,7 +2,6 @@
 name: annotate-bulk-rnaseq-data
 description: "Router for annotating bulk RNA-seq featureCounts matrices before edgeR/limma DE — gene-symbol annotation via Ensembl/biomaRt, and transposable-element IDs parsed into Subfamily:Family:Class. R-based; annotate before filtering. For upstream STAR/featureCounts TE prep use star-te-preprocessing; for single-cell matrices use single-cell-rna-qc."
 license: MIT
-compatibility: "sciagent-scaffold: 00_data/metadata/, 00_data/processed/, 02_analysis/config/analysis_config.yaml, 03_results/annotated_outputs/; external-module: RNAseq-toolkit, TE-RNAseq-toolkit"
 ---
 
 # Annotate RNAseq Data (Genes + TEs)
@@ -65,7 +64,7 @@ If TE rows were counted stranded with a sense/antisense split upstream (`--te-st
 
 ---
 
-## Resources
+## Prerequisites
 
 - **Gene path detail:** `references/gene-annotation.md`
 - **TE path detail:** `references/te-annotation.md`

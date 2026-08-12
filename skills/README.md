@@ -398,7 +398,7 @@ The template ships with `name: SKILL_IDENTIFIER` as a placeholder. That value in
 ### 2. Fill the SKILL.md frontmatter
 
 The **canonical Claude Code skill schema** allows these top-level keys:
-`name`, `description`, `license`, `allowed-tools`, `compatibility` (plus
+`name`, `description`, `license`, `allowed-tools` (plus
 `metadata`, per the upstream schema — but SciAgent-toolkit does not populate
 it; there is no taxonomy nested under it here). Anything outside that set
 causes canonical validators (e.g. `skill-creator/scripts/quick_validate.py`,
@@ -420,41 +420,10 @@ Required (top-level):
 Optional (top-level):
 - `license` — e.g. `MIT`
 - `allowed-tools` — per the upstream Claude Code schema
-- `compatibility` — per the upstream Claude Code schema (NOT the Agent Skills
-  spec: the reference client requires only `name` + `description` and ignores
-  this key). SciAgent gives it a **grammar** and `sciagent validate`
-  **hard-fails** a malformed or unresolvable one. Omit it unless the skill
-  genuinely breaks outside a SciAgent analysis repo — 68 of 83 skills carry
-  no declaration, and a false one is as wrong as a missing one.
 
-  Quoted scalar, ≤500 chars, placed after `license:`. Clauses joined by
-  `"; "`, items by `", "`:
-
-  ```yaml
-  compatibility: "sciagent-toolkit: figure-style; sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 03_results/"
-  ```
-
-  | Flavour | Item | Validated against |
-  |---|---|---|
-  | `sciagent-scaffold` | repo-root-relative path into the analysis-repo layout; trailing `/` = directory | shape only (relative, no `..`) — the project is absent at validate time |
-  | `sciagent-toolkit` | bare dir name under the toolkit's `lib/` (only `figure-style`, `interactive-style` exist) | must exist in this checkout |
-  | `sibling-skill` | bare dir name under `skills/` | must exist in this checkout |
-  | `external-module` | a submodule/package the toolkit does NOT ship (`RNAseq-toolkit`, `pathway-explorer`, …) | nothing — unverifiable by design |
-
-  Full grammar, rationale, and the rule against filing another `01_modules/`
-  submodule as `sciagent-scaffold`: `docs/packaged-skills.md` §6.
-
-  `sciagent validate` only checks that a declaration is well-formed. To check
-  whether it is still **true** of the skill's content, run the drift guard:
-
-  ```bash
-  sciagent lint --check skill-coupling
-  ```
-
-  Warn-only, never blocking, and not part of `lint`'s default sweep. It reads
-  code files only (never `.md`, never comment lines), so a path you merely
-  *cite* — a provenance header, a doc example — is not mistaken for a
-  dependency.
+Runtime requirements, companion skills, and project-layout assumptions belong
+in the body under `## Prerequisites`. Put alternatives under `## When not to
+use` and related skills under `## See also`.
 
 **Canonical frontmatter example:**
 

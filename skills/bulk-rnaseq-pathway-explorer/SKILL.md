@@ -2,7 +2,6 @@
 name: bulk-rnaseq-pathway-explorer
 description: "Generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy master tables: pathways embedded on a UMAP-of-gene-sets with Jaccard neighbour edges, per-pathway running-sum plots, and database filters. Use when turning master_unified.csv into a shareable .html. For running GSEA itself use bulk-rnaseq-gsea."
 license: MIT
-compatibility: "sciagent-scaffold: 03_results/tables/master_unified.csv, 03_results/interactive/; external-module: pathway-explorer"
 ---
 
 # Pathway Explorer — Interactive Cross-Entity Pathway Dashboards
@@ -48,6 +47,13 @@ Need an interactive pathway view?
 └─ Custom data path or output location?
     → `--data <csv> --output <html>`
 ```
+
+---
+
+## Prerequisites
+
+Install the `pathway-explorer` Python module at v2.0.0. Run from a project with
+`03_results/tables/master_unified.csv`; dashboards are written under `03_results/interactive/`.
 
 ---
 

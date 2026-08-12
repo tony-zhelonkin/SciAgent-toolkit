@@ -46,7 +46,7 @@ sciagent-toolkit/
 │                             #   seam (contract-lib mounts and their shim modules)
 ├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format);
 │                             #   allowed top-level keys: name, description, license,
-│                             #   allowed-tools, compatibility — no `metadata:` block in use
+│                             #   allowed-tools — no `metadata:` block in use
 ├── skills/_attic/<name>/     # retired skills — reference-only, off the resolver path (see docs/skill-lifecycle.md)
 ├── agents/<name>.md          # canonical sub-agents (Claude format)
 ├── commands/<name>.md        # canonical slash commands (Claude format)

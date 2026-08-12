@@ -3,7 +3,7 @@
 # CANONICAL SKILL FRONTMATTER (SciAgent-toolkit conventions)
 # =============================================================================
 # Allowed top-level keys (Claude Code / Desktop skill loader schema):
-#   name, description, license, allowed-tools, compatibility
+#   name, description, license, allowed-tools
 # Any other top-level key fails the validator. Cross-references and caveats go
 # in the body, not the frontmatter: `## Prerequisites`, `## When not to use`,
 # `## See also`.
