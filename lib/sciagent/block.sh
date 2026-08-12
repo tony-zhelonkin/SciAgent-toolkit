@@ -22,7 +22,8 @@
 # Exit conventions:
 #   block_read         0=ok, 1=no markers, 2=one marker only
 #   block_hash_check   0=match, 1=no block, 2=corrupted, 3=drift
-#   block_write/remove always 0 unless I/O fails
+#   block_write        0=written, 1=I/O error or unsupported marker version
+#   block_remove       always 0 unless I/O fails
 #   any public function with a missing/empty id: returns 4, prints to stderr
 #
 # rc=4 is its own code, distinct from every function's own rc=1 ("no block" /
@@ -34,11 +35,22 @@
 
 # shellcheck shell=bash
 
-# Marker-string helpers. Both functions live ONLY in block.sh so the
+# Marker-string helpers. These functions live ONLY in block.sh so the
 # "managed-block framing must not leak" invariant (test_block_marker_boundary)
 # is maintained. Callers outside block.sh always go through the public API.
+# Readers locate every v<digits> marker version. The writer emits and rewrites
+# v1. block_write returns 1 for any other existing version and leaves the file
+# untouched.
 _block_begin_prefix() {
-    # Emit the fixed portion of the BEGIN marker for a given block id.
+    # Emit the complete ERE prefix used to locate any numeric version.
+    # Format: ^<!-- BEGIN SCIAGENT:<id> v[[:digit:]]+ hash=
+    local id="${1:-ROLES}"
+    id=$(printf '%s' "$id" | sed 's/[][\\.^$*+?{}|()]/\\&/g')
+    printf '^<!-- BEGIN SCIAGENT:%s v[[:digit:]]+ hash=' "$id"
+}
+
+_block_begin_prefix_v1() {
+    # Emit the byte-stable prefix used for new and rewritten blocks.
     # Format: <!-- BEGIN SCIAGENT:<id> v1 hash=
     local id="${1:-ROLES}"
     printf '<!-- BEGIN SCIAGENT:%s v1 hash=' "$id"
@@ -130,15 +142,34 @@ _count_lines() {
     echo "$n"
 }
 
+_count_pattern_lines() {
+    local pat="$1" file="$2"
+    if [[ ! -f "$file" ]]; then
+        echo 0
+        return
+    fi
+    local n
+    n=$(grep -cE -- "$pat" "$file" 2>/dev/null) || n=0
+    echo "$n"
+}
+
+_block_begin_version() {
+    local id="$1" file="$2"
+    local beg_pattern
+    beg_pattern=$(_block_begin_prefix "$id")
+    grep -E -- "$beg_pattern" "$file" 2>/dev/null | head -n1 \
+        | sed -E 's/.* v([[:digit:]]+) hash=.*/\1/'
+}
+
 block_read() {
     local file="$1"
     local id="${2:-}"
     _block_require_id "$id" "block_read" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_prefix end_marker has_begin has_end
-    beg_prefix=$(_block_begin_prefix "$id")
+    local beg_pattern end_marker has_begin has_end
+    beg_pattern=$(_block_begin_prefix "$id")
     end_marker=$(_block_end_marker "$id")
-    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
     has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
@@ -146,8 +177,8 @@ block_read() {
     if (( has_begin == 0 || has_end == 0 )); then
         return 2
     fi
-    awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" '
-        index($0, BEG) == 1 { inblock=1; next }
+    awk -v BEG="$beg_pattern" -v END_MARK="$end_marker" '
+        $0 ~ BEG          { inblock=1; next }
         $0 == END_MARK     { inblock=0; next }
         inblock { print }
     ' "$file"
@@ -162,13 +193,17 @@ block_stored_hash() {
     local file="$1"
     local id="${2:-}"
     _block_require_id "$id" "block_stored_hash" || return 4
-    local beg_prefix end_marker
-    beg_prefix=$(_block_begin_prefix "$id")
-    end_marker=$(_block_end_marker "$id")
-    # Strip prefix and trailing " -->" from the BEGIN line.
-    grep -F -- "$beg_prefix" "$file" 2>/dev/null \
-        | head -n1 \
-        | sed -e "s|^$beg_prefix||" -e 's| -->$||'
+    local beg_pattern
+    beg_pattern=$(_block_begin_prefix "$id")
+    awk -v BEG="$beg_pattern" '
+        $0 ~ BEG {
+            line=$0
+            sub(BEG, "", line)
+            sub(/ -->$/, "", line)
+            print line
+            exit
+        }
+    ' "$file" 2>/dev/null
 }
 
 # block_line_range <file> <id>
@@ -180,12 +215,12 @@ block_line_range() {
     local id="${2:-}"
     _block_require_id "$id" "block_line_range" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_prefix end_marker
-    beg_prefix=$(_block_begin_prefix "$id")
+    local beg_pattern end_marker
+    beg_pattern=$(_block_begin_prefix "$id")
     end_marker=$(_block_end_marker "$id")
-    grep -qF -- "$beg_prefix" "$file" 2>/dev/null || return 1
+    grep -qE -- "$beg_pattern" "$file" 2>/dev/null || return 1
     local lb le
-    lb=$(grep -nF -- "$beg_prefix" "$file" | head -n1 | cut -d: -f1)
+    lb=$(grep -nE -- "$beg_pattern" "$file" | head -n1 | cut -d: -f1)
     le=$(grep -nF -- "$end_marker" "$file" | head -n1 | cut -d: -f1)
     [[ -n "$lb" && -n "$le" ]] || return 1
     printf '%s %s\n' "$lb" "$le"
@@ -196,10 +231,10 @@ block_hash_check() {
     local id="${2:-}"
     _block_require_id "$id" "block_hash_check" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_prefix end_marker has_begin has_end
-    beg_prefix=$(_block_begin_prefix "$id")
+    local beg_pattern end_marker has_begin has_end
+    beg_pattern=$(_block_begin_prefix "$id")
     end_marker=$(_block_end_marker "$id")
-    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
     has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
@@ -230,10 +265,11 @@ block_write() {
     [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | _sha1)
-    local beg_prefix end_marker
-    beg_prefix=$(_block_begin_prefix "$id")
+    local beg_pattern write_beg_prefix end_marker
+    beg_pattern=$(_block_begin_prefix "$id")
+    write_beg_prefix=$(_block_begin_prefix_v1 "$id")
     end_marker=$(_block_end_marker "$id")
-    local begin="${beg_prefix}${hash} -->"
+    local begin="${write_beg_prefix}${hash} -->"
 
     if [[ ! -f "$file" ]]; then
         # `|| return 1` is load-bearing. This branch used to `return 0`
@@ -250,12 +286,18 @@ block_write() {
     fi
 
     local has_begin has_end
-    has_begin=$(_count_lines "$beg_prefix" "$file")
+    has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
     has_end=$(_count_lines "$end_marker" "$file")
     if (( has_begin > 0 && has_end > 0 )); then
+        local version
+        version=$(_block_begin_version "$id" "$file")
+        if [[ "$version" != "1" ]]; then
+            echo "block_write: unsupported SCIAGENT:$id marker version v$version" >&2
+            return 1
+        fi
         local tmp
         tmp=$(mktemp)
-        awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" \
+        awk -v BEG="$write_beg_prefix" -v END_MARK="$end_marker" \
             -v NEWBEG="$begin" -v BODY="$body" '
             BEGIN { state=0 }
             state==0 && index($0, BEG) == 1 {
@@ -292,19 +334,19 @@ block_remove() {
     local id="${2:-}"
     _block_require_id "$id" "block_remove" || return 4
     [[ -f "$file" ]] || return 0
-    local beg_prefix end_marker
-    beg_prefix=$(_block_begin_prefix "$id")
+    local beg_pattern end_marker
+    beg_pattern=$(_block_begin_prefix "$id")
     end_marker=$(_block_end_marker "$id")
-    grep -qF -- "$beg_prefix" "$file" || return 0
+    grep -qE -- "$beg_pattern" "$file" || return 0
     local tmp
     tmp=$(mktemp)
-    awk -v BEG="$beg_prefix" -v END_MARK="$end_marker" '
+    awk -v BEG="$beg_pattern" -v END_MARK="$end_marker" '
         {
             lines[NR] = $0
         }
         END {
             for (i=1; i<=NR; i++) {
-                if (index(lines[i], BEG) == 1) begin_n=i
+                if (lines[i] ~ BEG) begin_n=i
                 if (lines[i] == END_MARK)      { end_n=i; break }
             }
             if (!begin_n || !end_n) {
