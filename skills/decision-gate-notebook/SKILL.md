@@ -2,6 +2,7 @@
 name: decision-gate-notebook
 description: "House pattern for a human-in-the-loop gate at a pipeline inflection point: a read-only Quarto/R notebook re-plots what a stage just wrote, surfaces the numbers behind N explicit calls, and records the verdict in analysis_config.yaml so the next stage refuses to run until APPROVED. For the live-kernel variant see interactive-breakpoint-explorer."
 license: MIT
+compatibility: "sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 02_analysis/helpers/figure_style.R, 02_analysis/notebooks/, 03_results/"
 ---
 
 # Decision-Gate Review Notebook

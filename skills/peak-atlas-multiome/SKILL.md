@@ -2,6 +2,7 @@
 name: peak-atlas-multiome
 description: "Consensus scATAC peak atlas from true 10x Multiome (paired RNA+ATAC, same cells): peaks per RNA/ATAC/WNN/cell-type grouping, pseudo-replicate reproducibility, four-way vote, then Primary+Rescue quantify-and-prune protecting rare populations. Use when RNA+ATAC are paired. For unpaired data use peak-atlas-unpaired; builds on peak-atlas-framework."
 license: MIT
+compatibility: "sibling-skill: peak-atlas-framework"
 ---
 
 # Peak Atlas from True 10x Multiome (paired RNA + ATAC)

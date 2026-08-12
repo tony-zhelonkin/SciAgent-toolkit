@@ -2,6 +2,7 @@
 name: consensus-nmf-multirun
 description: "Multi-run consensus cNMF for robust gene-program discovery on a single scRNA-seq dataset: runs across obs subsets and QC variants, merges correlated programs, classifies them Biological/Technical/CellCycle, and annotates via g:Profiler. Use when one dataset has factorial conditions. For per-sample NMF use genenmf-metaprogram-discovery."
 license: MIT
+compatibility: "sciagent-scaffold: 03_results/checkpoints/, 03_results/cnmf/, 03_results/tables/, 03_results/plots/"
 ---
 
 # Consensus cNMF — multi-run program discovery

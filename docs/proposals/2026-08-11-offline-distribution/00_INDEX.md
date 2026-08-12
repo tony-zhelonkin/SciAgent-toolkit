@@ -141,6 +141,38 @@ not toolkit code — which is exactly what D6 already proposes. Single-skill exp
 coupling at all: `packaged-skills.md` contract #3 *requires* the launcher to dereference its own
 `BASH_SOURCE` precisely so it survives being symlinked. Flagged by the pattern, correct by design.
 
+> **Superseded 2026-08-11 by the semantic audit — the two-flavour table above is wrong in three
+> ways.** It is kept because this file deliberately preserves corrected claims. What the audit found
+> by reading all 15 skills end-to-end rather than grepping them:
+>
+> 1. **`bulk-rnaseq-gsea` is not toolkit-coupled.** Its "toolkit" is `RNAseq-toolkit`, a *different*
+>    submodule under `01_modules/`. `symlink_create_helper_lib` mounts exactly two directories —
+>    `lib/figure-style` and `lib/interactive-style` (`symlinks.sh:596-604`; the earlier
+>    `symlinks.sh:547-570` citation in the table is also stale) — and `RNAseq-toolkit` is neither.
+>    Filing it under toolkit coupling asserts a dependency on code SciAgent does not ship.
+> 2. **`anndatar-seurat-scanpy-conversion` is not coupled at all.** It is one of six audited false
+>    positives, with `mllmcelltype-consensus-annotation` (already suspected just above),
+>    `peak-atlas-framework`, `peak-atlas-unpaired`, `coresh-signature-search`, and
+>    `scrna-pipeline-conventions`. They *mention* the layout; they do not *require* it. None of the
+>    six carries a `compatibility:` declaration.
+> 3. **Two flavours are not enough, and the set is not these 15.** The shipped vocabulary is four:
+>    `sciagent-toolkit` (**2** skills — `figure-style`, `interactive-breakpoint-explorer`; that is
+>    the ceiling, by the loop body cited above), `sciagent-scaffold`, `sibling-skill`
+>    (`peak-atlas-multiome` → `peak-atlas-framework`, which the table above mis-filed as scaffold
+>    coupling), and `external-module` (4 skills, for `RNAseq-toolkit` / `TE-RNAseq-toolkit` /
+>    `pathway-explorer`). Six skills this scan never flagged are genuinely coupled:
+>    `cellranger-multi-to-anndata`, `consensus-nmf-multirun`, `scrna-cxg-host`,
+>    `bulk-rnaseq-pathway-explorer`, `iterative-peak-merging`, `delegate-cli`.
+>
+> Net: still 15 skills declaring `compatibility:`, but only 9 of them appear in the list above. The
+> corrected breakdown is in `50_ADRs.md` ADR-D6; the grammar is in `docs/packaged-skills.md`;
+> `sciagent validate` now hard-fails a malformed or unresolvable declaration.
+>
+> *How it was determined:* each flagged skill was read in full — SKILL.md plus `scripts/`,
+> `references/`, `assets/`, `checks/` — and its requirements derived from what it actually reads and
+> writes at runtime, not from what its prose names. The toolkit-coupling ceiling of 2 was then
+> confirmed against `symlink_create_helper_lib`'s literal `for libdir in ...` loop.
+
 **Correction to ADR-D6's wording:** its phrase "or the toolkit hooks" has **zero** hits. A grep for
 `hooks/*.sh`, `PreToolUse`, `PostToolUse` across all 83 skills returns nothing — no skill references
 the enforcement hooks. The clause describes a coupling that does not exist in the corpus.

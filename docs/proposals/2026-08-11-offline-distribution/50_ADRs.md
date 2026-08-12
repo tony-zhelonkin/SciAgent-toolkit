@@ -128,16 +128,57 @@ found 7 more that the original pattern set missed. Note also that this ADR origi
 toolkit hooks": that clause has **zero** hits — no skill in the corpus references the enforcement
 hooks at all.
 
-**Decision.** Do not curate a public subset. The 8 coupled skills use the Agent Skills
-specification's compatibility field to state that they require a SciAgent project scaffold; the
-installer may additionally warn. A semantic audit of the 15 is still owed and is cheap. Most of them
-need a **scaffold**-compatibility declaration (they want `02_analysis/config|stages|notebooks`, a
-project layout) rather than a **toolkit**-compatibility one (only ~3–4 genuinely need toolkit code at
-runtime) — so the declaration vocabulary needs both, not one.
+**The owed semantic audit — done 2026-08-11, and it moved the set.** The static scan measured
+*mentions*, not *requirements*. Reading all 15 skills end-to-end (SKILL.md plus `scripts/`,
+`references/`, `assets/`, `checks/`) gives a different picture, and the count staying near 15 hides
+that it is a **different set**:
+
+| | count | |
+|---|---|---|
+| flagged by the static scan | 15 | |
+| …of those, genuinely coupled | **8** | 2 need toolkit code, 6 need only the project layout |
+| …of those, false positives | **6** | `anndatar-seurat-scanpy-conversion`, `mllmcelltype-consensus-annotation`, `peak-atlas-framework`, `peak-atlas-unpaired`, `coresh-signature-search`, `scrna-pipeline-conventions` — they *mention* the layout, they do not *require* it |
+| …of those, mis-flagged but coupled elsewhere | **1** | `peak-atlas-multiome` is not scaffold- or toolkit-coupled; it sources `peak-atlas-framework/scripts/` — a **sibling skill** |
+| coupled but never flagged | **6** | `cellranger-multi-to-anndata`, `consensus-nmf-multirun`, `scrna-cxg-host`, `bulk-rnaseq-pathway-explorer`, `iterative-peak-merging`, `delegate-cli` |
+| **declare `compatibility:` today** | **15** | 8 + 1 + 6 — the same size as the flagged set, overlapping it in only 9 places |
+
+Two earlier numbers in this ADR are therefore superseded, and both are kept visible so the error is
+not re-proposed:
+
+* **"The 8 coupled skills"** — the Decision's first-draft wording, already corrected to 15 by this
+  ADR's own Context. Neither number is the audited one: 15 skills carry a declaration, but **6 of
+  the originally flagged 15 carry none** and **6 skills the scan never saw do**.
+* **"only ~3–4 genuinely need toolkit code at runtime"** — a guess. The audited number is **2**:
+  `figure-style` (`lib/figure-style`) and `interactive-breakpoint-explorer` (`lib/interactive-style`).
+  Those are the only two directories `symlink_create_helper_lib` mounts
+  (`symlinks.sh:596-604`, the literal `for libdir in figure-style interactive-style`), so "needs
+  toolkit code" cannot exceed two by construction.
+
+**Two flavours were also not enough.** Four skills depend on `RNAseq-toolkit`,
+`TE-RNAseq-toolkit`, or `pathway-explorer` — sibling submodules under `01_modules/` that are neither
+the SciAgent scaffold nor SciAgent toolkit code. Filing them under `sciagent-scaffold` would make
+the declaration a lie, and `peak-atlas-multiome` would have nothing truthful to say at all. The
+shipped vocabulary is therefore four flavours: `sciagent-scaffold`, `sciagent-toolkit`,
+`sibling-skill`, `external-module` (grammar in `docs/packaged-skills.md`).
+
+**Decision.** Do not curate a public subset. The coupled skills use the **Claude Code SKILL.md
+schema's** `compatibility` field to state what they require; the installer may additionally warn.
+`sciagent validate` now hard-fails a malformed or unresolvable declaration
+(`lib/sciagent/validate.sh`, `tests/test_validate_compatibility.sh`).
+
+*Attribution correction:* this ADR previously credited `compatibility` to "the Agent Skills
+specification". That is **refuted, not merely unverified**. The vendored reference client
+(`sciagent-rna/_ref/skills/`) requires only `name` and `description` and has no knowledge of the
+field — it neither reads nor validates it. `compatibility` is a Claude Code schema key; in this repo
+its only enforcement outside `sciagent validate` is
+`skills/skill-creator/scripts/quick_validate.py:42` (allowed-property set) and `:86-92` (string
+type, 500-char maximum).
 
 **Rationale.** A curated subset creates a second corpus to keep in sync — the same drift tax ADR-D1
 refuses for version strings. Declaring a requirement is self-maintaining; maintaining a hand-picked
-list is not.
+list is not. The audit is the argument for machine-checking the declaration rather than trusting it:
+a static scan produced a set that was 40% wrong in both directions, so a declaration nothing
+verifies would drift the same way.
 
 **Blocks:** nothing. **Reversible:** trivially.
 

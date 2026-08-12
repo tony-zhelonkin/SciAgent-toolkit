@@ -2,6 +2,7 @@
 name: te-geneset-gsea
 description: "TE-aware GSEA — runs clusterProfiler::GSEA on TE subfamily-ranked DE lists using the family/class GMTs produced by annotate-bulk-rnaseq-data (TE path). Use when running GSEA on TE subfamily ranks, where GMT gene_symbol holds subfamily IDs rather than Ensembl symbols. For gene or MSigDB GSEA use bulk-rnaseq-gsea."
 license: MIT
+compatibility: "sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 03_results/objects/, 03_results/master/; external-module: TE-RNAseq-toolkit"
 ---
 
 # TE Geneset GSEA (TE Family/Class GMT)

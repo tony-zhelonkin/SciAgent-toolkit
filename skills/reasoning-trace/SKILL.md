@@ -2,6 +2,7 @@
 name: reasoning-trace
 description: "Persist reasoning and decisions to disk before returning. Use whenever a non-trivial method, parameter, or phase-boundary choice is made; on a surprising result; at a handoff; or anytime a chat summary would be the only record. A decision with no trace is non-reproducible — capture the answer, delete the shell."
 license: MIT
+compatibility: "sciagent-scaffold: docs/_internal/reasoning/, docs/_internal/research/, 02_analysis/stages/, 03_results/"
 ---
 
 # Reasoning-Trace Skill

@@ -2,6 +2,7 @@
 name: figure-style
 description: "The one styling, saving, and captioning contract every viz stage in this repo uses. Use whenever you create, edit, or review a figure under 03_results/. Applies one unified legible style, emits a vector PDF and a raster PNG from a single plot object, and writes the table and caption atomically. Never call ggsave or plt.savefig directly."
 license: MIT
+compatibility: "sciagent-toolkit: figure-style; sciagent-scaffold: 02_analysis/helpers/figure_style.R, 02_analysis/helpers/figure_style.py, 02_analysis/config/analysis_config.yaml, 03_results/"
 ---
 
 # Figure-Style Contract

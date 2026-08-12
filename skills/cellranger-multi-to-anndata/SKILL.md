@@ -2,6 +2,7 @@
 name: cellranger-multi-to-anndata
 description: "Build one pooled AnnData from CellRanger Multi per-sample outputs across N pools, with gene-union concatenation, sample provenance in obs, and biomaRt Ensembl-to-symbol annotation. Use when starting a project from a multi-pool cellranger multi run, to produce the canonical 00_raw.h5ad checkpoint. For 10x Multiome use muon-multimodal-analysis."
 license: MIT
+compatibility: "sciagent-scaffold: 00_data/raw/, 03_results/checkpoints/"
 ---
 
 # CellRanger Multi → AnnData

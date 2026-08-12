@@ -419,7 +419,30 @@ Required (top-level):
 
 Optional (top-level):
 - `license` — e.g. `MIT`
-- `allowed-tools`, `compatibility` — per the upstream Claude Code schema
+- `allowed-tools` — per the upstream Claude Code schema
+- `compatibility` — per the upstream Claude Code schema (NOT the Agent Skills
+  spec: the reference client requires only `name` + `description` and ignores
+  this key). SciAgent gives it a **grammar** and `sciagent validate`
+  **hard-fails** a malformed or unresolvable one. Omit it unless the skill
+  genuinely breaks outside a SciAgent analysis repo — 68 of 83 skills carry
+  no declaration, and a false one is as wrong as a missing one.
+
+  Quoted scalar, ≤500 chars, placed after `license:`. Clauses joined by
+  `"; "`, items by `", "`:
+
+  ```yaml
+  compatibility: "sciagent-toolkit: figure-style; sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 03_results/"
+  ```
+
+  | Flavour | Item | Validated against |
+  |---|---|---|
+  | `sciagent-scaffold` | repo-root-relative path into the analysis-repo layout; trailing `/` = directory | shape only (relative, no `..`) — the project is absent at validate time |
+  | `sciagent-toolkit` | bare dir name under the toolkit's `lib/` (only `figure-style`, `interactive-style` exist) | must exist in this checkout |
+  | `sibling-skill` | bare dir name under `skills/` | must exist in this checkout |
+  | `external-module` | a submodule/package the toolkit does NOT ship (`RNAseq-toolkit`, `pathway-explorer`, …) | nothing — unverifiable by design |
+
+  Full grammar, rationale, and the rule against filing another `01_modules/`
+  submodule as `sciagent-scaffold`: `docs/packaged-skills.md` §6.
 
 **Canonical frontmatter example:**
 
