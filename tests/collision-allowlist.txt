@@ -13,5 +13,4 @@
 #
 # Mutation rule: this file shrinks when an overlap is removed and grows only
 # with a deliberate family-overlap decision. Out-of-tree edits are a smell.
-architect agent,command,role # /architect dispatches @architect; both live under roles/architect.yaml
-architecture-treemap skill,command # /architecture-treemap invokes the architecture-treemap skill
+architect agent,role # The architecture-first-dev router dispatches @architect under the architect role

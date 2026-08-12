@@ -62,7 +62,7 @@ Dispatching. Wait for Verdict.
 
 Use the Agent tool with `subagent_type: "architect"`.
 
-Prompt template (identical to `commands/design.md` Phase 5):
+Prompt template (identical to `skills/architecture-first-dev/references/design.md` Phase 5):
 
 ```
 Review docs/{feature}/design/*.md against docs/{feature}/map.md.
