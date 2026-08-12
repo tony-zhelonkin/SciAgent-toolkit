@@ -2,7 +2,7 @@
 name: interactive-breakpoint-explorer
 description: "The live-kernel house pattern for looking at cells at a pipeline inflection point: a Python Quarto notebook drives linked jscatter panels to brush an embedding, pulls the selection into pandas, and persists barcodes plus a labelled snapshot. Use when a human must eyeball live structure. For the static surface use decision-gate-notebook."
 license: MIT
-compatibility: "sciagent-toolkit: interactive-style; sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 02_analysis/notebooks/, 02_analysis/stages/export_explorers.py, 03_results/interactive/, 03_results/objects/"
+compatibility: "sciagent-toolkit: interactive-style; sciagent-scaffold: 02_analysis/config/analysis_config.yaml, 02_analysis/helpers/interactive_style.py, 02_analysis/notebooks/, 02_analysis/stages/export_explorers.py, 03_results/interactive/, 03_results/objects/"
 ---
 
 # Interactive Breakpoint Explorer
@@ -191,7 +191,7 @@ ls 02_analysis/notebooks/01_qc_explore/eda/*.png
 Load a compact table, drive the grid, extract the selection:
 
 ```python
-from helpers.interactive_style.interactive_helpers import (
+from helpers.interactive_style import (
     load_interactive_config, load_explorer, grid, first_selection, save_selection, snapshot)
 
 config = load_interactive_config()

@@ -27,13 +27,24 @@ from pathlib import Path
 
 # Resolve the compartment root by walking up to the sentinel config, then put 02_analysis on
 # the path so `from helpers...` works whether this is opened from the notebook dir or the root.
-d = Path.cwd().resolve()
-while not (d / "02_analysis/config/analysis_config.yaml").exists():
+# The `d.parent == d` guard is load-bearing: at "/" the parent is "/" again, so without it a
+# missing sentinel spins forever instead of telling you what is wrong.
+SENTINEL = "02_analysis/config/analysis_config.yaml"
+START = Path.cwd().resolve()
+d = START
+while not (d / SENTINEL).exists():
+    if d.parent == d:
+        raise FileNotFoundError(
+            f"compartment root ({SENTINEL}) not found above {START}\n"
+            "  -> open the explorer from inside the compartment tree.")
     d = d.parent
 os.chdir(d)
 sys.path.insert(0, str(d / "02_analysis"))
 
-from helpers.interactive_style.interactive_helpers import (
+# Imports go through the per-project shim 02_analysis/helpers/interactive_style.py (scaffolded
+# by `sciagent new project`); it re-exports the contract lib symlinked at
+# 02_analysis/helpers/interactive-style/ — a hyphenated dir is not an importable package.
+from helpers.interactive_style import (
     load_interactive_config, load_explorer, grid, close_panels,
     first_selection, save_selection, snapshot)
 import jscatter  # noqa: F401  (the live widget backend)

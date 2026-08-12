@@ -25,4 +25,6 @@ fixtures.
 bash tests/run_skill_tests.sh
 # Set PEAK_ATLAS_FRAMEWORK_SCRIPTS if the framework lives elsewhere; the helper
 # defaults it to ../peak-atlas-framework/scripts so sourced primitives resolve.
+# (call_peaks_multistrategy.R resolves the same path relative to its OWN file
+# when the env var is unset, so this is belt-and-braces, not a requirement.)
 ```

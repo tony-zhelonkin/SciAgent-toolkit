@@ -31,16 +31,65 @@ suppressPackageStartupMessages({
 })
 
 # ---- source the framework primitives -----------------------------------------
-# Adjust FRAMEWORK_SCRIPTS to wherever peak-atlas-framework/scripts lives.
-FRAMEWORK_SCRIPTS <- Sys.getenv(
-  "PEAK_ATLAS_FRAMEWORK_SCRIPTS",
-  unset = "../../peak-atlas-framework/scripts"
+# The default is SCRIPT-relative, not cwd-relative. Skills are mounted as sibling
+# directories, so from this file's own dir (<skills>/peak-atlas-multiome/scripts/)
+# `../../peak-atlas-framework/scripts` is always right — whereas resolving it
+# against getwd() is only right if the user happens to have cd'd in here.
+# Override with PEAK_ATLAS_FRAMEWORK_SCRIPTS when the framework lives elsewhere.
+.pam_this_file <- function() {
+  # (a) source()d: the enclosing source() frame binds the path as `ofile`.
+  #     sys.source() binds it as `file` instead, so check that frame by identity.
+  #     Innermost frame first, so nested sourcing yields THIS file, not its caller.
+  for (i in rev(seq_len(sys.nframe()))) {
+    fr <- sys.frame(i)
+    of <- fr$ofile
+    if (is.character(of) && length(of) == 1L && nzchar(of))
+      return(normalizePath(of, mustWork = FALSE))
+    same <- tryCatch(identical(sys.function(i), base::sys.source),
+                     error = function(e) FALSE)
+    if (isTRUE(same) && is.character(fr$file) && length(fr$file) == 1L && nzchar(fr$file))
+      return(normalizePath(fr$file, mustWork = FALSE))
+  }
+  # (b) Rscript / R CMD BATCH: the path is in --file=.
+  hit <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
+  if (length(hit)) return(normalizePath(sub("^--file=", "", hit[1]), mustWork = FALSE))
+  NA_character_                       # (c) pasted into a REPL — fall back to cwd
+}
+.pam_default_framework <- function() {
+  self <- .pam_this_file()
+  base <- if (is.na(self)) getwd() else dirname(self)
+  normalizePath(file.path(base, "..", "..", "peak-atlas-framework", "scripts"),
+                mustWork = FALSE)
+}
+FRAMEWORK_SCRIPTS <- Sys.getenv("PEAK_ATLAS_FRAMEWORK_SCRIPTS",
+                                unset = .pam_default_framework())
+
+# A miss is FATAL, not a warning. Every one of these files defines primitives the
+# functions below call unconditionally, so continuing only defers the failure to a
+# far-away "could not find function clusterGRanges" that names nothing about the
+# real cause. The one legitimate reason to continue — "I already sourced the
+# primitives by hand" — is detected explicitly (the functions are already bound),
+# and the scripted escape hatch is PEAK_ATLAS_FRAMEWORK_SCRIPTS.
+.PAM_FRAMEWORK_PROVIDES <- list(
+  "iterative_overlap.R" = c("clusterGRanges", "convergeClusterGRanges"),
+  "support_voting.R"    = c("calculate_strategy_support", "add_adjusted_score"),
+  "normalize_width.R"   = c("normalize_to_501bp"),
+  "blacklist.R"         = c("load_blacklist", "remove_blacklist_peaks")
 )
-for (f in c("iterative_overlap.R", "support_voting.R",
-            "normalize_width.R", "blacklist.R")) {
+for (f in names(.PAM_FRAMEWORK_PROVIDES)) {
   src <- file.path(FRAMEWORK_SCRIPTS, f)
-  if (file.exists(src)) source(src) else
-    warning("Framework script not found (source it manually): ", src)
+  if (file.exists(src)) {
+    source(src)
+  } else if (all(vapply(.PAM_FRAMEWORK_PROVIDES[[f]],
+                        function(fn) exists(fn, mode = "function"), logical(1)))) {
+    message("peak-atlas-framework/", f, " not found at ", src,
+            " — already-defined primitives found, continuing.")
+  } else {
+    stop("peak-atlas-framework script not found: ", src,
+         "\n  needed for: ", paste(.PAM_FRAMEWORK_PROVIDES[[f]], collapse = ", "),
+         "\n  -> set PEAK_ATLAS_FRAMEWORK_SCRIPTS to the peak-atlas-framework/scripts",
+         " directory, or source those primitives before this file.", call. = FALSE)
+  }
 }
 
 # ==============================================================================

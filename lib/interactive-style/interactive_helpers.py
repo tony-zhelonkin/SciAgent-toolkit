@@ -29,8 +29,12 @@ THE OOM LIFECYCLE CONTRACT (the #1 reliability requirement):
   `close_panels()` / `live_panels()`: `grid()` closes any prior panels FIRST, registers the new
   ones, and returns the composed widget. Never hand-roll a raw `_mk` loop in a notebook cell.
 
-Reuse (one import, a few calls):
-  from helpers.interactive_style.interactive_helpers import (
+Reuse (one import, a few calls) — always via the per-project shim
+`02_analysis/helpers/interactive_style.py`, never this file directly. The mount directory
+(`02_analysis/helpers/interactive-style/`) is hyphenated and therefore not importable as a
+Python package; the underscored shim next to it is the import surface, exactly as
+`figure_style.py` is for `figure-style/`:
+  from helpers.interactive_style import (
       load_interactive_config, load_explorer, grid, first_selection, save_selection, snapshot)
   config = load_interactive_config("02_analysis/config/analysis_config.yaml")
   df = load_explorer("01_qc", config=config)            # compact parquet from 03_results/interactive/

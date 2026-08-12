@@ -13,5 +13,10 @@ normalize_width, blacklist, frip), not re-defined here.
 Genome / MACS path / blacklist / chromosome set are function arguments with
 mouse mm39 defaults. For human pass `macs_genome = "hs"`,
 `std_chroms = paste0("chr", c(1:22, "X", "Y"))`, and an hg38 blacklist BED.
-Set `PEAK_ATLAS_FRAMEWORK_SCRIPTS` (env) to the framework scripts dir before
-sourcing `call_peaks_multistrategy.R`.
+`call_peaks_multistrategy.R` resolves the framework primitives **relative to its
+own file**, so the sibling-skill default (`../../peak-atlas-framework/scripts`)
+works from any working directory. Set `PEAK_ATLAS_FRAMEWORK_SCRIPTS` (env) only
+when the framework lives somewhere else. A script it cannot find is a **fatal
+error**, not a warning — the alternative is a much later "could not find function
+clusterGRanges" that points nowhere near the cause. If you have already sourced
+the primitives by hand they are detected and the miss is downgraded to a message.
