@@ -307,6 +307,13 @@ USAGE
     done
     # Create the helper-lib symlink for analysis-type repos (no-op if no 02_analysis/).
     symlink_create_helper_lib
+    # ...and the importable shim modules beside those mounts. Same 02_analysis/
+    # gate. Until 2026-08-12 only `new project` wrote these, so a project that
+    # was already provisioned got the hyphenated mounts and nothing it could
+    # import — the third instance of "written at scaffold time, never reaching
+    # the field" after the hook bodies and the status line. Ownership discipline:
+    # ownership.sh.
+    helper_shims_ensure
 
     local STYLE_APPLIED_TAG=""
     if [[ -n "$OUTPUT_STYLE" ]]; then

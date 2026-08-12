@@ -4,7 +4,8 @@
 # WHY THIS EXISTS
 #
 # `sciagent activate` materializes a few template bodies into a project
-# (.claude/hooks/*.sh, .claude/statusline.sh) with a plain `cp` — no
+# (.claude/hooks/*.sh, .claude/statusline.sh, 02_analysis/helpers/*.{py,R})
+# with a plain `cp` — no
 # placeholder substitution, so the file in the project is byte-identical to the
 # template that produced it. Those bodies were written ONLY IF ABSENT, so a
 # consumer provisioned once never received any later fix to a hook. Measured
@@ -45,15 +46,28 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 MANIFEST="templates/PROVENANCE.sha1"
 
 # The templates `activate` materializes verbatim. Keep in sync with
-# claude_settings.sh's ensure_hooks / ensure_statusline.
+# claude_settings.sh's ensure_hooks / ensure_statusline and symlinks.sh's
+# helper_shims_ensure. tests/test_template_provenance.sh derives the same set by
+# globbing those three source dirs, so a template added to one of them and not
+# added here fails the suite rather than shipping un-refreshable.
 #
 # README.md.template is deliberately absent: it carries a {{PROJECT_ID}}
 # placeholder and belongs to `new project`'s substitution pass, so a rendered
 # copy is NOT byte-equal to the template and content-provenance cannot apply.
+#
+# The 02_analysis/helpers shims are managed for the same reason the hooks are:
+# `activate` materializes them with a plain `cp` (2026-08-12 — before that only
+# `new project` ever wrote them), so the fleet is full of copies whose only
+# evidence of authorship is their bytes. They carry no placeholder, so
+# `new project`'s sed pass and `cp` produce identical output; the placeholder
+# check in tests/test_template_provenance.sh is what keeps that true.
 MANAGED=(
     "project/_common/.claude/hooks/no_ephemeral.sh.template"
     "project/_common/.claude/hooks/caption_sweep.sh.template"
     "project/_common/.claude/statusline.sh.template"
+    "project/analysis/02_analysis/helpers/figure_style.py.template"
+    "project/analysis/02_analysis/helpers/figure_style.R.template"
+    "project/analysis/02_analysis/helpers/interactive_style.py.template"
 )
 
 _sha1() {

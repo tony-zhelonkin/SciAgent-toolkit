@@ -1,4 +1,7 @@
-# lib/sciagent/symlinks.sh — dual-track symlink + manifest helpers.
+# lib/sciagent/symlinks.sh — dual-track symlink + manifest helpers, plus the
+# 02_analysis/helpers seam (the hyphenated contract-lib mounts AND the
+# underscored shim modules that make them importable — two halves of one
+# design, kept together; see symlink_create_helper_lib / helper_shims_ensure).
 #
 # Manifest format: real JSON (pretty-printed, 2-space indent). Schema v2:
 #
@@ -638,4 +641,90 @@ symlink_create_helper_lib() {
         ln -sfn "$rel_target" "$link_path"
         _manifest_record_symlink "$link_path"
     done
+}
+
+
+# ---------------------------------------------------------------------------
+# The other half of the 02_analysis/helpers seam: the SHIM MODULES.
+#
+# symlink_create_helper_lib (above) mounts HYPHENATED contract-lib directories,
+# which no Python `import` can name. The house design pairs each mount with an
+# UNDERSCORED shim module next to it — 02_analysis/helpers/figure_style.{py,R},
+# interactive_style.py — that projects actually import (see
+# tests/test_helper_shim_coherence.sh, which enforces the pairing).
+#
+# THE DEFECT THIS FIXES. Those shims were materialized ONLY by
+# `sciagent new project`'s generic template walk (new.sh's _render_tree), so an
+# already-provisioned project never received one, and `activate` created the two
+# mounts with no importable module beside them. Every skill whose
+# `compatibility:` declaration names a shim path — figure-style,
+# interactive-breakpoint-explorer, decision-gate-notebook — was therefore
+# satisfiable only in a freshly scaffolded repo. This is the same blind spot as
+# the hook bodies and the status line: content written at scaffold time only,
+# never reaching the field.
+#
+# Ownership is the shared discipline in ownership.sh (create if absent, adopt a
+# copy that already matches, refresh a copy matching any version we ever
+# shipped, cede anything else). Content-provenance applies because these
+# templates carry no {{PLACEHOLDER}}, so `new project`'s sed pass emits bytes
+# identical to a plain `cp` — enforced by tests/test_template_provenance.sh,
+# which fails a managed template that grows one.
+#
+# Mode `plain`: unlike the hooks and the status line these are imported, never
+# executed, so the execute bit is deliberately NOT asserted.
+# ---------------------------------------------------------------------------
+# Path RELATIVE TO templates/ — the same frame templates/PROVENANCE.sha1 records
+# its paths in, so the value handed to ownership_ensure_body can be looked up in
+# the manifest verbatim. Prefixing it with templates/ here would silently make
+# every provenance lookup miss (and every stale shim look user-authored).
+_HELPER_SHIM_TPL_REL="project/analysis/02_analysis/helpers"
+_HELPER_SHIM_STATE_DIR=".sciagent/helper_shim_state"
+
+# helper_shims_ensure
+# Materialize (and keep current) every helper shim under 02_analysis/helpers/.
+# Gated on 02_analysis/ exactly like symlink_create_helper_lib: a coordination
+# or software repo has no analysis layout and must be left untouched, including
+# not having a helpers/ directory created for it. Silent no-op when the toolkit
+# ships no template tree (e.g. a stripped install or the test fixture toolkit).
+helper_shims_ensure() {
+    [[ -d "02_analysis" ]] || return 0   # not an analysis-type repo — skip
+
+    local tpl_dir="$SCIAGENT_TOOLKIT/templates/$_HELPER_SHIM_TPL_REL"
+    [[ -d "$tpl_dir" ]] || return 0
+
+    local src base
+    for src in "$tpl_dir"/*.template; do
+        [[ -f "$src" ]] || continue   # nullglob-safe: unmatched glob stays literal
+        base="$(basename "${src%.template}")"
+        ownership_ensure_body \
+            "$src" "02_analysis/helpers/$base" \
+            "$_HELPER_SHIM_TPL_REL/$base.template" \
+            "$_HELPER_SHIM_STATE_DIR/$base.sha1" \
+            "$_HELPER_SHIM_STATE_DIR/$base.ceded" \
+            plain || return 1
+    done
+}
+
+# helper_shims_teardown
+# Reverse helper_shims_ensure: for every shim we have a snapshot for, remove it
+# iff its content is still exactly what we wrote; otherwise warn and leave it
+# (ownership_teardown_body). Then the state dir, and 02_analysis/helpers/ itself
+# if it ends up empty — rmdir only, never rm -r, so a helpers/ directory holding
+# anything else (a project-owned helper, a surviving mount) is left in place.
+# 02_analysis/ itself is the project's and is never touched.
+helper_shims_teardown() {
+    [[ -d "$_HELPER_SHIM_STATE_DIR" ]] || return 0
+    local sf base
+    for sf in "$_HELPER_SHIM_STATE_DIR"/*.sha1; do
+        [[ -f "$sf" ]] || continue
+        base="$(basename "$sf" .sha1)"
+        ownership_teardown_body \
+            "02_analysis/helpers/$base" "$sf" "${sf%.sha1}.ceded"
+    done
+    # Ceded markers name files that are explicitly NOT ours: drop the marker,
+    # never the file. Also unblocks the rmdir below.
+    rm -f "$_HELPER_SHIM_STATE_DIR"/*.ceded 2>/dev/null || true
+    rmdir "$_HELPER_SHIM_STATE_DIR" 2>/dev/null || true
+    [[ -d "02_analysis/helpers" ]] && rmdir "02_analysis/helpers" 2>/dev/null
+    return 0
 }

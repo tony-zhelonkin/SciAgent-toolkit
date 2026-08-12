@@ -131,7 +131,13 @@ grep -q 'WARN hooks' <<<"$OUT" && fail "warned on settings.json carrying no hook
 REAL_TK="$TOOLKIT_ROOT"
 if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
     P7="$TMPDIR_TEST/p_materialize"; mkdir -p "$P7"
+    # block.sh (hashing) + ownership.sh (the materialize-and-keep-current
+    # discipline ensure_hooks delegates to) are part of claude_settings.sh's
+    # dependency closure — bin/sciagent loads all three for the activate verb,
+    # and so must anything driving these functions directly.
     first=$(cd "$P7" && SCIAGENT_TOOLKIT="$REAL_TK" bash -c '
+        . "$SCIAGENT_TOOLKIT/lib/sciagent/block.sh"
+        . "$SCIAGENT_TOOLKIT/lib/sciagent/ownership.sh"
         . "$SCIAGENT_TOOLKIT/lib/sciagent/claude_settings.sh"
         claude_settings_ensure_project_defaults >/dev/null
         claude_settings_ensure_hooks' 2>&1)
@@ -144,6 +150,8 @@ if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
         && fail "hooks still missing after ensure_hooks materialized them" "$OUT"
 
     second=$(cd "$P7" && SCIAGENT_TOOLKIT="$REAL_TK" bash -c '
+        . "$SCIAGENT_TOOLKIT/lib/sciagent/block.sh"
+        . "$SCIAGENT_TOOLKIT/lib/sciagent/ownership.sh"
         . "$SCIAGENT_TOOLKIT/lib/sciagent/claude_settings.sh"
         claude_settings_ensure_hooks' 2>&1)
     grep -q 'wrote:' <<<"$second" \

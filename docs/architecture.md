@@ -46,7 +46,10 @@ sciagent-toolkit/
 │   ├── collisions.sh         # cross-namespace name-collision enumeration
 │   ├── validate.sh           # `validate` verb: frontmatter shape + collisions
 │   ├── lint.sh               # `lint` verb: opt-in PROJECT guardrail checks
-│   └── symlinks.sh           # dual-track symlink helpers
+│   ├── ownership.sh          # materialize-and-keep-current discipline for copied
+│   │                         #   template bodies (hooks, statusline, helper shims)
+│   └── symlinks.sh           # dual-track symlink helpers + the 02_analysis/helpers
+│                             #   seam (contract-lib mounts and their shim modules)
 ├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format);
 │                             #   allowed top-level keys: name, description, license,
 │                             #   allowed-tools, compatibility — no `metadata:` block in use
@@ -277,14 +280,21 @@ Every `activate` walks the whole catalog of skills, agents, and commands (§5) �
 - Remove `02_analysis/helpers/{figure-style,interactive-style}` on the same rule.
 - Remove `.sciagent/manifest.json`.
 
-**Not removed — `deactivate` is deliberately documented as an incomplete inverse:**
-`.claude/settings.json` (created or key-backfilled), `.claude/statusline.sh`,
-`.claude/hooks/{no_ephemeral,caption_sweep}.sh`, and the `@AGENTS.md` line
-`activate` prepends to `CLAUDE.md`. The hooks remain registered and live after
-deactivation. No verb currently unwinds them. This is a known gap, not a design
-choice — the reversible artifacts above are reversible precisely because each has
-an ownership record (link target, hash-framed markers, a state tag); the
-settings/hooks/shim family never got one.
+**Also removed, each under its own ownership record** (2026-08-11/12; this used to
+be documented as a known gap, and was one until those records existed):
+`.claude/statusline.sh`, `.claude/hooks/{no_ephemeral,caption_sweep}.sh`, the
+`.claude/settings.json` keys the backfill added (per-key, and the user's original
+bytes restored verbatim when the file is still exactly what we wrote), the
+`02_analysis/helpers/{figure_style.py,figure_style.R,interactive_style.py}` shim
+modules, and the `@AGENTS.md` line `activate` prepends to `CLAUDE.md`.
+
+The rule for every one of them is the same, and it is one-shot: reverse it **iff**
+its content is still exactly what sciagent wrote, otherwise leave it in place with
+a warning on stderr and drop the record — so the decision is made once and a
+second `deactivate` is a silent no-op rather than a permanent nag. Directories are
+only ever `rmdir`'d, never `rm -r`'d: a non-empty directory means real content
+remains. See `lib/sciagent/ownership.sh` for the shared machinery and
+`docs/propagation.md` §5 for the discipline in full.
 
 `sciagent deactivate <name>` — partial: remove just that role from the stack. If it's the base, the overlay also goes (overlay without base is meaningless). If it's the overlay, base remains.
 
@@ -292,8 +302,19 @@ settings/hooks/shim family never got one.
 
 ```
 .sciagent/
-└── manifest.json       # canonical state: stack, created symlinks, schema version
+├── manifest.json            # canonical state: stack, created symlinks, schema version
+├── claude_settings.state    # how settings.local.json's outputStyle key was set
+├── project_settings.state   # which settings.json keys the backfill added (+ .orig)
+├── claude_md.state          # created vs. prepended, for the CLAUDE.md import shim
+├── statusline.sha1 / .ceded # content snapshot / ceded marker for statusline.sh
+├── hook_state/              # one .sha1 (or .ceded) per materialized hook body
+└── helper_shim_state/       # one .sha1 (or .ceded) per 02_analysis/helpers shim
 ```
+
+Everything below `manifest.json` is an **ownership record**: a content snapshot
+taken when a materialized body was written or adopted, read exactly once at
+teardown (§8). A `.ceded` marker is the opposite — it records a body sciagent
+found and did *not* write, so it warns once and never touches the file again.
 
 Schema **v2** (2026-08-11). v1 also carried a `block_hash` field that `activate`
 wrote and nothing read; it was dropped. Both readers (`manifest_stack`,

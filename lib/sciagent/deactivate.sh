@@ -29,10 +29,11 @@ sciagent deactivate [<role>]
   No argument: full teardown of the active stack (all mounted symlinks,
   the ROLES/CRAFT managed blocks, and the manifest) AND of the
   project-level artifacts activate ensures unconditionally: .claude/
-  statusline.sh, .claude/hooks/*.sh, the settings.json key-backfill, and
-  the CLAUDE.md @AGENTS.md import. Each is reversed only if unchanged
-  since sciagent created/modified it; anything edited or replaced since
-  is left in place with a warning on stderr, never silently discarded.
+  statusline.sh, .claude/hooks/*.sh, the settings.json key-backfill, the
+  02_analysis/helpers shim modules, and the CLAUDE.md @AGENTS.md import.
+  Each is reversed only if unchanged since sciagent created/modified it;
+  anything edited or replaced since is left in place with a warning on
+  stderr, never silently discarded.
   <role>: partial teardown — removing the base implies removing the
   overlay too (same full reversal as above); removing the overlay
   re-activates solo-base (stack-only; the project-level artifacts above
@@ -63,6 +64,11 @@ USAGE
         # never on activate.sh's re-activation preamble. Each is a no-op if we
         # never created/modified it, or if it has already been reversed.
         claude_settings_teardown_project_artifacts
+        # The 02_analysis/helpers shim modules are the same class of artifact
+        # (materialized by activate, ownership-tracked) but belong to the
+        # analysis layout rather than to Claude — hence the separate call into
+        # symlinks.sh, which owns that seam. No-op on a non-analysis repo.
+        helper_shims_teardown
         claude_md_shim_teardown
         _deactivate_prune_empty_agents_md
         # Best-effort: .claude/ and .sciagent/ themselves, now that every
@@ -112,6 +118,7 @@ USAGE
         # the base implies the overlay too), so the project-level artifacts
         # get reversed here as well.
         claude_settings_teardown_project_artifacts
+        helper_shims_teardown
         claude_md_shim_teardown
         _deactivate_prune_empty_agents_md
         rmdir .claude 2>/dev/null || true

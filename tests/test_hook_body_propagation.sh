@@ -18,7 +18,7 @@
 # byte-identical to whichever template version produced it, and
 # templates/PROVENANCE.sha1 lists every version ever shipped.
 #
-# Cases (1)-(6) drive _claude_settings_ensure_body directly against a SYNTHETIC
+# Cases (1)-(6) drive ownership_ensure_body directly against a SYNTHETIC
 # toolkit, so every branch is exercised deterministically without depending on
 # this repo's git history. Case (7) is the end-to-end wiring check against the
 # REAL toolkit and the REAL manifest, reproducing the actual fleet defect.
@@ -51,6 +51,13 @@ EOF
 export SCIAGENT_TOOLKIT="$FAKE_TK"
 # shellcheck source=/dev/null
 . "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+# ownership.sh is where the discipline under test lives (it moved out of
+# claude_settings.sh once the 02_analysis/helpers shims became its second
+# consumer — an R helper is not a Claude artifact). claude_settings.sh is still
+# sourced because the hooks/statusline PATHS and their state-file layout are
+# its half of the contract.
+# shellcheck source=/dev/null
+. "$TOOLKIT_ROOT/lib/sciagent/ownership.sh"
 # shellcheck source=/dev/null
 . "$TOOLKIT_ROOT/lib/sciagent/claude_settings.sh"
 
@@ -67,7 +74,7 @@ _hash()  { sha1sum "$1" | cut -d' ' -f1; }
 # (1) Absent → created, recorded, executable. The original behaviour, retained.
 # ---------------------------------------------------------------------------
 _reset
-out=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
+out=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
 assert_file_exists "$DST" "(1) body created when absent"
 assert_eq "$(_hash "$DST")" "$V2" "(1) created body is the current template"
 assert_eq "$(cat "$STATE")" "$V2" "(1) ownership record written"
@@ -82,7 +89,7 @@ case "$out" in *"wrote: $DST"*) : ;; *) echo "FAIL [$_TEST_NAME] (1) no 'wrote:'
 _reset
 mkdir -p "$(dirname "$DST")"
 cp "$V1_BODY" "$DST"
-out=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
+out=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
 assert_eq "$(_hash "$DST")" "$V2" "(2) stale-but-ours body REFRESHED to current template"
 assert_eq "$(cat "$STATE")" "$V2" "(2) record updated to the refreshed content"
 case "$out" in *"refreshed: $DST"*) : ;; *) echo "FAIL [$_TEST_NAME] (2) no 'refreshed:' line: $out" >&2; exit 1 ;; esac
@@ -93,7 +100,7 @@ _reset
 mkdir -p "$(dirname "$DST")"
 cp "$V1_BODY" "$DST"
 mv "$FAKE_TK/templates/PROVENANCE.sha1" "$FAKE_TK/templates/PROVENANCE.sha1.hidden"
-_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" >/dev/null 2>&1
+ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" >/dev/null 2>&1
 mv "$FAKE_TK/templates/PROVENANCE.sha1.hidden" "$FAKE_TK/templates/PROVENANCE.sha1"
 assert_eq "$(_hash "$DST")" "$V1" "(2b) without the manifest the body is NOT overwritten (fix is non-vacuous)"
 
@@ -105,7 +112,7 @@ _reset
 mkdir -p "$(dirname "$DST")"
 printf '#!/bin/bash\n# I customized this myself\necho mine\n' > "$DST"
 USER_HASH=$(_hash "$DST")
-err=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
+err=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
 assert_eq "$(_hash "$DST")" "$USER_HASH" "(3) user-edited body NOT overwritten"
 case "$err" in *"will not manage it"*) : ;; *) echo "FAIL [$_TEST_NAME] (3) no cede warning: $err" >&2; exit 1 ;; esac
 assert_file_exists "$CEDED" "(3) ceded marker written"
@@ -116,7 +123,7 @@ assert_eq "$(cat "$CEDED")" "$USER_HASH" "(3) marker records the ceded content"
 # (4) Ceding is PERMANENT and quiet: a second run over the same content must
 # emit nothing. Re-warning on every activate is the noise the marker prevents.
 # ---------------------------------------------------------------------------
-err2=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
+err2=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
 assert_eq "$err2" "" "(4) second run over a ceded body is silent"
 assert_eq "$(_hash "$DST")" "$USER_HASH" "(4) still untouched"
 
@@ -126,7 +133,7 @@ assert_eq "$(_hash "$DST")" "$USER_HASH" "(4) still untouched"
 # ---------------------------------------------------------------------------
 printf '#!/bin/bash\n# different customization\necho other\n' > "$DST"
 OTHER_HASH=$(_hash "$DST")
-err3=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
+err3=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
 case "$err3" in *"will not manage it"*) : ;; *) echo "FAIL [$_TEST_NAME] (5) re-cede not reported: $err3" >&2; exit 1 ;; esac
 assert_eq "$(cat "$CEDED")" "$OTHER_HASH" "(5) marker follows the new content"
 assert_eq "$(_hash "$DST")" "$OTHER_HASH" "(5) new customization untouched"
@@ -138,7 +145,7 @@ assert_eq "$(_hash "$DST")" "$OTHER_HASH" "(5) new customization untouched"
 _reset
 mkdir -p "$(dirname "$DST")"
 cp "$SRC" "$DST"
-out6=$(_claude_settings_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
+out6=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1)
 assert_eq "$out6" "" "(6) up-to-date body produces no output"
 assert_eq "$(cat "$STATE")" "$V2" "(6) adopted: record written for a pre-existing current body"
 

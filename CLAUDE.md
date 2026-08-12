@@ -17,7 +17,7 @@ This file provides guidance to Claude Code when working with the SciAgent-toolki
 | Path | Purpose |
 |------|---------|
 | `bin/sciagent` | CLI dispatcher |
-| `lib/sciagent/` | Internal bash modules — `activate.sh`, `deactivate.sh`, `status.sh`, `new.sh`, `block.sh`, `craft.sh`, `craft_verb.sh`, `roles.sh`, `symlinks.sh`, `stack.sh` (catalog walk — mounts everything, roles supply provenance only), `frontmatter.sh`, `validate.sh` (frontmatter-shape + name-collision checks), `lint.sh` (opt-in PROJECT guardrail checks, the `lint` verb), `collisions.sh`, `claude_settings.sh`, `harness.sh`, `provision.sh`, `update.sh`, `gitignore.sh` |
+| `lib/sciagent/` | Internal bash modules — `activate.sh`, `deactivate.sh`, `status.sh`, `new.sh`, `block.sh`, `craft.sh`, `craft_verb.sh`, `roles.sh`, `symlinks.sh`, `stack.sh` (catalog walk — mounts everything, roles supply provenance only), `frontmatter.sh`, `validate.sh` (frontmatter-shape + name-collision checks), `lint.sh` (opt-in PROJECT guardrail checks, the `lint` verb), `collisions.sh`, `claude_settings.sh`, `ownership.sh` (shared materialize-and-keep-current discipline for copied template bodies — used by `claude_settings.sh` for the hooks/statusline and by `symlinks.sh` for the `02_analysis/helpers` shims), `harness.sh`, `provision.sh`, `update.sh`, `gitignore.sh` |
 | `roles/` | Role definitions (YAML) — provenance labels only, not a mount filter |
 | `agents/` | Canonical sub-agent definitions (`.md` files) |
 | `skills/` | Canonical skill definitions (`<name>/SKILL.md` format) |
