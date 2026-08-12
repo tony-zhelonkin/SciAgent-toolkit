@@ -136,21 +136,81 @@ list is not.
 
 ---
 
-## ADR-D7 — Release naming and starting version [Taste] — **OPEN**
+## ADR-D7 — Release naming and starting version [Taste] — **DECIDED 2026-08-11**
 
-**Context.** Needs two values before `build-release.sh` can emit a filename. No default is obviously
-right, and both are user-visible.
+**Context.** Two values were needed before `build-release.sh` could emit a filename, and both are
+user-visible. A third consideration arrived late and settled the first: **`sciagent` is already taken**
+by another project, so the name was not merely a matter of taste.
 
-**Open questions.**
-1. **Artifact / plugin name.** `sciagent`, `sciagent-toolkit`, or scoped. Note the manifest name and
-   repo name are allowed to differ — google-deepmind's repo is `science-skills` and its manifest name
-   is `science`.
-2. **Starting version.** `0.1.0` signals "corpus in motion," which matches the deliberate
-   corpus-as-backlog posture (warn-only lints, `--strict` opt-in). `1.0.0` promises stability across
-   83 skills. References: DeepMind `1.1.0`, marimo `0.0.18`.
+**Decision.** **`scio`**, starting at **`0.1.0`**. Artifacts: `scio-0.1.0.tar.gz` + `.sha256`.
 
-**Recommendation if not decided.** `sciagent` + `0.1.0`, on the grounds that the honest signal about
-an intentionally-unfinished corpus is the more useful one and a major-version bump is free later.
+*Why `scio`.* Latin *sciō* — "I know (how to)", the practical-knowledge sense, fourth conjugation.
+Four characters, unambiguous to type, and it keeps the `sci-` stem the fleet already reads as this
+tool. The owner's fuller reference is the Socratic **"scio me nihil scire"** — *I know that I know
+nothing* — which fits this codebase's actual engineering posture more than a slogan usually does:
+ownership records so teardown reverses only what it can prove it wrote; `rc=3` for a hand-edited
+block rather than a guess; "cannot verify → leave it alone"; warn-only lints over false confidence.
+Put the phrase in the README as an epigraph, not in the binary name. Rejected: `nescio` / `nescire`
+("I do not know") — a disclaimer is the wrong signal for a tool people must trust with their
+`.claude/` directory; and `niscire`, which is not a Latin form.
 
-**Blocks:** `build-release.sh` filenames only — the script can be written and tested against a
-placeholder. **Reversible:** the name, awkwardly once published; the version, trivially.
+*Why `0.1.0`.* The honest signal about an intentionally-unfinished corpus (warn-only lints,
+`--strict` opt-in, corpus-as-backlog) is the more useful one, and a major bump is free later.
+References: DeepMind `1.1.0`, marimo `0.0.18`.
+
+**Scope — read this before renaming anything.** This ADR decides the **release artifact name only**.
+Renaming the **CLI** from `sciagent` to `scio` is a separate, much larger change and is NOT approved
+here: it touches ~22 consumer checkouts, `$SCIAGENT_TOOLKIT`, the `si` alias, hook paths, and the
+hardcoded `./01_modules/SciAgent-toolkit` in `_guard_toolkit_locality` (`bin/sciagent`). It needs its
+own ADR and its own gated pass, keeping `sciagent` as a compatibility symlink for at least one
+release. Pleasingly, `si` already being the short alias makes `si` → `scio` a widening rather than a
+break.
+
+**Blocks:** nothing further — `build-release.sh` can be written now. **Reversible:** the version
+trivially; the name awkwardly once published, which is why the CLI rename is deliberately deferred
+rather than bundled in.
+
+---
+
+## ADR-D8 — Fleet operations belong to `module-vendor`, not to this toolkit [Arch]
+
+**Context.** While explaining the distribution design, a `sciagent fleet status` / `sciagent fleet pin`
+surface was proposed to solve two stated pains: "updates require 21 manual visits" and "you cannot
+see which project runs which version." **The proposal was reinvention.** `module-vendor` — already
+built, already in production on this workstation — implements all of it:
+
+| Proposed | Already shipped in `module-vendor` |
+|---|---|
+| `fleet status` | `status` / `detail` / `json` / `watch` / `debt` |
+| `fleet pin <sha>` | `pin bump` |
+| bulk propagate | `sync up` (= `sync push` → `sync align` → `pin bump`) |
+| exclude frozen repos | the documented **LIVING vs FROZEN** decision policy |
+| `--dry-run` | dry-run **by default**; `--go` to apply; `refs/module-vendor-undo/<branch>-<ts>` |
+| discovery | worktree sweep across `MODULE_VENDOR_ROOTS` (`config.sh:5`) |
+
+More significantly, `module-vendor`'s own mental model already states the separation this plan spent
+a long conversation re-deriving: *"Two things move INDEPENDENTLY: the submodule WORKING TREE (the
+files) and the superproject GITLINK (the pinned SHA)."* That is precisely the bytes-vs-pin-record
+split. It was not a new insight; it was an existing, implemented one.
+
+**Decision.** Fleet-scope operations are **out of scope for this toolkit, permanently**. The
+workstation's tool boundary is three-way and already drawn — `provc --help` names it explicitly as
+its layer 4:
+
+| Tool | Scope | Owns |
+|---|---|---|
+| `provc` | the container substrate | base image pin, dev-env layer, AI-harness provisioning |
+| `module-vendor` | the fleet of toolkit worktrees | working-tree sync, gitlink pins, hubs, mirrors, drift |
+| **this toolkit** | **one project** | mounts, managed blocks, ownership records, teardown |
+
+**Consequences.** Removes two of the five motivating pains from the distribution problem entirely —
+they are solved, not unsolved. What remains is narrower and should be judged on its own: **duplicated
+bytes** (5 checkouts of one identical commit measured at 584 MB under the Meta-Aging umbrella, against
+5.6 MB of tracked content), and offline installability for someone outside the fleet.
+
+**Process note, recorded deliberately.** The failure here was not the design — it was proposing a
+design without first reading the `--help` of a tool the owner had already written for the same
+problem. Check the existing workstation tooling before designing fleet-scope anything.
+
+**Blocks:** nothing. **Reversible:** yes, but reversing means re-litigating a boundary the owner has
+already drawn twice.
