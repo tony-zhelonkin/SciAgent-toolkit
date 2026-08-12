@@ -129,6 +129,9 @@ Stack (in order, last-wins on name collisions):
 
 ## 5. CLI surface
 
+Propagation — how a change in the toolkit reaches an already-provisioned project,
+and which verb performs which step — is specified in `docs/propagation.md`.
+
 Binary: `bin/sciagent`. Alias: `si`. Install as a relative-path shell alias
 (`alias si='./01_modules/SciAgent-toolkit/bin/sciagent'`) once more than one project on
 the host vendors its own toolkit copy — a PATH symlink bakes one fixed checkout as the
