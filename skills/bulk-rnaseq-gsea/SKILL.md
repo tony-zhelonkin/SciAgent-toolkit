@@ -212,6 +212,8 @@ normalization helper, checkpoint, table, plot, and interactive paths shown throu
 - Do not use for TF or PROGENy pathway activity inference. Use bulk-rnaseq-activity-inference instead.
 - Do not use for signature-based GEO dataset search. Use coresh-signature-search instead.
 - Do not use for TE family/class geneset GSEA. Use te-geneset-gsea instead.
+- Do not use for upstream scRNA-seq QC, integration, or annotation. Use single-cell-rna-qc, scanpy, or the appropriate scvi skill.
+- Do not use for chromatin-accessibility analysis or RNA velocity. Use the relevant ATAC skill or rna-velocity-trajectory.
 
 ---
 

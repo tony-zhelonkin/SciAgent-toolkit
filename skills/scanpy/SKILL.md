@@ -335,6 +335,7 @@ sc.pl.umap(adata_hvg, color='myeloid_score', cmap='RdYlBu_r')
 - Do not use for multi-sample probabilistic batch correction. Use scvi-basic.
 - Do not use for semi-supervised label transfer. Use scvi-scanvi.
 - Do not use for multi-assay containers. Use multimodal-anndata-mudata.
+- Do not use for pathway or TF interpretation of pseudobulk differential expression. Use bulk-rnaseq-gsea or bulk-rnaseq-activity-inference.
 
 ---
 

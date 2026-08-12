@@ -262,6 +262,8 @@ After authoring a decision-gate notebook, confirm:
 - Do not use for throwaway scratch exploration. A decision-gate notebook is a committed, rendered artifact tied to a config gate; if nothing downstream waits on the call, just hack in the console.
 - Do not let the notebook COMPUTE anything a later stage depends on. It reads 03_results/ and config and re-plots; the authoritative outputs stay in the numbered scripts. Use scrna-pipeline-conventions for stages that write state.
 - Do not use as a general reporting/methods document. This is a decision surface with an APPROVED gate, not a results write-up.
+- Do not use for software architecture or design review. Use architecture-first-dev.
+- Do not use solely to interpret pathway or TF results. Use bulk-rnaseq-gsea or bulk-rnaseq-activity-inference unless a downstream stage awaits a recorded decision.
 
 ---
 

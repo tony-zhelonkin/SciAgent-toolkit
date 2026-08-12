@@ -208,6 +208,7 @@ skill writes its ATAC modality into.
 
 - Do not use for R/Signac workflows. Use signac-chromatin-analysis instead.
 - Do not use for cisTopic topic modelling on ATAC. Use pycistopic-atac-topic-modeling.
+- Do not use for scRNA-seq QC, normalization, clustering, or RNA velocity. Use single-cell-rna-qc, scanpy, or rna-velocity-trajectory.
 
 ---
 

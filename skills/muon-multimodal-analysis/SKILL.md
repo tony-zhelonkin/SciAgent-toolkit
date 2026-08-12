@@ -191,6 +191,9 @@ Locus-level coverage figures (e.g. for marker genes) are handled by
 
 - Do not use for R/Seurat workflows. Use seurat-multimodal-analysis instead.
 - Do not use solely for Seurat-to-Python conversion. Use multimodal-anndata-mudata for that bridge.
+- Do not use for unpaired RNA and ATAC from separate cell pools. Use scglue-unpaired-multiomics-integration.
+- Do not use for scATAC-only analysis. Use snapatac2-atac-preprocessing.
+- Do not use for plain scRNA-seq. Use scanpy or the appropriate scvi skill.
 
 ---
 

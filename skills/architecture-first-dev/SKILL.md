@@ -1,11 +1,11 @@
 ---
 name: architecture-first-dev
-description: >
-  Route architecture-first software work through the full per-feature, portfolio,
-  and retrospective audit specifications. Use for non-trivial feature design,
-  expert review, phased planning, implementation handoff, verification,
-  architecture snapshots, cross-feature MADRs, or the probationary
-  architecture-treemap audit.
+description: >-
+  Architecture-first software router for feature, portfolio, and retrospective
+  audit workflows. Use for non-trivial features, refactors, or redesigns where
+  upfront design pays off; cross-cutting concerns needing multiple expert
+  lenses; or work where scientific reasoning matters as much as structure.
+  Covers planning, handoff, verification, and MADRs.
 ---
 
 # Architecture-First Development Router
@@ -94,6 +94,11 @@ map → review → synthesize → design → plan → implement → verify
 | Run large-campaign decomposition | [`commands/decompose/decompose.md`](../../commands/decompose/decompose.md) | External command; preserve its `$ARGUMENTS` and flags |
 
 `status.md` is intentionally separate from the portfolio blob because its frontmatter-and-grep snapshot is a narrow, fast orientation path.
+
+## When not to use
+
+- Do not use for one-line fixes, throwaway scripts, or exploratory data analysis.
+- Do not use to run a bioinformatics analysis pipeline. Use the assay or interpretation skill that matches the data and question.
 
 ## Audit-stack status
 

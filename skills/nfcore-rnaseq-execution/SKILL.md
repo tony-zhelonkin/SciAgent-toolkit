@@ -186,7 +186,8 @@ After the run, confirm:
 ## When not to use
 
 - Do not use for 10x single-cell velocity alignment. Use starsolo-spliced-unspliced instead.
-- Do not use for count-matrix annotation/DE. Use annotate-bulk-rnaseq-data instead.
+- Do not use for count-matrix annotation, DE, enrichment, or interpretation. Use annotate-bulk-rnaseq-data, then the appropriate downstream skill.
+- Do not use for chromatin or ATAC preprocessing. Use cellranger-arc-multiome or snapatac2-atac-preprocessing.
 
 ---
 
