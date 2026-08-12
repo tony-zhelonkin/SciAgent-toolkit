@@ -197,6 +197,14 @@ _CLAUDE_STATUSLINE_STATE=".sciagent/statusline.sha1"
 _CLAUDE_HOOKS_STATE_DIR=".sciagent/hook_state"
 _CLAUDE_PROJECT_SETTINGS_STATE=".sciagent/project_settings.state"
 
+# A CEDED marker records that we found a body we did not write, said so once,
+# and stepped back. It holds the content hash at the moment we ceded, so the
+# warning fires again if the user later replaces the file with something else
+# (a genuinely new situation) but not on every activate for the same file.
+# Teardown deletes these markers without touching the files they name — the
+# whole point is that those files are not ours to remove.
+_CLAUDE_STATUSLINE_CEDED=".sciagent/statusline.ceded"
+
 # Content hashing for the ownership records above routes through block.sh's
 # sciagent_sha1_file. block.sh is the single home for the hashing primitive in
 # lib/ (the 5.3 invariant, enforced by tests/test_block_marker_boundary.sh,
@@ -206,14 +214,140 @@ _sciagent_sha1_file() {
     sciagent_sha1_file "$1"
 }
 
+# ----- Content-provenance: "did WE write this file, and is it untouched?" ---
+#
+# The ownership records above answer that question only for artifacts created
+# AFTER the records existed. Measured across the real fleet on 2026-08-11: not
+# one consumer has a .sciagent/hook_state directory, because every one of them
+# was provisioned before those records were introduced. So the record is absent
+# in exactly the population that needs repairing, and "absent -> touch nothing"
+# would make any record-based refresh a no-op everywhere it matters.
+#
+# The bytes are the remaining evidence, and they are conclusive. These bodies
+# are materialized with a plain `cp` (no placeholder substitution — enforced by
+# tests/test_template_provenance.sh), so a project's copy is byte-identical to
+# whichever template version produced it. If a file's content equals SOME
+# version of the template this toolkit has ever shipped, then the toolkit wrote
+# it and nobody has edited it since. That is precisely the condition under
+# which overwriting is safe, and it is decidable offline from a committed
+# manifest of historical hashes.
+#
+# Anything else — content matching no version we ever shipped — is the user's,
+# and is ceded permanently (see _claude_settings_ensure_body).
+_CLAUDE_TEMPLATE_PROVENANCE="templates/PROVENANCE.sha1"
+
+# _sciagent_template_hash_known <hash> <template-rel-path>
+# True if <hash> is a content hash <template-rel-path> has ever had.
+# Absent/unreadable manifest → false, so a stripped install degrades to the old
+# create-if-absent behaviour rather than overwriting on a guess.
+_sciagent_template_hash_known() {
+    local hash="$1" rel="$2"
+    local mf="$SCIAGENT_TOOLKIT/$_CLAUDE_TEMPLATE_PROVENANCE"
+    [[ -n "$hash" && -f "$mf" ]] || return 1
+    local h r
+    while read -r h r; do
+        [[ "$h" == \#* || -z "$h" ]] && continue
+        [[ "$h" == "$hash" && "$r" == "$rel" ]] && return 0
+    done < "$mf"
+    return 1
+}
+
+# _claude_settings_ensure_body <src> <dst> <template-rel> <state-file> <ceded-file>
+#
+# The single materialize-and-keep-current routine behind ensure_hooks and
+# ensure_statusline. Four outcomes, in order:
+#
+#   dst ABSENT            → write it, record the hash. (Original behaviour.)
+#   dst == template       → nothing to write. Adopt it: record the hash if we
+#                           had none, so `deactivate` can reverse a body that
+#                           predates the ownership records.
+#   dst is a KNOWN older  → REFRESH — this is the defect being fixed. Verified
+#   version (record hash    against the fleet: all 8 consumers carrying
+#   or manifest hash)       no_ephemeral.sh hold 12dafe8a3e39, the af20086
+#                           template, and none of them ever saw de5719e's fix.
+#   anything else         → the user's file. Warn ONCE, drop the record, write
+#                           a ceded marker, and never touch it again. Warning
+#                           on every activate is what the marker prevents; the
+#                           teardown path already made this decision once and
+#                           for all for the same reason.
+_claude_settings_ensure_body() {
+    local src="$1" dst="$2" rel="$3" state="$4" ceded="$5"
+    [[ -f "$src" ]] || return 0
+
+    mkdir -p "$(dirname "$dst")"
+
+    if [[ ! -f "$dst" ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        chmod +x "$dst"
+        echo "wrote: $dst"
+        mkdir -p "$(dirname "$state")"
+        _sciagent_sha1_file "$dst" > "$state"
+        rm -f "$ceded"
+        return 0
+    fi
+
+    # The executable bit is re-asserted on every run regardless of ownership: a
+    # hook that is not executable is silently dead, and that is never what the
+    # user meant by editing its contents.
+    chmod +x "$dst" 2>/dev/null || true
+
+    local cur tpl
+    cur=$(_sciagent_sha1_file "$dst")
+    tpl=$(_sciagent_sha1_file "$src")
+
+    if [[ "$cur" == "$tpl" ]]; then
+        # Already current. Adopt it if we have no record, so that a body
+        # materialized before the ownership records existed is reversible.
+        if [[ ! -f "$state" && ! -f "$ceded" ]]; then
+            mkdir -p "$(dirname "$state")"
+            printf '%s\n' "$cur" > "$state"
+        fi
+        return 0
+    fi
+
+    # Already ceded to the user at this exact content — stay silent.
+    if [[ -f "$ceded" && "$(cat "$ceded" 2>/dev/null)" == "$cur" ]]; then
+        return 0
+    fi
+
+    local ours=false
+    if [[ -f "$state" && "$(cat "$state" 2>/dev/null)" == "$cur" ]]; then
+        ours=true
+    elif _sciagent_template_hash_known "$cur" "$rel"; then
+        ours=true
+    fi
+
+    if [[ "$ours" == true ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to refresh $dst" >&2; return 1; }
+        chmod +x "$dst"
+        echo "refreshed: $dst (was an older toolkit version)"
+        mkdir -p "$(dirname "$state")"
+        printf '%s\n' "$tpl" > "$state"
+        rm -f "$ceded"
+        return 0
+    fi
+
+    echo "sciagent: $dst differs from the toolkit's version and was not written by sciagent" >&2
+    echo "  leaving it as yours; sciagent will not manage it from now on" >&2
+    rm -f "$state"
+    mkdir -p "$(dirname "$ceded")"
+    printf '%s\n' "$cur" > "$ceded"
+    return 0
+}
+
 # claude_settings_ensure_hooks
 # Materialize .claude/hooks/*.sh from the toolkit templates, so the hooks that
-# settings.json registers actually exist. Same non-clobbering contract as the
-# status line: written only if absent, executable bit re-asserted every run.
-# Each file we create gets a content-hash snapshot under
-# $_CLAUDE_HOOKS_STATE_DIR so `deactivate` can reverse exactly the files we
-# wrote (see claude_settings_teardown_hooks); a pre-existing hook (user's own,
-# or ours from an earlier activate) gets no snapshot and is never touched.
+# settings.json registers actually exist, AND keep them current. Ownership
+# logic lives in _claude_settings_ensure_body: create if absent, refresh a body
+# whose bytes are a version this toolkit shipped, cede anything else. The
+# executable bit is re-asserted every run either way.
+#
+# "Keep them current" is the 2026-08-11 change. Previously a body was written
+# only if absent, so a hook fixed in the toolkit never reached a project that
+# had already been provisioned — every one of the 8 consumers carrying
+# no_ephemeral.sh was still running the af20086 version, having missed
+# de5719e's fix entirely. A guardrail that cannot be updated in the field is
+# only as good as the day it was installed.
 #
 # Why this exists: settings.json.template REGISTERS PreToolUse/Stop hooks by
 # path, but the bodies were rendered only by `sciagent new project`. Any project
@@ -228,21 +362,18 @@ claude_settings_ensure_hooks() {
     local tpl_dir="$SCIAGENT_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
     [[ -d "$tpl_dir" ]] || return 0   # templates missing (e.g. stripped install): silent no-op
 
-    local src dst found=false
+    local src dst base found=false
     for src in "$tpl_dir"/*.sh.template; do
         [[ -f "$src" ]] || continue   # nullglob-safe: unmatched glob stays literal
         found=true
-        dst="$_CLAUDE_HOOKS_DIR/$(basename "${src%.template}")"
+        base="$(basename "${src%.template}")"
+        dst="$_CLAUDE_HOOKS_DIR/$base"
         mkdir -p "$_CLAUDE_HOOKS_DIR"
-        if [[ ! -f "$dst" ]]; then
-            cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
-            chmod +x "$dst"
-            echo "wrote: $dst"
-            mkdir -p "$_CLAUDE_HOOKS_STATE_DIR"
-            _sciagent_sha1_file "$dst" > "$_CLAUDE_HOOKS_STATE_DIR/$(basename "$dst").sha1"
-        else
-            chmod +x "$dst" 2>/dev/null || true
-        fi
+        _claude_settings_ensure_body \
+            "$src" "$dst" \
+            "project/_common/$_CLAUDE_HOOKS_DIR/$base.template" \
+            "$_CLAUDE_HOOKS_STATE_DIR/$base.sha1" \
+            "$_CLAUDE_HOOKS_STATE_DIR/$base.ceded" || return 1
     done
     [[ "$found" == true ]] || return 0
 }
@@ -270,32 +401,31 @@ claude_settings_teardown_hooks() {
         fi
         rm -f "$sf"
     done
+    # Ceded markers name files that are explicitly NOT ours: drop the marker,
+    # never the file. Also unblocks the rmdir below.
+    rm -f "$_CLAUDE_HOOKS_STATE_DIR"/*.ceded 2>/dev/null || true
     rmdir "$_CLAUDE_HOOKS_STATE_DIR" 2>/dev/null || true
     [[ -d "$_CLAUDE_HOOKS_DIR" ]] && rmdir "$_CLAUDE_HOOKS_DIR" 2>/dev/null
     return 0
 }
 
 # claude_settings_ensure_statusline
-# Materialize .claude/statusline.sh from the toolkit template if absent, and
-# make sure it is executable either way. No-op (besides chmod) if the file
-# already exists — a user's customized status line is never overwritten.
-# Snapshots the content hash under $_CLAUDE_STATUSLINE_STATE only when WE
-# create the file, so claude_settings_teardown_statusline knows to reverse it.
+# Materialize .claude/statusline.sh from the toolkit template and keep it
+# current, via the same ownership logic as the hooks
+# (_claude_settings_ensure_body): create if absent, refresh a body whose bytes
+# are a version this toolkit shipped, cede anything else. A user's customized
+# status line is still never overwritten — that is what the cede branch is for.
+# Executable bit re-asserted every run regardless.
 claude_settings_ensure_statusline() {
     local dst="$_CLAUDE_STATUSLINE"
     local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/statusline.sh.template"
     [[ -f "$src" ]] || return 0   # template missing (e.g. stripped install): silent no-op
 
-    mkdir -p "$(dirname "$dst")"
-    if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
-        chmod +x "$dst"
-        echo "wrote: $dst"
-        mkdir -p "$(dirname "$_CLAUDE_STATUSLINE_STATE")"
-        _sciagent_sha1_file "$dst" > "$_CLAUDE_STATUSLINE_STATE"
-    else
-        chmod +x "$dst" 2>/dev/null || true
-    fi
+    _claude_settings_ensure_body \
+        "$src" "$dst" \
+        "project/_common/.claude/statusline.sh.template" \
+        "$_CLAUDE_STATUSLINE_STATE" \
+        "$_CLAUDE_STATUSLINE_CEDED"
 }
 
 # claude_settings_teardown_statusline
@@ -303,6 +433,9 @@ claude_settings_ensure_statusline() {
 # snapshot: remove the file iff unchanged since we wrote it; otherwise warn
 # and leave it (see ownership-record note above). No-op if we never created it.
 claude_settings_teardown_statusline() {
+    # Drop any ceded marker first: it names a file that is explicitly not ours,
+    # so there is nothing to reverse, but the marker itself is our bookkeeping.
+    rm -f "$_CLAUDE_STATUSLINE_CEDED"
     [[ -f "$_CLAUDE_STATUSLINE_STATE" ]] || return 0
     local stored cur
     stored=$(cat "$_CLAUDE_STATUSLINE_STATE")
