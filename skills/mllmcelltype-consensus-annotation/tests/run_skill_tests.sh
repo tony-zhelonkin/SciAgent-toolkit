@@ -47,5 +47,10 @@ fi
 
 echo "[mllmct] smoke_check_versions + offline pytest in locked sandbox"
 # Drop any inherited VIRTUAL_ENV so uv targets THIS skill's sandbox cleanly (no warning).
-env -u VIRTUAL_ENV uv run --project "$SKILL" python "$SKILL/checks/smoke_check_versions.py"
-env -u VIRTUAL_ENV uv run --project "$SKILL" --extra test pytest "$SKILL/tests" -q
+#
+# --locked matches bin/mllmct: it makes lock-vs-pyproject drift a FAILURE here,
+# in the suite, rather than a silent uv.lock rewrite discovered later in someone
+# else's checkout. This is the gate for that invariant — editing pyproject.toml
+# without re-running `uv lock` should break the build, which is the point.
+env -u VIRTUAL_ENV uv run --locked --project "$SKILL" python "$SKILL/checks/smoke_check_versions.py"
+env -u VIRTUAL_ENV uv run --locked --project "$SKILL" --extra test pytest "$SKILL/tests" -q
