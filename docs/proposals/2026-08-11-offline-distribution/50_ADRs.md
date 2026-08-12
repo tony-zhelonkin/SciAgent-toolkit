@@ -121,12 +121,19 @@ behaviour, and the test suite is the safety net.
 
 **Context.** The concern was that skills installed standalone lose the guardrails they assume — the
 `no_ephemeral` PreToolUse hook, `02_analysis/stages/`, `02_analysis/helpers`. A static scan over the
-83 active skills flags **8** with direct references to `02_analysis/`, helpers, Claude paths, or the
-toolkit hooks (list in `00_INDEX.md` §5). The remaining 75 show no obvious coupling.
+83 active skills flags **15** with direct references to `02_analysis/`, helpers, or Claude paths
+(list and two-flavour breakdown in `00_INDEX.md` §5). The remaining 68 show no obvious coupling.
+**The count in this ADR's first draft was 8 — too low**; a wider re-scan, reproduced independently,
+found 7 more that the original pattern set missed. Note also that this ADR originally said "or the
+toolkit hooks": that clause has **zero** hits — no skill in the corpus references the enforcement
+hooks at all.
 
 **Decision.** Do not curate a public subset. The 8 coupled skills use the Agent Skills
 specification's compatibility field to state that they require a SciAgent project scaffold; the
-installer may additionally warn. A semantic audit of the 8 is still owed and is cheap.
+installer may additionally warn. A semantic audit of the 15 is still owed and is cheap. Most of them
+need a **scaffold**-compatibility declaration (they want `02_analysis/config|stages|notebooks`, a
+project layout) rather than a **toolkit**-compatibility one (only ~3–4 genuinely need toolkit code at
+runtime) — so the declaration vocabulary needs both, not one.
 
 **Rationale.** A curated subset creates a second corpus to keep in sync — the same drift tax ADR-D1
 refuses for version strings. Declaring a requirement is self-maintaining; maintaining a hand-picked

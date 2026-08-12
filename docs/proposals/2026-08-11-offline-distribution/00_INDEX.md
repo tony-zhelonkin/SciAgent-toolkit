@@ -107,19 +107,43 @@ different and narrower: only it pins **the whole toolkit as one unit** — `bin/
 hooks, `craft.yaml`, and the skills together — against the exact commit an analysis ran. **Earlier
 claim that the plugin channel "cannot pin a version": wrong.**
 
-**The standalone-skill problem is smaller than feared.** 83 active skills (`skills/*/SKILL.md`,
-excluding `_archive`/`_TEMPLATE`/`_attic`). A static scan for references to `02_analysis/`,
-`helpers/`, `.claude/` paths, or the toolkit hooks flags **8**:
+**The standalone-skill problem is smaller than feared — but the count was wrong.** 83 active skills
+(`skills/*/SKILL.md`, excluding `_archive`/`_TEMPLATE`/`_attic`). The first scan reported **8**. A
+wider re-scan on 2026-08-11, reproduced independently twice, finds **15**. The original pattern set
+keyed on toolkit-ish paths and missed plain `02_analysis/config|modules|scripts` references. **The
+number in the first draft of this plan was too low; treat 15 as the count.**
 
 ```
+# the original 8, all reproduced
 anndatar-seurat-scanpy-conversion   bulk-rnaseq-gsea
 decision-gate-notebook              figure-style
 interactive-breakpoint-explorer     mllmcelltype-consensus-annotation
 reasoning-trace                     scrna-pipeline-conventions
+# 7 the first scan missed
+annotate-bulk-rnaseq-data           bulk-rnaseq-activity-inference
+coresh-signature-search             peak-atlas-framework
+peak-atlas-multiome                 peak-atlas-unpaired
+te-geneset-gsea
 ```
 
-The other 75 show no obvious coupling. A semantic audit is still owed, but a heavily curated public
-subset is probably unnecessary — see ADR-D6.
+**The 15 are two different problems, and only the first is about the toolkit:**
+
+| Flavour | Needs | Skills |
+|---|---|---|
+| **Toolkit coupling** — needs toolkit code reachable at runtime | `02_analysis/helpers/*` shims that source the contract libs `symlink_create_helper_lib` mounts (`symlinks.sh:547-570`) | `figure-style`, `anndatar-seurat-scanpy-conversion`, `bulk-rnaseq-gsea` (+ `mllmcelltype-consensus-annotation`, see below) |
+| **Project-scaffold coupling** — needs the analysis-repo *layout*, not toolkit code | `02_analysis/config/analysis_config.yaml`, `02_analysis/stages/`, `02_analysis/notebooks/` | the remaining ~11 |
+
+This distinction matters for ADR-D6: most of the 15 need a **scaffold-compatibility declaration**,
+not toolkit code — which is exactly what D6 already proposes. Single-skill export is coherent for
+~68 of 83 outright and for most of the rest behind one declared requirement.
+
+`mllmcelltype-consensus-annotation`'s `.claude/skills/` reference (`bin/mllmct:5`) is arguably **not**
+coupling at all: `packaged-skills.md` contract #3 *requires* the launcher to dereference its own
+`BASH_SOURCE` precisely so it survives being symlinked. Flagged by the pattern, correct by design.
+
+**Correction to ADR-D6's wording:** its phrase "or the toolkit hooks" has **zero** hits. A grep for
+`hooks/*.sh`, `PreToolUse`, `PostToolUse` across all 83 skills returns nothing — no skill references
+the enforcement hooks. The clause describes a coupling that does not exist in the corpus.
 
 **Artifact size makes `git archive` mandatory, not merely tidy.** The working checkout is 180 MB;
 tracked content is 5.6 MB uncompressed. A single ignored skill virtualenv
