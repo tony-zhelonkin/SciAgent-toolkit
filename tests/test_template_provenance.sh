@@ -31,7 +31,7 @@ _hash() { sha1sum "$1" | cut -d' ' -f1; }
 
 # The set of templates `activate` materializes verbatim, derived the SAME way
 # the library derives it — glob the hooks dir (claude_settings.sh ensure_hooks),
-# the status line (ensure_statusline), and the analysis helper-shim dir
+# and the analysis helper-shim dir
 # (symlinks.sh helper_shims_ensure) — rather than from a second hardcoded list
 # that could drift out of sync with them. Anything a caller materializes is
 # therefore checked here automatically, including the {{PLACEHOLDER}} check
@@ -40,8 +40,6 @@ MANAGED=()
 for f in "$TOOLKIT_ROOT"/templates/project/_common/.claude/hooks/*.sh.template; do
     [[ -f "$f" ]] && MANAGED+=("${f#"$TOOLKIT_ROOT"/templates/}")
 done
-SL="templates/project/_common/.claude/statusline.sh.template"
-[[ -f "$TOOLKIT_ROOT/$SL" ]] && MANAGED+=("${SL#templates/}")
 for f in "$TOOLKIT_ROOT"/templates/project/analysis/02_analysis/helpers/*.template; do
     [[ -f "$f" ]] && MANAGED+=("${f#"$TOOLKIT_ROOT"/templates/}")
 done

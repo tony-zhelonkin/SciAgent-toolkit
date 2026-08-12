@@ -2,8 +2,8 @@
 # tests/test_hook_body_propagation.sh
 #
 # A hook body fixed in the toolkit must actually REACH a project that was
-# already provisioned. Before 2026-08-11 it never did: ensure_hooks and
-# ensure_statusline wrote a body only `if [[ ! -f "$dst" ]]`, so the very first
+# already provisioned. Before 2026-08-11 it never did: ensure_hooks wrote a body
+# only `if [[ ! -f "$dst" ]]`, so the very first
 # activate froze that file forever. Measured across the real fleet the same
 # day: all 8 consumers carrying no_ephemeral.sh still held the af20086 version
 # (12dafe8a3e39) and none had received de5719e's fix. A guardrail that cannot
@@ -54,7 +54,7 @@ export SCIAGENT_TOOLKIT="$FAKE_TK"
 # ownership.sh is where the discipline under test lives (it moved out of
 # claude_settings.sh once the 02_analysis/helpers shims became its second
 # consumer — an R helper is not a Claude artifact). claude_settings.sh is still
-# sourced because the hooks/statusline PATHS and their state-file layout are
+# sourced because the hook paths and their state-file layout are
 # its half of the contract.
 # shellcheck source=/dev/null
 . "$TOOLKIT_ROOT/lib/sciagent/ownership.sh"

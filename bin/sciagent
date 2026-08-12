@@ -55,8 +55,6 @@ Usage:
   sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
   sciagent update [--to <ref>] [--no-pin] [--quiet]
                                        Re-pin toolkit submodule + re-activate current stack
-  sciagent provision [--harness <csv|all>] [--user] [--context] [--settings] [--dry-run]
-                                       Seed user-level / global context + settings per harness
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
@@ -84,7 +82,7 @@ verb="$1"; shift
 #   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
-#   claude_settings.sh  project/user settings and hook materialization (leaf-ish)
+#   claude_settings.sh  project hook registration and materialization (leaf-ish)
 #   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh,
 #                       frontmatter.sh — the last for `--check skill-coupling`, which
 #                       reads each skill's `compatibility:` scalar)
@@ -122,10 +120,10 @@ verb="$1"; shift
 # closures costs nothing but the source.
 # ---------------------------------------------------------------------------
 # ownership.sh carries the materialize-and-keep-current discipline shared by
-# claude_settings.sh (.claude/hooks/*.sh, statusline.sh) and symlinks.sh
+# claude_settings.sh (.claude/hooks/*.sh) and symlinks.sh
 # (02_analysis/helpers/*.{py,R} shims). It is listed for every verb whose
 # closure loads either of those two modules — activate, deactivate, status,
-# update, provision — not merely for the verbs whose code path happens to reach
+# update — not merely for the verbs whose code path happens to reach
 # a call today: the closure is over the modules LOADED, not the branches taken
 # (the lesson of 4b291b2, where a module missing from one closure surfaced as
 # "command not found" at the moment of a mutation). It depends only on block.sh
@@ -141,7 +139,6 @@ declare -A VERB_MODULES=(
     [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"
     [update]="block.sh ownership.sh craft.sh frontmatter.sh symlinks.sh roles.sh collisions.sh lint.sh validate.sh stack.sh claude_settings.sh activate.sh update.sh"
-    [provision]="block.sh ownership.sh harness.sh claude_settings.sh provision.sh"
 )
 
 # Verb → cmd_* entrypoint.
@@ -156,7 +153,6 @@ declare -A VERB_ENTRY=(
     [craft]=cmd_craft
     [gitignore]=cmd_gitignore
     [update]=cmd_update
-    [provision]=cmd_provision
 )
 
 # ---------------------------------------------------------------------------

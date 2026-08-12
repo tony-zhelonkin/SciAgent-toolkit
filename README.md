@@ -165,7 +165,6 @@ Stack depth is for now capped at 2 to stay inspectable.
 | `craft [--project-dir D]` | Render/refresh the SCIAGENT:CRAFT block in AGENTS.md |
 | `gitignore [<path>]` | Add/update the SCIAGENT:GITIGNORE block in .gitignore |
 | `update [--to <ref>]` | Re-pin the toolkit submodule + re-activate the current stack |
-| `provision [--harness <csv\|all>]` | Seed user-level / global context + settings per harness |
 
 Run `sciagent --help` for the terse reference.
 
@@ -200,9 +199,8 @@ project/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   ├── settings.json                 # created, or missing keys backfilled
-│   ├── statusline.sh                 # created, +x
-│   └── hooks/{no_ephemeral,caption_sweep}.sh   # created, +x, registered in settings.json
+│   ├── settings.json                 # the two guardrail hook registrations
+│   └── hooks/{no_ephemeral,caption_sweep}.sh   # created, +x
 ├── .agents/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
@@ -221,8 +219,8 @@ survives untouched.
 
 **`deactivate` (no argument) is a full inverse of `activate`.** Beyond the blocks
 and symlinks, it also reverses the project-level artifacts `activate` writes
-unconditionally: `settings.json`'s key-backfill, `statusline.sh`, both hook
-bodies, and the `@AGENTS.md` import line in `CLAUDE.md`.
+unconditionally: both hook registrations and bodies, and the `@AGENTS.md`
+import line in `CLAUDE.md`.
 
 Reversal is *ownership-checked*, never blind. Each artifact carries a record of
 what sciagent wrote — a content hash, or a state tag saying whether the file was
@@ -234,14 +232,19 @@ created outright or only prepended to. On teardown:
 | matches | reverse exactly (delete the file, or strip only the header it added) |
 | differs | leave the file in place and warn — an edit is ceded, never clobbered |
 
-So a hook body or statusline you have since edited survives, and the warning
-tells you which one. Ceding is permanent: the record is cleared either way, so a
+So a hook body you have since edited survives, and the warning tells you which
+one. Ceding is permanent: the record is cleared either way, so a
 second `deactivate` is a silent no-op rather than a recurring warning.
 
 Note this is the *full* teardown only. `deactivate <role>` for a partial
 teardown that leaves a base active does not touch the project-level artifacts —
 they are not stack-specific, so removing an overlay must not unregister the
 hooks.
+
+Claude Code treats project settings as replacements for user settings, except
+for permission rules. SciAgent therefore writes only the two project guardrail
+hook registrations; editor, effort, model, memory, attribution, thinking, and
+statusline preferences remain user-owned.
 
 ## Harness support
 

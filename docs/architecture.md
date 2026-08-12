@@ -10,15 +10,10 @@ One job: **manage AI-harness context per project**. The user wears different hat
 
 Non-goals: installing harnesses, managing MCPs, managing API keys.
 
-**Scope of "per project."** Every *mounting* verb — `activate`, `deactivate`, `update`, `craft`, `lint`, `status` — is strictly project-scoped and writes nothing outside the project directory. That is what makes the reproducibility claim meaningful: the project, plus the toolkit commit it pins, fully determines the mounted context.
-
-One capability sits deliberately outside that scope, and this list used to deny it. `sciagent provision` seeds *user-global* baselines across detected harnesses (see `lib/sciagent/provision.sh`) — the shared `SCIAGENT:CONTEXT` block in each harness's global root, and power-user settings defaults. It exists because a devcontainer wants to run it once at create time. Per **ADR-D4** it is an **opt-in personal bootstrap**, not a tier of normal activation:
-
-- no project verb calls it, and it never calls `activate` or `validate`;
-- it is not part of what the toolkit *distributes* — packaging must not select or configure harnesses (**ADR-D3**);
-- only the Claude adapter is implemented fully; the other harnesses' settings adapters are logged honestly and skipped, never faked.
-
-Multi-provider posture is therefore a *partial* goal, not a non-goal, and it is worth being exact about how partial: source directories are harness-neutral, `AGENTS.md` + `.agents/skills` are the neutral binding surface, and detection plus global-context paths exist for five harnesses — but full project materialization exists for Claude Code only, with `.agents` mirrors alongside. See `docs/proposals/2026-08-11-offline-distribution/` for the adapter layer this is headed toward (**ADR-D5**).
+**Scope of "per project."** Every verb is project-scoped and writes nothing
+outside the project directory. That is what makes the reproducibility claim
+meaningful: the project, plus the toolkit commit it pins, fully determines the
+mounted context. User-global harness preferences belong to dev-env.
 
 ## 2. Mental model: roles as RPG combo classes
 
@@ -46,7 +41,7 @@ sciagent-toolkit/
 │   ├── validate.sh           # `validate` verb: frontmatter shape + collisions
 │   ├── lint.sh               # `lint` verb: opt-in PROJECT guardrail checks
 │   ├── ownership.sh          # materialize-and-keep-current discipline for copied
-│   │                         #   template bodies (hooks, statusline, helper shims)
+│   │                         #   template bodies (hooks and helper shims)
 │   └── symlinks.sh           # dual-track symlink helpers + the 02_analysis/helpers
 │                             #   seam (contract-lib mounts and their shim modules)
 ├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format);
@@ -70,7 +65,9 @@ project/
 ├── .claude/                               # Claude harness native
 │   ├── skills/<name> ──▶ toolkit/skills/<name>
 │   ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
-│   └── commands/<name>.md ──▶ toolkit/commands/<name>.md
+│   ├── commands/<name>.md ──▶ toolkit/commands/<name>.md
+│   ├── settings.json                      # two guardrail registrations
+│   └── hooks/{no_ephemeral,caption_sweep}.sh
 └── .agents/                               # harness-agnostic mirror
     ├── skills/<name> ──▶ toolkit/skills/<name>
     ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
@@ -115,7 +112,7 @@ Stack (in order, last-wins on name collisions):
 
 ### Robustness rules
 
-- **Markers**: HTML comments — invisible in rendered markdown, distinct namespace (one id per block: `ROLES`, `CRAFT`, `CONTEXT`). The `v1` in the marker is **decorative — nothing parses it**, so there is no version-negotiated upgrade path: a reader expecting `v2` would fail to match a `v1` BEGIN line while still matching the unversioned END line, and report corruption. Treat the format as effectively unversioned until that is fixed.
+- **Markers**: HTML comments — invisible in rendered markdown, with one id per block (`ROLES`, `CRAFT`). Readers accept numeric marker versions; writers emit v1 and refuse to rewrite an unsupported version.
 - **Drift detection**: the header carries `hash=<sha1>` of the block body, checksummed against the body itself — never against what the renderer *would* produce. That is what distinguishes a merely **stale** block (old body, self-consistent hash → re-render proceeds silently) from a **hand-edited** one (body mutated, hash no longer matching → refuse).
   `block_hash_check` returns: `0` match, `1` no block, `2` one marker only (corrupt), `3` drift, `4` no id argument passed (a caller bug, deliberately distinct from `1`).
   1. If both markers found and the hash matches: re-render in place.
@@ -151,7 +148,6 @@ sciagent new project|role|skill|agent [args]      # scaffold from templates
 sciagent craft [--project-dir D] [--force] [--quiet]   # render/refresh the SCIAGENT:CRAFT block
 sciagent gitignore [<path>]                       # add/update the SCIAGENT:GITIGNORE block
 sciagent update [--to <ref>] [--no-pin] [--quiet] # re-pin toolkit submodule + re-activate current stack
-sciagent provision [--harness <csv|all>] [...]    # seed user-level context + settings per harness
 ```
 
 There is no `inject`/`eject` verb. That mechanism — adding/removing one entry on
@@ -276,9 +272,8 @@ Every `activate` walks the whole catalog of skills, agents, and commands (§5) �
 
 **Also removed, each under its own ownership record** (2026-08-11/12; this used to
 be documented as a known gap, and was one until those records existed):
-`.claude/statusline.sh`, `.claude/hooks/{no_ephemeral,caption_sweep}.sh`, the
-`.claude/settings.json` keys the backfill added (per-key, and the user's original
-bytes restored verbatim when the file is still exactly what we wrote), the
+`.claude/hooks/{no_ephemeral,caption_sweep}.sh`, their registrations in
+`.claude/settings.json`, the
 `02_analysis/helpers/{figure_style.py,figure_style.R,interactive_style.py}` shim
 modules, and the `@AGENTS.md` line `activate` prepends to `CLAUDE.md`.
 
@@ -297,9 +292,8 @@ remains. See `lib/sciagent/ownership.sh` for the shared machinery and
 ```
 .sciagent/
 ├── manifest.json            # canonical state: stack, created symlinks, schema version
-├── project_settings.state   # which settings.json keys the backfill added (+ .orig)
+├── hook_settings.state      # hook registrations added to settings.json (+ .orig)
 ├── claude_md.state          # created vs. prepended, for the CLAUDE.md import shim
-├── statusline.sha1 / .ceded # content snapshot / ceded marker for statusline.sh
 ├── hook_state/              # one .sha1 (or .ceded) per materialized hook body
 └── helper_shim_state/       # one .sha1 (or .ceded) per 02_analysis/helpers shim
 ```

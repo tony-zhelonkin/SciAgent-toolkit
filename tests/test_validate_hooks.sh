@@ -119,7 +119,7 @@ grep -q 'WARN hooks' <<<"$OUT" && fail "warned on a project with no settings.jso
 
 # --- 6. settings.json without a hooks key → clean no-op ---------------------
 P6="$TMPDIR_TEST/p_nohooks"; mkdir -p "$P6/.claude"
-echo '{"editorMode":"vim"}' > "$P6/.claude/settings.json"
+echo '{"theme":"dark"}' > "$P6/.claude/settings.json"
 run_check "$P6"
 [[ "$RC" -eq 0 ]] || fail "settings.json without hooks exited $RC (expected 0)" "$OUT"
 grep -q 'WARN hooks' <<<"$OUT" && fail "warned on settings.json carrying no hooks" "$OUT"
@@ -139,10 +139,13 @@ if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
         . "$SCIAGENT_TOOLKIT/lib/sciagent/block.sh"
         . "$SCIAGENT_TOOLKIT/lib/sciagent/ownership.sh"
         . "$SCIAGENT_TOOLKIT/lib/sciagent/claude_settings.sh"
-        claude_settings_ensure_project_defaults >/dev/null
         claude_settings_ensure_hooks' 2>&1)
     grep -q 'wrote: .claude/hooks/' <<<"$first" \
         || fail "ensure_hooks wrote no hook bodies" "$first"
+    if command -v jq >/dev/null 2>&1; then
+        assert_eq "$(jq -r 'keys | join(",")' "$P7/.claude/settings.json")" "hooks" \
+            "ensure_hooks writes only hook registration at project scope"
+    fi
 
     # Every hook the shipped settings template registers must now exist.
     SCIAGENT_TOOLKIT="$REAL_TK" run_check "$P7"

@@ -1,104 +1,184 @@
-# lib/sciagent/claude_settings.sh — Claude Code project and user settings.
+# lib/sciagent/claude_settings.sh — Claude Code project guardrail hooks.
 
 # shellcheck shell=bash
 
-# ----- Project-level .claude/settings.json + statusline.sh -----------------
-#
-# Root cause (see CHANGELOG): `sciagent new project` renders
-# templates/project/_common/.claude/{settings.json,statusline.sh}.template
-# via new.sh's generic _render_tree, but that only ever runs at project
-# scaffold time. `sciagent activate` — the verb actually run against
-# pre-existing / vendored-toolkit projects (the overwhelming majority in
-# practice) — never touched .claude/settings.json or .claude/statusline.sh
-# at all. Result: the status line + gold-standard defaults (editorMode vim,
-# effortLevel xhigh, autoMemoryEnabled false, hooks, …) were materialized
-# almost nowhere outside of freshly-`new project`-scaffolded repos.
-#
-# Fix: activate (and therefore update, which re-runs activate) now also
-# ensures the status line script and settings.json exist/are current,
-# using the same templates. Non-clobbering by construction:
-#   - statusline.sh: written only if absent (a user's customized script is
-#     left untouched); executable bit is (re-)asserted every time either way.
-#   - settings.json: written verbatim if absent; if present, missing top-level
-#     keys are backfilled from the template via a reverse `jq` merge that
-#     always lets the EXISTING file's values win on any conflict — this only
-#     ever adds keys the user's file lacks, never overwrites a user-set value.
-#     Requires jq; a clear one-line warning is emitted (and materialization
-#     skipped) if jq is unavailable, rather than attempting a lossy sed merge
-#     of an arbitrary-shape JSON file.
-
 _CLAUDE_PROJECT_SETTINGS=".claude/settings.json"
-_CLAUDE_STATUSLINE=".claude/statusline.sh"
 _CLAUDE_HOOKS_DIR=".claude/hooks"
-
-# ----- Ownership records for the project-level artifacts -------------------
-#
-# statusline.sh, the hook bodies, and the settings.json key-backfill are
-# materialized by `activate` but were never reversed by `deactivate` — the
-# defect this section fixes. Each gets the same kind of ownership record the
-# already-reversible artifacts have (symlinks carry their target and the ROLES/
-# CRAFT blocks carry a hash-framed marker):
-# a one-line/one-file SNAPSHOT taken at creation/modification time, consulted
-# exactly once at teardown.
-#
-#   - State file ABSENT  → we made no change here; deactivate touches nothing.
-#   - State file PRESENT, current content hash MATCHES the snapshot → our
-#     content, untouched since → deactivate reverses it exactly.
-#   - State file PRESENT, hash MISMATCH → the user edited or replaced it since
-#     → deactivate leaves it alone and warns on stderr. It never re-checks:
-#     the state file is removed either way, so the decision is made once and
-#     the artifact is considered the user's from then on (this is what makes
-#     `deactivate` idempotent — a second run finds no state file and is a
-#     silent no-op, rather than re-warning forever).
-#
-# The RULE ITSELF — snapshot semantics, ceded markers, and content-provenance
-# against templates/PROVENANCE.sha1 — is NOT Claude-specific and no longer
-# lives here: it moved to lib/sciagent/ownership.sh (ownership_ensure_body /
-# ownership_teardown_body) once its second consumer turned out to be the
-# 02_analysis/helpers/*.{py,R} shims, which are analysis-repo layout read by R
-# and Python and have nothing to do with Claude Code. Read that module's header
-# for the discipline and the content-provenance argument. What stays here is
-# only the Claude-specific part: which paths are managed, and the settings.json
-# key-backfill, whose JSON merge is genuinely its own thing.
-#
-# Directories are only ever rmdir'd (never rm -r) — a non-empty directory
-# means real content remains and is left in place by construction.
-_CLAUDE_STATUSLINE_STATE=".sciagent/statusline.sha1"
 _CLAUDE_HOOKS_STATE_DIR=".sciagent/hook_state"
-_CLAUDE_PROJECT_SETTINGS_STATE=".sciagent/project_settings.state"
-_CLAUDE_STATUSLINE_CEDED=".sciagent/statusline.ceded"
+_CLAUDE_HOOK_SETTINGS_STATE=".sciagent/hook_settings.state"
 
+# _claude_settings_ensure_hook_registration
+# Register the shipped hooks while preserving every unrelated project setting.
+_claude_settings_ensure_hook_registration() {
+    local dst="$_CLAUDE_PROJECT_SETTINGS"
+    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/settings.json.template"
+    local state="$_CLAUDE_HOOK_SETTINGS_STATE"
+    [[ -f "$src" ]] || return 0
+
+    mkdir -p "$(dirname "$dst")" "$(dirname "$state")"
+
+    if [[ ! -f "$dst" ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        if command -v jq >/dev/null 2>&1; then
+            jq -n \
+                --arg h "$(sciagent_sha1_file "$dst")" \
+                --slurpfile template "$src" \
+                '{tag:"created", hash:$h, added:$template[0].hooks}' > "$state"
+        else
+            printf '{"tag":"created","hash":"%s"}\n' "$(sciagent_sha1_file "$dst")" > "$state"
+        fi
+        echo "wrote: $dst"
+        return 0
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "sciagent: warning — jq not found; cannot register hooks in $dst" >&2
+        return 0
+    fi
+
+    local added merged
+    added=$(mktemp)
+    merged=$(mktemp)
+
+    if ! jq -n --slurpfile wanted "$src" --slurpfile current "$dst" '
+        reduce (($wanted[0].hooks // {}) | to_entries[]) as $event ({};
+          ($event.value | map(
+            . as $entry
+            | select(((($current[0].hooks[$event.key] // [])
+              | any(. == $entry)) | not))
+          )) as $missing
+          | if ($missing | length) > 0
+            then .[$event.key] = $missing
+            else .
+            end
+        )
+    ' > "$added" 2>/dev/null; then
+        rm -f "$added" "$merged"
+        echo "sciagent: warning — could not read hook settings from $dst (invalid JSON?)" >&2
+        return 0
+    fi
+
+    if jq -e 'length == 0' "$added" >/dev/null 2>&1; then
+        rm -f "$added" "$merged"
+        return 0
+    fi
+
+    if ! jq -s '
+        .[0].hooks as $wanted | .[1]
+        | .hooks = reduce ($wanted | to_entries[]) as $event (.hooks // {};
+            .[$event.key] = reduce $event.value[] as $entry (.[$event.key] // [];
+              if any(.[]; . == $entry) then . else . + [$entry] end
+            )
+          )
+    ' "$src" "$dst" > "$merged" 2>/dev/null || [[ ! -s "$merged" ]]; then
+        rm -f "$added" "$merged"
+        echo "sciagent: warning — could not register hooks in $dst (invalid JSON?)" >&2
+        return 0
+    fi
+
+    if [[ ! -f "$state" ]]; then
+        cp "$dst" "${state}.orig" || { rm -f "$added" "$merged"; return 1; }
+        cp "$merged" "$dst" || { rm -f "$added" "$merged"; return 1; }
+        jq -n \
+            --arg h "$(sciagent_sha1_file "$dst")" \
+            --slurpfile added "$added" \
+            '{tag:"existed-registered", written_hash:$h, added:$added[0]}' > "$state"
+    else
+        cp "$merged" "$dst" || { rm -f "$added" "$merged"; return 1; }
+        local next_state
+        next_state=$(mktemp)
+        if jq --slurpfile extra "$added" '
+            .added = reduce (($extra[0] // {}) | to_entries[]) as $event (.added // {};
+              .[$event.key] = reduce $event.value[] as $entry (.[$event.key] // [];
+                if any(.[]; . == $entry) then . else . + [$entry] end
+              )
+            )
+        ' "$state" > "$next_state" 2>/dev/null; then
+            cp "$next_state" "$state"
+        fi
+        rm -f "$next_state"
+    fi
+
+    rm -f "$added" "$merged"
+    echo "updated: $dst (registered project guardrail hooks)"
+}
+
+# _claude_settings_teardown_hook_registration
+# Remove only registrations added by the toolkit and restore untouched files.
+_claude_settings_teardown_hook_registration() {
+    local dst="$_CLAUDE_PROJECT_SETTINGS"
+    local state="$_CLAUDE_HOOK_SETTINGS_STATE"
+    [[ -f "$state" ]] || return 0
+
+    local tag stored current
+    tag=$(sed -n 's/.*"tag"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$state" | head -1)
+    stored=$(sed -n 's/.*"hash"[[:space:]]*:[[:space:]]*"\([0-9a-f]*\)".*/\1/p' "$state" | head -1)
+    current=""
+    [[ -f "$dst" ]] && current=$(sciagent_sha1_file "$dst")
+
+    if [[ "$tag" == "created" && -n "$stored" && "$current" == "$stored" ]]; then
+        rm -f "$dst" "$state" "${state}.orig"
+        return 0
+    fi
+
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "sciagent: warning — jq not found; cannot safely unregister hooks from $dst" >&2
+        return 0
+    fi
+
+    tag=$(jq -r '.tag // empty' "$state" 2>/dev/null)
+    stored=$(jq -r 'if .tag == "created" then .hash else .written_hash end // empty' "$state" 2>/dev/null)
+
+    if [[ "$tag" == "existed-registered" && -f "${state}.orig" \
+          && -n "$stored" && "$current" == "$stored" ]]; then
+        cp "${state}.orig" "$dst"
+        rm -f "$state" "${state}.orig"
+        return 0
+    fi
+
+    if [[ -f "$dst" ]] && jq -e '.added | type == "object"' "$state" >/dev/null 2>&1; then
+        local original='{}' tmp
+        if [[ -f "${state}.orig" ]]; then
+            original=$(jq -c '.' "${state}.orig" 2>/dev/null || printf '{}')
+        fi
+        tmp=$(mktemp)
+        if jq --slurpfile ownership "$state" --argjson original "$original" '
+            ($ownership[0].added // {}) as $added
+            | reduce ($added | to_entries[]) as $event (.;
+                .hooks[$event.key] = [
+                  (.hooks[$event.key] // [])[] as $entry
+                  | select(($event.value | any(. == $entry)) | not)
+                ]
+                | if ((.hooks[$event.key] | length) == 0
+                      and ((($original.hooks // {}) | has($event.key)) | not))
+                  then del(.hooks[$event.key])
+                  else .
+                  end
+              )
+            | if (.hooks == {} and (($original | has("hooks")) | not))
+              then del(.hooks)
+              else .
+              end
+        ' "$dst" > "$tmp" 2>/dev/null; then
+            cp "$tmp" "$dst"
+        else
+            echo "sciagent: warning — could not safely unregister hooks from $dst; leaving it in place" >&2
+        fi
+        rm -f "$tmp"
+    fi
+
+    rm -f "$state" "${state}.orig"
+}
 
 # claude_settings_ensure_hooks
-# Materialize .claude/hooks/*.sh from the toolkit templates, so the hooks that
-# settings.json registers actually exist, AND keep them current. Ownership
-# logic lives in ownership.sh's ownership_ensure_body: create if absent, refresh
-# a body whose bytes are a version this toolkit shipped, cede anything else. The
-# executable bit is re-asserted every run either way (mode `exec`).
-#
-# "Keep them current" is the 2026-08-11 change. Previously a body was written
-# only if absent, so a hook fixed in the toolkit never reached a project that
-# had already been provisioned — every one of the 8 consumers carrying
-# no_ephemeral.sh was still running the af20086 version, having missed
-# de5719e's fix entirely. A guardrail that cannot be updated in the field is
-# only as good as the day it was installed.
-#
-# Why this exists: settings.json.template REGISTERS PreToolUse/Stop hooks by
-# path, but the bodies were rendered only by `sciagent new project`. Any project
-# retrofitted by `activate` therefore got hook registration with no hook files —
-# a silently dead enforcement tier. Observed in Meta-Aging/14616-DM, which had
-# both hooks registered and no .claude/hooks/ directory at all.
-#
-# Only *.sh.template is materialized. README.md.template carries a {{PROJECT_ID}}
-# placeholder and belongs to `new project`'s substitution pass; rendering it here
-# would emit a half-substituted file.
+# Materialize both project guardrail bodies and register them in settings.json.
 claude_settings_ensure_hooks() {
     local tpl_dir="$SCIAGENT_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
-    [[ -d "$tpl_dir" ]] || return 0   # templates missing (e.g. stripped install): silent no-op
+    [[ -d "$tpl_dir" ]] || return 0
 
     local src dst base found=false
     for src in "$tpl_dir"/*.sh.template; do
-        [[ -f "$src" ]] || continue   # nullglob-safe: unmatched glob stays literal
+        [[ -f "$src" ]] || continue
         found=true
         base="$(basename "${src%.template}")"
         dst="$_CLAUDE_HOOKS_DIR/$base"
@@ -111,322 +191,26 @@ claude_settings_ensure_hooks() {
             exec || return 1
     done
     [[ "$found" == true ]] || return 0
+
+    _claude_settings_ensure_hook_registration
 }
 
 # claude_settings_teardown_hooks
-# Reverse claude_settings_ensure_hooks: for every hook we have a snapshot for,
-# remove the file iff its content is still exactly what we wrote; otherwise
-# warn and leave it (see ownership-record note above). Removes the state dir
-# and, if it ends up empty, .claude/hooks/ itself.
+# Unregister and remove unchanged guardrail bodies; preserve user-owned files.
 claude_settings_teardown_hooks() {
-    [[ -d "$_CLAUDE_HOOKS_STATE_DIR" ]] || return 0
-    local sf base
-    for sf in "$_CLAUDE_HOOKS_STATE_DIR"/*.sha1; do
-        [[ -f "$sf" ]] || continue
-        base="$(basename "$sf" .sha1)"
-        ownership_teardown_body \
-            "$_CLAUDE_HOOKS_DIR/$base" "$sf" "${sf%.sha1}.ceded"
-    done
-    # Ceded markers name files that are explicitly NOT ours: drop the marker,
-    # never the file. Also unblocks the rmdir below.
-    rm -f "$_CLAUDE_HOOKS_STATE_DIR"/*.ceded 2>/dev/null || true
-    rmdir "$_CLAUDE_HOOKS_STATE_DIR" 2>/dev/null || true
-    [[ -d "$_CLAUDE_HOOKS_DIR" ]] && rmdir "$_CLAUDE_HOOKS_DIR" 2>/dev/null
+    _claude_settings_teardown_hook_registration
+
+    if [[ -d "$_CLAUDE_HOOKS_STATE_DIR" ]]; then
+        local sf base
+        for sf in "$_CLAUDE_HOOKS_STATE_DIR"/*.sha1; do
+            [[ -f "$sf" ]] || continue
+            base="$(basename "$sf" .sha1)"
+            ownership_teardown_body \
+                "$_CLAUDE_HOOKS_DIR/$base" "$sf" "${sf%.sha1}.ceded"
+        done
+        rm -f "$_CLAUDE_HOOKS_STATE_DIR"/*.ceded 2>/dev/null || true
+        rmdir "$_CLAUDE_HOOKS_STATE_DIR" 2>/dev/null || true
+    fi
+    [[ -d "$_CLAUDE_HOOKS_DIR" ]] && rmdir "$_CLAUDE_HOOKS_DIR" 2>/dev/null || true
     return 0
-}
-
-# claude_settings_ensure_statusline
-# Materialize .claude/statusline.sh from the toolkit template and keep it
-# current, via the same ownership logic as the hooks
-# (ownership.sh's ownership_ensure_body): create if absent, refresh a body whose bytes
-# are a version this toolkit shipped, cede anything else. A user's customized
-# status line is still never overwritten — that is what the cede branch is for.
-# Executable bit re-asserted every run regardless.
-claude_settings_ensure_statusline() {
-    local dst="$_CLAUDE_STATUSLINE"
-    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/statusline.sh.template"
-    [[ -f "$src" ]] || return 0   # template missing (e.g. stripped install): silent no-op
-
-    ownership_ensure_body \
-        "$src" "$dst" \
-        "project/_common/.claude/statusline.sh.template" \
-        "$_CLAUDE_STATUSLINE_STATE" \
-        "$_CLAUDE_STATUSLINE_CEDED" \
-        exec
-}
-
-# claude_settings_teardown_statusline
-# Reverse claude_settings_ensure_statusline using the saved content-hash
-# snapshot: remove the file iff unchanged since we wrote it; otherwise warn
-# and leave it (see ownership-record note above). No-op if we never created it.
-claude_settings_teardown_statusline() {
-    ownership_teardown_body \
-        "$_CLAUDE_STATUSLINE" "$_CLAUDE_STATUSLINE_STATE" "$_CLAUDE_STATUSLINE_CEDED"
-}
-
-# claude_settings_ensure_project_defaults
-# Materialize .claude/settings.json from the toolkit template if absent.
-# If present, backfill any top-level keys missing from the user's file with
-# the template's gold-standard defaults (statusLine, editorMode, effortLevel,
-# alwaysThinkingEnabled, autoMemoryEnabled, hooks, …) without touching any
-# key the user already set.
-#
-# Records what we did to $_CLAUDE_PROJECT_SETTINGS_STATE (JSON) so
-# claude_settings_teardown_project_defaults can reverse exactly that and
-# nothing else:
-#   {"tag":"created","hash":"<sha1 of the file as we wrote it>"}
-#   {"tag":"existed-backfilled","added":{"<key>":<value-as-written>, ...}}
-# "added" is the set of top-level keys the reverse-merge introduced — the
-# only keys we ever add to a pre-existing file — each paired with the exact
-# value we wrote, so teardown can tell "still ours" from "user has since
-# edited this key" per-key, not just for the file as a whole.
-claude_settings_ensure_project_defaults() {
-    local dst="$_CLAUDE_PROJECT_SETTINGS"
-    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/settings.json.template"
-    local state="$_CLAUDE_PROJECT_SETTINGS_STATE"
-    [[ -f "$src" ]] || return 0   # template missing: silent no-op
-
-    mkdir -p "$(dirname "$dst")" "$(dirname "$state")"
-
-    if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
-        echo "wrote: $dst"
-        printf '{"tag":"created","hash":"%s"}\n' "$(sciagent_sha1_file "$dst")" > "$state"
-        return 0
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "sciagent: warning — jq not found; cannot backfill missing keys into $dst" >&2
-        echo "  (statusLine + gold defaults not merged; install jq or add manually)" >&2
-        return 0
-    fi
-
-    # Reverse merge: template first, existing file second — `*` is a
-    # recursive merge where the RIGHT side wins on any key present on both
-    # sides, so existing user values are always preserved; only keys absent
-    # from the user's file are filled in from the template.
-    local old_keys
-    old_keys=$(jq -r 'keys[]' "$dst" 2>/dev/null | sort)
-
-    local tmp
-    tmp=$(mktemp)
-    if jq -s '.[0] * .[1]' "$src" "$dst" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
-        if ! cmp -s "$tmp" "$dst"; then
-            local new_keys added_keys
-            new_keys=$(jq -r 'keys[]' "$tmp" 2>/dev/null | sort)
-            added_keys=$(comm -13 <(printf '%s\n' "$old_keys") <(printf '%s\n' "$new_keys"))
-            # Snapshot the user's bytes BEFORE the merge overwrites them —
-            # after `cp "$tmp" "$dst"` the original is gone (see the
-            # written_hash note below for why we keep it).
-            cp "$dst" "${state}.orig" 2>/dev/null || true
-            cp "$tmp" "$dst"
-            rm -f "$tmp"
-            echo "updated: $dst (backfilled missing default keys)"
-            if [[ -n "$added_keys" ]]; then
-                local state_json='{"tag":"existed-backfilled","added":{}}' k v
-                while IFS= read -r k; do
-                    [[ -z "$k" ]] && continue
-                    v=$(jq -c --arg k "$k" '.[$k]' "$dst")
-                    state_json=$(printf '%s' "$state_json" | jq --arg k "$k" --argjson v "$v" '.added[$k]=$v')
-                done <<< "$added_keys"
-                # Also keep the user's original bytes and the hash of what we
-                # wrote. The `jq -s` merge above re-serialises the whole file,
-                # so a hand-written single-line settings.json comes back
-                # pretty-printed: semantically identical, byte-different.
-                # Deleting our keys at teardown cannot undo that reformatting.
-                # With the original bytes on hand we can restore them verbatim
-                # — but ONLY when the file is still exactly what we wrote, or
-                # we would discard whatever the user changed since. When it has
-                # moved on, teardown falls back to per-key deletion, which
-                # preserves their edit and accepts the reformatting.
-                state_json=$(printf '%s' "$state_json" \
-                    | jq --arg h "$(sciagent_sha1_file "$dst")" '.written_hash=$h')
-                printf '%s\n' "$state_json" > "$state"
-            else
-                # No keys added (merge changed only formatting): nothing for
-                # teardown to delete, so drop the snapshot rather than leave a
-                # stale .orig lying around.
-                rm -f "${state}.orig"
-            fi
-        else
-            rm -f "$tmp"
-        fi
-    else
-        rm -f "$tmp"
-        echo "sciagent: warning — could not merge defaults into $dst (invalid JSON?)" >&2
-    fi
-}
-
-# claude_settings_teardown_project_defaults
-# Reverse claude_settings_ensure_project_defaults using the saved state:
-#   created            → remove the file iff unchanged since we wrote it.
-#   existed-backfilled → remove only the keys we added, and only the ones
-#                         whose current value still matches what we wrote;
-#                         a key the user has since edited is left in place
-#                         with a warning (per-key, not all-or-nothing).
-# Requires jq to read the state back (the same dependency the backfill path
-# already has) — if jq is unavailable, warn and leave both the file and the
-# state record untouched rather than guess.
-claude_settings_teardown_project_defaults() {
-    local dst="$_CLAUDE_PROJECT_SETTINGS"
-    local state="$_CLAUDE_PROJECT_SETTINGS_STATE"
-    [[ -f "$state" ]] || return 0
-
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "sciagent: warning — jq not found; cannot safely revert $dst; leaving as-is" >&2
-        return 0
-    fi
-
-    local tag
-    tag=$(jq -r '.tag // empty' "$state" 2>/dev/null)
-
-    case "$tag" in
-        created)
-            local stored cur
-            stored=$(jq -r '.hash // empty' "$state" 2>/dev/null)
-            if [[ -f "$dst" ]]; then
-                cur=$(sciagent_sha1_file "$dst")
-                if [[ "$cur" == "$stored" ]]; then
-                    rm -f "$dst"
-                else
-                    echo "sciagent: warning — $dst was modified since sciagent created it; leaving it in place" >&2
-                fi
-            fi
-            ;;
-        existed-backfilled)
-            # Fast path: the file is still byte-for-byte what we wrote, so the
-            # user has changed nothing since — restore their original bytes
-            # verbatim. This is the only way to undo the reformatting the
-            # `jq -s` merge applied (a hand-written single-line settings.json
-            # comes back pretty-printed otherwise). Guarded on the hash
-            # precisely because restoring blindly would discard any edit the
-            # user made after activation; if it does not match we fall through
-            # to per-key deletion, which keeps their edit.
-            local _orig="${state}.orig" _wh _cur
-            _wh=$(jq -r '.written_hash // empty' "$state" 2>/dev/null)
-            if [[ -f "$_orig" && -f "$dst" && -n "$_wh" ]]; then
-                _cur=$(sciagent_sha1_file "$dst")
-                if [[ "$_cur" == "$_wh" ]]; then
-                    cp "$_orig" "$dst"
-                    rm -f "$_orig" "$state"
-                    return 0
-                fi
-            fi
-            rm -f "$_orig"
-            if [[ -f "$dst" ]]; then
-                local keys k stored_val cur_val tmp
-                keys=$(jq -r '.added | keys[]' "$state" 2>/dev/null)
-                while IFS= read -r k; do
-                    [[ -z "$k" ]] && continue
-                    stored_val=$(jq -c --arg k "$k" '.added[$k]' "$state")
-                    cur_val=$(jq -c --arg k "$k" 'if has($k) then .[$k] else null end' "$dst")
-                    if [[ "$cur_val" == "$stored_val" ]]; then
-                        tmp=$(mktemp)
-                        jq --arg k "$k" 'del(.[$k])' "$dst" > "$tmp" && cp "$tmp" "$dst"
-                        rm -f "$tmp"
-                    else
-                        echo "sciagent: warning — $dst key '$k' was modified since sciagent added it; leaving it in place" >&2
-                    fi
-                done <<< "$keys"
-            fi
-            ;;
-    esac
-    rm -f "$state"
-}
-
-# ----- User-level ~/.claude/settings.json + statusline.sh ------------------
-#
-# Root cause (see CHANGELOG / plans/2026-07-02-provider-agnostic): nothing ever
-# seeds the container's USER-level ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json.
-# claude_settings_ensure_project_defaults only ever writes the PROJECT file
-# (.claude/settings.json), and even that only lands on `activate` inside a project
-# cwd. A fresh container home is ephemeral, so Claude's first-run writes only bare
-# `{"theme":"dark"}`-class defaults and the gold power-user settings (editorMode
-# vim, effortLevel, alwaysThinkingEnabled, autoMemoryEnabled false, …) are missing
-# everywhere outside an activated project dir.
-#
-# Fix: mirror the project functions at USER level, from a hooks-free user template
-# (templates/user/.claude/settings.json.template) whose statusLine.command is the
-# user-level `~/.claude/statusline.sh` path (NOT $CLAUDE_PROJECT_DIR, which is
-# undefined at user scope). Hooks stay a project-activate concern. Same
-# non-clobbering guarantees as the project versions:
-#   - settings.json: written verbatim if absent; if present, missing top-level keys
-#     are backfilled via the same reverse `jq` merge that always lets the EXISTING
-#     file's values win — never overwrites a user-set value. jq missing → warn +
-#     skip (no lossy fallback).
-#   - statusline.sh: written only if absent; executable bit (re-)asserted either way.
-
-# claude_settings_ensure_user_statusline
-# Materialize ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/statusline.sh from the toolkit
-# template if absent, and make sure it is executable either way. No-op (besides
-# chmod) if the file already exists — a user's customized status line is never
-# overwritten.
-claude_settings_ensure_user_statusline() {
-    local dst="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/statusline.sh"
-    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/statusline.sh.template"
-    [[ -f "$src" ]] || return 0   # template missing (e.g. stripped install): silent no-op
-
-    mkdir -p "$(dirname "$dst")"
-    if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
-        chmod +x "$dst"
-        echo "wrote: $dst"
-    else
-        chmod +x "$dst" 2>/dev/null || true
-    fi
-}
-
-# claude_settings_ensure_user_defaults
-# Materialize ${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json from the hooks-free
-# user template if absent. If present, backfill any top-level keys missing from the
-# user's file with the template's gold-standard defaults (statusLine, editorMode,
-# effortLevel, alwaysThinkingEnabled, autoMemoryEnabled, …) without touching any
-# key the user already set.
-claude_settings_ensure_user_defaults() {
-    local dst="${CLAUDE_CONFIG_DIR:-$HOME/.claude}/settings.json"
-    local src="$SCIAGENT_TOOLKIT/templates/user/.claude/settings.json.template"
-    [[ -f "$src" ]] || return 0   # template missing: silent no-op
-
-    mkdir -p "$(dirname "$dst")"
-    if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
-        echo "wrote: $dst"
-        return 0
-    fi
-
-    if ! command -v jq >/dev/null 2>&1; then
-        echo "sciagent: warning — jq not found; cannot backfill missing keys into $dst" >&2
-        echo "  (statusLine + gold defaults not merged; install jq or add manually)" >&2
-        return 0
-    fi
-
-    # Reverse merge: template first, existing file second — `*` is a
-    # recursive merge where the RIGHT side wins on any key present on both
-    # sides, so existing user values are always preserved; only keys absent
-    # from the user's file are filled in from the template.
-    local tmp
-    tmp=$(mktemp)
-    if jq -s '.[0] * .[1]' "$src" "$dst" > "$tmp" 2>/dev/null && [[ -s "$tmp" ]]; then
-        if ! cmp -s "$tmp" "$dst"; then
-            mv "$tmp" "$dst"
-            echo "updated: $dst (backfilled missing default keys)"
-        else
-            rm -f "$tmp"
-        fi
-    else
-        rm -f "$tmp"
-        echo "sciagent: warning — could not merge defaults into $dst (invalid JSON?)" >&2
-    fi
-}
-
-# claude_settings_teardown_project_artifacts
-# Reverse everything claude_settings_ensure_{statusline,hooks,project_defaults}
-# may have created/modified. Called only from a FULL deactivate (no stack
-# remains active) — never from activate.sh's re-activation preamble, since
-# these artifacts are not stack-specific and ensure_* is already idempotent
-# without needing a teardown-then-recreate round trip.
-claude_settings_teardown_project_artifacts() {
-    claude_settings_teardown_statusline
-    claude_settings_teardown_hooks
-    claude_settings_teardown_project_defaults
 }

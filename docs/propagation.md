@@ -41,7 +41,8 @@ of them held by a gitlink (mode `160000`).
 | 1 | `fb6012a` — `Gama_Vivian_DRP1_bulkRNAseq`, excluded from propagation |
 
 **Hop 2 wires bytes.** `sciagent activate` reads the pinned copy and produces the
-project's binding: symlinks, managed blocks in `AGENTS.md`, hook bodies, settings.
+project's binding: symlinks, managed blocks in `AGENTS.md`, hook bodies, and
+their settings registrations.
 
 **A change reaches a project when it has completed every hop it requires.** Which
 hops a change requires follows from the artifact's class, below.
@@ -87,9 +88,8 @@ keeps its content until a command rewrites it.
 | `AGENTS.md` → `SCIAGENT:ROLES` block | rendered from the role YAML and the effective catalog |
 | `AGENTS.md` → `SCIAGENT:CRAFT` block | rendered from the toolkit's `craft.yaml` |
 | `.claude/hooks/*.sh` | plain `cp` of `templates/project/_common/.claude/hooks/*.sh.template` |
-| `.claude/statusline.sh` | plain `cp` of the statusline template |
 | `02_analysis/helpers/figure_style.{py,R}` · `interactive_style.py` | plain `cp` of the analysis shim templates (analysis repos) |
-| `.claude/settings.json` | `cp` when absent; missing top-level keys backfilled when present |
+| `.claude/settings.json` | the two guardrail hook registrations, merged with existing project settings |
 | `.gitignore` → `SCIAGENT:GITIGNORE` block | rendered from a fixed list |
 | `.sciagent/manifest.json`, `.sciagent/*.state`, `.sciagent/hook_state/*`, `.sciagent/helper_shim_state/*` | ownership records |
 
@@ -124,7 +124,7 @@ symlinks.
 | Rename a skill, agent, or command | required | required |
 | Change a role YAML under `roles/` | required | required |
 | Change `craft.yaml` | required | required |
-| Change a hook or statusline template | required | required |
+| Change a hook template | required | required |
 | Change a `02_analysis/helpers` shim template | required | required |
 | Change `settings.json.template` | required | required |
 | Change `lib/sciagent/*.sh` or `bin/sciagent` | required | recommended |
@@ -206,7 +206,7 @@ current hash is missing from it — or when one grows a `{{PLACEHOLDER}}`, which
 would silently break the byte-identity the whole argument rests on.
 
 The rule lives in `lib/sciagent/ownership.sh` and is used by two callers:
-`claude_settings.sh` for `.claude/hooks/*.sh` and `.claude/statusline.sh`, and
+`claude_settings.sh` for `.claude/hooks/*.sh`, and
 `symlinks.sh` for the `02_analysis/helpers` shims. It is deliberately not a
 Claude-specific function — an R helper module is not a Claude artifact — and both
 callers are listed in the `VERB_MODULES` closures of every verb that loads them.

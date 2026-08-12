@@ -28,9 +28,9 @@ cmd_deactivate() {
 sciagent deactivate [<role>]
   No argument: full teardown of the active stack (all mounted symlinks,
   the ROLES/CRAFT managed blocks, and the manifest) AND of the
-  project-level artifacts activate ensures unconditionally: .claude/
-  statusline.sh, .claude/hooks/*.sh, the settings.json key-backfill, the
-  02_analysis/helpers shim modules, and the CLAUDE.md @AGENTS.md import.
+  project-level artifacts activate ensures unconditionally: .claude/hooks/*.sh,
+  their settings.json registrations, the 02_analysis/helpers shim modules, and
+  the CLAUDE.md @AGENTS.md import.
   Each is reversed only if unchanged since sciagent created/modified it;
   anything edited or replaced since is left in place with a warning on
   stderr, never silently discarded.
@@ -56,13 +56,9 @@ USAGE
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
         block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
-        # Full teardown also reverses the project-level artifacts activate
-        # ensures unconditionally (statusline.sh, the hook bodies, the
-        # settings.json key-backfill, the CLAUDE.md shim) — these are not
-        # stack-specific, so they are only reversed here (a full deactivate),
-        # never on activate.sh's re-activation preamble. Each is a no-op if we
-        # never created/modified it, or if it has already been reversed.
-        claude_settings_teardown_project_artifacts
+        # Hook registration and bodies are project-level, so full teardown
+        # reverses them together.
+        claude_settings_teardown_hooks
         # The 02_analysis/helpers shim modules are the same class of artifact
         # (materialized by activate, ownership-tracked) but belong to the
         # analysis layout rather than to Claude — hence the separate call into
@@ -112,10 +108,8 @@ USAGE
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
         block_remove AGENTS.md ROLES 2>/dev/null || true
         craft_remove AGENTS.md 2>/dev/null || true
-        # See the no-arg branch above: this is also a full teardown (removing
-        # the base implies the overlay too), so the project-level artifacts
-        # get reversed here as well.
-        claude_settings_teardown_project_artifacts
+        # Removing the base is also a full teardown.
+        claude_settings_teardown_hooks
         helper_shims_teardown
         claude_md_shim_teardown
         _deactivate_prune_empty_agents_md

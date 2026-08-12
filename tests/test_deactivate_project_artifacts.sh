@@ -3,17 +3,13 @@
 #
 # `sciagent deactivate` must be a true inverse of `sciagent activate` for the
 # project-level artifacts activate ensures unconditionally (independent of
-# which role is active): .claude/statusline.sh, .claude/hooks/*.sh, the
-# settings.json key-backfill, and the CLAUDE.md @AGENTS.md import shim.
+# which role is active): .claude/hooks/*.sh, their settings.json registrations,
+# and the CLAUDE.md @AGENTS.md import shim.
 # Before this fix, deactivate reversed none of these — a repo left with
 # PreToolUse/Stop hooks registered AND materialized, permanently, with no
 # verb to undo it.
 #
-# Uses the REAL toolkit (like test_claude_settings_lifecycle.sh /
-# test_enforcement_hooks.sh), not the fake fixture toolkit — the fake
-# toolkit ships no templates/project/_common/, so ensure_statusline/
-# ensure_hooks/ensure_project_defaults silently no-op against it and the
-# defect this test guards against would never be exercised.
+# Uses the real toolkit because the fake fixture has no hook templates.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -45,7 +41,6 @@ _seed_agents_md
 cp AGENTS.md AGENTS.md.orig
 
 "$SCIAGENT" activate base >/tmp/.c1-activate.out 2>&1
-assert_file_exists .claude/statusline.sh   "case1: statusline materialized by activate"
 assert_file_exists .claude/settings.json   "case1: settings.json materialized by activate"
 assert_file_exists .claude/hooks/no_ephemeral.sh "case1: hook body materialized by activate"
 assert_file_exists CLAUDE.md               "case1: CLAUDE.md created by activate"
@@ -83,10 +78,8 @@ assert_file_eq CLAUDE.md CLAUDE.md.orig "case2: user prose byte-identical after 
 cd ..
 
 # ===========================================================================
-# Case 3: pre-existing settings.json with the user's own keys — activate
-# backfills the gold defaults (including hook registration); deactivate must
-# retain EXACTLY the user's original keys and remove the hook registration
-# (not just the hook files on disk — the registration itself).
+# Case 3: pre-existing settings.json with user settings and a custom hook —
+# activate adds both guardrails; deactivate restores the original bytes.
 # ===========================================================================
 mkdir case3 && cd case3
 _seed_agents_md
@@ -96,27 +89,24 @@ cat > .claude/settings.json <<'EOF'
   "myCustomKey": "keepme",
   "permissions": {
     "allow": ["Bash(git:*)"]
+  },
+  "hooks": {
+    "Stop": [
+      {"hooks": [{"type": "command", "command": "bash .claude/hooks/mine.sh"}]}
+    ]
   }
 }
 EOF
+cp .claude/settings.json settings.json.orig
 
 "$SCIAGENT" activate base >/dev/null 2>&1
 assert_grep 'PreToolUse' .claude/settings.json "case3: activate registers PreToolUse hook"
+assert_grep 'bash .claude/hooks/mine.sh' .claude/settings.json "case3: custom hook survives registration"
 
 "$SCIAGENT" deactivate >/dev/null 2>&1
 
 assert_file_exists .claude/settings.json "case3: pre-existing settings.json must survive"
-if command -v jq >/dev/null 2>&1; then
-    keys=$(jq -r 'keys | sort | join(",")' .claude/settings.json)
-    assert_eq "$keys" "myCustomKey,permissions" "case3: exactly the user's own keys remain"
-    val=$(jq -r '.myCustomKey' .claude/settings.json)
-    assert_eq "$val" "keepme" "case3: user's custom key value untouched"
-fi
-if grep -q 'PreToolUse\|no_ephemeral\|caption_sweep' .claude/settings.json; then
-    echo "FAIL [$_TEST_NAME] case3: hook registration still present after deactivate" >&2
-    cat .claude/settings.json >&2
-    exit 1
-fi
+assert_file_eq .claude/settings.json settings.json.orig "case3: original settings restored byte-for-byte"
 cd ..
 
 # ===========================================================================
@@ -142,43 +132,6 @@ assert_file_eq .claude/hooks/my_custom_hook.sh /tmp/.c4-hook.orig "case4: user's
 [[ -e .claude/hooks/caption_sweep.sh ]] && { echo "FAIL [$_TEST_NAME] case4: our hook not removed"; exit 1; }
 rm -f /tmp/.c4-hook.orig
 cd ..
-
-# ===========================================================================
-# Case 5: the user edits a value WE backfilled into settings.json before
-# deactivating — that key must survive with its user-set value, and a
-# warning must be emitted; the OTHER backfilled keys we didn't touch are
-# still removed normally (per-key granularity, not all-or-nothing).
-# ===========================================================================
-mkdir case5 && cd case5
-_seed_agents_md
-mkdir -p .claude
-cat > .claude/settings.json <<'EOF'
-{
-  "permissions": {"allow": ["Bash(git:*)"]}
-}
-EOF
-
-command -v jq >/dev/null 2>&1 || { echo "SKIP [$_TEST_NAME] case5: jq unavailable"; cd ..; }
-if command -v jq >/dev/null 2>&1; then
-    "$SCIAGENT" activate base >/dev/null 2>&1
-    jq '.effortLevel = "low"' .claude/settings.json > /tmp/.c5.json && mv /tmp/.c5.json .claude/settings.json
-
-    out=$("$SCIAGENT" deactivate 2>&1)
-    printf '%s\n' "$out" | grep -q "effortLevel.*modified" || {
-        echo "FAIL [$_TEST_NAME] case5: expected a warning about the edited effortLevel key" >&2
-        printf '%s\n' "$out" >&2
-        exit 1
-    }
-    val=$(jq -r '.effortLevel' .claude/settings.json)
-    assert_eq "$val" "low" "case5: user-edited value not clobbered"
-    # editorMode was backfilled and never touched by the user — must be gone.
-    if jq -e 'has("editorMode")' .claude/settings.json >/dev/null 2>&1; then
-        echo "FAIL [$_TEST_NAME] case5: untouched backfilled key 'editorMode' not removed" >&2
-        cat .claude/settings.json >&2
-        exit 1
-    fi
-    cd ..
-fi
 
 # ===========================================================================
 # Case 6: idempotent — deactivating an already-deactivated (or never
@@ -212,73 +165,23 @@ assert_eq "$rc3" "0" "case6b: deactivate on never-activated project exits 0"
 cd ..
 
 # ===========================================================================
-# Case 7: drift — the user edits a file we CREATED (not backfilled-into)
-# before deactivating: statusline.sh and a hook body. Both must survive with
-# a warning, exactly like the settings.json per-key case above.
+# Case 7: a user-edited hook body survives with a warning.
 # ===========================================================================
 mkdir case7 && cd case7
 _seed_agents_md
 "$SCIAGENT" activate base >/dev/null 2>&1
-echo "# user addition" >> .claude/statusline.sh
 echo "# user addition" >> .claude/hooks/no_ephemeral.sh
 
 out4=$("$SCIAGENT" deactivate 2>&1)
-printf '%s\n' "$out4" | grep -q "statusline.sh was modified" || {
-    echo "FAIL [$_TEST_NAME] case7: expected statusline drift warning" >&2
-    printf '%s\n' "$out4" >&2
-    exit 1
-}
 printf '%s\n' "$out4" | grep -q "no_ephemeral.sh was modified" || {
     echo "FAIL [$_TEST_NAME] case7: expected hook drift warning" >&2
     printf '%s\n' "$out4" >&2
     exit 1
 }
-assert_file_exists .claude/statusline.sh "case7: edited statusline survives"
 assert_file_exists .claude/hooks/no_ephemeral.sh "case7: edited hook survives"
-assert_grep '# user addition' .claude/statusline.sh "case7: statusline edit preserved"
 assert_grep '# user addition' .claude/hooks/no_ephemeral.sh "case7: hook edit preserved"
 # The untouched hook (caption_sweep.sh) must still be removed normally.
 [[ -e .claude/hooks/caption_sweep.sh ]] && { echo "FAIL [$_TEST_NAME] case7: untouched hook not removed"; exit 1; }
-cd ..
-
-# ---------------------------------------------------------------------------
-# case8: a hand-written settings.json comes back BYTE-identical, not merely
-# semantically identical.
-#
-# The backfill merges with `jq -s`, which re-serialises the whole document — so
-# a single-line file a human wrote returns pretty-printed. Deleting our keys at
-# teardown cannot undo that: the content matches, the bytes do not, and the
-# user's formatting is quietly gone. Teardown therefore restores the original
-# bytes it snapshotted, but only while the file is still exactly what we wrote.
-# Single-line input on purpose: a fixture that was already pretty-printed would
-# pass this assertion without the restore path existing at all.
-# ---------------------------------------------------------------------------
-mkdir project8 && cd project8
-git init -q .
-mkdir -p .claude
-printf '{"theme":"dark","permissions":{"allow":["Bash"]}}\n' > .claude/settings.json
-cp .claude/settings.json ../settings8.orig
-
-"$SCIAGENT" activate base >/dev/null
-# Sanity: activate must actually have changed the file, or this proves nothing.
-cmp -s ../settings8.orig .claude/settings.json \
-    && { echo "FAIL [$_TEST_NAME] case8 fixture: activate did not modify settings.json" >&2; exit 1; }
-
-"$SCIAGENT" deactivate >/dev/null
-cmp -s ../settings8.orig .claude/settings.json || {
-    echo "FAIL [$_TEST_NAME] case8: settings.json not restored byte-identically" >&2
-    diff <(cat ../settings8.orig) <(cat .claude/settings.json) >&2 || true
-    exit 1
-}
-
-# And when the user HAS changed it since, the original must NOT be force-restored
-# over their edit — per-key deletion instead, keeping what they added.
-"$SCIAGENT" activate base >/dev/null
-jq '.myKey = 1' .claude/settings.json > ../s8b && cp ../s8b .claude/settings.json
-"$SCIAGENT" deactivate >/dev/null
-assert_eq "$(jq -r '.myKey' .claude/settings.json)" "1" "case8: user's own key survives teardown"
-assert_eq "$(jq -r '.theme' .claude/settings.json)" "dark" "case8: user's original key survives"
-assert_eq "$(jq -r 'has("statusLine")' .claude/settings.json)" "false" "case8: backfilled key still removed"
 cd ..
 
 pass

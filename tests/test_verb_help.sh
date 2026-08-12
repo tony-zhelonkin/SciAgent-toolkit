@@ -27,7 +27,7 @@ fail() {
     exit 1
 }
 
-VERBS=(activate deactivate validate lint status new craft gitignore update provision)
+VERBS=(activate deactivate validate lint status new craft gitignore update)
 
 # ---------------------------------------------------------------------------
 # 1. Every verb: -h and --help exit 0 and print a usage line naming the verb.

@@ -181,17 +181,8 @@ USAGE
         return 1
     fi
 
-    # Ensure the project-level Claude Code harness files exist, independent of
-    # which role/stack is being activated. This is the fix for the toolkit
-    # being vendored everywhere but statusline.sh/settings.json landing almost
-    # nowhere: `new project` only rendered these at scaffold time, while
-    # `activate` — the verb actually run against pre-existing / already-vendored
-    # projects — never touched them. Non-clobbering: see claude_settings.sh.
-    claude_settings_ensure_statusline
-    claude_settings_ensure_project_defaults
-    # settings.json registers hooks by path; materialize the bodies too, or the
-    # enforcement tier is registered-but-absent (see claude_settings.sh).
-    claude_settings_ensure_hooks
+    # Materialize and register the two project guardrails.
+    claude_settings_ensure_hooks || return 1
 
     # Phase A: gather direct entries via stack_walk, preserving insertion order.
     # No mutation yet — all validation/resolution must succeed before we touch

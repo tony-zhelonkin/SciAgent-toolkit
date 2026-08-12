@@ -1,30 +1,4 @@
 {
-  "$schema": "https://json.schemastore.org/claude-code-settings.json",
-
-  "editorMode": "vim",
-
-  "alwaysThinkingEnabled": true,
-  "effortLevel": "xhigh",
-  "showThinkingSummaries": true,
-
-  "autoMemoryEnabled": false,
-
-  "teammateMode": "auto",
-
-  "cleanupPeriodDays": 90,
-
-  "attribution": {
-    "commit": "",
-    "pr": "",
-    "sessionUrl": false
-  },
-
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/statusline.sh\"",
-    "padding": 2
-  },
-
   "hooks": {
     "PreToolUse": [
       {

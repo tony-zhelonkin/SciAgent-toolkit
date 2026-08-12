@@ -4,7 +4,7 @@
 # WHY THIS EXISTS
 #
 # `sciagent activate` materializes a few template bodies into a project
-# (.claude/hooks/*.sh, .claude/statusline.sh, 02_analysis/helpers/*.{py,R})
+# (.claude/hooks/*.sh, 02_analysis/helpers/*.{py,R})
 # with a plain `cp` — no
 # placeholder substitution, so the file in the project is byte-identical to the
 # template that produced it. Those bodies were written ONLY IF ABSENT, so a
@@ -46,9 +46,9 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 MANIFEST="templates/PROVENANCE.sha1"
 
 # The templates `activate` materializes verbatim. Keep in sync with
-# claude_settings.sh's ensure_hooks / ensure_statusline and symlinks.sh's
-# helper_shims_ensure. tests/test_template_provenance.sh derives the same set by
-# globbing those three source dirs, so a template added to one of them and not
+# claude_settings.sh's ensure_hooks and symlinks.sh's helper_shims_ensure.
+# tests/test_template_provenance.sh derives the same set by globbing those two
+# source dirs, so a template added to one of them and not
 # added here fails the suite rather than shipping un-refreshable.
 #
 # README.md.template is deliberately absent: it carries a {{PROJECT_ID}}
@@ -64,7 +64,6 @@ MANIFEST="templates/PROVENANCE.sha1"
 MANAGED=(
     "project/_common/.claude/hooks/no_ephemeral.sh.template"
     "project/_common/.claude/hooks/caption_sweep.sh.template"
-    "project/_common/.claude/statusline.sh.template"
     "project/analysis/02_analysis/helpers/figure_style.py.template"
     "project/analysis/02_analysis/helpers/figure_style.R.template"
     "project/analysis/02_analysis/helpers/interactive_style.py.template"

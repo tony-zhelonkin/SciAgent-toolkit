@@ -92,10 +92,7 @@ _status_load_state() {
     _STK_BASE=$(printf '%s\n' "$stack" | awk '{print $1}')
     _STK_OVERLAY=$(printf '%s\n' "$stack" | awk '{print $2}')
 
-    # Drift check. ROLES explicitly — this is the effective-stack block
-    # activate.sh writes (see block.sh header: three ids exist — ROLES,
-    # CRAFT, CONTEXT — status only reports ROLES drift here; CRAFT's own
-    # drift is surfaced by craft_verb.sh/lint.sh, not duplicated here).
+    # Report ROLES drift here; craft_verb.sh and lint.sh own CRAFT drift.
     if [[ -f AGENTS.md ]]; then
         block_hash_check AGENTS.md ROLES
         case $? in

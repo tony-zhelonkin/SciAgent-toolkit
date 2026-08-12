@@ -11,7 +11,7 @@
 #   3. Anything else?                                    → the user's; cede it.
 #
 # That machinery was born inside claude_settings.sh, because its first two
-# consumers were .claude/hooks/*.sh and .claude/statusline.sh. It is not a
+# consumer was .claude/hooks/*.sh. It is not a
 # Claude concern. Its second consumer set — the 02_analysis/helpers/*.{py,R}
 # shims (symlinks.sh) — is analysis-repo LAYOUT, imported by R and Python and
 # entirely unrelated to Claude Code. Calling a `claude_settings_*` function to
@@ -23,7 +23,7 @@
 #
 # DEPENDENCY CLOSURE (bin/sciagent's VERB_MODULES). This module is required by
 # every verb whose closure loads claude_settings.sh or symlinks.sh — activate,
-# deactivate, status, update, provision — whether or not the code path a given
+# deactivate, status, update — whether or not the code path a given
 # invocation takes actually calls into it. The closure is over the MODULES
 # LOADED, not over the branches taken: a module that references a function
 # nobody sourced is a "command not found" waiting for the first mutation that
@@ -101,7 +101,7 @@ ownership_template_hash_known() {
 # ownership_ensure_body <src> <dst> <template-rel> <state-file> <ceded-file> [exec|plain]
 #
 # The single materialize-and-keep-current routine behind claude_settings.sh's
-# ensure_hooks / ensure_statusline and symlinks.sh's helper_shims_ensure. Four
+# ensure_hooks and symlinks.sh's helper_shims_ensure. Four
 # outcomes, in order:
 #
 #   dst ABSENT            → write it, record the hash. (Original behaviour.)
@@ -119,8 +119,8 @@ ownership_template_hash_known() {
 #                           for all for the same reason.
 #
 # The 6th argument decides the execute bit, and every call site states it:
-#   exec  (default) — chmod +x on every run, regardless of ownership. A hook or
-#                     status line that is not executable is silently dead, and
+#   exec  (default) — chmod +x on every run, regardless of ownership. A hook
+#                     that is not executable is silently dead, and
 #                     that is never what the user meant by editing its contents.
 #   plain           — modes are left exactly as `cp` produced them. Correct for
 #                     the R/Python helper shims: they are imported, never run,

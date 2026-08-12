@@ -6,10 +6,9 @@
 #   <!-- END SCIAGENT:<ID> -->
 #
 # For id=ROLES this is byte-identical to the original hard-coded markers.
-# Three ids are in production use: ROLES (the effective-stack block written
-# by activate.sh, checked by status.sh), CRAFT (craft.sh, the owner's
-# standing craft conventions), and CONTEXT (provision.sh). All three coexist
-# in the same AGENTS.md, each independently drift-checked.
+# Two ids are in production use: ROLES (the effective-stack block written by
+# activate.sh, checked by status.sh) and CRAFT (craft.sh, the owner's standing
+# craft conventions). They coexist in AGENTS.md and are independently checked.
 #
 # id used to default to ROLES on every function below. That default is
 # GONE (2026-08, Phase 5c follow-up): a bare `block_write AGENTS.md "$body"`
@@ -75,8 +74,8 @@ _sha1() {
 # exist so callers that need a content hash for something OTHER than a managed
 # block do not have to re-implement it and trip that guard.
 #
-# The other user is the deactivate-side ownership records: statusline.sh, the
-# hook bodies and the CLAUDE.md shim are reversed only if their content still
+# The other user is the deactivate-side ownership records: hook bodies and the
+# CLAUDE.md shim are reversed only if their content still
 # hashes to what sciagent wrote, so a user edit is detected and ceded rather
 # than clobbered. That is the same question block_hash_check asks of a managed
 # block body, so it belongs on the same primitive rather than a second one.
@@ -102,7 +101,7 @@ sciagent_sha1_stream() {
 _block_require_id() {
     local id="$1" caller="$2"
     if [[ -z "$id" ]]; then
-        echo "$caller: missing required <id> argument (no default — pass ROLES/CRAFT/CONTEXT explicitly)" >&2
+        echo "$caller: missing required <id> argument (pass ROLES/CRAFT explicitly)" >&2
         return 1
     fi
     return 0
