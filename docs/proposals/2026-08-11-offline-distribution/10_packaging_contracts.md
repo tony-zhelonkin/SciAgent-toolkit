@@ -33,17 +33,31 @@ The division of labour is absolute and is the whole point of the design:
 - **Deterministic:** a test builds the same ref twice and asserts identical checksums.
 - **No network operations whatsoever.**
 
-### Determinism, verified
+### Determinism, verified — **and this section's first draft was wrong**
 
-`git archive HEAD` is already byte-stable across runs. The compression step is not, unless told:
+`git archive HEAD` is byte-stable across runs. So, it turns out, is every compression form below.
 
 ```bash
-git archive --format=tar "$ref" | gzip -n > "$out"    # -n omits mtime → stable
-git archive --format=tar.gz "$ref"                    # NOT stable: embeds an mtime
+git archive --format=tar "$ref" | gzip -n > "$out"    # stable  — what we ship
+git archive --format=tar "$ref" | gzip    > "$out"    # ALSO stable
+git archive --format=tar.gz "$ref"        > "$out"    # ALSO stable
 ```
 
-Both forms were measured on this checkout; only the first repeats its SHA256. `--format=tar.gz` is
-therefore unusable for any reproducibility claim.
+**Superseded claim, kept visible:** this section previously stated that only the `gzip -n` form
+repeats its SHA256, and that `--format=tar.gz` is "NOT stable: embeds an mtime" and "therefore
+unusable for any reproducibility claim." Re-measured 2026-08-11 during implementation and confirmed
+independently: all three forms produce identical SHA256 across runs, one second apart.
+
+The mechanism explains why, and it is not host luck. **gzip embeds an MTIME only when it compresses
+a NAMED FILE.** Reading from a pipe there is no name and no mtime, so it writes zero into that
+header field — which is exactly what `-n` forces. Git's internal `--format=tar.gz` shells out to
+`gzip -cn`, so it never embedded one either. The original measurement most likely compared
+`gzip < file` against a named-file invocation.
+
+`gzip -n` is still what the script uses. It is now belt-and-braces against a gzip implementation
+that behaves differently rather than a fix for a defect that was ever observed here, and the script
+says so. Anything built on the retracted claim — for instance rejecting `--format=tar.gz` on
+reproducibility grounds — should be revisited.
 
 ### Why the full SHA in metadata
 

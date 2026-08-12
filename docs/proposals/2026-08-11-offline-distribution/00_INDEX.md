@@ -182,10 +182,21 @@ tracked content is 5.6 MB uncompressed. A single ignored skill virtualenv
 (`skills/mllmcelltype-consensus-annotation/.venv`) is 171 MB of that. Any tar of the working tree
 ships development residue; `git archive` cannot.
 
-**Byte-identical rebuilds need `gzip -n`.** Verified: `git archive HEAD` is already deterministic
-(same SHA256 across runs), and `git archive --format=tar HEAD | gzip -n` is too. Without `-n`, gzip
-embeds an mtime and the checksum changes every run — so `--format=tar.gz` is not usable for a
-reproducibility claim.
+**Byte-identical rebuilds are the default, and the `gzip -n` finding here was wrong.** `git archive
+HEAD` is deterministic (same SHA256 across runs). So is `| gzip -n`, so is a bare `| gzip`, and so
+is `--format=tar.gz` — re-measured 2026-08-11 during implementation, all three identical across
+runs, then confirmed independently.
+
+*Superseded claim, kept visible:* this entry previously read "Without `-n`, gzip embeds an mtime and
+the checksum changes every run — so `--format=tar.gz` is not usable for a reproducibility claim."
+That is false. **gzip embeds an MTIME only when compressing a NAMED FILE**; from a pipe there is no
+name and it writes zero — precisely what `-n` forces — and git's `--format=tar.gz` shells out to
+`gzip -cn` anyway. `build-release.sh` still passes `-n`, now as insurance against a differing gzip
+rather than as a fix for anything observed here. Full reasoning in `10_packaging_contracts.md` §1.
+
+This is the second "verified finding" in this file to fall on re-measurement (the coupled-skill
+count was the first). Both were measurements of the right thing done the wrong way, which is the
+failure mode to watch for here.
 
 ## 6. Files in this plan
 

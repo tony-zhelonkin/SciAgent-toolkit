@@ -59,3 +59,8 @@ Thumbs.db
 
 # Skill design scratch / internal notes (not shipped with skills)
 skills/_internal/
+
+# Release artifacts (scripts/build-release.sh default --out).
+# Ignored deliberately: the builder refuses a dirty tree, so a tracked-but-
+# uncommitted artifact would make the NEXT release build impossible.
+dist/

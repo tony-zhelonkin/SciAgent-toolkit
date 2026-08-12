@@ -80,6 +80,40 @@ sciagent --help     # verify it resolves
 
 `ln -sf` is idempotent — re-run to repoint at a different checkout. Uninstall with `rm ~/.local/bin/sciagent ~/.local/bin/si`; the toolkit itself is untouched. Once a second vendored project enters the picture, switch to the alias form above.
 
+### From a release tarball (no clone, no network)
+
+For a collaborator or a reader of the paper — someone with no submodule and no
+intention of acquiring one. The release artifact is named `scio`; the command it
+installs is still `sciagent`.
+
+```bash
+./install.sh --archive  scio-0.1.0-<short-sha>.tar.gz \
+             --checksum scio-0.1.0-<short-sha>.tar.gz.sha256 \
+             --prefix   "$HOME/.local"
+```
+
+The installer verifies the checksum before extracting anything, unpacks into
+`~/.local/share/scio/versions/<full-git-sha>/` (so two versions coexist and an
+interrupted install leaves no half-tree), links only `~/.local/bin/sciagent`, and
+writes a receipt. It has no network code path at all — no `curl`, no registry, no
+update check — and it never touches a project: installing puts a program on the
+machine, `sciagent activate` decides what a project gets.
+
+```bash
+./install.sh --list                                      # what is installed here
+./install.sh --uninstall <full-sha> --prefix ~/.local    # exact, receipt-driven
+```
+
+A project that vendors its own `01_modules/SciAgent-toolkit` still overrides this
+global copy — deliberately, since that pin is what keeps a published analysis
+reproducible.
+
+Building the artifact (maintainers): `scripts/build-release.sh <ref>` — explicit ref
+only, clean tree only, `git archive` piped through `gzip -n` so two builds of a ref
+are byte-identical, and `sciagent validate` plus the test suite must pass against the
+*exported* tree before any file is written. Contracts:
+[`docs/proposals/2026-08-11-offline-distribution/`](docs/proposals/2026-08-11-offline-distribution/00_INDEX.md).
+
 ## Quick start
 
 ```bash
