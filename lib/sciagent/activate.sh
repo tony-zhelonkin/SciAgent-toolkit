@@ -127,6 +127,36 @@ cmd_activate() {
     local OUTPUT_STYLE_FLAG=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            -h|--help)
+                # Deliberately the FIRST case, and it returns before the arg
+                # loop can finish: everything cmd_activate mutates happens
+                # after this loop, so `activate --help` mounts nothing. Without
+                # this branch `-h` fell through to `_pos` and was read as a
+                # role name ("role not found: -h").
+                cat <<'USAGE'
+sciagent activate <base> [overlay] [--output-style <name>]
+  Mount the toolkit's whole catalog of skills, agents and commands into this
+  project's .claude/ and .agents/, write the SCIAGENT:ROLES and SCIAGENT:CRAFT
+  blocks in AGENTS.md, and record the result in .sciagent/manifest.json.
+
+  Roles do NOT filter what is mounted — the entire catalog is mounted either
+  way. A role decides provenance only: which role a mounted name is credited
+  to in `sciagent status`, and which of the two stack slots wins a name
+  collision (last wins). Anything no role names is credited to `catalog`.
+
+  <base>             Base role (roles/<base>.yaml). Required.
+  [overlay]          Optional second role. Stack depth is capped at 2.
+  --output-style <n> Claude system prompt to mount/apply. Not role-scoped:
+                     this flag wins, else craft.yaml's output_style:, else
+                     none is mounted.
+
+  Runs `sciagent validate --quiet` as a pre-flight and aborts before any
+  mutation if it fails. Re-running is idempotent.
+
+Exit code: 0 on success; 1 on a usage error, an unknown role, a stack deeper
+than 2, a failed pre-flight, or a refused external-toolkit mutation.
+USAGE
+                return 0 ;;
             --output-style)
                 if [[ -z "${2:-}" ]]; then
                     echo "usage: sciagent activate <base> [overlay] [--output-style <name>]" >&2
@@ -303,7 +333,7 @@ cmd_activate() {
     # AGENTS.md is the canonical context surface; Claude Code does not read it
     # natively, so guarantee the project CLAUDE.md = @AGENTS.md import shim.
     ensure_claude_md_shim
-    manifest_finalize "$(block_stored_hash AGENTS.md ROLES)" || {
+    manifest_finalize || {
         echo "sciagent activate: failed to finalize manifest" >&2
         return 1
     }

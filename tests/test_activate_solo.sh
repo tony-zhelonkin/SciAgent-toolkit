@@ -14,9 +14,26 @@ mkdir project && cd project
 
 assert_file_exists .sciagent/manifest.json
 # Validate the manifest is real JSON and has expected fields.
-assert_grep '"version": 1' .sciagent/manifest.json "version field"
+assert_grep '"version": 2' .sciagent/manifest.json "version field (schema v2)"
 assert_grep '"base"'        .sciagent/manifest.json "base role in stack"
-assert_grep '"block_hash"'  .sciagent/manifest.json "block_hash field present"
+# block_hash was schema v1's write-only field: activate wrote it, nothing read
+# it. Assert its ABSENCE rather than deleting the assertion — the field is gone
+# on purpose, and a silent reappearance (someone "restoring" it from an old
+# manifest they found on a consumer) is exactly the regression worth catching.
+if grep -q '"block_hash"' .sciagent/manifest.json; then
+    echo "FAIL [$_TEST_NAME] manifest still carries the removed block_hash field" >&2
+    cat .sciagent/manifest.json >&2
+    exit 1
+fi
+# ...and the manifest must still be valid JSON after the key removal (the
+# trailing comma on the preceding line has to go with it).
+if command -v jq >/dev/null 2>&1; then
+    jq -e . .sciagent/manifest.json >/dev/null 2>&1 || {
+        echo "FAIL [$_TEST_NAME] manifest.json is not valid JSON" >&2
+        cat .sciagent/manifest.json >&2
+        exit 1
+    }
+fi
 
 # Dual symlinks created for all skills/agents/commands.
 assert_symlink .claude/skills/s_a

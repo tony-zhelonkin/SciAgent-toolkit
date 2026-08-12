@@ -140,3 +140,41 @@ Enforcement lives in `lib/sciagent/validate.sh` (`_validate_compatibility`); eve
 mutation-tested in `tests/test_validate_compatibility.sh`, and the shipped declarations are pinned
 by `tests/test_skill_compatibility_declared.sh`. The audit that produced the current set is
 `docs/proposals/2026-08-11-offline-distribution/50_ADRs.md` ADR-D6.
+
+### 6.1 Keeping a declaration true — `sciagent lint --check skill-coupling`
+
+`validate` answers *is this declaration well-formed?*. It cannot answer *is it still true?* — and
+ADR-D6's whole argument for declarations over a curated subset is that "declaring a requirement is
+self-maintaining". Nothing makes that so on its own: the coupled set went 8 → 15 → a *different* 15
+inside one audit. Without a drift check the declarations become the second corpus to keep in sync
+that ADR-D1 refuses for version strings.
+
+```bash
+sciagent lint --check skill-coupling
+```
+
+Three rules, all **warn-only — this check can never fail a build, even under `--strict`**, and it
+never runs on `activate`'s pre-flight:
+
+| Rule | Fires when |
+|---|---|
+| undeclared coupling | a skill's **code** depends on something of a flavour it declares no clause for |
+| stale declaration | a declared item is not mentioned *anywhere* in the skill directory |
+| unscaffolded root | a `sciagent-scaffold` item is rooted somewhere `sciagent new project` does not create |
+
+It is opt-in by name and is **not** part of `--check all`: its subject is the toolkit checkout, not
+`--project-dir`, and an analysis author linting their own repo should not be handed findings about
+files they do not own.
+
+The evidence scan reads **code files only, minus comment lines**. That exclusion is the design, not
+a detail: of the 15 skills the original static scan flagged, 6 were false positives — provenance
+citations in `#` comments (`peak-atlas-framework`, `peak-atlas-unpaired`) and documentation prose
+(`scrna-pipeline-conventions`, `anndatar-seurat-scanpy-conversion`, `coresh-signature-search`,
+`mllmcelltype-consensus-annotation`). Each cause needs its own exclusion; either alone silences only
+half of them. Scanning fenced code blocks inside `.md` was tried and rejected — it re-flags two of
+the six.
+
+The price is recall, stated plainly: coupling expressed only in prose (`figure-style`,
+`reasoning-trace`) is invisible to the undeclared-coupling rule. A drift guard that cries wolf gets
+ignored, and prose is where the wolves were. Calibrated over the shipped corpus, the check reports
+**one** finding. Fixtures and the corpus assertions are in `tests/test_lint_skill_coupling.sh`.

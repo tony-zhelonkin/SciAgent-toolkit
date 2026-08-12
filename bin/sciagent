@@ -88,7 +88,9 @@ verb="$1"; shift
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
 #   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
-#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh)
+#   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh,
+#                       frontmatter.sh — the last for `--check skill-coupling`, which
+#                       reads each skill's `compatibility:` scalar)
 #   validate.sh         depends on frontmatter.sh, collisions.sh, lint.sh
 #                       (frontmatter.sh for the `compatibility:` scalar read;
 #                        lint.sh for the `validate --check` delegation)
@@ -99,12 +101,16 @@ verb="$1"; shift
 #
 # Each row below lists exactly a verb's transitive closure, in dependency order.
 #
-# `frontmatter.sh` appears in FOUR rows, not one. validate.sh's
+# `frontmatter.sh` appears in FIVE rows, not one. validate.sh's
 # `compatibility:` check calls `_fm_extract`/`_fm_scalar`, so every verb whose
 # closure reaches `cmd_validate` needs the parser sourced — that is `validate`
 # AND the three verbs that reach that pre-flight: `activate` (which calls
 # `cmd_validate --quiet` directly) plus `deactivate` and `update`, which
-# re-enter `cmd_activate`. Adding it to `[validate]` alone would leave
+# re-enter `cmd_activate`. The fifth row is `[lint]`, for a different reason:
+# lint.sh's `--check skill-coupling` reads each skill's `compatibility:` scalar
+# through the same `_fm_extract`/`_fm_scalar` pair, and `lint` is the one verb
+# whose closure reaches lint.sh without passing through validate.sh.
+# Adding it to `[validate]` alone would leave
 # `activate` dying on an unbound function at exactly the moment it is guarding
 # a mutation — verified: `_fm_scalar: command not found`, once per declaring
 # skill, before anything is mounted.
@@ -124,7 +130,7 @@ declare -A VERB_MODULES=(
     [status]="block.sh symlinks.sh roles.sh stack.sh collisions.sh status.sh"
     [list]="roles.sh status.sh"
     [validate]="block.sh craft.sh frontmatter.sh collisions.sh lint.sh validate.sh"
-    [lint]="block.sh craft.sh lint.sh"
+    [lint]="block.sh craft.sh frontmatter.sh lint.sh"
     [new]="new.sh"
     [craft]="block.sh craft.sh craft_verb.sh"
     [gitignore]="gitignore.sh"

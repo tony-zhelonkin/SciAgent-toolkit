@@ -1,12 +1,11 @@
 # lib/sciagent/symlinks.sh — dual-track symlink + manifest helpers.
 #
-# Manifest format: real JSON (pretty-printed, 2-space indent). Schema v1:
+# Manifest format: real JSON (pretty-printed, 2-space indent). Schema v2:
 #
 #   {
-#     "version": 1,
+#     "version": 2,
 #     "stack": ["base", "reviewer"],
-#     "symlinks": ["/abs/or/relative/path"],
-#     "block_hash": "abc123..."
+#     "symlinks": ["/abs/or/relative/path"]
 #   }
 #
 # What the manifest is FOR, now that teardown no longer depends on it:
@@ -16,8 +15,30 @@
 #     target-ownership scan cannot: it sees what is present, not what is
 #     missing. Teardown reads it as a second source alongside link targets so
 #     that a teardown run against a different toolkit checkout still cleans up.
-#   - "block_hash" is written by activate and read by nothing. Retained for now
-#     only because dropping it changes the on-disk schema and a test asserts it.
+#
+# v1 -> v2 (2026-08-11): dropped "block_hash". activate wrote it; nothing ever
+# read it back — the drift guard reads the hash from the AGENTS.md BEGIN marker
+# via block_hash_check (status.sh, craft_verb.sh), never from here. Dead data in
+# a state file is worse than no data: the next reader assumes it is current,
+# because nothing about a stale value looks stale.
+#
+# Compatibility, both directions, with no migration step:
+#   - An OLD on-disk manifest (v1, still carrying block_hash) reads fine. Both
+#     readers are key-targeted — manifest_stack takes `.stack`, manifest_symlinks
+#     takes `.symlinks[]` — and neither cares about extra keys. That is the
+#     normal case across the fleet until each project next activates, which
+#     rewrites the manifest wholesale (manifest_begin -> manifest_finalize).
+#   - A NEW manifest read by an OLDER toolkit also reads fine, since the key it
+#     no longer finds is one it never read.
+#
+# "version" is bumped rather than left at 1 even though NOTHING BRANCHES ON IT
+# today (no reader in lib/, none in tests beyond an existence assertion). The
+# reason is narrow and not aesthetic: `version: 1` is now the only way to tell
+# an on-disk manifest that MAY carry block_hash from one that cannot. Leaving
+# both shapes labelled 1 destroys that distinction permanently, and it is only
+# recordable at the moment of the change. Any future reader must therefore
+# treat >= 2 as "no block_hash" and 1 as "may carry an ignorable one" — it must
+# not treat an unknown version as fatal.
 #
 # An "injected" array was removed in 2026-08 along with the readers that
 # round-tripped it; it was residue of the retired `inject`/`eject` verbs and
@@ -120,13 +141,12 @@ _manifest_record_symlink() {
     _manifest_syms+=("$1")
 }
 
-# _manifest_write_json <block_hash>
+# _manifest_write_json
 # Serialise accumulated state into $_manifest_staging as pretty JSON.
 _manifest_write_json() {
-    local block_hash="$1"
     {
         printf '{\n'
-        printf '  "version": 1,\n'
+        printf '  "version": 2,\n'
 
         # stack array
         printf '  "stack": ['
@@ -148,17 +168,18 @@ _manifest_write_json() {
                 printf '"%s"' "$(_json_escape "$s")"
             done
         fi
-        printf '],\n'
+        printf ']\n'
 
-        printf '  "block_hash": "%s"\n' "$(_json_escape "$block_hash")"
         printf '}\n'
     } > "$_manifest_staging"
 }
 
+# manifest_finalize
+# Takes no arguments: the block hash it used to receive was written to a field
+# nothing read (see the schema note in this file's header).
 manifest_finalize() {
-    local block_hash="$1"
     [[ -n "$_manifest_staging" ]] || return 1
-    _manifest_write_json "$block_hash"
+    _manifest_write_json
     mkdir -p "$(dirname "$_MANIFEST_PATH")"
     mv "$_manifest_staging" "$_MANIFEST_PATH"
     _manifest_staging=""
@@ -578,9 +599,10 @@ manifest_symlinks() {
 # only ever read back in order to be written out unchanged is dead, so the
 # whole cluster went together with the "injected" JSON key it round-tripped.
 #
-# The manifest still carries a `block_hash` field that activate writes and
-# nothing reads. Left in place deliberately: removing it changes the on-disk
-# schema and a test asserts its presence, so it belongs in its own change.
+# The `block_hash` FIELD those functions served outlived them by one release,
+# because dropping it changed the on-disk schema. That change has now been made
+# (schema v2, 2026-08-11): see this file's header for the v1->v2 note and the
+# both-directions compatibility argument.
 
 # ---------------------------------------------------------------------------
 # symlink_create_helper_lib

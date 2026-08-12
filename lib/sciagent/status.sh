@@ -21,6 +21,27 @@ cmd_status() {
     local source_query=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
+            -h|--help)
+                # Read-only verb, but the branch still returns before
+                # _status_load_state so `--help` costs nothing and cannot be
+                # mistaken for a mode. Previously `-h` hit the unknown-flag
+                # arm below and exited 1.
+                cat <<'USAGE'
+sciagent status [--json | --effective | --source <name>]
+  Report the active stack and what it resolved to: the mounted skills, agents
+  and commands, the role each is attributed to, shadowed names, AGENTS.md
+  managed-block drift, and broken symlinks. Reads only; mounts nothing.
+
+  (no flag)        Human-readable summary.
+  --json           Machine-readable form; prints {"active":false} when no
+                   stack is active.
+  --effective      The effective name -> provenance tables only.
+  --source <name>  Where one skill/agent/command name resolves from.
+
+Exit code: 0 (including when no role is active); 1 on an unknown flag or a
+--source with no <name>.
+USAGE
+                return 0 ;;
             --json)       mode="json"; shift ;;
             --effective)  mode="effective"; shift ;;
             --source)

@@ -155,8 +155,9 @@ block_read() {
 }
 
 # Public: emit the hash stored in the BEGIN marker (empty if no block).
-# Activate/inject reuse this to populate the manifest's BLOCK_HASH after
-# block_write, so canonicalisation rules live in exactly one place.
+# Callers: block_hash_check (the drift guard), craft_verb.sh (did this render
+# change anything?), and lint.sh's freshness check. It no longer feeds the
+# manifest — that field went with manifest schema v2 (see symlinks.sh).
 block_stored_hash() {
     local file="$1"
     local id="${2:-}"
@@ -235,7 +236,16 @@ block_write() {
     local begin="${beg_prefix}${hash} -->"
 
     if [[ ! -f "$file" ]]; then
-        printf '%s\n%s%s\n' "$begin" "$body" "$end_marker" > "$file"
+        # `|| return 1` is load-bearing. This branch used to `return 0`
+        # unconditionally, so a failed redirect (read-only directory, a
+        # directory sitting where AGENTS.md should be, ENOSPC) printed bash's
+        # "Permission denied" to stderr and then reported success: `sciagent
+        # craft` said "added SCIAGENT:CRAFT block to: <path>" and exited 0 with
+        # no file at that path at all. The append branch below already
+        # propagates its failure — only because its printf is the function's
+        # last command — so the two write paths in this one function disagreed
+        # about whether an I/O error is an error.
+        printf '%s\n%s%s\n' "$begin" "$body" "$end_marker" > "$file" || return 1
         return 0
     fi
 

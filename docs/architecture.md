@@ -292,8 +292,14 @@ settings/hooks/shim family never got one.
 
 ```
 .sciagent/
-└── manifest.json       # canonical state: stack, created symlinks, block-hash, schema version
+└── manifest.json       # canonical state: stack, created symlinks, schema version
 ```
+
+Schema **v2** (2026-08-11). v1 also carried a `block_hash` field that `activate`
+wrote and nothing read; it was dropped. Both readers (`manifest_stack`,
+`manifest_symlinks`) are key-targeted, so a v1 manifest still on disk reads
+fine and is rewritten to v2 by the next `activate`. A future reader must treat
+an unknown `version` as readable, never as fatal.
 
 - AGENTS.md managed block is the **human-readable** state.
 - `.sciagent/manifest.json` is the **machine-readable** state — it records the

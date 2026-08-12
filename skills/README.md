@@ -444,6 +444,18 @@ Optional (top-level):
   Full grammar, rationale, and the rule against filing another `01_modules/`
   submodule as `sciagent-scaffold`: `docs/packaged-skills.md` §6.
 
+  `sciagent validate` only checks that a declaration is well-formed. To check
+  whether it is still **true** of the skill's content, run the drift guard:
+
+  ```bash
+  sciagent lint --check skill-coupling
+  ```
+
+  Warn-only, never blocking, and not part of `lint`'s default sweep. It reads
+  code files only (never `.md`, never comment lines), so a path you merely
+  *cite* — a provenance header, a doc example — is not mistaken for a
+  dependency.
+
 **Canonical frontmatter example:**
 
 ```yaml
