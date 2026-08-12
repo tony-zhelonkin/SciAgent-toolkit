@@ -17,9 +17,9 @@ This skill covers all R → Python data conversion scenarios for the SCENIC+ eco
 - Harmonizing cell metadata and fragment files between R and Python
 
 **Downstream skills:**
-- [pycisTopic](pycistopic-atac-topic-modeling.md) — ATAC topic modeling
-- [pycistarget](pycistarget-motif-enrichment.md) — motif enrichment
-- [SCENIC+ GRN](scenic-grn-inference.md) — eRegulon inference
+- [pycisTopic](../pycistopic-atac-topic-modeling/SKILL.md) — ATAC topic modeling
+- [pycistarget](../pycistarget-motif-enrichment/SKILL.md) — motif enrichment
+- [SCENIC+ GRN](../scenic-grn-inference/SKILL.md) — eRegulon inference
 
 ---
 

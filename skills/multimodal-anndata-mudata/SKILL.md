@@ -13,9 +13,9 @@ Convert multi-assay R Seurat objects to Python AnnData/MuData for downstream mul
 **Key gap this skill fills:** anndataR handles single-assay conversion; this skill covers the multi-assay → MuData pipeline, ChromatinAssay handling, and tool-specific input preparation.
 
 **Prerequisites:**
-- [anndataR skill](anndatar-seurat-scanpy-conversion.md) for basic Seurat ↔ h5ad conversion
-- [Python multimodal skill](muon-multimodal-analysis.md) for MuData basics
-- [Seurat multimodal skill](seurat-multimodal-analysis.md) for R-side analysis
+- [anndataR skill](../anndatar-seurat-scanpy-conversion/SKILL.md) for basic Seurat ↔ h5ad conversion
+- [Python multimodal skill](../muon-multimodal-analysis/SKILL.md) for MuData basics
+- [Seurat multimodal skill](../seurat-multimodal-analysis/SKILL.md) for R-side analysis
 
 ---
 
@@ -297,7 +297,7 @@ rna.write("rna_for_scglue.h5ad")
 atac.write("atac_for_scglue.h5ad")
 ```
 
-See [scGLUE skill](scglue-unpaired-multiomics-integration.md) for full workflow.
+See [scGLUE skill](../scglue-unpaired-multiomics-integration/SKILL.md) for full workflow.
 
 ### 4.2 For SCENIC+ (h5ad + pycisTopic Pickle)
 
@@ -320,7 +320,7 @@ params_data_preparation:
   species: "mmusculus"
 ```
 
-See [SCENIC+ skill](scenic-grn-inference.md) for full workflow.
+See [SCENIC+ skill](../scenic-grn-inference/SKILL.md) for full workflow.
 
 ### 4.3 For MultiVI (Single AnnData with Modality Indicator)
 
@@ -340,7 +340,7 @@ combined.var["modality"] = (
 combined.layers["counts"] = combined.X.copy()
 ```
 
-See [MultiVI skill](scvi-multivi.md) for full workflow.
+See [MultiVI skill](../scvi-multivi/SKILL.md) for full workflow.
 
 ### 4.4 Decision Tree: Which Format for Which Tool
 
@@ -372,12 +372,12 @@ Which tool?
 
 ## Cross-References
 
-- **Basic Seurat ↔ h5ad:** [anndataR skill](anndatar-seurat-scanpy-conversion.md)
-- **Python MuData ecosystem:** [Python multimodal skill](muon-multimodal-analysis.md)
-- **R multimodal (Seurat/Signac):** [Seurat multimodal skill](seurat-multimodal-analysis.md)
-- **Unpaired integration (scGLUE):** [scGLUE skill](scglue-unpaired-multiomics-integration.md)
-- **GRN inference (SCENIC+):** [SCENIC+ skill](scenic-grn-inference.md)
-- **Joint RNA+ATAC modeling:** [MultiVI skill](scvi-multivi.md)
+- **Basic Seurat ↔ h5ad:** [anndataR skill](../anndatar-seurat-scanpy-conversion/SKILL.md)
+- **Python MuData ecosystem:** [Python multimodal skill](../muon-multimodal-analysis/SKILL.md)
+- **R multimodal (Seurat/Signac):** [Seurat multimodal skill](../seurat-multimodal-analysis/SKILL.md)
+- **Unpaired integration (scGLUE):** [scGLUE skill](../scglue-unpaired-multiomics-integration/SKILL.md)
+- **GRN inference (SCENIC+):** [SCENIC+ skill](../scenic-grn-inference/SKILL.md)
+- **Joint RNA+ATAC modeling:** [MultiVI skill](../scvi-multivi/SKILL.md)
 
 ---
 

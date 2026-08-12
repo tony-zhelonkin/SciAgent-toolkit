@@ -44,8 +44,8 @@ SCENIC+ builds enhancer-driven gene regulatory networks (eRegulons: TF→region�
 ```
 
 **Prerequisites:**
-1. **pycisTopic output**: `cistopic_obj.pkl` + `region_sets/*.bed` — see [pycisTopic skill](pycistopic-atac-topic-modeling.md)
-2. **pycistarget** (optional standalone): For detailed motif enrichment outside Snakemake — see [pycistarget skill](pycistarget-motif-enrichment.md)
+1. **pycisTopic output**: `cistopic_obj.pkl` + `region_sets/*.bed` — see [pycisTopic skill](../pycistopic-atac-topic-modeling/SKILL.md)
+2. **pycistarget** (optional standalone): For detailed motif enrichment outside Snakemake — see [pycistarget skill](../pycistarget-motif-enrichment/SKILL.md)
 3. **scRNA-seq AnnData**: With `.raw` saved BEFORE normalization
 
 ## Core Concepts
@@ -152,11 +152,11 @@ create_SCENICPLUS_object(
 | **STREAM** | Best overall | 0.4-0.5 | No (paired only) | Benchmark winner, needs multiome |
 | **CellOracle** | 235 TFs | — | Yes | Requires GRN prior |
 
-**Recommendation:** Use SCENIC+ for TF-centric eRegulons + scGLUE independently for enhancer-gene validation. See [scGLUE skill](scglue-unpaired-multiomics-integration.md).
+**Recommendation:** Use SCENIC+ for TF-centric eRegulons + scGLUE independently for enhancer-gene validation. See [scGLUE skill](../scglue-unpaired-multiomics-integration/SKILL.md).
 
 ### Input Data Preparation (Unpaired)
 
-For converting Seurat/Signac objects to h5ad for SCENIC+, see [scenic-r-python-interop](scenic-r-python-interop.md):
+For converting Seurat/Signac objects to h5ad for SCENIC+, see [scenic-r-python-interop](../scenic-r-python-interop/SKILL.md):
 - **Scenario A**: Signac ATAC → pycisTopic (count matrix export)
 - **Scenario E**: Seurat RNA → AnnData (raw count preservation)
 
@@ -399,7 +399,7 @@ scplus_obj = create_SCENICPLUS_object(
 | **Standalone Python API** | Custom workflows, unpaired data with condition metacells |
 | **Standalone pycistarget** | Custom motif analysis, parameter tuning, exploratory cistrome analysis |
 
-For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, cistrome extraction), see [pycistarget skill](pycistarget-motif-enrichment.md).
+For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, cistrome extraction), see [pycistarget skill](../pycistarget-motif-enrichment/SKILL.md).
 
 ## Performance Tips
 
@@ -415,7 +415,7 @@ For detailed motif enrichment outside the Snakemake pipeline (cisTarget, DEM, ci
 | Barcode mismatch | Set `bc_transform_func` in config |
 | No eRegulons found | Check `.raw` was saved before normalization |
 | Memory errors | Use custom database subset or increase RAM |
-| Low motif recovery | Build custom cisTarget database (see [pycistarget skill](pycistarget-motif-enrichment.md)) |
+| Low motif recovery | Build custom cisTarget database (see [pycistarget skill](../pycistarget-motif-enrichment/SKILL.md)) |
 | Unpaired data fails | Set `is_multiome: False` + `key_to_group_by` |
 | Too few metacells | Increase `nr_cells_per_metacells` or use coarser annotations |
 | Metacell mismatch | Ensure RNA and ATAC annotations use identical label vocabulary |

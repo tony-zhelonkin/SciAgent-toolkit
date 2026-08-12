@@ -712,11 +712,11 @@ There is **no established workflow** for using scGLUE output as SCENIC+ input. A
 
 Instead, run both tools independently and intersect results.
 
-See [SCENIC+ skill](scenic-grn-inference.md) for GRN-specific workflows.
+See [SCENIC+ skill](../scenic-grn-inference/SKILL.md) for GRN-specific workflows.
 
 ### Input Data Preparation
 
-For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md) Part 4.1.
+For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata.md](../multimodal-anndata-mudata/SKILL.md) Part 4.1.
 
 ---
 

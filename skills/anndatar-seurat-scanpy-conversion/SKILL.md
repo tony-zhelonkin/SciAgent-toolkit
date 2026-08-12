@@ -392,7 +392,7 @@ mdata = md.MuData({"rna": rna, "atac": atac})
 
 Signac's ChromatinAssay has extra slots (peak GRanges, fragment file paths) that are **lost** during anndataR conversion. Extract these manually before converting.
 
-**For full multi-assay conversion workflow, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md).**
+**For full multi-assay conversion workflow, see [multimodal-anndata-mudata.md](../multimodal-anndata-mudata/SKILL.md).**
 
 ---
 

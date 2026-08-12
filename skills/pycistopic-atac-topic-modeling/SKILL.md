@@ -11,8 +11,8 @@ license: MIT
 Topic modeling on scATAC-seq data using LDA to identify co-accessible regulatory programs. Part of SCENIC+ ecosystem.
 
 **Downstream:**
-- [pycistarget](pycistarget-motif-enrichment.md) for motif enrichment + cistrome analysis
-- [SCENIC+ GRN inference](scenic-grn-inference.md) for TF regulatory networks
+- [pycistarget](../pycistarget-motif-enrichment/SKILL.md) for motif enrichment + cistrome analysis
+- [SCENIC+ GRN inference](../scenic-grn-inference/SKILL.md) for TF regulatory networks
 
 ## Data Flow: pycisTopic → pycistarget → SCENIC+
 
@@ -129,7 +129,7 @@ region_names <- paste0(seqnames(granges(obj[["peaks_hub_filtered"]])), ":",
     end(granges(obj[["peaks_hub_filtered"]])))
 ```
 
-For complete R → Python handoff patterns (h5ad export, fragment harmonization, metadata), see [scenic-r-python-interop](scenic-r-python-interop.md).
+For complete R → Python handoff patterns (h5ad export, fragment harmonization, metadata), see [scenic-r-python-interop](../scenic-r-python-interop/SKILL.md).
 
 ---
 
@@ -149,7 +149,7 @@ cistopic_obj = create_cistopic_object_from_fragments(
 )
 ```
 
-Alternatively, if you've already counted peaks in R (e.g., via Signac), use `create_cistopic_object()` with the pre-counted matrix — see [scenic-r-python-interop](scenic-r-python-interop.md) Scenario A and D.
+Alternatively, if you've already counted peaks in R (e.g., via Signac), use `create_cistopic_object()` with the pre-counted matrix — see [scenic-r-python-interop](../scenic-r-python-interop/SKILL.md) Scenario A and D.
 
 Proceed directly to Stage 5 (LDA Topic Modeling).
 

@@ -18,8 +18,8 @@ pycisTopic (regions) → pycistarget (motifs) → SCENIC+ (GRN)
   DARs.bed             cistromes
 ```
 
-**Upstream:** [pycisTopic skill](pycistopic-atac-topic-modeling.md) provides region sets
-**Downstream:** [SCENIC+ skill](scenic-grn-inference.md) uses motif enrichment for GRN
+**Upstream:** [pycisTopic skill](../pycistopic-atac-topic-modeling/SKILL.md) provides region sets
+**Downstream:** [SCENIC+ skill](../scenic-grn-inference/SKILL.md) uses motif enrichment for GRN
 
 ## Installation
 
@@ -315,9 +315,9 @@ For separate RNA and ATAC experiments, pycistarget analysis remains the same. Th
 
 **Key requirement:** Ensure region sets (from pycisTopic) are derived from the ATAC data that will be used in SCENIC+.
 
-See [SCENIC+ skill](scenic-grn-inference.md) for metacell configuration.
+See [SCENIC+ skill](../scenic-grn-inference/SKILL.md) for metacell configuration.
 
-For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see [scenic-r-python-interop](scenic-r-python-interop.md).
+For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see [scenic-r-python-interop](../scenic-r-python-interop/SKILL.md).
 
 ---
 
