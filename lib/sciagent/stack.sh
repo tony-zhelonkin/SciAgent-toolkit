@@ -40,8 +40,6 @@ _sw_record() {
 # Last-wins resolution is applied across the stack. Output order:
 #   SKILL entries (insertion order), then AGENT, then COMMAND.
 # The _injected synthetic role is silently skipped (no YAML file).
-# output_style is no longer role-scoped (Phase 5d) — see activate.sh's
-# `--output-style` flag and craft.yaml's `output_style:` key instead.
 #
 # NOTHING IS FILTERED BY ROLE. The whole catalog — skills, agents, commands —
 # is always resolved; a role's `skills:`/`agents:`/`commands:` lists only

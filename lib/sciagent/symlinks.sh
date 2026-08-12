@@ -244,7 +244,7 @@ symlink_target_for() {
 # ---------------------------------------------------------------------------
 
 # symlink_create_dual <category> <name> <canonical_path>
-# Categories: skills (dir symlink), agents/commands/output-styles (file symlink).
+# Categories: skills (dir symlink), agents/commands (file symlink).
 # Records both .claude/<cat>/<name> and .agents/<cat>/<name>.
 symlink_create_dual() {
     local category="$1"
@@ -264,11 +264,6 @@ symlink_create_dual() {
         commands)
             claude_path=".claude/commands/${name}.md"
             agents_path=".agents/commands/${name}.md"
-            ;;
-        output-styles)
-            # Claude-only. No .agents/ mirror.
-            claude_path=".claude/output-styles/${name}.md"
-            agents_path=""
             ;;
         *)
             echo "symlink_create_dual: unknown category '$category'" >&2
@@ -406,15 +401,11 @@ _toolkit_canonical_root() {
 }
 
 # _link_owned_by_toolkit <path> <toolkit_canonical_root>
-# True iff <path> is a symlink whose resolved target is the toolkit root
+# True iff <path> is a symlink whose normalized target is the toolkit root
 # itself or a proper descendant of it. Path-boundary comparison (trailing
 # "/" on the toolkit side), not a string prefix — "/toolkit-evil" must not
-# match "/toolkit". `readlink -f` on a BROKEN toolkit-owned link (canonical
-# skill/agent file deleted out from under a live mount) still resolves to
-# the intended lexical path — verified empirically: GNU readlink -f only
-# requires all-but-the-LAST path component to exist — so a dangling
-# toolkit-owned link is correctly recognised and cleaned up here, not
-# stranded.
+# match "/toolkit". `realpath -m` preserves ownership detection when multiple
+# target components are gone, including retired system-prompts/ paths.
 #
 # Deliberate, accepted behavior (not an oversight — owner sign-off): a user
 # symlink that happens to point INTO the toolkit checkout is indistinguishable
@@ -425,8 +416,13 @@ _link_owned_by_toolkit() {
     local path="$1" toolkit_root="$2"
     [[ -L "$path" ]] || return 1
     [[ -n "$toolkit_root" ]] || return 1
-    local resolved
-    resolved=$(readlink -f "$path" 2>/dev/null) || return 1
+    local target resolved
+    target=$(readlink "$path" 2>/dev/null) || return 1
+    if [[ "$target" == /* ]]; then
+        resolved=$(realpath -m "$target" 2>/dev/null) || return 1
+    else
+        resolved=$(realpath -m "$(dirname "$path")/$target" 2>/dev/null) || return 1
+    fi
     [[ -n "$resolved" ]] || return 1
     case "$resolved" in
         "$toolkit_root")   return 0 ;;
@@ -435,8 +431,8 @@ _link_owned_by_toolkit() {
     esac
 }
 
-# Every directory sciagent ever mounts INTO, across the four catalog trees
-# (dual .claude/+.agents/ mirrors) plus the analysis-repo helper-lib mount.
+# Every directory sciagent mounts into, plus the retired output-style location
+# retained as a teardown sweep for legacy toolkit-owned symlinks.
 # maxdepth 1 when scanning these — resolve_canonical hides toolkit-side
 # subfolders, so a mount is always a flat entry directly inside one of these;
 # we must never recurse into a mounted skill DIRECTORY itself (that would

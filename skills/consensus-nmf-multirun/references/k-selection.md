@@ -49,7 +49,7 @@ Three failure modes of this heuristic:
 
 ## Predict-before-view
 
-Per the architect-mentor style, before the user opens the plot they state their expected K. Reasoning examples:
+Per the `mentor-mode` skill, before the user opens the plot they state their expected K. Reasoning examples:
 
 - "T cells should have ~5 polarisations (Th1, Th2, Th17, Treg, Tfh) plus a cycling program plus a stress program → I expect K ≈ 7 ± 1"
 - "Spleen has lots of cell types but the cell-type signal is in `obs['celltype']`; here I'm looking for *within-celltype* states, so K should be modest, maybe K ≈ 5 ± 1 per subset"

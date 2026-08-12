@@ -33,11 +33,8 @@ usage() {
 sciagent — per-project AI-harness context manager
 
 Usage:
-  sciagent activate <base> [overlay] [--output-style <name>]
-                                       Activate role(s) (max stack depth 2);
-                                       roles are provenance-only, --output-style
-                                       (else craft.yaml's output_style:) selects
-                                       the mounted/applied Claude system prompt
+  sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2);
+                                       roles are provenance-only
   sciagent deactivate [<role>]         Tear down the stack (or one role)
   sciagent validate [--quiet]          Check skill frontmatter shape + cross-namespace
                                        name collisions (soft-warn); --check <name>...
@@ -87,7 +84,7 @@ verb="$1"; shift
 #   symlinks.sh         manifest state + symlink trees (depends on roles.sh)
 #   collisions.sh       leaf: toolkit enumeration; reads collision allowlist
 #   stack.sh            stack walk + block_render_and_write (depends on roles.sh, block.sh)
-#   claude_settings.sh  settings.local.json apply/revert (leaf-ish)
+#   claude_settings.sh  project/user settings and hook materialization (leaf-ish)
 #   lint.sh             project (c) GUARDRAIL checks (depends on block.sh, craft.sh,
 #                       frontmatter.sh — the last for `--check skill-coupling`, which
 #                       reads each skill's `compatibility:` scalar)

@@ -1,14 +1,7 @@
-# lib/sciagent/activate.sh — sciagent activate <base> [overlay] [--output-style <name>]
+# lib/sciagent/activate.sh — sciagent activate <base> [overlay]
 # Computes the effective merged stack (last-wins on name collisions), creates
 # dual symlinks, rewrites the AGENTS.md managed block, writes manifest.
 # Stack-walking and block-body rendering are delegated to stack.sh.
-#
-# Output style (Phase 5d) is no longer role-scoped — it is a SELECTION (one
-# style exists on disk today), not a filter, so roles cannot express it via
-# provenance the way skills/agents/commands do. Resolution precedence:
-#   1. --output-style <name> flag (this invocation)
-#   2. craft.yaml's `output_style:` key (toolkit-wide default)
-#   3. none (no style mounted, no outputStyle written to settings.local.json)
 
 # shellcheck shell=bash
 
@@ -120,11 +113,9 @@ claude_md_shim_teardown() {
 }
 
 cmd_activate() {
-    # Parse --output-style anywhere in the args; everything else is positional
-    # (base [overlay]). --output-style wins over craft.yaml's output_style:
-    # key when both are given; omitting both mounts no style at all.
+    # Parse help anywhere in the args before any mutation; everything else is
+    # positional (base [overlay]).
     local -a _pos=()
-    local OUTPUT_STYLE_FLAG=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
             -h|--help)
@@ -134,7 +125,7 @@ cmd_activate() {
                 # this branch `-h` fell through to `_pos` and was read as a
                 # role name ("role not found: -h").
                 cat <<'USAGE'
-sciagent activate <base> [overlay] [--output-style <name>]
+sciagent activate <base> [overlay]
   Mount the toolkit's whole catalog of skills, agents and commands into this
   project's .claude/ and .agents/, write the SCIAGENT:ROLES and SCIAGENT:CRAFT
   blocks in AGENTS.md, and record the result in .sciagent/manifest.json.
@@ -146,9 +137,6 @@ sciagent activate <base> [overlay] [--output-style <name>]
 
   <base>             Base role (roles/<base>.yaml). Required.
   [overlay]          Optional second role. Stack depth is capped at 2.
-  --output-style <n> Claude system prompt to mount/apply. Not role-scoped:
-                     this flag wins, else craft.yaml's output_style:, else
-                     none is mounted.
 
   Runs `sciagent validate --quiet` as a pre-flight and aborts before any
   mutation if it fails. Re-running is idempotent.
@@ -157,13 +145,6 @@ Exit code: 0 on success; 1 on a usage error, an unknown role, a stack deeper
 than 2, a failed pre-flight, or a refused external-toolkit mutation.
 USAGE
                 return 0 ;;
-            --output-style)
-                if [[ -z "${2:-}" ]]; then
-                    echo "usage: sciagent activate <base> [overlay] [--output-style <name>]" >&2
-                    return 1
-                fi
-                OUTPUT_STYLE_FLAG="$2"
-                shift 2 ;;
             *)
                 _pos+=("$1")
                 shift ;;
@@ -172,7 +153,7 @@ USAGE
     set -- "${_pos[@]+"${_pos[@]}"}"
 
     if [[ $# -lt 1 ]]; then
-        echo "usage: sciagent activate <base> [overlay] [--output-style <name>]" >&2
+        echo "usage: sciagent activate <base> [overlay]" >&2
         return 1
     fi
     if [[ $# -gt 2 ]]; then
@@ -227,51 +208,10 @@ USAGE
         esac
     done < <(stack_walk "$base" "$overlay")
 
-    # Resolve the output style (Phase 5d: no longer role-scoped). Precedence:
-    # --output-style flag > craft.yaml's `output_style:` key > none.
-    local OUTPUT_STYLE="" OUTPUT_STYLE_SOURCE=""
-    if [[ -n "$OUTPUT_STYLE_FLAG" ]]; then
-        OUTPUT_STYLE="$OUTPUT_STYLE_FLAG"
-        OUTPUT_STYLE_SOURCE="--output-style flag"
-    else
-        local _craft_yaml _craft_style
-        _craft_yaml=$(_craft_yaml_path)
-        if [[ -f "$_craft_yaml" ]]; then
-            _craft_style=$(role_scalar "$_craft_yaml" output_style)
-            if [[ -n "$_craft_style" ]]; then
-                OUTPUT_STYLE="$_craft_style"
-                OUTPUT_STYLE_SOURCE="craft.yaml"
-            fi
-        fi
-    fi
-
-    # Resolve output_style → system-prompts/<file>.md by frontmatter name.
-    # Validate before any filesystem mutation so a drifted request leaves
-    # the project untouched (no half-state).
-    local STYLE_SRC=""
-    if [[ -n "$OUTPUT_STYLE" ]]; then
-        STYLE_SRC=$(system_prompt_path "$OUTPUT_STYLE") || true
-        if [[ -z "$STYLE_SRC" ]]; then
-            echo "sciagent: $OUTPUT_STYLE_SOURCE requests output_style '$OUTPUT_STYLE'," >&2
-            echo "  but no file in system-prompts/ has frontmatter 'name: $OUTPUT_STYLE'." >&2
-            echo "  Available styles (frontmatter name → file):" >&2
-            local pname pfile
-            while IFS=$'\t' read -r pname pfile; do
-                printf '    %s\t(%s)\n' "$pname" "$pfile" >&2
-            done < <(system_prompt_inventory)
-            return 1
-        fi
-    fi
-
-    # Auto-deactivate if a stack is already active. claude_settings_teardown
-    # must run BEFORE symlink_teardown_all rmdirs .sciagent (the state file
-    # lives there) and BEFORE the new symlinks/block land so that the
-    # settings.local.json revert is observable for the duration of the
-    # re-activation rather than racing against the new apply.
+    # Auto-deactivate if a stack is already active.
     # Deferred until AFTER skill_resolve_transitive succeeds, so a failed
     # resolution leaves the previous stack intact.
     if manifest_exists; then
-        claude_settings_teardown
         symlink_teardown_all
         # ROLES explicitly: this is the teardown-before-rewrite half of
         # re-activation, not a generic "clear the file" — the block_write
@@ -315,15 +255,6 @@ USAGE
     # ownership.sh.
     helper_shims_ensure
 
-    local STYLE_APPLIED_TAG=""
-    if [[ -n "$OUTPUT_STYLE" ]]; then
-        symlink_create_dual output-styles "$OUTPUT_STYLE" "$STYLE_SRC"
-        # Make the style Claude's active one by setting outputStyle in
-        # .claude/settings.local.json. Symlinking alone makes the file
-        # visible but does not select it as the active style.
-        STYLE_APPLIED_TAG=$(claude_settings_apply "$OUTPUT_STYLE")
-    fi
-
     # Render and write the managed block.
     local body
     body=$(render_block_body "$base" "$overlay")
@@ -350,7 +281,4 @@ USAGE
     echo "  skills:   ${#SKILL_ORDER[@]}"
     echo "  agents:   ${#AGENT_ORDER[@]}"
     echo "  commands: ${#COMMAND_ORDER[@]}"
-    if [[ -n "$OUTPUT_STYLE" ]]; then
-        echo "  output_style: $OUTPUT_STYLE ($OUTPUT_STYLE_SOURCE) [settings.local.json: $STYLE_APPLIED_TAG]"
-    fi
 }

@@ -64,7 +64,6 @@ on whatever bytes the pinned copy currently has.
 | `.claude/skills/<name>` · `.agents/skills/<name>` | directory symlink | `skills/<name>/` |
 | `.claude/agents/<name>.md` · `.agents/agents/<name>.md` | file symlink | `agents/**/<name>.md` |
 | `.claude/commands/<name>.md` · `.agents/commands/<name>.md` | file symlink | `commands/**/<name>.md` |
-| `.claude/output-styles/<name>.md` | file symlink | `output-styles/<name>.md` (Claude only) |
 | `02_analysis/helpers/figure-style` · `interactive-style` | directory symlink | `lib/<name>/` (analysis repos) |
 
 Skills mount as **directory** symlinks, so every file inside a skill — `SKILL.md`,
@@ -91,7 +90,6 @@ keeps its content until a command rewrites it.
 | `.claude/statusline.sh` | plain `cp` of the statusline template |
 | `02_analysis/helpers/figure_style.{py,R}` · `interactive_style.py` | plain `cp` of the analysis shim templates (analysis repos) |
 | `.claude/settings.json` | `cp` when absent; missing top-level keys backfilled when present |
-| `.claude/settings.local.json` → `outputStyle` | one key written to name the active style |
 | `.gitignore` → `SCIAGENT:GITIGNORE` block | rendered from a fixed list |
 | `.sciagent/manifest.json`, `.sciagent/*.state`, `.sciagent/hook_state/*`, `.sciagent/helper_shim_state/*` | ownership records |
 
@@ -106,6 +104,11 @@ runs the CLI version it has pinned.
 **Rule: Class C propagates on hop 1.** Behaviour changes take effect on the next
 invocation after the re-pin. Run `activate` afterwards so the project's binding is
 rebuilt by the new code.
+
+Retired `.claude/output-styles/` mounts have a teardown-only compatibility path.
+`deactivate` removes toolkit-targeting symlinks from that directory even when their
+former source directory is gone, while preserving regular files and outside-pointing
+symlinks.
 
 ---
 

@@ -1,6 +1,6 @@
 # sciagent — architecture
 
-This is the canonical design spec for sciagent: a harness-agnostic, per-project context manager that mounts the full catalog of skills, sub-agents, and slash commands into AI assistant sessions via role activation. Roles no longer curate *which* content is mounted (that gating was removed — see §5); a role now decides one thing only: provenance labels — who gets credited for a name in `sciagent status`/the managed block, and which of the two stack slots wins a name collision. Output-style is **not** role-scoped; it is selected at activation time (§6).
+This is the canonical design spec for sciagent: a harness-agnostic, per-project context manager that mounts the full catalog of skills, sub-agents, and slash commands into AI assistant sessions via role activation. Roles no longer curate *which* content is mounted (that gating was removed — see §5); a role now decides one thing only: provenance labels — who gets credited for a name in `sciagent status`/the managed block, and which of the two stack slots wins a name collision.
 
 ---
 
@@ -22,8 +22,7 @@ Multi-provider posture is therefore a *partial* goal, not a non-goal, and it is 
 
 ## 2. Mental model: roles as RPG combo classes
 
-A role is a *label* over `skills + sub-agents + slash-commands` — not a bundle that
-gates them, and not a carrier for output-style (§6). A project has at most **two** active roles, stacked in order: `base` (the foundation) and optionally an `overlay` (the specialization). Last-wins on name collisions; the shadowed entry is visible in `sciagent status`.
+A role is a *label* over `skills + sub-agents + slash-commands`. A project has at most **two** active roles, stacked in order: `base` (the foundation) and optionally an `overlay` (the specialization). Last-wins on name collisions; the shadowed entry is visible in `sciagent status`.
 
 Two roles, not N, because Claude Code's own three-tier resolution already creates "where did this come from?" debugging pain in practice. Two is enough for "wizard/knight" combos and stays inspectable.
 
@@ -56,7 +55,6 @@ sciagent-toolkit/
 ├── skills/_attic/<name>/     # retired skills — reference-only, off the resolver path (see docs/skill-lifecycle.md)
 ├── agents/<name>.md          # canonical sub-agents (Claude format)
 ├── commands/<name>.md        # canonical slash commands (Claude format)
-├── system-prompts/<name>.md  # canonical output styles
 ├── roles/<name>.yaml         # role definitions (provenance labels only)
 └── templates/                # project scaffolding (new project bootstrap)
     ├── AGENTS.md.template    # points at docs/_internal/scientific-context.md
@@ -72,8 +70,7 @@ project/
 ├── .claude/                               # Claude harness native
 │   ├── skills/<name> ──▶ toolkit/skills/<name>
 │   ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
-│   ├── commands/<name>.md ──▶ toolkit/commands/<name>.md
-│   └── output-styles/<name>.md ──▶ toolkit/system-prompts/<name>.md
+│   └── commands/<name>.md ──▶ toolkit/commands/<name>.md
 └── .agents/                               # harness-agnostic mirror
     ├── skills/<name> ──▶ toolkit/skills/<name>
     ├── agents/<name>.md ──▶ toolkit/agents/<name>.md
@@ -144,7 +141,7 @@ below.
 ### Verbs
 
 ```
-sciagent activate <base> [overlay] [--output-style <name>]   # activate role(s); replaces current stack
+sciagent activate <base> [overlay]                 # activate role(s); replaces current stack
 sciagent deactivate [<role>]                      # deactivate stack (or single role)
 sciagent validate [--quiet]                       # check skill frontmatter shape + name collisions
 sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]  # opt-in PROJECT guardrail checks
@@ -249,11 +246,7 @@ commands:                  # Claude-specific
   - review
 ```
 
-No `mcp_profile`. No installer/harness fields. No `output_style:` — that field is
-not part of the schema anymore (Phase 5d); a role YAML may still carry a stale
-`output_style:` key from before the change, but it is never read. Output-style
-selection is a runtime choice: `sciagent activate --output-style <name>`, else
-`craft.yaml`'s `output_style:` key, else none (see `lib/sciagent/activate.sh`).
+No `mcp_profile` or installer/harness fields.
 
 `skills:`/`agents:`/`commands:` no longer gate what gets mounted (§5) — every
 name in the catalog is mounted regardless of role. These lists only decide
@@ -265,7 +258,7 @@ A role MAY declare empty arrays. A minimal role is just `name` + `description`.
 
 ## 7. Symlink topology
 
-Every `activate` walks the whole catalog of skills, agents, and commands (§5) — not just what the stack's roles declare — resolves last-wins provenance across the stack, and creates symlinks in BOTH `.claude/<category>/` AND `.agents/<category>/` (skills, agents, commands — *not* output-styles, which is Claude-only and selected separately, see §6).
+Every `activate` walks the whole catalog of skills, agents, and commands (§5) — not just what the stack's roles declare — resolves last-wins provenance across the stack, and creates symlinks in BOTH `.claude/<category>/` AND `.agents/<category>/`.
 
 - Symlinks are **relative** paths back into the toolkit when the toolkit lives inside the project tree (e.g. a submodule under `01_modules/SciAgent-toolkit`): each link is relativized to its own directory (via `realpath -ms --relative-to`), so the committed `.claude/*`/`.agents/*` links stay portable across host/container/machine and travel with the submodule pin. When the toolkit is an **external/global** checkout outside the project tree, the target falls back to an **absolute** path (a relative link would be a fragile `../../../…` chain that breaks when either tree moves). The helper-lib link (`02_analysis/helpers/figure-style`) follows the same relativization rule.
 - A toolkit-locality guard refuses `activate` (the only mutating verb — see `MUTATING_VERB` in `bin/sciagent`) when the project ships its own `./01_modules/SciAgent-toolkit` but the resolved `$SCIAGENT_TOOLKIT` is a *different* (external) toolkit — this prevents silently symlinking against, and pinning to, the wrong copy. Override with `--allow-external-toolkit` or `SCIAGENT_ALLOW_EXTERNAL_TOOLKIT=1`. `deactivate` is not guarded (it only removes what its own manifest owns).
@@ -276,7 +269,8 @@ Every `activate` walks the whole catalog of skills, agents, and commands (§5) �
 
 `sciagent deactivate` (no args) — full teardown:
 - Remove the ROLES and CRAFT blocks from AGENTS.md (preserve everything outside markers byte-for-byte, including the file's permission bits).
-- Remove `.claude/{skills,agents,commands,output-styles}/*` and `.agents/{skills,agents,commands}/*` mounts, sweeping the **union** of two sources: (a) entries that are symlinks resolving inside the *currently active* `$SCIAGENT_TOOLKIT`, and (b) every path recorded in a still-present manifest that is still a symlink. Neither source alone is sufficient: (a) alone strands everything when teardown runs against a *different* toolkit checkout than the one that mounted (the links resolve elsewhere, so nothing matches); (b) alone strands everything when the manifest is lost or stale. (b) is safe to trust unconditionally because manifest entries are never guessed — each was written by `symlink_create_dual`/`symlink_create_helper_lib` at mount time. A file or symlink of the user's own is untouched either way: it is not toolkit-resolving and was never recorded.
+- Remove `.claude/{skills,agents,commands}/*` and `.agents/{skills,agents,commands}/*` mounts, sweeping the **union** of two sources: (a) entries that are symlinks resolving inside the *currently active* `$SCIAGENT_TOOLKIT`, and (b) every path recorded in a still-present manifest that is still a symlink. Neither source alone is sufficient: (a) alone strands everything when teardown runs against a *different* toolkit checkout than the one that mounted (the links resolve elsewhere, so nothing matches); (b) alone strands everything when the manifest is lost or stale. (b) is safe to trust unconditionally because manifest entries are never guessed — each was written by `symlink_create_dual`/`symlink_create_helper_lib` at mount time. A file or symlink of the user's own is untouched either way: it is not toolkit-resolving and was never recorded.
+- Sweep `.claude/output-styles/` as a retirement compatibility path. Toolkit-targeting symlinks are removed even when the former `system-prompts/` target directory is gone; regular files and outside-pointing symlinks remain.
 - Remove `02_analysis/helpers/{figure-style,interactive-style}` on the same rule.
 - Remove `.sciagent/manifest.json`.
 
@@ -303,7 +297,6 @@ remains. See `lib/sciagent/ownership.sh` for the shared machinery and
 ```
 .sciagent/
 ├── manifest.json            # canonical state: stack, created symlinks, schema version
-├── claude_settings.state    # how settings.local.json's outputStyle key was set
 ├── project_settings.state   # which settings.json keys the backfill added (+ .orig)
 ├── claude_md.state          # created vs. prepended, for the CLAUDE.md import shim
 ├── statusline.sha1 / .ceded # content snapshot / ceded marker for statusline.sh

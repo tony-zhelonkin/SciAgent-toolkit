@@ -31,12 +31,6 @@
 name: architect
 description: Architecture-first dev harness — map → review (composable) → synthesize → design → plan → implement
 
-# Output style (main-agent system prompt) is no longer set here (Phase 5d —
-# roles are pure provenance, and output_style is a selection, not a role
-# filter). To get the architect-mentor style, pass it explicitly:
-#   sciagent activate architect --output-style architect-mentor
-# or set `output_style: architect-mentor` in the toolkit's craft.yaml.
-
 # Agents activate into .claude/agents/ via symlink
 agents:
   # === Reviewer panel (invoked by /review --as <csv>|all) ===

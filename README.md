@@ -24,9 +24,7 @@ Different data modalities, different goals, might require different context.
 - different commands. 
 Roles used to gate which of these got mounted; they don't anymore — the whole
 catalog is always mounted (see "The RPG model" below), and activating a role now
-labels provenance. The output-style is a separate choice at activation time
-(`--output-style <name>`, else `craft.yaml`'s `output_style:`), not a property of
-the role.
+labels provenance.
 Everything is by design per-project folder.
 
 Even with increased context window size I don\`t personally believe that 
@@ -121,7 +119,7 @@ are byte-identical, and `sciagent validate` plus the test suite must pass agains
 sciagent new project
 
 # Activate a role — symlinks the whole skill/agent/command catalog into .claude/ and .agents/;
-# the role only decides provenance labels (output-style is a separate --output-style choice)
+# the role only decides provenance labels
 sciagent activate base
 
 # Show the active stack, effective tables, and block/symlink health (add --json for a machine-readable manifest)
@@ -202,7 +200,6 @@ project/
 │   ├── skills/<name>  →  toolkit/skills/<name>
 │   ├── agents/<name>.md  →  toolkit/agents/<name>.md
 │   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   ├── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
 │   ├── settings.json                 # created, or missing keys backfilled
 │   ├── statusline.sh                 # created, +x
 │   └── hooks/{no_ephemeral,caption_sweep}.sh   # created, +x, registered in settings.json
@@ -225,8 +222,7 @@ survives untouched.
 **`deactivate` (no argument) is a full inverse of `activate`.** Beyond the blocks
 and symlinks, it also reverses the project-level artifacts `activate` writes
 unconditionally: `settings.json`'s key-backfill, `statusline.sh`, both hook
-bodies, the output-style key in `settings.local.json`, and the `@AGENTS.md`
-import line in `CLAUDE.md`.
+bodies, and the `@AGENTS.md` import line in `CLAUDE.md`.
 
 Reversal is *ownership-checked*, never blind. Each artifact carries a record of
 what sciagent wrote — a content hash, or a state tag saying whether the file was

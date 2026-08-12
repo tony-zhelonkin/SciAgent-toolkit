@@ -51,7 +51,6 @@ USAGE
         local had_manifest=0
         manifest_exists && had_manifest=1
 
-        claude_settings_teardown
         symlink_teardown_all
         # ROLES explicitly: full teardown removes the ROLES block sciagent
         # itself owns; CRAFT is a separate id, torn down via craft_remove.
@@ -108,7 +107,6 @@ USAGE
 
     if [[ "$target" == "$base" ]]; then
         # Removing the base implies removing the overlay too.
-        claude_settings_teardown
         symlink_teardown_all
         # ROLES explicitly: full teardown removes the ROLES block sciagent
         # itself owns; CRAFT is a separate id, torn down via craft_remove.

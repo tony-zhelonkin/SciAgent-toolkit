@@ -93,7 +93,7 @@ pass() {
 #   alpha      — skills: s_a       (used in idempotent / max-stack tests)
 build_fake_toolkit() {
     local root="$1"
-    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,system-prompts,lib,bin}
+    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,lib,bin}
 
     # Skills (directory format). Frontmatter carries the two fields
     # `sciagent validate` hard-checks: a `name:` matching the directory and a
@@ -117,17 +117,6 @@ EOF
     # Commands
     echo "cmd c_a"   > "$root/commands/c_a.md"
     echo "cmd c_b"   > "$root/commands/c_b.md"
-
-    # System prompt fixture — exercised by tests that use output_style.
-    # Frontmatter `name:` is the logical identifier resolved by
-    # roles.sh system_prompt_path(); filename is incidental.
-    cat > "$root/system-prompts/fixture-style.md" <<'EOF'
----
-name: fixture-style
-description: stub style for tests
----
-fixture body
-EOF
 
     # Roles
     cat > "$root/roles/base.yaml" <<EOF

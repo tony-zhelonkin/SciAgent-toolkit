@@ -4,9 +4,7 @@
 # agents[], commands[]. Strict YAML edge cases (quoting, nesting, anchors)
 # are out of scope. Roles are pure provenance (Phase 5d): none of skills/
 # agents/commands gate what's mounted — see stack.sh:stack_walk's catalog
-# fallback. `output_style` is intentionally NOT part of this schema anymore;
-# it moved to `sciagent activate --output-style` / craft.yaml (see
-# activate.sh).
+# fallback.
 #
 # Resolution: roles live in <toolkit>/roles/<name>.yaml. The toolkit root
 # is the SCIAGENT_TOOLKIT env var (set by bin/sciagent) or the parent of
@@ -84,11 +82,6 @@ role_array() {
 #   SKILL <name>
 #   AGENT <name>
 #   COMMAND <name>
-# output_style is no longer role-scoped (Phase 5d): it is a SELECTION, not a
-# filter (exactly one style exists on disk), so it moved to an explicit
-# setting — `sciagent activate --output-style <name>` and/or craft.yaml's
-# `output_style:` key. See activate.sh. A role yaml may still carry a stale
-# `output_style:` key; it is simply never read here.
 role_load() {
     local name="$1"
     local file
@@ -112,69 +105,4 @@ role_load() {
 
 role_description() {
     role_scalar "$(role_path "$1")" description
-}
-
-# ---------------------------------------------------------------------------
-# system-prompts resolution
-# ---------------------------------------------------------------------------
-#
-# A role's `output_style: <name>` field is a logical identifier resolved
-# against the frontmatter `name:` field of files in `system-prompts/*.md`.
-# This decouples the role spec from filenames — files can be renamed
-# without breaking roles, and a single style can live in any filename.
-#
-# Validation lives here so that drift between a role's declared style and
-# the canonical source files is caught at activation time, before any
-# symlink or manifest mutation. Otherwise an unresolved style would
-# silently fall back to a hard-coded default and confuse the user.
-
-# _read_frontmatter_name <file>
-# Print the value of the `name:` field inside the leading `---` ... `---`
-# YAML frontmatter block. Empty if none.
-_read_frontmatter_name() {
-    awk '
-        /^---[ \t]*$/ { fm++; if (fm == 2) exit; next }
-        fm == 1 && /^name:[ \t]/ {
-            sub(/^name:[ \t]*/, "")
-            sub(/[ \t]*#.*$/, "")
-            sub(/[ \t]+$/, "")
-            print
-            exit
-        }
-    ' "$1"
-}
-
-# system_prompt_path <name>
-# Resolve a system-prompt source file by frontmatter name. Print the
-# absolute path on stdout. Exit 1 if no file matches.
-system_prompt_path() {
-    local name="$1"
-    local dir
-    dir="$(_roles_toolkit_root)/system-prompts"
-    [[ -d "$dir" ]] || return 1
-    local f n
-    for f in "$dir"/*.md; do
-        [[ -f "$f" ]] || continue
-        n=$(_read_frontmatter_name "$f")
-        if [[ "$n" == "$name" ]]; then
-            printf '%s\n' "$f"
-            return 0
-        fi
-    done
-    return 1
-}
-
-# system_prompt_inventory
-# List every system-prompt source as a `<name>\t<basename>` line. Used by
-# the validation error message and by `sciagent list system-prompts`.
-system_prompt_inventory() {
-    local dir
-    dir="$(_roles_toolkit_root)/system-prompts"
-    [[ -d "$dir" ]] || return 1
-    local f n
-    for f in "$dir"/*.md; do
-        [[ -f "$f" ]] || continue
-        n=$(_read_frontmatter_name "$f")
-        printf '%s\t%s\n' "${n:-<missing-frontmatter-name>}" "${f##*/}"
-    done
 }

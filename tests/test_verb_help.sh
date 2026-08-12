@@ -57,21 +57,29 @@ for artifact in .claude .agents .sciagent AGENTS.md CLAUDE.md .gitignore; do
 done
 
 # ---------------------------------------------------------------------------
-# 3. activate --help specifically: documents the two positionals and the
-#    output-style flag, and mounts nothing even though a valid role exists.
+# 3. activate --help specifically: documents the two positionals, omits the
+#    retired output-style flag, and mounts nothing even though a role exists.
 # ---------------------------------------------------------------------------
 set +e
 out=$(cd "$WORK" && "$SCIAGENT" activate --help 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || fail "activate --help exited $rc" "$out"
-printf '%s\n' "$out" | grep -q -- '--output-style' \
-    || fail "activate --help omits --output-style" "$out"
+if printf '%s\n' "$out" | grep -q -- '--output-style'; then
+    fail "activate --help still advertises retired --output-style" "$out"
+fi
 printf '%s\n' "$out" | grep -qi 'overlay' \
     || fail "activate --help omits the overlay positional" "$out"
 printf '%s\n' "$out" | grep -qi 'exit code' \
     || fail "activate --help omits the exit-code line the other verbs carry" "$out"
 [[ -e "$WORK/.claude" || -e "$WORK/AGENTS.md" ]] \
     && fail "activate --help mounted something"
+
+set +e
+out=$(cd "$WORK" && "$SCIAGENT" activate base --output-style ghost 2>&1); rc=$?
+set -e
+[[ "$rc" -ne 0 ]] || fail "retired --output-style flag is still accepted" "$out"
+[[ -e "$WORK/.claude" || -e "$WORK/AGENTS.md" ]] \
+    && fail "rejected --output-style invocation mounted something"
 
 # `activate -h` must not be read as a role name (the old failure mode).
 set +e

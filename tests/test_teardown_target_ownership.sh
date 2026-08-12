@@ -8,8 +8,9 @@
 #       live mount) is still recognised and removed, not stranded;
 #   (c) a user symlink pointing OUTSIDE the toolkit survives, even though it
 #       sits right next to toolkit mounts in the same directory;
-#   (d) a real (non-symlink) user file in each of the four `.claude/` trees
-#       survives untouched.
+#   (d) a real (non-symlink) user file in each `.claude/` tree survives;
+#   (e) retired output-style mounts are swept even when their source directory
+#       is gone, while regular files and outside-pointing symlinks survive.
 # Each assertion below is paired with a fixture actually capable of failing
 # it — e.g. (a) is proven by hand-truncating the manifest's "symlinks" array
 # before deactivating, so a still-manifest-driven teardown would leave that
@@ -62,12 +63,25 @@ mkdir -p ../outside
 echo "user content" > ../outside/note.md
 ln -s "$PWD/../outside/note.md" .claude/skills/user-owned-link
 
-# --- (d) a real (non-symlink) user file in each of the four trees ---
+# --- (d/e) regular user files plus the retired output-style fleet shape ---
 mkdir -p .claude/output-styles
 echo "user skill note"    > .claude/skills/user-real.md
 echo "user agent note"    > .claude/agents/user-real.md
 echo "user command note"  > .claude/commands/user-real.md
 echo "user style note"    > .claude/output-styles/user-real.md
+
+# The measured fleet has 18 dangling output-style symlinks and one regular
+# file. Sixteen dangling links point at retired cs101_v0.* files; the final two
+# represent other removed toolkit styles. Their parent source directory is
+# absent, exercising the multi-component dangling-target case.
+for i in {1..16}; do
+    ln -s "$FAKE/system-prompts/cs101_v0.$i.md" ".claude/output-styles/cs101_v0.$i.md"
+done
+ln -s "$FAKE/system-prompts/architect-mentor.md" .claude/output-styles/architect-mentor.md
+ln -s "$FAKE/system-prompts/legacy-mentor.md" .claude/output-styles/legacy-mentor.md
+ln -s "$PWD/../outside/note.md" .claude/output-styles/user-owned-link.md
+legacy_style_count=$(find .claude/output-styles -mindepth 1 -maxdepth 1 -type l | wc -l)
+assert_eq "$legacy_style_count" "19" "18 legacy style links plus one user link staged"
 
 "$SCIAGENT" deactivate >/dev/null
 
@@ -95,12 +109,20 @@ assert_file_exists .claude/output-styles/user-real.md   "real user file in outpu
 assert_eq "$(cat .claude/skills/user-real.md)"   "user skill note"   "skills/ content untouched"
 assert_eq "$(cat .claude/agents/user-real.md)"   "user agent note"   "agents/ content untouched"
 assert_eq "$(cat .claude/commands/user-real.md)" "user command note" "commands/ content untouched"
+assert_eq "$(cat .claude/output-styles/user-real.md)" "user style note" "output-style regular file untouched"
+
+# (e) all 18 toolkit-owned dangling style links are gone. The real file and
+# outside-pointing user link remain in the same retired mount directory.
+legacy_style_count=$(find .claude/output-styles -mindepth 1 -maxdepth 1 -type l ! -name user-owned-link.md | wc -l)
+assert_eq "$legacy_style_count" "0" "all dangling toolkit output-style links swept"
+assert_symlink .claude/output-styles/user-owned-link.md "outside-pointing output-style link survives"
+assert_eq "$(readlink .claude/output-styles/user-owned-link.md)" "$PWD/../outside/note.md" "output-style user link target unchanged"
 
 # No manifest, no other toolkit-owned mounts left.
 [[ -e .sciagent/manifest.json ]] && { echo "FAIL [$_TEST_NAME] manifest still exists" >&2; exit 1; }
 assert_symlink .claude/skills/user-owned-link "user link still the only thing left in .claude/skills"
 
-# --- (e) the manifest FILE is gone entirely, not just an entry ---
+# --- (f) the manifest FILE is gone entirely, not just an entry ---
 # Distinct from (a): (a) drops an entry from a manifest that still exists, so a
 # manifest-gated teardown still runs and merely misses one mount. Here the file
 # itself is deleted — `rm -rf .sciagent`, a botched clean, a partially restored
@@ -137,7 +159,7 @@ printf '%s\n' "$out" | grep -q 'orphaned mounts removed' || {
     exit 1
 }
 
-# --- (f) genuinely nothing mounted: must NOT claim to have deactivated ---
+# --- (g) genuinely nothing mounted: must NOT claim to have deactivated ---
 cd "$TMPDIR_TEST"
 mkdir project3 && cd project3
 out=$("$SCIAGENT" deactivate 2>&1)

@@ -86,8 +86,6 @@ USAGE
 #   SKILL_ORDER[], AGENTS_ORDER[], COMMANDS_ORDER[]
 #   SKILLS[name]=role, AGENTS_M[name]=role, COMMANDS_M[name]=role
 #   SKILL_SHADOWS[name]=role, AGENT_SHADOWS[name]=role, COMMAND_SHADOWS[name]=role
-# output_style is no longer role-scoped (Phase 5d) — status does not track it;
-# see `.claude/settings.local.json`'s outputStyle key for the applied value.
 _status_load_state() {
     local stack
     stack=$(manifest_stack)
