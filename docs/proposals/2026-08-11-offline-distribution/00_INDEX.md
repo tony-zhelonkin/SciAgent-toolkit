@@ -6,6 +6,8 @@
 **Narrows:** `docs/_internal/plans/2026-07-02-provider-agnostic/` **(untracked — see §7)** — its core insight survives; two amendments in §4 below
 **Owner decision, verbatim:** *"Git is the version authority, the submodule is the scientific lock, a deterministic tarball is the portable package, and Bash performs installation and harness binding without owning network transport."*
 
+The three old-name paths below identify the legacy-named planning repository and retain its filesystem name.
+
 ---
 
 ## 1. The decision in one paragraph
@@ -201,7 +203,7 @@ failure mode to watch for here.
 |---|---|
 | `00_INDEX.md` | this file — decision, layers, verified findings |
 | `10_packaging_contracts.md` | `scripts/build-release.sh` and `install.sh` contracts |
-| `50_ADRs.md` | ADR-D1…D7, house format (`[Arch]`/`[Eng]`/`[Taste]`) |
+| `50_ADRs.md` | ADR-D1…D9, house format (`[Arch]`/`[Eng]`/`[Taste]`) |
 
 Sequencing lives in the plan of record: `sciagent-rna/docs/10_sciagent-plan-of-record.md` §3.
 

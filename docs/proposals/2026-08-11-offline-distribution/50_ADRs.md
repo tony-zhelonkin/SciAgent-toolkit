@@ -27,7 +27,7 @@ is already the place this project enforces invariants.
 
 **Blocks:** `build-release.sh`. **Reversible:** yes, cheaply — adding a manifest later is additive.
 
-**Demolition note, 2026-08-13.** The release gate now runs `sciagent lint
+**Demolition note, 2026-08-13.** The release gate now runs `scio lint
 --check toolkit` plus the full test suite. The activation stack's
 `.sciagent/manifest.json` was deleted; catalog-link ownership is carried by
 each symlink target. Git remains the version authority described by this ADR.
@@ -234,7 +234,7 @@ trivially; the name awkwardly once published, which is why the CLI rename is del
 rather than bundled in.
 
 **Demolition note, 2026-08-13.** The artifact/CLI naming decision still holds.
-The locality check cited above now lives in `lib/sciagent/link.sh`, and the
+The locality check cited above now lives in `lib/scio/link.sh`, and the
 retired activation and teardown modules no longer contribute paths to a future
 CLI rename.
 
@@ -289,7 +289,27 @@ problem. Check the existing workstation tooling before designing fleet-scope any
 already drawn twice.
 
 **Demolition note, 2026-08-13.** The fleet boundary remains in force. Within
-one project, SciAgent owns six catalog links, the CRAFT block, guardrail hook
+one project, Scio owns six catalog links, the `SCIO:CRAFT` block, guardrail hook
 bodies and registrations, and their narrow ownership records. Project removal
 is an explicit manual operation; the retired teardown verb contributes no
 toolkit state.
+
+---
+
+## ADR-D9 — Repository and consumer vendor paths become `scio` [Arch] — **DECIDED 2026-08-13**
+
+**Context.** The in-repo rebrand establishes `scio` as the shipped identity, while the GitHub
+repository and consumer vendor paths still carry the earlier name. Owner ruling 9 supersedes doc 08
+§5.3's recommendation to keep that name.
+
+**Decision.** Rename the GitHub repository to `scio` and each consumer vendor path to
+`01_modules/scio/`. The repository rename is pending and is sequenced as fleet work with the pilot
+re-pin. GitHub redirects the old repository URL, so existing submodule fetches continue to work
+during the migration.
+
+**Consequences.** Each consumer migration requires a `.gitmodules` edit plus
+`git mv 01_modules/SciAgent-toolkit 01_modules/scio`. `README.md` and the docs deliberately retain
+`01_modules/SciAgent-toolkit/` because that is where the vendored copies live until the fleet moves.
+
+**Blocks:** the pilot re-pin and coordinated fleet migration. **Reversible:** yes, at fleet
+coordination cost.
