@@ -43,7 +43,7 @@
 # The linked executable keeps the name `sciagent`. ADR-D7 renamed the release
 # ARTIFACT to `scio`; renaming the CLI is explicitly NOT approved there (it
 # would touch ~22 consumer checkouts, `$SCIAGENT_TOOLKIT`, the `si` alias, hook
-# paths, and `_guard_toolkit_locality`).
+# paths, and the project-locality contract).
 #
 # ---------------------------------------------------------------------------
 # Fleet precedence is preserved, and that is why this links rather than wraps
@@ -52,8 +52,8 @@
 # symlink here resolves to the version directory and nothing else. This script
 # writes no shell profile, exports no variable, and installs no wrapper that
 # could pin `$SCIAGENT_TOOLKIT` globally. A project that ships its own
-# `01_modules/SciAgent-toolkit` therefore still wins: `_guard_toolkit_locality`
-# refuses to mutate such a project from this global copy. Exact-commit
+# `01_modules/SciAgent-toolkit` therefore still wins: `sciagent link` refuses
+# to bind such a project from this global copy. Exact-commit
 # reproducibility for the fleet depends on that refusal, so nothing installed
 # here may weaken it.
 #
@@ -134,8 +134,7 @@ _json_escape() {
 }
 
 # _json_str_field <file> <key> — read a flat string field. jq when present,
-# otherwise a targeted grep/sed against this well-known flat schema (the same
-# narrow-fallback convention lib/sciagent/symlinks.sh uses; it is not a JSON
+# otherwise a targeted grep/sed against this well-known flat schema. It is not a JSON
 # parser and does not pretend to be one).
 _json_str_field() {
     local file="$1" key="$2"

@@ -7,8 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-Reproducibility: portable, pin-respecting symlinks + a toolkit-locality guard,
-so a dropped-in agent activates against the copy the project actually ships.
+The catalog now binds through one directory symlink per harness category.
+
+### Changed
+
+- **`sciagent link` converges projects on six whole-tree catalog links.** It
+  sweeps legacy toolkit-owned child mounts, dangling container paths, retired
+  output styles, and helper-library links; preserves real files and
+  outside-pointing links; refuses populated category directories with an entry
+  listing; and materializes the two guardrail hooks through the existing
+  hash-and-cede ownership discipline.
+- **Project teardown is an explicit manual operation.** Removing the six
+  category links is one shell line; managed blocks are removed from
+  `AGENTS.md` as a second operation.
+
+### Removed
+
+- The activation stack, deactivation, update, status/list, project scaffolding,
+  per-entry symlink machinery, and manifest-backed state model.
 
 ### Added
 - **Offline distribution: `scripts/build-release.sh` + `install.sh`.** Implements `docs/proposals/2026-08-11-offline-distribution/10_packaging_contracts.md` and ADR-D1/D2/D3/D7 — no npm, no registry, no marketplace, and no installer that can reach the network. **The builder** takes an explicit ref (an implicit "whatever is checked out" is refused, as is a dirty tree), runs `sciagent validate` and `tests/run-all.sh` **against the exported tree** rather than the working tree — the working tree may sit at another commit and carries untracked residue the artifact will not — and only then emits three files: `scio-<version>-<short-sha>.tar.gz`, its `.sha256`, and sidecar metadata carrying the **full 40-char** SHA. Bytes come from `git archive --format=tar <sha> | gzip -n`; the working checkout is 180 MB against 5.6 MB tracked (171 MB of it one skill's `.venv`), so `git archive` is a correctness requirement, not tidiness. The metadata deliberately carries **no build timestamp**, so the whole triple — not just the archive — is reproducible. Naming resolves the one place the plan documents disagree: ADR-D7's `scio` stem wins over §1's `sciagent-`, but §1's short SHA is **kept** against ADR-D7's example, because without it two releases of different commits at one version are indistinguishable on disk. This renames the **artifact only** — the installed executable, `$SCIAGENT_TOOLKIT`, the `si` alias and `_guard_toolkit_locality` all still say `sciagent` (ADR-D7's scope limit). **The installer** takes local files only — there is no code path that accepts a URL, and a URL-shaped argument is refused with the reason rather than fetched — verifies the checksum **before** extracting anything, extracts into staging on the destination filesystem and renames into `<prefix>/share/scio/versions/<full-sha>/` so two versions coexist by construction and an interrupted install leaves no half-tree, links **only** `<prefix>/bin/sciagent`, and writes a receipt sufficient for an exact uninstall (a link is removed only if it still points where the receipt says — otherwise it is reported and left alone, exit 3, the same "cannot verify → do not touch" rule as teardown). It performs no harness detection and writes no `settings.json`/`AGENTS.md`/skill mounts: installation and project binding are different verbs on different layers (ADR-D3, `00_INDEX.md` §2). **Fleet precedence is unchanged** and now has an end-to-end test: a global install cannot mutate a project that ships its own toolkit. Eight new tests (`test_build_release_{determinism,contents,refusals}.sh`, `test_install_{verify_and_dryrun,atomic,coexist_uninstall,invariants,locality_precedence}.sh`) plus `tests/_release_lib.sh`. They build **throwaway fixture repos** rather than this one — since the builder runs the suite, a test that built this repo would re-enter it. That is why there is deliberately **no `--skip-checks` flag**: an escape hatch on a release gate eventually gets used for a real release, whereas fixture repos with one-line gate stubs exercise both the passing and failing gate paths in milliseconds and make recursion impossible by construction. Correction to `00_INDEX.md` §5 recorded here rather than silently: on this host (git 2.34.1, GNU gzip 1.10) `--format=tar.gz` and a bare `| gzip` are **also** byte-stable, because gzip embeds an mtime only for a *named file* and git's built-in filter is already `gzip -cn`. `-n` and the explicit pipe are kept anyway, for the reason that survives the correction — `tar.tar.gz.command` is user-configurable, so `--format=tar.gz` inherits its determinism from the builder's `~/.gitconfig`.

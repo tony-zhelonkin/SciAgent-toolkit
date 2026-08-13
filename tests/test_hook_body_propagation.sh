@@ -4,7 +4,7 @@
 # A hook body fixed in the toolkit must actually REACH a project that was
 # already provisioned. Before 2026-08-11 it never did: ensure_hooks wrote a body
 # only `if [[ ! -f "$dst" ]]`, so the very first
-# activate froze that file forever. Measured across the real fleet the same
+# provisioning froze that file forever. Measured across the real fleet the same
 # day: all 8 consumers carrying no_ephemeral.sh still held the af20086 version
 # (12dafe8a3e39) and none had received de5719e's fix. A guardrail that cannot
 # be updated in the field is only as good as the day it was installed.
@@ -121,7 +121,7 @@ assert_eq "$(cat "$CEDED")" "$USER_HASH" "(3) marker records the ceded content"
 
 # ---------------------------------------------------------------------------
 # (4) Ceding is PERMANENT and quiet: a second run over the same content must
-# emit nothing. Re-warning on every activate is the noise the marker prevents.
+# emit nothing. Re-warning on every link is the noise the marker prevents.
 # ---------------------------------------------------------------------------
 err2=$(ownership_ensure_body "$SRC" "$DST" "$REL" "$STATE" "$CEDED" 2>&1 >/dev/null)
 assert_eq "$err2" "" "(4) second run over a ceded body is silent"
@@ -140,7 +140,7 @@ assert_eq "$(_hash "$DST")" "$OTHER_HASH" "(5) new customization untouched"
 
 # ---------------------------------------------------------------------------
 # (6) Already current, no record (a body predating the ownership records) →
-# adopted silently, so deactivate can reverse it. No write, no message.
+# adopted silently for future refreshes. No write, no message.
 # ---------------------------------------------------------------------------
 _reset
 mkdir -p "$(dirname "$DST")"
@@ -152,7 +152,7 @@ assert_eq "$(cat "$STATE")" "$V2" "(6) adopted: record written for a pre-existin
 # ===========================================================================
 # (7) END-TO-END against the REAL toolkit and the REAL manifest: reproduce the
 # fleet defect exactly. Seed a project with the OLDEST shipped version of
-# no_ephemeral.sh and no ownership record, then run a real `activate`.
+# no_ephemeral.sh and no ownership record, then run a real `link`.
 # ===========================================================================
 cd "$TMPDIR_TEST"
 REAL_REL="project/_common/.claude/hooks/no_ephemeral.sh.template"
@@ -176,10 +176,10 @@ else
         # No .sciagent/hook_state — exactly the fleet's state.
         [[ -e .sciagent/hook_state ]] && { echo "FAIL [$_TEST_NAME] (7) fixture seeded a record" >&2; exit 1; }
 
-        SCIAGENT_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/sciagent" activate base >/dev/null 2>&1
+        SCIAGENT_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/sciagent" link >/dev/null 2>&1
 
         assert_eq "$(_hash .claude/hooks/no_ephemeral.sh)" "$CUR_HASH" \
-            "(7) real activate refreshed the stale hook to the current template"
+            "(7) real link refreshed the stale hook to the current template"
         [[ -x .claude/hooks/no_ephemeral.sh ]] || {
             echo "FAIL [$_TEST_NAME] (7) refreshed hook not executable" >&2; exit 1; }
 
@@ -188,7 +188,6 @@ else
         assert_grep 'stages|scripts' .claude/hooks/no_ephemeral.sh \
             "(7) refreshed hook still accepts BOTH stage dir names during the migration"
 
-        SCIAGENT_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/sciagent" deactivate >/dev/null 2>&1
         cd ..
     fi
 fi

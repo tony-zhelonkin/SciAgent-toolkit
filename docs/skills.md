@@ -15,11 +15,9 @@ skills/<skill-name>/
 └── assets/               # Templates, configs, example data
 ```
 
-The role activator (`sciagent activate`) resolves skills in this order:
-1. **Directory format** (canonical): `skills/<name>/SKILL.md` → symlinks the directory
-2. **Flat format** (legacy): `skills/<name>.md` → symlinks the single file
-
-Both coexist during migration. Authoring new skills uses the directory format only.
+`sciagent link` binds the complete `skills/` directory into both harness trees.
+Every direct child is therefore a mountable skill directory in the canonical
+format above.
 
 See `templates/skill/` for a canonical starter and `skills/skill-creator/` for a full reference implementation.
 
@@ -30,9 +28,8 @@ See `templates/skill/` for a canonical starter and `skills/skill-creator/` for a
 Skills informally fall into three shapes, distinguished by scope and depth. There
 is no frontmatter field for this — no `metadata:` block exists in the canonical
 schema (see "Fill the SKILL.md frontmatter" below) — it's a naming/authoring
-convention enforced by review, not by the resolver. `sciagent activate` mounts
-the whole catalog regardless of shape; roles are provenance labels only, never
-a filter (see `docs/architecture.md`).
+convention enforced by review. `sciagent link` exposes the whole catalog
+regardless of shape (see `docs/architecture.md`).
 
 | Scope class | Line cap (target) | Role | Example |
 |---|---|---|---|
@@ -408,7 +405,7 @@ An earlier "v3 taxonomy" nested `category`, `tier`, `tags`,
 `complementary-skills`, `contraindications`, `requires`, and provenance
 fields under `metadata:`, with a resolver that auto-mounted a skill's
 `requires:` closure. That taxonomy and its resolver have been removed —
-`sciagent activate` mounts the whole catalog unconditionally now (see
+`sciagent link` binds the whole catalog unconditionally (see
 `docs/architecture.md`). Put cross-references, contraindications, and
 provenance notes in the body instead (`## See also`, `## When not to use`,
 a one-line "Use for X; for Y use other-skill" in the description).
@@ -481,14 +478,12 @@ The body prose must work for any agentic harness (Claude Code, Gemini CLI, Codex
 
 SKILL.md should stay under ~400 lines. If a section grows beyond ~300 lines, move it to `references/<topic>.md` and reference from SKILL.md.
 
-### 7. Activate and test
-
-Add the skill name (without `.md`) to the role YAML (`roles/base.yaml` or a new role), then:
+### 7. Link and test
 
 ```bash
-sciagent activate base
+sciagent link
 ls -la /path/to/project/.claude/skills/<your-skill-name>
-# Should be a symlink pointing to 01_modules/SciAgent-toolkit/skills/<your-skill-name>
+# The path resolves through .claude/skills -> <toolkit>/skills.
 ```
 
 ### 8. Add to the category table above

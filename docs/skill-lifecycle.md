@@ -21,19 +21,6 @@ context for every skill in the catalog whether or not it was used. A skill that
 is in flux, or on its way out, says so in the first line of its body — where the
 reader is already looking.
 
-## How it surfaces
-
-`sciagent list skills` prints active skills, then a trailing attic section:
-
-```
-  scanpy
-  scvi-mrvi
-  ...
-
-  Attic (retired, reference-only — not installed by any role):
-    _attic/shinymultiome-uio-host
-```
-
 ## The attic (`_attic/`)
 
 A skill under `_attic/<name>/` is **reference-only**. Active-skill operations
@@ -42,13 +29,11 @@ resolution, mounting, and active-skill counts.
 
 ### Retiring a skill
 
-1. Remove it from any `roles/*.yaml` that install it.
-2. `git mv skills/<name> _attic/<name>` (preserve history).
-3. In the moved `SKILL.md`, add a one-line `> **Deprecated …**` banner at the
+1. `git mv skills/<name> _attic/<name>` (preserve history).
+2. In the moved `SKILL.md`, add a one-line `> **Deprecated …**` banner at the
    top of the body.
 
 ### Reviving a skill
 
 1. `git mv _attic/<name> skills/<name>`.
 2. Drop the banner.
-3. Re-add it to the appropriate role(s).

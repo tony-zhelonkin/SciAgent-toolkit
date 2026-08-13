@@ -1,7 +1,6 @@
 # lib/sciagent/validate.sh — sciagent validate [--quiet]
 #
-# Thin callable verb, not a subsystem.
-# Called internally by `activate` before mounting; standalone for debugging.
+# Transitional toolkit-validation verb retained by the demolition gate.
 #
 # Checks:
 #   1. frontmatter shape      — every skill has `name:` matching its directory
@@ -21,19 +20,14 @@
 # ...) have moved to lib/sciagent/lint.sh — `sciagent lint --check <name>`.
 # `sciagent validate --check <name>` still works: it delegates to
 # _lint_run_checks and prints a one-line deprecation note to stderr
-# (suppressed by --quiet). The default path and the activate-internal
-# `cmd_validate --quiet` call pass NO --check, so they behave EXACTLY as
-# before (never blocked by a lint finding).
+# (suppressed by --quiet). The default path passes no --check and stays
+# independent of project lint findings.
 #
 # docs-layout (docs/_internal/ gitignore-status, results-root .md files,
 # mixed archive-naming, non-standard handoff names) used to live here as
 # _validate_docs_layout, called unconditionally on validate's default path —
-# that was itself the bug: a PROJECT finding (a consumer repo's docs/ layout)
-# could hard-fail the default `validate` path, and since `activate` calls
-# `cmd_validate --quiet` as pre-flight, a docs/_internal gitignore miss could
-# hard-block activation entirely, contradicting this file's own contract
-# above. It now lives in lint.sh as `--check docs-layout`, opt-in like its
-# siblings, never reachable from activate's pre-flight.
+# that was itself the bug: a project finding could hard-fail toolkit
+# validation. It now lives in lint.sh as `--check docs-layout`.
 #
 # env-hygiene (warns when CLAUDE_CODE_SKIP_PROMPT_HISTORY silently disables
 # session persistence/backgrounding) is not a PROJECT check at all — it reads
@@ -191,12 +185,8 @@ USAGE
     done
 
     # -----------------------------------------------------------------------
-    # Opt-in PROJECT guardrail checks (--check). These are the (c) GUARDRAIL
-    # layer. CRITICAL: they run ONLY when --check is given. The default path
-    # and the activate-internal `cmd_validate --quiet` call (which passes no
-    # --check) MUST behave EXACTLY as before — never let a figure/caption/
-    # layout finding block activation. So when --check is present we run the
-    # selected project checks and return; we do NOT run the toolkit-wide walk.
+    # Opt-in PROJECT guardrail checks run only when --check is given. The
+    # default path stays a toolkit-wide catalog validation.
     # -----------------------------------------------------------------------
     if [[ ${#_checks[@]} -gt 0 ]]; then
         [[ "$quiet" -eq 0 ]] && echo "sciagent validate --check is deprecated; use: sciagent lint --check ..." >&2
@@ -420,8 +410,7 @@ USAGE
     # Buffered then emitted after the "all checks passed" line so a clean
     # tree still produces zero stderr output. Quiet mode mutes the warnings
     # for the same reason it mutes the success line — scripted callers want
-    # silent-on-success. Allowlist annotation lives in status.sh; validate
-    # speaks namespace-level (it doesn't know which collisions are "blessed").
+    # silent-on-success. Validate reports every namespace-level collision.
     if [[ "$quiet" -eq 0 ]]; then
         local -a _collision_warnings=()
         local _col_name _col_kinds

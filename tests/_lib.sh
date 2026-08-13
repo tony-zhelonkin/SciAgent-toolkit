@@ -148,9 +148,7 @@ skills:
   - s_a
 EOF
 
-    # Minimal tags.yaml so `sciagent validate` (called internally by activate)
-    # finds the vocabulary file. Tests that need unknown-tag coverage override
-    # this file after calling build_fake_toolkit.
+    # Retained fixture file for tests that exercise historical tag inputs.
     cat > "$root/tags.yaml" <<'EOF'
 tags:
   - name: tooling

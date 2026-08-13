@@ -59,7 +59,7 @@ export OPENROUTER_API_KEY=sk-or-...        # or GEMINI_API_KEY, OPENAI_API_KEY, 
 ```
 
 `bin/mllmct` runs the tool inside its locked sandbox — no venv activation needed, and it works
-even when the skill is symlinked into `.claude/skills/` by `sciagent activate`.
+even when the skill is discovered through `.claude/skills` after `sciagent link`.
 
 **Input — `--markers` CSV:** a `cluster` column + a `markers` column of `;`-joined **gene symbols**:
 

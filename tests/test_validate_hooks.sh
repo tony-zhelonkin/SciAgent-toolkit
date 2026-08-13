@@ -3,7 +3,7 @@
 #
 # Regression cover for a state that shipped: settings.json REGISTERS
 # PreToolUse/Stop hooks by path, but the bodies were rendered only by
-# `sciagent new project`, so any project retrofitted by `activate` got hook
+# project scaffolding, so repos bound later could get hook
 # registration with no hook files. Meta-Aging/14616-DM ran that way with no
 # .claude/hooks/ directory at all, silently disabling the (c) GUARDRAIL layer.
 #
@@ -124,22 +124,14 @@ run_check "$P6"
 [[ "$RC" -eq 0 ]] || fail "settings.json without hooks exited $RC (expected 0)" "$OUT"
 grep -q 'WARN hooks' <<<"$OUT" && fail "warned on settings.json carrying no hooks" "$OUT"
 
-# --- 7. ensure_hooks materializes the bodies, idempotently ------------------
+# --- 7. link materializes the bodies, idempotently --------------------------
 # Uses the REAL toolkit templates (the fake toolkit has no templates/ tree), so
 # this also asserts the shipped settings template and hook bodies stay in sync.
 # $0 is relative and setup_tmpdir changed cwd; _lib.sh already resolved this.
 REAL_TK="$TOOLKIT_ROOT"
 if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
     P7="$TMPDIR_TEST/p_materialize"; mkdir -p "$P7"
-    # block.sh (hashing) + ownership.sh (the materialize-and-keep-current
-    # discipline ensure_hooks delegates to) are part of claude_settings.sh's
-    # dependency closure — bin/sciagent loads all three for the activate verb,
-    # and so must anything driving these functions directly.
-    first=$(cd "$P7" && SCIAGENT_TOOLKIT="$REAL_TK" bash -c '
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/block.sh"
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/ownership.sh"
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/claude_settings.sh"
-        claude_settings_ensure_hooks' 2>&1)
+    first=$(SCIAGENT_TOOLKIT="$REAL_TK" "$REAL_TK/bin/sciagent" link --project-dir "$P7" 2>&1)
     grep -q 'wrote: .claude/hooks/' <<<"$first" \
         || fail "ensure_hooks wrote no hook bodies" "$first"
     if command -v jq >/dev/null 2>&1; then
@@ -152,11 +144,7 @@ if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
     grep -q 'WARN hooks' <<<"$OUT" \
         && fail "hooks still missing after ensure_hooks materialized them" "$OUT"
 
-    second=$(cd "$P7" && SCIAGENT_TOOLKIT="$REAL_TK" bash -c '
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/block.sh"
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/ownership.sh"
-        . "$SCIAGENT_TOOLKIT/lib/sciagent/claude_settings.sh"
-        claude_settings_ensure_hooks' 2>&1)
+    second=$(SCIAGENT_TOOLKIT="$REAL_TK" "$REAL_TK/bin/sciagent" link --project-dir "$P7" 2>&1)
     grep -q 'wrote:' <<<"$second" \
         && fail "ensure_hooks re-wrote existing hooks (not idempotent)" "$second"
 fi

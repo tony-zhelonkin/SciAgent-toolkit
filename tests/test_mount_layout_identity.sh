@@ -36,14 +36,18 @@ done | LC_ALL=C sort > "$expected_commands"
 
 mkdir project
 cd project
-"$TOOLKIT_ROOT/bin/sciagent" activate base >/dev/null
+"$TOOLKIT_ROOT/bin/sciagent" link >/dev/null
 
 for harness in .claude .agents; do
-    find "$harness/skills" -mindepth 1 -maxdepth 1 -printf '%f\n' \
+    assert_symlink "$harness/skills"
+    assert_symlink "$harness/agents"
+    assert_symlink "$harness/commands"
+
+    find -H "$harness/skills" -mindepth 1 -maxdepth 1 -printf '%f\n' \
         | LC_ALL=C sort > "$TMPDIR_TEST/actual-skills"
-    find "$harness/agents" -mindepth 1 -maxdepth 1 -printf '%f\n' \
+    find -H "$harness/agents" -mindepth 1 -maxdepth 1 -printf '%f\n' \
         | LC_ALL=C sort > "$TMPDIR_TEST/actual-agents"
-    find "$harness/commands" -mindepth 1 -maxdepth 1 -printf '%f\n' \
+    find -H "$harness/commands" -mindepth 1 -maxdepth 1 -printf '%f\n' \
         | LC_ALL=C sort > "$TMPDIR_TEST/actual-commands"
 
     assert_file_eq "$TMPDIR_TEST/actual-skills" "$expected_skills" \

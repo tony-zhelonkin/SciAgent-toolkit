@@ -12,7 +12,7 @@
 # prefix, and then invoked from a project.
 #
 #   - In a project that ships its own toolkit, the globally installed
-#     `sciagent activate` REFUSES (`_guard_toolkit_locality`), because the
+#     `sciagent link` REFUSES, because the
 #     symlinked executable resolves $SCIAGENT_TOOLKIT to the version directory,
 #     which is not the project's in-repo toolkit.
 #   - In a project that ships none, the same global binary works. Without this
@@ -60,14 +60,14 @@ assert_symlink "$GLOBAL"
 # --- control: no in-repo toolkit → the global install is usable ------------
 PLAIN="$TMPDIR_TEST/plain-project"
 mkdir -p "$PLAIN"
-out=$( cd "$PLAIN" && env -u SCIAGENT_TOOLKIT "$GLOBAL" activate base 2>&1 )
+out=$( cd "$PLAIN" && env -u SCIAGENT_TOOLKIT "$GLOBAL" link 2>&1 )
 rc=$?
 if [[ $rc -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] the globally installed sciagent could not activate a plain project" >&2
+    echo "FAIL [$_TEST_NAME] the globally installed sciagent could not link a plain project" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi
-assert_file_exists "$PLAIN/AGENTS.md" "control activation produced no AGENTS.md"
+assert_symlink "$PLAIN/.claude/skills" "control link produced no skill binding"
 
 # --- the real claim: a project shipping its own toolkit wins ---------------
 FLEET="$TMPDIR_TEST/fleet-project"
@@ -75,7 +75,7 @@ mkdir -p "$FLEET/01_modules"
 cp -R "$SRC" "$FLEET/01_modules/SciAgent-toolkit"
 rm -rf "$FLEET/01_modules/SciAgent-toolkit/.git"
 
-out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT "$GLOBAL" activate base 2>&1 )
+out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT "$GLOBAL" link 2>&1 )
 rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "FAIL [$_TEST_NAME] the global install mutated a project that ships its own toolkit" >&2
@@ -83,19 +83,19 @@ if [[ $rc -eq 0 ]]; then
     printf '%s\n' "$out" >&2
     exit 1
 fi
-printf '%s\n' "$out" | grep -q "refusing to activate against an external toolkit" \
+printf '%s\n' "$out" | grep -q "refusing to link against an external toolkit" \
     || { echo "FAIL [$_TEST_NAME] refusal did not come from the locality guard" >&2; printf '%s\n' "$out" >&2; exit 1; }
-[[ -e "$FLEET/AGENTS.md" ]] \
-    && { echo "FAIL [$_TEST_NAME] the refused run still wrote AGENTS.md" >&2; exit 1; }
+[[ -e "$FLEET/.claude/skills" ]] \
+    && { echo "FAIL [$_TEST_NAME] the refused run still created bindings" >&2; exit 1; }
 
 # The project's OWN toolkit can of course do it.
-out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT ./01_modules/SciAgent-toolkit/bin/sciagent activate base 2>&1 )
+out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT ./01_modules/SciAgent-toolkit/bin/sciagent link 2>&1 )
 rc=$?
 if [[ $rc -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] the project's in-repo toolkit could not activate it" >&2
+    echo "FAIL [$_TEST_NAME] the project's in-repo toolkit could not link it" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi
-assert_file_exists "$FLEET/AGENTS.md" "in-repo activation produced no AGENTS.md"
+assert_symlink "$FLEET/.claude/skills" "in-repo link produced no skill binding"
 
 pass

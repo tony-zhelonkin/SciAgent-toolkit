@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/test_template_provenance.sh
 #
-# templates/PROVENANCE.sha1 is what lets `activate` tell "a stale copy the
+# templates/PROVENANCE.sha1 is what lets `link` tell "a stale copy the
 # toolkit wrote" from "a file the user edited", and therefore what licenses it
 # to overwrite the former. Two ways that guarantee can rot silently, both
 # guarded here:
@@ -12,10 +12,8 @@
 #      instead of refreshed — the propagation defect comes back, quietly, for
 #      one generation of the file.
 #
-#   2. A new hook or helper-shim template is added and never registered as
-#      managed. It materializes into projects (ensure_hooks globs *.sh.template;
-#      helper_shims_ensure globs the analysis helpers dir) but is never
-#      refreshable, so it is born stale-forever.
+#   2. A new hook template is added and never registered as managed. It
+#      materializes into projects but cannot receive later refreshes.
 #
 #   3. A managed template gains a {{PLACEHOLDER}}. Content-provenance rests
 #      entirely on the body being materialized by a plain `cp` — the moment a
@@ -29,35 +27,15 @@ assert_file_exists "$MANIFEST" "the provenance manifest is committed"
 
 _hash() { sha1sum "$1" | cut -d' ' -f1; }
 
-# The set of templates `activate` materializes verbatim, derived the SAME way
-# the library derives it — glob the hooks dir (claude_settings.sh ensure_hooks),
-# and the analysis helper-shim dir
-# (symlinks.sh helper_shims_ensure) — rather than from a second hardcoded list
-# that could drift out of sync with them. Anything a caller materializes is
+# The set of templates `link` materializes verbatim, derived the same way the
+# library derives it: glob the hooks directory rather than using a second
+# hardcoded list that could drift out of sync. Anything the caller materializes is
 # therefore checked here automatically, including the {{PLACEHOLDER}} check
 # below, which is the invariant content-provenance rests on.
 MANAGED=()
 for f in "$TOOLKIT_ROOT"/templates/project/_common/.claude/hooks/*.sh.template; do
     [[ -f "$f" ]] && MANAGED+=("${f#"$TOOLKIT_ROOT"/templates/}")
 done
-for f in "$TOOLKIT_ROOT"/templates/project/analysis/02_analysis/helpers/*.template; do
-    [[ -f "$f" ]] && MANAGED+=("${f#"$TOOLKIT_ROOT"/templates/}")
-done
-
-# The helper shims must actually be represented, or the two checks below pass
-# vacuously for them. helper_shims_ensure globs that directory, so an empty
-# result means the glob (or the directory) moved and the guard is dead.
-_n_shims=0
-for rel in "${MANAGED[@]}"; do
-    case "$rel" in project/analysis/02_analysis/helpers/*) _n_shims=$((_n_shims + 1)) ;; esac
-done
-if [[ "$_n_shims" -eq 0 ]]; then
-    echo "FAIL [$_TEST_NAME] no 02_analysis/helpers shim templates found — the glob is wrong" >&2
-    echo "  (helper_shims_ensure materializes that directory; if it is empty here," >&2
-    echo "   every shim ships un-refreshable and the placeholder check is vacuous)" >&2
-    exit 1
-fi
-
 if [[ ${#MANAGED[@]} -eq 0 ]]; then
     echo "FAIL [$_TEST_NAME] no managed templates found — the glob is wrong" >&2
     exit 1

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/test_craft_verb.sh
 # `sciagent craft` renders the SCIAGENT:CRAFT block with no role and no mounts:
-#   - works in a repo that has never been activated (the umbrella case)
+#   - works in a repo that has never been linked
 #   - mounts nothing: no .claude/, .agents/, .sciagent/, no ROLES block
 #   - re-render is byte-identical (no-op)
 #   - --project-dir targets another directory
@@ -28,7 +28,7 @@ EOF
 export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
 
-# ── 1. Never-activated repo gains the block. ────────────────────────────────
+# ── 1. Unbound repo gains the block. ───────────────────────────────────────
 mkdir umbrella && cd umbrella
 cat > AGENTS.md <<'EOF'
 # Umbrella AGENTS.md

@@ -5,10 +5,8 @@
 #   <!-- BEGIN SCIAGENT:<ID> v1 hash=<sha1> -->
 #   <!-- END SCIAGENT:<ID> -->
 #
-# For id=ROLES this is byte-identical to the original hard-coded markers.
-# Two ids are in production use: ROLES (the effective-stack block written by
-# activate.sh, checked by status.sh) and CRAFT (craft.sh, the owner's standing
-# craft conventions). They coexist in AGENTS.md and are independently checked.
+# CRAFT is the actively rendered block id. ROLES remains a recognized id so
+# existing projects can inspect and manually remove their historical block.
 #
 # id used to default to ROLES on every function below. That default is
 # GONE (2026-08, Phase 5c follow-up): a bare `block_write AGENTS.md "$body"`
@@ -74,11 +72,8 @@ _sha1() {
 # exist so callers that need a content hash for something OTHER than a managed
 # block do not have to re-implement it and trip that guard.
 #
-# The other user is the deactivate-side ownership records: hook bodies and the
-# CLAUDE.md shim are reversed only if their content still
-# hashes to what sciagent wrote, so a user edit is detected and ceded rather
-# than clobbered. That is the same question block_hash_check asks of a managed
-# block body, so it belongs on the same primitive rather than a second one.
+# Hook-body ownership uses the same content-hash primitive to distinguish
+# toolkit bytes from a user edit.
 #
 # Prints the empty string if the path is unreadable — callers treat an empty
 # hash as "cannot verify", which fails safe (leave the artifact alone).
@@ -186,8 +181,7 @@ block_read() {
 
 # Public: emit the hash stored in the BEGIN marker (empty if no block).
 # Callers: block_hash_check (the drift guard), craft_verb.sh (did this render
-# change anything?), and lint.sh's freshness check. It no longer feeds the
-# manifest — that field went with manifest schema v2 (see symlinks.sh).
+# change anything?), and lint.sh's freshness check.
 block_stored_hash() {
     local file="$1"
     local id="${2:-}"
@@ -208,7 +202,7 @@ block_stored_hash() {
 # block_line_range <file> <id>
 # Print "<begin-line> <end-line>" (1-based) for the managed block, or nothing
 # (return 1) when there is no complete block. Keeps marker-string knowledge in
-# block.sh so consumers (e.g. status.sh) never grep the literals themselves.
+# block.sh so consumers never grep the marker literals themselves.
 block_line_range() {
     local file="$1"
     local id="${2:-}"

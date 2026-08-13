@@ -160,7 +160,7 @@ set -e
 # ---------------------------------------------------------------------------
 # Test 5: plain `validate` (no --check) ignores project checks entirely.
 # Even with a flagrant figure-style violation present, plain validate must
-# pass (it never runs the opt-in checks) — this is the activate-internal path.
+# pass because the default validation path never runs opt-in project checks.
 # ---------------------------------------------------------------------------
 set +e
 out=$("$SCIAGENT" validate --project-dir "$VIOL" 2>&1); rc=$?

@@ -3,8 +3,7 @@
 # `sciagent lint --check docs-layout --project-dir <dir>` (moved out of
 # validate.sh's default path — see validate.sh's header comment and defect
 # #2/#1 of the arch review: a docs/_internal gitignore miss used to hard-fail
-# the DEFAULT `sciagent validate` path, which in turn hard-blocked `activate`
-# via its `cmd_validate --quiet` pre-flight call).
+# the default `sciagent validate` path).
 #
 # Tests:
 #   1. Project dir with no docs/ at all → CLEAN no-op: exit 0, NO output
@@ -30,9 +29,6 @@
 #   6. `sciagent validate` (default, no --check) run against the same
 #      not-gitignored fixture from test 2 must be silent about docs-layout
 #      and exit 0 — pins that the check truly left validate's default path.
-#   7. `sciagent activate` in a project with the same not-gitignored fixture
-#      must still succeed — pins that a docs-layout finding can no longer
-#      block activation via cmd_validate's pre-flight call.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -249,39 +245,5 @@ if printf '%s\n' "$out6" | grep -qi 'docs-layout\|docs/_internal'; then
     printf '%s\n' "$out6" >&2
     exit 1
 fi
-
-# ---------------------------------------------------------------------------
-# Test 7: `sciagent activate` in a project whose docs/_internal/ is NOT
-# gitignored must still succeed — pins that activate's cmd_validate --quiet
-# pre-flight can no longer be hard-blocked by a project-layout finding. This
-# is the actual reproduction from the arch review's defect #2: before the
-# fix, this cd+activate would abort with "aborting activation; validate
-# checks failed".
-# ---------------------------------------------------------------------------
-PROJ7="$TMPDIR_TEST/proj7"
-mkdir -p "$PROJ7/docs/_internal"
-git -C "$PROJ7" init -q
-git -C "$PROJ7" config user.email "test@example.com"
-git -C "$PROJ7" config user.name "Test"
-echo "internal note" > "$PROJ7/docs/_internal/note.md"
-printf '# nothing relevant\n' > "$PROJ7/.gitignore"   # does NOT ignore docs/_internal/
-
-(
-    cd "$PROJ7" || exit 1
-    set +e
-    out7=$("$SCIAGENT" activate base 2>&1)
-    rc7=$?
-    set -e
-    if [[ "$rc7" -ne 0 ]]; then
-        echo "FAIL [$_TEST_NAME] test7: activate must survive a docs-layout finding, got exit $rc7" >&2
-        printf '%s\n' "$out7" >&2
-        exit 1
-    fi
-    if [[ ! -L ".claude/skills/s_a" ]]; then
-        echo "FAIL [$_TEST_NAME] test7: activate did not mount despite reporting success" >&2
-        printf '%s\n' "$out7" >&2
-        exit 1
-    fi
-) || exit 1
 
 pass

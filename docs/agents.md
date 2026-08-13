@@ -1,8 +1,8 @@
 # Agents
 
 Canonical sub-agent definitions live as flat `agents/<name>.md` files. The
-resolver binds those exact filenames into `.claude/agents/` and
-`.agents/agents/`. Each file carries YAML frontmatter (`name`, `description`,
+`sciagent link` exposes that directory at `.claude/agents` and
+`.agents/agents`. Each file carries YAML frontmatter (`name`, `description`,
 `model`, `color`); basename uniqueness is enforced by
 `tests/test_no_duplicate_basenames.sh`.
 

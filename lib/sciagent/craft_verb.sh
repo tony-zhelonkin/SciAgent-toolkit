@@ -1,10 +1,7 @@
 # lib/sciagent/craft_verb.sh — sciagent craft [--project-dir D] [--force] [--quiet]
 #
-# Renders/refreshes the SCIAGENT:CRAFT block in D/AGENTS.md and does nothing
-# else: no symlinks, no manifest, no settings, no role. CRAFT used to arrive
-# only via `activate`, which is why coordination repos never got it — activating
-# there would have mounted the whole bioinformatics catalog. This verb is the
-# split: craft conventions travel on their own.
+# Renders or refreshes the SCIAGENT:CRAFT block in D/AGENTS.md. CRAFT
+# conventions travel independently of catalog linking and project hooks.
 #
 # Drift guard: a hand-edit inside the markers leaves the body disagreeing with
 # the hash in the BEGIN marker. Refuse to overwrite that silently — the edit is

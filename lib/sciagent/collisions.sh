@@ -10,14 +10,10 @@
 # at tests/collision-allowlist.txt is the source of truth for which ones
 # are approved.
 #
-# Two callers consume this helper:
-#   - validate.sh — emits a soft-warn per collision (exit 0 either way)
-#   - status.sh   — surfaces collisions for the *active stack* in a Notes
-#                   section, annotated against the allowlist
+# `validate.sh` emits a soft warning per collision.
 #
-# The enumeration mirrors the recursive walks in inject.sh (agents/ and
-# commands/ allow nested subdirs; skills/ is always flat at depth 1; roles/
-# is always flat at depth 1).
+# The source namespaces are flat: direct skill directories and direct files
+# under agents/, commands/, and roles/.
 
 # shellcheck shell=bash
 

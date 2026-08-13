@@ -10,16 +10,15 @@ For AI agents working on this toolkit's own source. Not for project-level analys
 SciAgent-toolkit/
 ├── bin/sciagent              # CLI dispatcher (bash, resolves symlinks)
 ├── lib/sciagent/             # Internal modules sourced by bin/sciagent
-│   ├── activate.sh           # activate/deactivate orchestration
 │   ├── block.sh              # AGENTS.md managed-block read/write/hash
-│   ├── deactivate.sh         # teardown logic
+│   ├── claude_settings.sh    # guardrail hook materialization/registration
 │   ├── craft.sh              # SCIAGENT:CRAFT block renderer (craft.yaml is the SSOT)
 │   ├── craft_verb.sh         # `craft` verb: render the block, mount nothing
-│   ├── new.sh                # scaffolding (project/role/skill/agent)
-│   ├── roles.sh              # YAML parser (grep/awk, no yq dependency)
-│   ├── stack.sh              # stack-walk and manifest helpers
-│   ├── status.sh             # status + list renderers
-│   └── symlinks.sh           # dual-track (.claude/ + .agents/) symlink helpers
+│   ├── link.sh               # six category links + legacy-link sweep
+│   ├── lint.sh               # project guardrail checks
+│   ├── ownership.sh          # hash-and-cede hook body ownership
+│   ├── roles.sh              # transitional YAML parser
+│   └── validate.sh           # transitional catalog validation
 ├── roles/                    # Role definitions (YAML)
 ├── agents/                   # Flat canonical sub-agent .md files
 ├── skills/                   # Mountable skill directories (SKILL.md format)
@@ -37,9 +36,9 @@ SciAgent-toolkit/
 
 1. **Bash only, no external deps.** `lib/sciagent/roles.sh` parses YAML with `grep`/`awk`. Do not add `yq`, `jq`, or `python3` dependencies to the core path. If a fallback path needs to keep working without jq, it must.
 
-2. **All operations must be idempotent.** Check for existing state before acting. `activate base` twice is a no-op. `deactivate` when inactive is silent. Tests verify this — don't break it.
+2. **All operations must be idempotent.** Check for existing state before acting. `link` twice is a silent no-op. Tests verify this — don't break it.
 
-3. **Manifest ownership.** Symlinks are tracked in `.sciagent/manifest.json`. Never delete a symlink that isn't in the manifest. `deactivate` removes only what `activate` created.
+3. **Link ownership.** Sweep only symlinks that resolve inside the toolkit or dangling legacy links that identify a toolkit source. Preserve regular files, real populated directories, and outside-pointing links. Hook bodies follow the hash-and-cede discipline in `ownership.sh`.
 
 4. **Tests must pass.** Run `bash tests/run-all.sh` before committing any change to `bin/`, `lib/`, or `roles/`.
 
@@ -54,27 +53,26 @@ SciAgent-toolkit/
 ## Adding a new role
 
 ```bash
-bin/sciagent new role <name>          # scaffolds roles/<name>.yaml
-# edit roles/<name>.yaml — add skills/agents/commands arrays
-bin/sciagent activate <name>          # smoke test
+cp roles/base.yaml roles/<name>.yaml
+# edit roles/<name>.yaml — roles are transitional provenance data
+bin/sciagent validate
 ```
 
 ## Adding a new skill
 
 ```bash
-bin/sciagent new skill <name>         # copies templates/skill/ to skills/<name>/
+cp -R templates/skill skills/<name>/
 # edit skills/<name>/SKILL.md
-# add <name> to relevant roles/*.yaml
-bin/sciagent activate base            # verify symlink resolves
+bin/sciagent validate
+bin/sciagent link --project-dir <scratch-project>
 ```
 
 ## Adding a new agent
 
 ```bash
-bin/sciagent new agent <name>         # scaffolds agents/<name>.md
+cp agents/code-reviewer.md agents/<name>.md
 # edit agents/<name>.md (frontmatter: name, description, model, color)
-# add <name> to relevant roles/*.yaml
-bin/sciagent activate base && ls -la .claude/agents/
+bin/sciagent validate
 ```
 
 ---

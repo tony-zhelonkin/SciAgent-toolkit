@@ -48,7 +48,7 @@
 #
 # SCOPE LIMIT, load-bearing: ADR-D7 renames the release ARTIFACT only. The CLI
 # stays `sciagent` — the installed executable, `$SCIAGENT_TOOLKIT`, the `si`
-# alias and `_guard_toolkit_locality` are all untouched by this script. Only the
+# alias and project-locality contract are all untouched by this script. Only the
 # tarball and its metadata carry the `scio` name.
 #
 # ---------------------------------------------------------------------------
@@ -150,8 +150,7 @@ sha256_of() {
 }
 
 # _json_escape <string> — escape for embedding between JSON double quotes.
-# Same narrow helper as lib/sciagent/symlinks.sh; duplicated rather than sourced
-# because this script must run from a bare export with no toolkit sourcing.
+# Kept local because this script must run from a bare export with no toolkit sourcing.
 _json_escape() {
     local s="$1"
     s="${s//\\/\\\\}"

@@ -1,9 +1,9 @@
 # Commands
 
-Canonical slash-command definitions. The resolver walks this tree recursively
-and plants flat symlinks under `.claude/commands/`. Source filenames already
-match their consumer-visible names. Basename uniqueness across the whole tree
-is enforced by `tests/test_no_duplicate_basenames.sh`.
+Canonical slash-command definitions live as flat files. `sciagent link`
+exposes the directory at `.claude/commands` and `.agents/commands`. Source
+filenames match their consumer-visible names. Basename uniqueness is enforced
+by `tests/test_no_duplicate_basenames.sh`.
 
 | Command | Purpose | Bound by |
 |---------|---------|----------|

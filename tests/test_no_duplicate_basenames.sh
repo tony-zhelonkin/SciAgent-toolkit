@@ -3,9 +3,7 @@
 # Two invariants in one test:
 #   (a) intra-namespace uniqueness — no two .md files under commands/ or
 #       agents/ (recursively) share a basename, and no two skill directories
-#       share a name. The recursive resolver in lib/sciagent/symlinks.sh
-#       (resolve_canonical) depends on this; duplicate basenames make role
-#       bindings ambiguous.
+#       share a name. Flat mount-source identity depends on this.
 #   (b) cross-namespace non-collision (with allowlist) — a basename appearing
 #       in >=2 of skills/agents/commands/roles is the runtime soft-warn
 #       surface of `sciagent validate`. The merge-time mirror is here:

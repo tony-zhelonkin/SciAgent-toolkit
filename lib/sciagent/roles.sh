@@ -2,9 +2,8 @@
 #
 # Schema (per architecture §6): name, description, optional skills[],
 # agents[], commands[]. Strict YAML edge cases (quoting, nesting, anchors)
-# are out of scope. Roles are pure provenance (Phase 5d): none of skills/
-# agents/commands gate what's mounted — see stack.sh:stack_walk's catalog
-# fallback.
+# are out of scope. Roles are transitional provenance data; `link` exposes the
+# complete catalog independently of these lists.
 #
 # Resolution: roles live in <toolkit>/roles/<name>.yaml. The toolkit root
 # is the SCIAGENT_TOOLKIT env var (set by bin/sciagent) or the parent of

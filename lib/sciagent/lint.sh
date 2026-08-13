@@ -29,10 +29,8 @@
 #                   results-layout/captions/provenance) when the project has
 #                   no docs/ tree at all — it audits the STRUCTURE of an
 #                   existing docs/ tree, it does not mandate that one exist.
-#                   Moved here from validate.sh, where it used to run
-#                   unconditionally on the default path and could hard-block
-#                   `activate`'s pre-flight — see validate.sh's header
-#                   comment for the incident this fixed.
+#                   This project-layout check stays separate from toolkit
+#                   catalog validation.
 #   stage-thinness  02_analysis/stages|scripts function-def count (>2),
 #                   summed function-body lines (>60), total LOC (>500) per
 #                   file; see docs 09 §3.1. `# stage-detail: <reason>` exempts
@@ -521,7 +519,7 @@ _vcheck_extract_scripts() {
 # Compare the project's stored CRAFT block hash to what the toolkit's current
 # craft.yaml renders (any staleness, not just a version-integer bump). Also, if
 # 01_modules/SciAgent-toolkit is a git submodule, compare its checked-out
-# commit to the toolkit HEAD. WARN with a `sciagent update` hint when behind.
+# commit to the toolkit HEAD. WARN with a re-pin hint when behind.
 # Uses block.sh/craft.sh accessors so marker-format knowledge stays in block.sh.
 _lint_check_freshness() {
     local projdir="$1" strict="$2" quiet="$3"
@@ -562,7 +560,7 @@ _lint_check_freshness() {
             # Only warn when the submodule is an ANCESTOR of (behind) HEAD.
             if git -C "$tk_root" merge-base --is-ancestor "$sub_head" "$tk_head" 2>/dev/null; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — run: sciagent update" || rc=1
+                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: sciagent link && sciagent craft" || rc=1
             fi
         fi
     fi
@@ -573,12 +571,7 @@ _lint_check_freshness() {
 # ---------------------------------------------------------------------------
 # Check: docs-layout
 # ---------------------------------------------------------------------------
-# Moved from validate.sh (formerly _validate_docs_layout, called
-# unconditionally on validate's default path). Findings, all soft-warn unless
-# --strict (including the not-gitignored rule below — previously an
-# unconditional hard-fail regardless of --strict/--quiet; now consistent with
-# every other lint check's hardness boundary, since this check is opt-in and
-# no longer reachable from activate's pre-flight):
+# Findings are soft warnings unless --strict:
 #   - docs/_internal/ does not exist (docs/ itself does — see the absent-
 #     subject guard below)
 #   - docs/_internal/ exists, is inside a git repo, and is NOT gitignored
@@ -681,10 +674,6 @@ _lint_check_docs_layout() {
 # Code fails the hook call quietly and the convention stops being enforced with
 # no signal anywhere.
 #
-# This check exists because that state shipped. Meta-Aging/14616-DM registered
-# PreToolUse -> .claude/hooks/no_ephemeral.sh and Stop -> caption_sweep.sh with
-# no .claude/hooks/ directory at all, because hook bodies were rendered only by
-# `new project` while `activate` merged in the registering settings template.
 _lint_check_hooks() {
     local projdir="$1" strict="$2" quiet="$3"
     local rc=0
@@ -716,7 +705,7 @@ _lint_check_hooks() {
 
         if [[ ! -f "$projdir/$path" ]]; then
             _vcheck_emit "$strict" "$quiet" hooks \
-                "$path is registered in .claude/settings.json but does not exist — run: sciagent activate" || rc=1
+                "$path is registered in .claude/settings.json but does not exist — run: sciagent link" || rc=1
         elif [[ ! -x "$projdir/$path" ]] && ! [[ "$cmd" =~ (^|[[:space:]/])(bash|sh|zsh|python3?|uv)([[:space:]]|$) ]]; then
             # The exec bit only matters when the hook is invoked DIRECTLY. The
             # shipped templates register `bash "<path>"`, where mode 0644 runs
