@@ -190,8 +190,7 @@ it is enforced by the validator's orphan gate under `--strict`):
    / churn / fan-in to decide where to look first; never fabricate or override
    a metric.
 
-The full version lives in `commands/architect/synthesize-audit.md § Robust
-authoring checklist`.
+The full version is the [robust authoring checklist](../architecture-first-dev/references/architecture-treemap-audit.md#robust-authoring-checklist).
 
 ## Resources
 

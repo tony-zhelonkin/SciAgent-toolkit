@@ -68,7 +68,7 @@ map → review → synthesize → design → plan → implement → verify
 3. Treat the loaded reference as authoritative for phases, tools, outputs, gates, and stop conditions. Preserve every human judgment gate.
 4. Read upstream artifacts named by the selected stage. Honor the no-re-exploration and scribe-on-latest rules carried by the stage specifications.
 5. After a stage completes, read the matching tips in `00-quickstart.md` and surface the relevant next route.
-6. Keep implementation and large-campaign decomposition at their external command boundaries. Load [`commands/implement/implement.md`](../../commands/implement/implement.md) for implementation and [`commands/decompose/decompose.md`](../../commands/decompose/decompose.md) for multi-agent decomposition; their own argument contracts control those routes.
+6. Keep implementation and large-campaign decomposition at their external command boundaries. Load [`commands/implement.md`](../../commands/implement.md) for implementation and [`commands/decompose.md`](../../commands/decompose.md) for multi-agent decomposition; their own argument contracts control those routes.
 
 ## Per-feature references (load on demand)
 
@@ -90,8 +90,8 @@ map → review → synthesize → design → plan → implement → verify
 | Produce a fast portfolio snapshot | [`references/status.md`](references/status.md) | `$ARGUMENTS` optional comma-separated slugs |
 | Map, design, apply, or sequence a related feature portfolio | [`references/portfolio.md`](references/portfolio.md) | Full `/meta-map`, `/meta-design`, `/meta-apply`, and `/meta-plan` specifications; `$ARGUMENTS` scope survives intact |
 | Run the retrospective architecture-treemap stack | [`references/architecture-treemap-audit.md`](references/architecture-treemap-audit.md) | Full `/components-extract`, `/audit-slice`, `/synthesize-audit`, and `/architecture-treemap` specifications |
-| Execute an implementation plan | [`commands/implement/implement.md`](../../commands/implement/implement.md) | External command; preserve its `$ARGUMENTS` and flags |
-| Run large-campaign decomposition | [`commands/decompose/decompose.md`](../../commands/decompose/decompose.md) | External command; preserve its `$ARGUMENTS` and flags |
+| Execute an implementation plan | [`commands/implement.md`](../../commands/implement.md) | External command; preserve its `$ARGUMENTS` and flags |
+| Run large-campaign decomposition | [`commands/decompose.md`](../../commands/decompose.md) | External command; preserve its `$ARGUMENTS` and flags |
 
 `status.md` is intentionally separate from the portfolio blob because its frontmatter-and-grep snapshot is a narrow, fast orientation path.
 

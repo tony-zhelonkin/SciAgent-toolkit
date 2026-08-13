@@ -104,4 +104,4 @@ to the setup and examples that depend on it.
 
 The retired taxonomy key `metadata.requires:` remains unsupported;
 `skills/skill-creator/scripts/add_requires_field.py` is an inert tombstone that refuses to run. See
-`skills/README.md`.
+`docs/skills.md`.

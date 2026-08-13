@@ -610,8 +610,7 @@ _list_role_detail() {
 
 _list_skills() {
     local d name
-    # Active skills: flat dirs at skills/<name>/. Underscore-prefixed dirs
-    # (_TEMPLATE, _attic, _archive) are scaffolding, not active skills.
+    # Active skills occupy every direct child of skills/.
     for d in "$SCIAGENT_TOOLKIT"/skills/*/; do
         [[ -f "$d/SKILL.md" ]] || continue
         name=$(basename "$d")
@@ -619,9 +618,8 @@ _list_skills() {
         printf '  %s\n' "$name"
     done
 
-    # Attic: retired, reference-only skills (skills/_attic/<name>/). Listed
-    # separately so they are never mistaken for active/available skills.
-    local attic_dir="$SCIAGENT_TOOLKIT/skills/_attic"
+    # Retired skills have a separate reference-only listing.
+    local attic_dir="$SCIAGENT_TOOLKIT/_attic"
     if [[ -d "$attic_dir" ]]; then
         local a aname
         local -a attic=()

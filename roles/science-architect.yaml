@@ -57,11 +57,9 @@ skills:
 #   /explore-and-plan   (P20) — research fan-out → synthesis → pipeline-plan
 #   /add-figure-variant (P21) — new figure family with its own namespace
 #   /interpret-storm    (P22) — multi-wave interpretation + information-graphic design
-# resolve_canonical recursively finds commands/science/<name>.md, so the role
-# lists the bare command name (no subdir). P20-P22 commands are added here as
-# their files land.
+# Each provenance entry names its flat commands/<name>.md source.
 commands:
-  - pipeline-plan       # P19 — Opus-decompose → Sonnet-impl → Opus-review-every-N + runnable artifacts gate (commands/science/)
-  - explore-and-plan    # P20 — research fan-out (Opus explorers) → synthesis → /pipeline-plan handoff (commands/science/)
-  - add-figure-variant  # P21 — new figure family with its own namespace, compute→viz split, dual-format (PDF + PNG) output, namespace-isolation grep gate (commands/science/)
-  - interpret-storm     # P22 — multi-wave interpretation (web research → interpret → design → /add-figure-variant build), every wave persisted (commands/science/)
+  - pipeline-plan       # P19 — Opus-decompose → Sonnet-impl → Opus-review-every-N + runnable artifacts gate (commands/pipeline-plan.md)
+  - explore-and-plan    # P20 — research fan-out (Opus explorers) → synthesis → /pipeline-plan handoff (commands/explore-and-plan.md)
+  - add-figure-variant  # P21 — new figure family with its own namespace, compute→viz split, dual-format (PDF + PNG) output, namespace-isolation grep gate (commands/add-figure-variant.md)
+  - interpret-storm     # P22 — multi-wave interpretation (web research → interpret → design → /add-figure-variant build), every wave persisted (commands/interpret-storm.md)

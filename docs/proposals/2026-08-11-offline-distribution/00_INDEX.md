@@ -108,7 +108,7 @@ hooks, `craft.yaml`, and the skills together — against the exact commit an ana
 claim that the plugin channel "cannot pin a version": wrong.**
 
 **The standalone-skill problem is smaller than feared — but the count was wrong.** 83 active skills
-(`skills/*/SKILL.md`, excluding `_archive`/`_TEMPLATE`/`_attic`). The first scan reported **8**. A
+(`skills/*/SKILL.md`). The first scan reported **8**. A
 wider re-scan on 2026-08-11, reproduced independently twice, finds **15**. The original pattern set
 keyed on toolkit-ish paths and missed plain `02_analysis/config|modules|scripts` references. **The
 number in the first draft of this plan was too low; treat 15 as the count.**

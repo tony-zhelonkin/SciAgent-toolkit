@@ -10,6 +10,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
+mkdir -p "$FAKE/templates"
+cp -R "$TOOLKIT_ROOT/templates/skill" "$FAKE/templates/skill"
 export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
 
@@ -42,5 +44,12 @@ run_verb eject s_c
 run_verb craft
 run_verb deactivate
 run_verb new role smoke-role
+"$SCIAGENT" new skill smoke-skill >/dev/null 2>&1 || {
+    echo "FAIL [$_TEST_NAME] new skill failed with templates/skill" >&2
+    exit 1
+}
+assert_file_exists "$FAKE/skills/smoke-skill/SKILL.md"
+assert_file_eq "$FAKE/skills/smoke-skill/SKILL.md" \
+    "$FAKE/templates/skill/SKILL.md" "new skill copied templates/skill"
 
 pass

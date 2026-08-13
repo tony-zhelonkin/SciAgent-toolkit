@@ -47,13 +47,12 @@ sciagent-toolkit/
 ├── skills/<name>/SKILL.md    # canonical skills (Anthropic SKILL.md format);
 │                             #   allowed top-level keys: name, description, license,
 │                             #   allowed-tools — no `metadata:` block in use
-├── skills/_attic/<name>/     # retired skills — reference-only, off the resolver path (see docs/skill-lifecycle.md)
+├── _attic/<name>/            # retired skills — reference-only (see docs/skill-lifecycle.md)
 ├── agents/<name>.md          # canonical sub-agents (Claude format)
 ├── commands/<name>.md        # canonical slash commands (Claude format)
 ├── roles/<name>.yaml         # role definitions (provenance labels only)
-└── templates/                # project scaffolding (new project bootstrap)
-    ├── AGENTS.md.template    # points at docs/_internal/scientific-context.md
-    └── CLAUDE.md.template    # 1-line shim: @AGENTS.md
+└── templates/                # project and skill scaffolding
+    └── skill/                # starter copied by `sciagent new skill`
 ```
 
 ### In an activated project (what `sciagent activate` writes)
@@ -184,7 +183,7 @@ Two checks that used to run unconditionally here are **no longer on the default 
 
 The "all checks passed" line is emitted only after every check capable of failing has run. It previously printed before the docs-layout check, so `validate` could report success and then exit 1.
 
-There is no requires-graph or tag-vocabulary check anymore — both mechanisms (`metadata.requires:`, tag declarations) were removed along with role-based gating. See `skills/README.md` § Taxonomy.
+There is no requires-graph or tag-vocabulary check anymore — both mechanisms (`metadata.requires:`, tag declarations) were removed along with role-based gating. See `docs/skills.md` § Taxonomy.
 
 `validate` is allowlist-blind by design — it reports every collision. The allowlist-aware view lives in `sciagent status`'s Notes section, which annotates intentional family overlaps.
 
@@ -334,7 +333,7 @@ Replaces `setup-ai.sh`:
 sciagent new project [<dir>] [--type analysis|software]
                                # bootstrap a typed project tree, do NOT activate
 sciagent new role <name>       # scaffold roles/<name>.yaml from template
-sciagent new skill <name>      # copy skills/_TEMPLATE/ to skills/<name>/
+sciagent new skill <name>      # copy templates/skill/ to skills/<name>/
 sciagent new agent <name>      # scaffold agents/<name>.md from template
 ```
 

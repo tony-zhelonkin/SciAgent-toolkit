@@ -41,9 +41,9 @@ _collisions_toolkit_root() {
 # at least two namespace matches are not emitted. Output is sorted by name.
 #
 # The four enumeration patterns:
-#   skills    — skills/<name>/SKILL.md (flat; _TEMPLATE excluded)
-#   agents    — agents/**/<name>.md (recursive; README.md and hidden dirs excluded)
-#   commands  — commands/**/<name>.md (recursive; README.md and hidden dirs excluded)
+#   skills    — skills/<name>/SKILL.md (flat)
+#   agents    — agents/<name>.md (flat)
+#   commands  — commands/<name>.md (flat)
 #   roles     — roles/<name>.yaml (flat)
 collisions_enumerate() {
     local tk_root
@@ -54,14 +54,12 @@ collisions_enumerate() {
     tmp=$(mktemp)
     # Emit "<name> <kind>" lines; sort + group below.
     {
-        # Skills: flat directories at depth 1, excluding the scaffold template.
+        # Skills: flat directories at depth 1.
         if [[ -d "$tk_root/skills" ]]; then
             local d name
             for d in "$tk_root"/skills/*/; do
                 [[ -d "$d" ]] || continue
                 name="$(basename "$d")"
-                # Skip underscore-prefixed scaffolding: _TEMPLATE, _attic
-                # (retired/reference-only), _archive backups.
                 [[ "$name" == _* ]] && continue
                 [[ -f "$d/SKILL.md" ]] || continue
                 printf '%s skill\n' "$name"

@@ -335,7 +335,7 @@ Resolution: under the new `concept`/`implementation` split, `tests/test_skill_sc
 - **Folder-relief pattern blessed for both scopes**: a skill folder MAY contain reference files (scripts, snippets, data, templates) beyond `SKILL.md`, referenced by basename from the SKILL.md body. Not a new convention — codifies the existing one (12/62 skills already use it).
 - Default `scope` when frontmatter field is missing: **`implementation`** (was: `atomic`). Tracks the migration mapping.
 - Legacy WARN-vs-FAIL CUTOFF bumped 2026-05-21 → **2026-05-24** (the migration decision date) so newly-relabeled skills are held to the new policy strictly while pre-migration WARNs remain warnings.
-- **New regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill is a FAIL — prevents accidental re-introduction of the old vocabulary.
+- **New regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any active skill is a FAIL — prevents accidental re-introduction of the old vocabulary.
 - `architecture-treemap` (currently missing the `scope:` field) gets `implementation` assigned during the codemod, per Anton's confirmation.
 
 **Why**: empirical scan (Opus agent, 2026-05-24) of all 62 skills:

@@ -2,7 +2,7 @@
 
 **Status: probationary. Prune review: 2026-11-20.** This retrospective stack stays off the navigation autopilot. Each marked source section preserves the complete command specification and its original argument contract.
 
-<!-- BEGIN SOURCE: commands/architect/components-extract.md -->
+<!-- BEGIN SOURCE: architecture-treemap-audit/components-extract -->
 # Components-extract
 
 Produce the **deterministic substrate** of an architecture audit: a `components.json` whose every entry traces back to the AST, the git history, or a metric tool — never to judgment. This is the foundation the rest of the `architecture-treemap` stack rests on.
@@ -112,9 +112,9 @@ After writing, the script validates its output against `components.schema.json` 
 2. **Omit, never fabricate.** A metric whose tool is absent is left out of the `metrics` block; it is never invented or zero-filled.
 3. **One file out.** The extractor writes exactly one `components.json`.
 4. **Never crash on a bad file.** A single unparseable source file is skipped and counted in the stderr summary; the run completes.
-<!-- END SOURCE: commands/architect/components-extract.md -->
+<!-- END SOURCE: architecture-treemap-audit/components-extract -->
 
-<!-- BEGIN SOURCE: commands/architect/audit-slice.md -->
+<!-- BEGIN SOURCE: architecture-treemap-audit/audit-slice -->
 ---
 status: probationary
 prune_review_at: 2026-11-20
@@ -265,9 +265,9 @@ slices' judgment. Without the substrate the synthesis has no trust scaffold.
 4. **One concern per slicer, one file per slice.** If a slicer writes elsewhere or merges concerns, flag it.
 5. **Additive, never clobbering.** A re-run today appends slices; never overwrite an existing slice without asking.
 6. **This command is probationary** (`prune_review_at: 2026-11-20`). It is the right tool ~once per quarter per major project, not per-feature. Police the trigger; if you find yourself reaching for it to scope a new feature, you wanted `/map`.
-<!-- END SOURCE: commands/architect/audit-slice.md -->
+<!-- END SOURCE: architecture-treemap-audit/audit-slice -->
 
-<!-- BEGIN SOURCE: commands/architect/synthesize-audit.md -->
+<!-- BEGIN SOURCE: architecture-treemap-audit/synthesize-audit -->
 ---
 status: probationary
 prune_review_at: 2026-11-20
@@ -496,9 +496,9 @@ even when they are present — so the checklist is the only guard.
 5. **The manifest MUST validate before routing to render.** Validation gate is mandatory (Phase 3).
 6. **Versions are immutable.** A re-run produces `synthesis-v{N+1}.md`; it never overwrites a prior version. (Same immutability discipline as the extractor's snapshots.)
 7. **This command is probationary** (`prune_review_at: 2026-11-20`), paired with `/audit-slice`. The decision-menu format is on trial as a candidate for promotion to every synthesis.
-<!-- END SOURCE: commands/architect/synthesize-audit.md -->
+<!-- END SOURCE: architecture-treemap-audit/synthesize-audit -->
 
-<!-- BEGIN SOURCE: commands/architect/architecture-treemap.md -->
+<!-- BEGIN SOURCE: architecture-treemap-audit/architecture-treemap -->
 # /architecture-treemap
 
 Render a `components.json` audit manifest into a self-contained interactive
@@ -594,4 +594,4 @@ NOTE: logical_components is empty. The Logical and Graph views will show a
 "No logical model yet" notice. Run /synthesize-audit to populate them.
 The Physical view renders from physical_components alone.
 ```
-<!-- END SOURCE: commands/architect/architecture-treemap.md -->
+<!-- END SOURCE: architecture-treemap-audit/architecture-treemap -->

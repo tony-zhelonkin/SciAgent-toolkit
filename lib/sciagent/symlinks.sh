@@ -62,8 +62,8 @@ _MANIFEST_PATH=".sciagent/manifest.json"
 # Categories:
 #   skills    — returns $SCIAGENT_TOOLKIT/skills/<name>  (must be a directory
 #               containing SKILL.md; not searched recursively)
-#   agents    — recursive search for <name>.md under $SCIAGENT_TOOLKIT/agents/
-#   commands  — recursive search for <name>.md under $SCIAGENT_TOOLKIT/commands/
+#   agents    — finds <name>.md under $SCIAGENT_TOOLKIT/agents/
+#   commands  — finds <name>.md under $SCIAGENT_TOOLKIT/commands/
 # Fails (rc=1) with a stderr message if zero matches or multiple matches.
 # Uniqueness is enforced by tests/test_no_duplicate_basenames.sh.
 # ---------------------------------------------------------------------------

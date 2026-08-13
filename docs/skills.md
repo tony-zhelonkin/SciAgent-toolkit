@@ -21,7 +21,7 @@ The role activator (`sciagent activate`) resolves skills in this order:
 
 Both coexist during migration. Authoring new skills uses the directory format only.
 
-See `_TEMPLATE/` for a canonical starter and `skill-creator/` for a full reference implementation.
+See `templates/skill/` for a canonical starter and `skills/skill-creator/` for a full reference implementation.
 
 ---
 
@@ -387,7 +387,7 @@ multivi_model = scvi.model.MULTIVI(multiome_adata)
 ### 1. Copy the template
 
 ```bash
-cp -r skills/_TEMPLATE skills/<your-skill-name>
+cp -r templates/skill skills/<your-skill-name>
 cd skills/<your-skill-name>
 ```
 
@@ -470,7 +470,7 @@ don't let it just restate the relationship word (e.g. avoid `Voter; voter
 for X`; say what kind of vote). This replaced an older `## Complementary
 Skills` table format (`| When you need... | Use skill | Relationship |`)
 during the 2026 metadata-taxonomy removal — that heading and table shape are
-retired; don't reintroduce them. `skills/_TEMPLATE/SKILL.md` demonstrates
+retired; don't reintroduce them. `templates/skill/SKILL.md` demonstrates
 the current convention.
 
 ### 5. Keep SKILL.md provider-agnostic

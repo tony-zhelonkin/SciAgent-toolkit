@@ -1,12 +1,12 @@
-# architect/ agents
+# Architect agents
 
-The twelve agents that the `architect` role binds. They implement the
+The thirteen agents that the `architect` role binds. They implement the
 design-before-code pipeline: a feature is *mapped* into a design surface,
 *reviewed* by domain specialists, the verdicts are *synthesized*, and a
 *feature-reviser* threads the consensus back into the map. `meta-architect`,
 `status-reporter`, and `architect` (the consistency gate) coordinate phase
 transitions and emit phase docs. See
-`../../docs/workflows/architect/00-quickstart.md` for the canonical cadence.
+`docs/workflows/architect/00-quickstart.md` for the canonical cadence.
 
 | Agent | Role in the pipeline |
 |-------|----------------------|
@@ -20,5 +20,6 @@ transitions and emit phase docs. See
 | `wetlab` | Wet-lab feasibility reviewer |
 | `graphic` | Visualization design reviewer |
 | `stat` | Statistical design reviewer |
+| `slicer` | Reviews architectural slices and dependency seams |
 | `divergent` | Adversarial reviewer |
 | `ml` | Machine-learning design reviewer |

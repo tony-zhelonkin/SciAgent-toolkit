@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test_skill_lifecycle.sh — lightweight skill lifecycle (_attic).
+# tests/test_skill_lifecycle.sh — lightweight skill lifecycle (_attic/).
 #
 # Asserts the three lifecycle invariants, all against a synthetic toolkit:
 #   (a) _attic skills are NOT in the active enumeration and NOT resolvable by
@@ -25,8 +25,8 @@ SCIAGENT="$FAKE/bin/sciagent"
 
 # --- Fixtures ----------------------------------------------------------------
 # Plant a retired skill in the attic.
-mkdir -p "$FAKE/skills/_attic/retired_skill"
-cat > "$FAKE/skills/_attic/retired_skill/SKILL.md" <<'EOF'
+mkdir -p "$FAKE/_attic/retired_skill"
+cat > "$FAKE/_attic/retired_skill/SKILL.md" <<'EOF'
 ---
 name: WRONG_NAME_ON_PURPOSE
 description: a skill that was retired to the attic
@@ -36,7 +36,7 @@ body
 EOF
 # A README in the attic (as the convention prescribes) must not be mistaken
 # for a skill either.
-echo "# attic" > "$FAKE/skills/_attic/README.md"
+echo "# attic" > "$FAKE/_attic/README.md"
 
 # =============================================================================
 # (a) _attic excluded from active enumeration + not resolvable by activate
@@ -54,8 +54,8 @@ if printf '%s\n' "$active_lines" | grep -qw 'retired_skill'; then
 fi
 
 # It must NOT be resolvable by activate: build a role that references it and
-# confirm activate fails to mount it (the resolver looks at skills/<name>/,
-# never skills/_attic/<name>/).
+# confirm activate fails to mount it because the resolver looks at
+# skills/<name>/.
 cat > "$FAKE/roles/atticref.yaml" <<'EOF'
 name: atticref
 description: role that (wrongly) references an attic'd skill

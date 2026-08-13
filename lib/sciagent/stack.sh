@@ -96,19 +96,14 @@ stack_walk() {
     while IFS= read -r _sw_sk; do
         _sw_name=$(basename "$(dirname "$_sw_sk")")
         case "$_sw_name" in
-            _*) continue ;;   # _TEMPLATE, and any other underscore-prefixed scaffold
+            _*) continue ;;
         esac
         [[ -n "${_sw_skills[$_sw_name]:-}" ]] && continue   # already attributed to a role
         _sw_record _sw_skills _sw_skill_shadows _sw_skill_order "$_sw_name" catalog
     done < <(find "$SCIAGENT_TOOLKIT/skills" -mindepth 2 -maxdepth 2 -name SKILL.md 2>/dev/null | sort)
 
-    # AGENT/COMMAND catalog-fallback (Phase 5d): same treatment as SKILL above.
-    # agents/**/*.md and commands/**/*.md are nested under a subdirectory
-    # (e.g. agents/analysis-base/captions.md); the mounted NAME is the
-    # filename without extension (matches resolve_canonical's by-filename
-    # search and _list_agents/_list_commands), not any frontmatter field.
-    # README.md files and any path with an underscore-prefixed segment
-    # (scaffolding/retired, e.g. commands/architect/_superseded/) are skipped.
+    # Agent and command catalog fallback uses each flat source basename as the
+    # mounted name.
     while IFS= read -r _sw_sk; do
         _sw_name=$(basename "$_sw_sk" .md)
         [[ "$_sw_name" == "README" ]] && continue

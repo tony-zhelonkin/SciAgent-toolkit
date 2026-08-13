@@ -1,13 +1,12 @@
-# Skill attic (`skills/_attic/`)
+# Skill attic (`_attic/`)
 
 Retired skills live here, **reference-only**.
 
-A skill under `skills/_attic/<name>/` is:
+A skill under `_attic/<name>/` is:
 
 - **not walked** by `sciagent validate` (and the skill-walking tests skip it),
-- **not resolvable** by `sciagent activate` / `sciagent inject` (it is off the
-  resolver's path — `resolve_canonical skills <name>` looks at `skills/<name>/`,
-  not `skills/_attic/<name>/`),
+- **not resolvable** by `sciagent activate` / `sciagent inject` (the resolver
+  looks at `skills/<name>/`),
 - **not counted** as an active/available skill in `sciagent list skills`
   (it appears only in the trailing "Attic" section, marked retired).
 
@@ -18,7 +17,7 @@ by any hook or fail-closed check — see `docs/skill-lifecycle.md`.
 ## Reviving an attic'd skill
 
 ```bash
-git mv skills/_attic/<name> skills/<name>
+git mv _attic/<name> skills/<name>
 ```
 
 Then edit `skills/<name>/SKILL.md`:

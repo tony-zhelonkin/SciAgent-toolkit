@@ -6,7 +6,7 @@ DO NOT RUN THIS SCRIPT. HISTORICAL / INERT — kept as a record only.
 
 The `metadata.requires` / `metadata.scope` frontmatter fields this script
 injects were part of the role/taxonomy layer that has since been demolished
-(see `docs/architecture.md` and `skills/README.md` "taxonomy removed" note).
+(see `docs/architecture.md` and `docs/skills.md` "taxonomy removed" note).
 `metadata:` is no longer populated on any SKILL.md, there is no resolver
 that reads `requires:` or `scope:`, and `sciagent activate` mounts the whole
 catalog unconditionally regardless of these keys.
@@ -186,10 +186,6 @@ def _disabled_main() -> int:
     skipped = 0
     noop = 0
     for skill_md in sorted(SKILLS_DIR.glob("*/SKILL.md")):
-        # Skip the fixture template — it has placeholder text that must
-        # not be modified mechanically.
-        if skill_md.parent.name == "_TEMPLATE":
-            continue
         result = migrate_one(skill_md)
         if result == "changed":
             print(f"changed: {skill_md.relative_to(REPO_ROOT)}")

@@ -168,15 +168,15 @@ esac
 # `SCIAGENT_TOOLKIT=<external> sciagent new skill foo` silently authored into
 # another checkout, leaving it differing from its recorded commit.
 # ---------------------------------------------------------------------------
-# build_fake_toolkit ships no skills/_TEMPLATE, so `new skill` would fail on a
+# build_fake_toolkit ships no templates/skill, so `new skill` would fail on a
 # missing template whether or not the guard fired — which would make this case
 # pass for the wrong reason. Give the EXTERNAL toolkit a real template so the
 # UNGUARDED path genuinely succeeds and writes; then a refusal is proof the
 # guard stopped an actual write, not proof that something else broke first.
-mkdir -p "$EXT_TK/skills/_TEMPLATE"
-cat > "$EXT_TK/skills/_TEMPLATE/SKILL.md" <<'EOF'
+mkdir -p "$EXT_TK/templates/skill"
+cat > "$EXT_TK/templates/skill/SKILL.md" <<'EOF'
 ---
-name: _TEMPLATE
+name: SKILL_IDENTIFIER
 description: Fixture template for the new-verb guard case.
 ---
 

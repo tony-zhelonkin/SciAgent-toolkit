@@ -177,8 +177,7 @@ def main():
         [
             os.path.join(SKILLS_DIR, d)
             for d in os.listdir(SKILLS_DIR)
-            if d != "_TEMPLATE"
-            and not d.startswith(".")
+            if not d.startswith((".", "_"))
             and os.path.isdir(os.path.join(SKILLS_DIR, d))
         ]
     )

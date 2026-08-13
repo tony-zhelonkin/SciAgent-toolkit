@@ -20,7 +20,7 @@ usage:
       --type analysis   00_data/ 01_modules/ 02_analysis/ 03_results/ tree (default)
       --type software   src/ tests/ docs/ examples/ packageable-library tree
   sciagent new role <name>       scaffold roles/<name>.yaml
-  sciagent new skill <name>      copy skills/_TEMPLATE/ to skills/<name>/
+  sciagent new skill <name>      copy templates/skill/ to skills/<name>/
   sciagent new agent <name>      scaffold agents/<name>.md
 EOF
             return 0 ;;
@@ -422,7 +422,7 @@ _new_skill() {
         echo "usage: sciagent new skill <name>" >&2
         return 1
     fi
-    local tpl="$SCIAGENT_TOOLKIT/skills/_TEMPLATE"
+    local tpl="$SCIAGENT_TOOLKIT/templates/skill"
     if [[ ! -d "$tpl" ]]; then
         echo "skill template not found: $tpl" >&2
         return 1

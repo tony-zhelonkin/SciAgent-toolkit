@@ -37,7 +37,7 @@ Manifest schema (for the curious): `docs/architecture.md` §9.
 Skills move through a natural `experimental → stable → deprecated → _attic`
 lifecycle, driven by judgment (not hooks). The optional `metadata.status:` field
 (default `stable`) is surfaced softly in `sciagent list skills`; retired skills
-move to `skills/_attic/` as reference-only. See `docs/skill-lifecycle.md`.
+move to `_attic/` as reference-only. See `docs/skill-lifecycle.md`.
 
 ## Error handling (lib/sciagent)
 
@@ -61,4 +61,4 @@ Update
 
 - One logical change per PR
 - Include the `tests/run-all.sh` output in the PR description
-- Update `agents/README.md` or `skills/README.md` if you add content to those directories
+- Update `docs/agents.md` or `docs/skills.md` if you add content to those directories

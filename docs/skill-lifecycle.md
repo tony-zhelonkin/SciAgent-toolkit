@@ -10,8 +10,8 @@ in use  →  _attic  →  (delete if truly dead)
 ```
 
 - **in use** — the skill lives at `skills/<name>/` and is mounted.
-- **_attic** — retired. Moved to `skills/_attic/<name>/`, reference-only. See
-  [`skills/_attic/README.md`](../skills/_attic/README.md).
+- **_attic** — retired. Moved to `_attic/<name>/`, reference-only. See
+  [`_attic/README.md`](../_attic/README.md).
 - **delete** — when even the reference value is gone, remove the directory.
 
 The directory a skill sits in *is* its lifecycle state. There is no
@@ -34,23 +34,21 @@ reader is already looking.
     _attic/shinymultiome-uio-host
 ```
 
-## The attic (`skills/_attic/`)
+## The attic (`_attic/`)
 
-A skill under `skills/_attic/<name>/` is **reference-only**: not walked by
-`validate`, not resolvable by `activate` (the walker looks at
-`skills/<name>/`, not `skills/_attic/<name>/`), and not counted as an active
-skill. The `skills/*/` glob does not recurse into it, and every skill walker
-also skips underscore-prefixed dirs explicitly.
+A skill under `_attic/<name>/` is **reference-only**. Active-skill operations
+walk `skills/<name>/`, so the top-level attic stays outside validation,
+resolution, mounting, and active-skill counts.
 
 ### Retiring a skill
 
 1. Remove it from any `roles/*.yaml` that install it.
-2. `git mv skills/<name> skills/_attic/<name>` (preserve history).
+2. `git mv skills/<name> _attic/<name>` (preserve history).
 3. In the moved `SKILL.md`, add a one-line `> **Deprecated …**` banner at the
    top of the body.
 
 ### Reviving a skill
 
-1. `git mv skills/_attic/<name> skills/<name>`.
+1. `git mv _attic/<name> skills/<name>`.
 2. Drop the banner.
 3. Re-add it to the appropriate role(s).

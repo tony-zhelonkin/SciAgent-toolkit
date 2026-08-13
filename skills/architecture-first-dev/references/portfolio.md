@@ -2,7 +2,7 @@
 
 Load this blob for portfolio-level routing. Each marked source section preserves the complete command specification and its original argument contract.
 
-<!-- BEGIN SOURCE: commands/architect/meta-map.md -->
+<!-- BEGIN SOURCE: portfolio/meta-map -->
 # Meta-map
 
 Produce the portfolio-level cartography artifact `docs/_meta/map.md` from the per-feature maps + reviews + designs that already exist.
@@ -128,9 +128,9 @@ Recommended next steps:
 3. **The directory `docs/_meta/` is created if missing.** No manual setup required.
 4. **Do not auto-progress to `/meta-design`.** Even if the meta-map looks complete, stop and let the user choose.
 5. **`OQ-M-N` are distinct from per-feature `OQ-N`.** If meta-architect reuses a per-feature numbering scheme, ask it to renumber.
-<!-- END SOURCE: commands/architect/meta-map.md -->
+<!-- END SOURCE: portfolio/meta-map -->
 
-<!-- BEGIN SOURCE: commands/architect/meta-design.md -->
+<!-- BEGIN SOURCE: portfolio/meta-design -->
 # Meta-design
 
 Draft `docs/_meta/design.md` — the set of inter-feature ADRs (MADRs) that the convergent concerns surfaced in `_meta/map.md` resolve. These MADRs are inherited by every per-feature `/design` and constrain its local ADRs.
@@ -387,9 +387,9 @@ planned ADR headlines all conflict has 3 conflicts and goes first.
 5. **Convergent concerns map to MADRs or to "Deliberate meta-level rejections" (or both as a hybrid when honest)** — silence on a concern is a defect, but a concern that resolves a name (MADR) while deferring a semantic sub-question (rejection sub-item appended to deferred.md) is acceptable. Re-dispatch only if a concern is unaccounted for in either section.
 6. **Time-boxed deferrals are appended to `_meta/deferred.md` by Phase 6.5.** Permanent rejections are not. The dispatching command does this append directly; the meta-architect agent only marks items for the append by listing them in the `Deliberate meta-level rejections § Time-boxed sub-items` subsection (see `agents/meta-architect.md`).
 6. **Do not auto-progress to `/meta-plan`.** Surface the recommendation; let the user choose.
-<!-- END SOURCE: commands/architect/meta-design.md -->
+<!-- END SOURCE: portfolio/meta-design -->
 
-<!-- BEGIN SOURCE: commands/architect/meta-apply.md -->
+<!-- BEGIN SOURCE: portfolio/meta-apply -->
 # Meta-apply
 
 Propagate every accepted MADR in `docs/_meta/design.md` to every in-flight per-feature design in a single parallel batch. Dispatches N `feature-reviser` subagents in parallel, surfaces one compound diff gate, then dispatches N `architect` subagents in parallel for the architecture-gate step.
@@ -643,9 +643,9 @@ Frontmatter status set: {READY count} APPROVED, {NEEDS count} DRAFT, {MANUAL cou
 6. **Do not auto-progress to `/meta-plan`.** Surface the recommendation; the user starts when ready.
 7. **Do not self-loop on NEEDS_ITERATION.** Surface the verdict; the user runs `/design <slug> --iterate` (or re-runs `/meta-apply <slug>` with a redirect) manually. Self-looping would hide architect signal behind another compound turn.
 8. **Large diffs (>200 lines touched in a single feature) are a smell, not a defect.** Surface them; suggest the user drill in via option 4 or, if the edits feel aggressive, re-run `/design <slug>` manually for a careful hand pass.
-<!-- END SOURCE: commands/architect/meta-apply.md -->
+<!-- END SOURCE: portfolio/meta-apply -->
 
-<!-- BEGIN SOURCE: commands/architect/meta-plan.md -->
+<!-- BEGIN SOURCE: portfolio/meta-plan -->
 # Meta-plan
 
 Sequence per-feature implementation phases across the portfolio so dependencies land before their consumers, and so simultaneously active phases don't collide on the same files.
@@ -800,4 +800,4 @@ Recommended next steps:
 3. **Dependency edges come from `_meta/design.md` (MADR consequences) and `_meta/map.md` (inter-feature dependencies).** Do not invent dependencies; cite the source.
 4. **A feature without a plan is noted, not faked.** Do not generate placeholder phases.
 5. **Do not auto-progress to `/implement`.** Surface the recommendation; let the user start when ready.
-<!-- END SOURCE: commands/architect/meta-plan.md -->
+<!-- END SOURCE: portfolio/meta-plan -->

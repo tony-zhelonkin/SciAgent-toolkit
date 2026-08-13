@@ -101,7 +101,7 @@ PR 1 ───┬──► PR 2 ───► PR 3 ───► PR 4
 
 | PR | Title | Depends on | Files touched (representative) | Acceptance |
 |----|---|---|---|---|
-| 1 | ADR-001/003 metadata codemod + `tags.yaml` seed | — | `tags.yaml` (new), `skills/*/SKILL.md` (mass), `skills/_TEMPLATE/SKILL.md`, `tests/test_skill_scope_lint.sh` | All skills carry the five fields; `tags.yaml` present with 10 seeds; lint test updated to new scope vocabulary; `bin/sciagent activate base` green. |
+| 1 | ADR-001/003 metadata codemod + `tags.yaml` seed | — | `tags.yaml` (new), `skills/*/SKILL.md` (mass), `templates/skill/SKILL.md`, `tests/test_skill_scope_lint.sh` | All skills carry the five fields; `tags.yaml` present with 10 seeds; lint test updated to new scope vocabulary; `bin/sciagent activate base` green. |
 | 2 | `sciagent validate` verb + internal call from `activate` + STDERR warning surface | PR 1 | `bin/sciagent`, `lib/sciagent/validate.sh` (new), `lib/sciagent/activate.sh`, `tests/test_validate_*.sh` (new) | `sciagent validate` exits non-zero on cycle/missing/unknown-tag; `activate` continues on missing `requires` with summary block to STDERR; standalone verb works for debugging. |
 | 3 | `sciagent eject` verb + `inject --tag` / `eject --tag` | PR 1, PR 2 | `bin/sciagent`, `lib/sciagent/inject.sh`, `lib/sciagent/eject.sh` (new), `lib/sciagent/symlinks.sh` (manifest entry), `tests/test_inject_tag_*.sh`, `tests/test_eject_*.sh` (new) | Round-trip: `inject X` then `eject X` is a no-op final state; `inject --tag pathway` mounts all skills with that tag; `eject --tag` removes them; `eject` of a stack-mounted skill errors with the right pointer to `deactivate`. |
 | 4 | Consolidated test coverage pass | PR 1–3 | `tests/test_*.sh` | All three new verbs/forms have positive, negative, and idempotency tests. `bash tests/run-all.sh` green. |
@@ -121,8 +121,8 @@ PR 3 depends on PR 1 because `--tag` requires the `tags.yaml` vocabulary and ski
 
 - **New:** `tags.yaml` at toolkit root.
 - **Modified (mass):** every `skills/<name>/SKILL.md` that does not already carry all five fields. Per the audit, `scope`, `requires`, `complementary-skills`, `contraindications`, and `tags` already exist on most curated skills; the codemod normalises the ones that are missing fields (e.g. `architecture-first-dev`, `skill-creator` carry only `scope` + `requires`).
-- **Modified:** `skills/_TEMPLATE/SKILL.md` — bring the template in line with the canonical shape (the placeholders are already there; align field names with §9's decided vocabulary).
-- **Modified:** `tests/test_skill_scope_lint.sh` — change scope vocabulary AND cap values per `kickoff.md` §9, 2026-05-24 cap decision. Specifically: replace the three-way `atomic`/`orchestrator`/`foundation` switch (lines ~79–88) with `concept` ≤ 500 / `implementation` ≤ 350; change default-on-missing from `atomic` to `implementation` (line ~75); bump CUTOFF to `2026-05-24` (line ~19); add a regression-block rule that FAILs on any non-`_TEMPLATE` skill carrying `scope: atomic|orchestrator|foundation`.
+- **Modified:** `templates/skill/SKILL.md` — bring the template in line with the canonical shape (the placeholders are already there; align field names with §9's decided vocabulary).
+- **Modified:** `tests/test_skill_scope_lint.sh` — change scope vocabulary AND cap values per `kickoff.md` §9, 2026-05-24 cap decision. Specifically: replace the three-way `atomic`/`orchestrator`/`foundation` switch (lines ~79–88) with `concept` ≤ 500 / `implementation` ≤ 350; change default-on-missing from `atomic` to `implementation` (line ~75); bump CUTOFF to `2026-05-24` (line ~19); add a regression-block rule that FAILs on any active skill carrying `scope: atomic|orchestrator|foundation`.
 
 **Codemod behaviour.** One Python (or bash + `yq`) script committed under `scripts/` or run-once and discarded — author's choice. Per skill, it:
 
@@ -186,7 +186,7 @@ tags:
 - `implementation` ≤ **350** body lines (replaces `atomic ≤ 300`).
 - Default scope on missing frontmatter field: `implementation` (was `atomic`).
 - CUTOFF bump: `2026-05-21` → `2026-05-24`.
-- New rule: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill is a FAIL (regression block).
+- New rule: presence of `scope: atomic|orchestrator|foundation` in any active skill is a FAIL (regression block).
 - Existing `body_loc_no_fences` counting machinery is unchanged.
 
 The 500/350 numbers catch 100% of today's 62 skills with margin (concept p90=235 → 2.1× headroom; implementation p90=224 → 1.6× headroom). No hand-flips or content refactors are required for any existing skill; `iterative-peak-merging` (317 body lines, 0 companions) was the only would-be casualty of a tighter 300 cap.
@@ -214,7 +214,7 @@ Add a new test `tests/test_tags_vocabulary.sh` that verifies every `metadata.tag
 - ✅ **Folder-relief pattern**: blessed for both scopes (codifies the existing convention used by 12/62 skills).
 - ✅ **Default-on-missing**: `implementation` (was `atomic`).
 - ✅ **CUTOFF bump**: 2026-05-21 → 2026-05-24.
-- ✅ **Regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill = FAIL.
+- ✅ **Regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any active skill = FAIL.
 - ✅ **`architecture-treemap`**: assigned `scope: implementation` during the codemod (currently missing the field).
 
 No PR 1 architectural questions remain open. Implementation can proceed.
@@ -437,7 +437,7 @@ The plan called for loading these files into context, in this order, before exec
 8. `lib/sciagent/skill_deps.sh` — resolver behaviour shared with `validate`.
 9. `lib/sciagent/symlinks.sh` — manifest schema (where the new `via:` field lands).
 10. `tests/test_inject_creates_overlay.sh` + `tests/test_skill_scope_lint.sh` + `tests/_lib.sh` — test patterns to mirror.
-11. `skills/_TEMPLATE/SKILL.md` and 2–3 representative skill frontmatters (`scvi-basic`, `architecture-first-dev`, `skill-creator`) — current shape vs. target shape for PR 1's codemod.
+11. `templates/skill/SKILL.md` and 2–3 representative skill frontmatters (`scvi-basic`, `architecture-first-dev`, `skill-creator`) — current shape vs. target shape for PR 1's codemod.
 
 The grilling artefacts (`docs/proposals/ai-research/*.md`, `docs/proposals/sciagent-extension-design-spec.md`) are optional reading; consult only when a "why was this decided" question arises during a PR.
 
@@ -470,7 +470,7 @@ Paste the body below into a fresh Claude Code session. Assumes working directory
 >
 > **All architectural decisions are resolved** in `kickoff.md` §9 (decisions dated 2026-05-24). Do not invent answers on architectural questions — surface and stop. Key resolutions for PR-1-through-PR-3:
 > - PR 1 scope mapping: `foundation`/`orchestrator` → `concept`; `atomic` → `implementation`. Hand-flips during code review for individual outliers.
-> - PR 1 caps: `concept` ≤ 500, `implementation` ≤ 350. Folder-relief pattern (companion files in skill folder referenced by basename from SKILL.md body) blessed for both scopes. Default scope on missing field = `implementation`. CUTOFF bumped to 2026-05-24. New regression-block lint rejects `scope: atomic|orchestrator|foundation` on non-`_TEMPLATE` skills.
+> - PR 1 caps: `concept` ≤ 500, `implementation` ≤ 350. Folder-relief pattern (companion files in skill folder referenced by basename from SKILL.md body) blessed for both scopes. Default scope on missing field = `implementation`. CUTOFF bumped to 2026-05-24. New regression-block lint rejects `scope: atomic|orchestrator|foundation` on active skills.
 > - PR 2 hardness boundary: `requires` keeps hard-fail (preserves the pre-mutation safety invariant); `complementary-skills` warn-and-continue with STDERR end-of-activate summary.
 >
 > **Implementer-level micro-decisions** (sane-default and proceed; surface at PR review if uncertain):

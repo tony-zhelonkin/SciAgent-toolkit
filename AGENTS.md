@@ -21,11 +21,12 @@ SciAgent-toolkit/
 │   ├── status.sh             # status + list renderers
 │   └── symlinks.sh           # dual-track (.claude/ + .agents/) symlink helpers
 ├── roles/                    # Role definitions (YAML)
-├── agents/                   # Canonical sub-agent .md files
-├── skills/                   # Canonical skill directories (SKILL.md format)
-│   └── _TEMPLATE/            # Starter template for new skills
-├── commands/                 # Canonical slash command .md files
-├── templates/                # Project scaffolding (new project bootstrap)
+├── agents/                   # Flat canonical sub-agent .md files
+├── skills/                   # Mountable skill directories (SKILL.md format)
+├── commands/                 # Flat canonical slash command .md files
+├── _attic/                   # Retired skills (reference-only)
+├── templates/                # Project and skill scaffolding
+│   └── skill/                # Starter template for new skills
 ├── tests/                    # Bash test suite (run-all.sh)
 └── .refactor/                # Design audit trail (frozen, do not modify)
 ```
@@ -61,7 +62,7 @@ bin/sciagent activate <name>          # smoke test
 ## Adding a new skill
 
 ```bash
-bin/sciagent new skill <name>         # copies skills/_TEMPLATE/ to skills/<name>/
+bin/sciagent new skill <name>         # copies templates/skill/ to skills/<name>/
 # edit skills/<name>/SKILL.md
 # add <name> to relevant roles/*.yaml
 bin/sciagent activate base            # verify symlink resolves

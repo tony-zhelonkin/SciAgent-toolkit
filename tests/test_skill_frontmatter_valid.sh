@@ -5,8 +5,6 @@
 #   3. NO `metadata:` block — taxonomy lives in the body, not the frontmatter
 #   4. A `description:` within the length cap enforced by `sciagent validate`
 #
-# The _TEMPLATE directory is exempt.
-
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -15,10 +13,7 @@ declare desc=""
 
 for skill_dir in "$TOOLKIT_ROOT"/skills/*/; do
     name="$(basename "$skill_dir")"
-    # Underscore-prefixed dirs are non-skill scaffolding (_TEMPLATE, _archive backups,
-    # _internal scratch) — not skills, so they carry no SKILL.md.
     [[ "$name" == _* ]] && continue
-
     file="$skill_dir/SKILL.md"
     if [[ ! -f "$file" ]]; then
         echo "FAIL [$_TEST_NAME] $name: missing SKILL.md" >&2

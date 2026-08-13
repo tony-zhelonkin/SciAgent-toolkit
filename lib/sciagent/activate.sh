@@ -217,9 +217,7 @@ USAGE
     [[ -n "$overlay" ]] && stack="$base $overlay"
     manifest_begin "$stack"
 
-    # Create symlinks. Canonical source paths are resolved via
-    # resolve_canonical so that subfolders under agents/ and commands/ are
-    # transparent to the consumer (symlinks stay flat in .claude/ and .agents/).
+    # Create symlinks from the flat canonical catalog into both harness trees.
     local n src
     for n in "${SKILL_ORDER[@]:-}"; do
         [[ -z "$n" ]] && continue

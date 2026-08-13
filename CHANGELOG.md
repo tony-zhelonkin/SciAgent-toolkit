@@ -58,15 +58,15 @@ state and leaves the call to a human during practice.
 
 ### Added
 - **`metadata.status:` skill field** (`experimental | stable | deprecated`, default `stable`). Absent/empty means `stable`, so only non-stable skills carry the field. `sciagent list skills` tags non-stable skills `[status]` (stable shown plain); a deprecated *active* skill earns a one-line migrate-off nudge in the `status` Notes section. Soft convention — `validate` does not hard-fail on it.
-- **`skills/_attic/` convention** for retired skills: reference-only, off the resolver path (`activate`/`inject` resolve `skills/<name>/`, never `skills/_attic/<name>/`), not walked by `validate`, and listed in a separate "Attic" section of `list skills`. `skills/_attic/README.md` documents revival.
+- **`_attic/` convention** for retired skills: reference-only, outside the active `skills/<name>/` resolver path, and listed in a separate "Attic" section of `list skills`. `_attic/README.md` documents revival.
 - `docs/skill-lifecycle.md` (the lifecycle, the field, the attic, retire/revive recipes); CONTRIBUTING "Skill lifecycle" subsection; `tests/test_skill_lifecycle.sh` asserting attic exclusion, soft status surfacing, and that `validate` ignores the attic.
 
 ### Changed
-- All skill walkers — `status.sh` (`_list_skills`, `_list_dependents`), `collisions.sh`, `validate.sh`, `inject.sh` (`--tag`), and the skill-walking tests (`test_skill_scope_lint.sh`, `test_tags_vocabulary.sh`) — now skip every underscore-prefixed dir (`_*`), not just `_TEMPLATE`.
+- At that release, skill walkers skipped every underscore-prefixed holding directory.
 - `architecture-treemap` status normalized `probationary` → `experimental` (documented vocabulary).
 
 ### Removed
-- `shinymultiome-uio-host` retired to `skills/_attic/` and dropped from `roles/base.yaml` — reference-only; revive per the attic README.
+- `shinymultiome-uio-host` retired to `_attic/` and dropped from `roles/base.yaml` — reference-only; revive per the attic README.
 
 ## [3.2.0] - 2026-06-23
 
@@ -139,10 +139,10 @@ capability (skill/helper/agent/command), guardrail (validate check + hook).
 - `mcp_servers/pal` venv and `deprecated/` harness installers (`install_claude.sh`, `install_codex.sh`, `install_gemini.sh`)
 
 ### Changed
-- Reorganized `commands/` and `agents/` into role-family subfolders. The resolver in `lib/sciagent/symlinks.sh` (`resolve_canonical`) walks these subtrees recursively so symlinks under `.claude/` and `.agents/` remain flat — consumers see no shape change. Basename uniqueness is enforced by `tests/test_no_duplicate_basenames.sh`.
-  - `agents/architect/` — 12 architect-pipeline agents
-  - `agents/analysis-base/` — 7 base-role helper agents
-  - `commands/architect/` — 14 architect commands; `commands/commit.md` stays top-level
+- Reorganized `commands/` and `agents/` by role family. The resolver in `lib/sciagent/symlinks.sh` (`resolve_canonical`) preserves flat consumer names. Basename uniqueness is enforced by `tests/test_no_duplicate_basenames.sh`.
+  - `agents/*.md` — 12 architect-pipeline agents
+  - `agents/*.md` — 7 base-role helper agents
+  - 14 architect commands and the shared `commit` command
 - Renamed role `pathway-signature-agent` → `pathway-signature` to drop the misleading `-agent` suffix (roles live in `roles/`, LLM agents live in `agents/`). Fixed phantom skill references in this role's skills list — replaced 7 deleted skills with the consolidated triad `bulk-rnaseq-gsea`, `bulk-rnaseq-activity-inference`, `bulk-rnaseq-pathway-explorer`.
 - Added `muon-multimodal-analysis` (originally added under its old name) to `roles/multiome-grn.yaml` to fill the Python-side 10x ATAC preprocessing / MuData / differential accessibility gap. Subsequently reverted; see below.
 - Canonicalised all role-file docstrings (Purpose / Use when / Do NOT use when / optional Composes-with / optional Pipeline) for consistency and brevity.
@@ -174,7 +174,7 @@ sciagent activate <base> [overlay]
 ### Changed (prior)
 - Removed MCP infrastructure (ToolUniverse, Serena, PAL, Sequential Thinking, Context7), profile switcher, and harness installers (Claude Code, Gemini CLI, Codex CLI). Toolkit now covers roles, agents, and skills only.
 - Deleted obsolete docs: `docs/MCP-CONTEXT-MANAGEMENT.md`, `docs/INSTALLATION.md`, `docs/CONFIGURATION.md`, `docs/FAQ.md`, `docs/QUICKSTART.md`, `docs/ARCHITECTURE.md`, `docs/ARCHITECTURE_REVIEW.md`, `docs/CLI_IMPROVEMENT_PLAN.md`, `docs/ISSUES.md`.
-- Stripped MCP/harness/profile sections from `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `agents/README.md`, `templates/vendor/CLAUDE.md.template`, `templates/vendor/AGENTS.md.template`, `commands/verify.md`, `docs/workflows/architect/`.
+- Stripped MCP/harness/profile sections from `README.md`, `CLAUDE.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/agents.md`, `templates/vendor/CLAUDE.md.template`, `templates/vendor/AGENTS.md.template`, `commands/verify.md`, `docs/workflows/architect/`.
 
 ### Fixed (historical — MCP addon tool permissions)
 - `manage-addon.sh` now reads `tool_permissions` from addon templates and merges them into `settings.local.json` `permissions.allow`. Previously, addon tools were denied in subagents (Task tool) because subagents can't prompt interactively for permission.

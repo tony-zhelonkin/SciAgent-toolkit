@@ -63,8 +63,8 @@ on whatever bytes the pinned copy currently has.
 | Project path | Kind | Toolkit target |
 |---|---|---|
 | `.claude/skills/<name>` · `.agents/skills/<name>` | directory symlink | `skills/<name>/` |
-| `.claude/agents/<name>.md` · `.agents/agents/<name>.md` | file symlink | `agents/**/<name>.md` |
-| `.claude/commands/<name>.md` · `.agents/commands/<name>.md` | file symlink | `commands/**/<name>.md` |
+| `.claude/agents/<name>.md` · `.agents/agents/<name>.md` | file symlink | `agents/<name>.md` |
+| `.claude/commands/<name>.md` · `.agents/commands/<name>.md` | file symlink | `commands/<name>.md` |
 | `02_analysis/helpers/figure-style` · `interactive-style` | directory symlink | `lib/<name>/` (analysis repos) |
 
 Skills mount as **directory** symlinks, so every file inside a skill — `SKILL.md`,

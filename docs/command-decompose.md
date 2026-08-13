@@ -1,4 +1,4 @@
-# decompose/ commands
+# Decompose command
 
 A single heavy-orchestration command for the **planning phase** of large,
 multi-artifact problems — several codebases, long documents, mixed scripts and
