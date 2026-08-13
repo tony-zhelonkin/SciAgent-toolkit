@@ -112,7 +112,7 @@ _link_owned_by_toolkit() {
     # dangling legacy mounts whose /workspaces project path is absent here.
     [[ -e "$path" ]] && return 1
     case "$resolved" in
-        */SciAgent-toolkit/skills/*|*/SciAgent-toolkit/agents/*|*/SciAgent-toolkit/commands/*|*/SciAgent-toolkit/output-styles/*|*/SciAgent-toolkit/lib/figure-style|*/SciAgent-toolkit/lib/interactive-style)
+        */SciAgent-toolkit/skills/*|*/SciAgent-toolkit/agents/*|*/SciAgent-toolkit/commands/*|*/SciAgent-toolkit/system-prompts/*|*/SciAgent-toolkit/lib/figure-style|*/SciAgent-toolkit/lib/interactive-style)
             return 0 ;;
         *)  return 1 ;;
     esac

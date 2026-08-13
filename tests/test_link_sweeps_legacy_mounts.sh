@@ -28,8 +28,17 @@ for harness in .claude .agents; do
 done
 ln -s /workspaces/demo/01_modules/SciAgent-toolkit/skills/removed project/.claude/skills/container-dangling
 
-ln -s "$TOOLKIT_ROOT/output-styles/retired" project/.claude/output-styles/current-retired
-ln -s /workspaces/demo/01_modules/SciAgent-toolkit/output-styles/retired project/.claude/output-styles/container-retired
+ln -s /workspaces/14616-DM/01_modules/SciAgent-toolkit/system-prompts/cs101_v0.1.md \
+    project/.claude/output-styles/cs101_v0.1.md
+ln -s /workspaces/14616-DM/01_modules/SciAgent-toolkit/system-prompts/cs101_v0.2.md \
+    project/.claude/output-styles/cs101_v0.2.md
+for style in cs101_v0.1.md cs101_v0.2.md; do
+    assert_symlink "project/.claude/output-styles/$style"
+    [[ ! -e "project/.claude/output-styles/$style" ]] || {
+        echo "FAIL [$_TEST_NAME] observed output-style fixture must be dangling: $style" >&2
+        exit 1
+    }
+done
 ln -s "$TMPDIR_TEST/outside" project/.claude/output-styles/outside-link
 printf 'user style\n' > project/.claude/output-styles/user-style.md
 
@@ -51,8 +60,8 @@ for harness in .claude .agents; do
     done
 done
 
-assert_absent project/.claude/output-styles/current-retired
-assert_absent project/.claude/output-styles/container-retired
+assert_absent project/.claude/output-styles/cs101_v0.1.md
+assert_absent project/.claude/output-styles/cs101_v0.2.md
 assert_symlink project/.claude/output-styles/outside-link "outside output-style link preserved"
 assert_file_exists project/.claude/output-styles/user-style.md
 
@@ -66,7 +75,7 @@ assert_absent project/02_analysis/helpers/retired-helper
 assert_file_exists project/02_analysis/helpers/user_helper.py
 
 case "$out" in
-    *"container-dangling"*"container-retired"*"interactive-style"*) : ;;
+    *"container-dangling"*"cs101_v0.1.md"*"cs101_v0.2.md"*"interactive-style"*) : ;;
     *) echo "FAIL [$_TEST_NAME] sweep did not report every legacy link" >&2; printf '%s\n' "$out" >&2; exit 1 ;;
 esac
 
