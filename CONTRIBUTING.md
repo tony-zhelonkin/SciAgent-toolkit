@@ -10,7 +10,7 @@ Read `AGENTS.md` — it covers the critical rules (idempotency, bash-only, link 
 bash tests/run-all.sh
 ```
 
-All tests must pass (`bash tests/run-all.sh`). Tests cover link convergence and ownership, block hash drift detection, linting, and catalog validation.
+All tests must pass (`bash tests/run-all.sh`). Tests cover link convergence and ownership, block hash drift detection, linting, and catalog validation. Run `bin/sciagent lint --check toolkit --strict --quiet` for the catalog gate alone.
 
 ## Name collisions
 

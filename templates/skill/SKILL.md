@@ -27,7 +27,7 @@ description: "[Tool or method name] — [one-line function, dash-joined]. Use wh
 #     - Follow with an em-dash and a one-line function summary
 #     - Give a concrete "Use when" trigger — specific, not generic
 #     - Give 1-2 "For X use other-skill" pointers (disambiguates from siblings)
-#     - 2-4 sentences, ≤350 chars (`sciagent validate` enforces the cap),
+#     - 2-4 sentences, ≤350 chars (`sciagent lint --check toolkit` enforces the cap),
 #       including the trigger keywords that should activate it
 #     - NO angle brackets `<` `>` anywhere (validator rejects them — use square
 #       brackets `[...]` for placeholders above, or just write plain prose)

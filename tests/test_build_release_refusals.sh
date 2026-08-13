@@ -9,7 +9,7 @@
 #                              is exactly what the contract forbids)
 #   B. unresolvable ref      → refused
 #   C. dirty working tree    → refused, and the offending path is named
-#   D. `sciagent validate` fails on the exported tree → no artifact
+#   D. toolkit catalog lint fails on the exported tree → no artifact
 #   E. `tests/run-all.sh` fails on the exported tree  → no artifact
 #
 # D and E are why the release tests build FIXTURE repos: the fixture's gate
@@ -73,20 +73,20 @@ artifact_in "$TMPDIR_TEST/outOK" >/dev/null \
     || { echo "FAIL [$_TEST_NAME] control build produced no artifact" >&2; exit 1; }
 
 # ---------------------------------------------------------------------- D
-REPO_V="$TMPDIR_TEST/badvalidate"
+REPO_V="$TMPDIR_TEST/badcatalog"
 mkdir -p "$REPO_V"
-fixture_repo "$REPO_V" 1 0            # validate exits 1, tests exit 0
+fixture_repo "$REPO_V" 1 0            # catalog lint exits 1, tests exit 0
 out=$( cd "$REPO_V" && ./scripts/build-release.sh HEAD --out "$TMPDIR_TEST/outD" 2>&1 )
 rc=$?
-[[ $rc -ne 0 ]] || { echo "FAIL [$_TEST_NAME] build succeeded despite failing validate" >&2; exit 1; }
-printf '%s\n' "$out" | grep -qi "validate failed" \
-    || { echo "FAIL [$_TEST_NAME] validate-gate failure not reported" >&2; printf '%s\n' "$out" >&2; exit 1; }
-[[ -d "$TMPDIR_TEST/outD" ]] && assert_no_artifacts "$TMPDIR_TEST/outD" "failing validate still produced a release"
+[[ $rc -ne 0 ]] || { echo "FAIL [$_TEST_NAME] build succeeded despite failing catalog lint" >&2; exit 1; }
+printf '%s\n' "$out" | grep -qi "catalog lint failed" \
+    || { echo "FAIL [$_TEST_NAME] catalog gate failure not reported" >&2; printf '%s\n' "$out" >&2; exit 1; }
+[[ -d "$TMPDIR_TEST/outD" ]] && assert_no_artifacts "$TMPDIR_TEST/outD" "failing catalog lint still produced a release"
 
 # ---------------------------------------------------------------------- E
 REPO_T="$TMPDIR_TEST/badtests"
 mkdir -p "$REPO_T"
-fixture_repo "$REPO_T" 0 1            # validate exits 0, tests exit 1
+fixture_repo "$REPO_T" 0 1            # catalog lint exits 0, tests exit 1
 out=$( cd "$REPO_T" && ./scripts/build-release.sh HEAD --out "$TMPDIR_TEST/outE" 2>&1 )
 rc=$?
 [[ $rc -ne 0 ]] || { echo "FAIL [$_TEST_NAME] build succeeded despite a failing test suite" >&2; exit 1; }

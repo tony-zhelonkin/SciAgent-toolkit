@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_block_id_required.sh
-# block.sh's id is mandatory (no ROLES default any more). A missing/empty id
+# block.sh requires an explicit id. A missing/empty id
 # must be a DISTINCT return code (4) from every function's own "no block"/
 # "no markers" result code (1) — otherwise a caller bug (forgot to pass the
 # id) is indistinguishable from a legitimate "there is no block here yet",
@@ -17,12 +17,12 @@ setup_tmpdir
 printf '# AGENTS\n\nno block here\n' > AGENTS.md
 
 # --- block_read: rc=1 ("no markers") must differ from rc=4 (missing id) ---
-assert_exit 1 block_read AGENTS.md ROLES     # legitimate: no markers present
+assert_exit 1 block_read AGENTS.md CRAFT     # legitimate: no markers present
 assert_exit 4 block_read AGENTS.md ""        # caller bug: empty id
 assert_exit 4 block_read AGENTS.md           # caller bug: id omitted entirely
 
 # --- block_hash_check: rc=1 ("no block") must differ from rc=4 (missing id) ---
-assert_exit 1 block_hash_check AGENTS.md ROLES
+assert_exit 1 block_hash_check AGENTS.md CRAFT
 assert_exit 4 block_hash_check AGENTS.md ""
 assert_exit 4 block_hash_check AGENTS.md
 
@@ -39,8 +39,9 @@ assert_eq "$out" "" "block_stored_hash missing id prints nothing"
 
 assert_file_eq AGENTS.md AGENTS.md.orig "no public function touches the file when id is missing"
 
-# --- Sanity: passing the id explicitly still works (guard isn't over-firing). ---
-assert_exit 0 block_write AGENTS.md "real body" ROLES
-assert_exit 0 block_hash_check AGENTS.md ROLES
+# The writer accepts only the live CRAFT id.
+assert_exit 4 block_write AGENTS.md "retired body" ROLES
+assert_exit 0 block_write AGENTS.md "real body" CRAFT
+assert_exit 0 block_hash_check AGENTS.md CRAFT
 
 pass

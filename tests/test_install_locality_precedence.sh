@@ -29,7 +29,7 @@ release_git_env
 
 # --- a fixture release carrying the REAL dispatcher and libs ---------------
 SRC="$TMPDIR_TEST/src"
-build_fake_toolkit "$SRC"                       # fixture roles/skills/agents/commands
+build_fake_toolkit "$SRC"                       # fixture skills/agents/commands
 rm -f "$SRC/lib/sciagent" "$SRC/bin/sciagent"   # build_fake_toolkit symlinks these
 cp -R "$TOOLKIT_ROOT/lib/sciagent" "$SRC/lib/sciagent"
 cp    "$TOOLKIT_ROOT/bin/sciagent" "$SRC/bin/sciagent"

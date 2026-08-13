@@ -1,9 +1,7 @@
 # lib/sciagent/lint.sh — sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
 #
-# The (c) GUARDRAIL layer: opt-in PROJECT guardrail checks. These are aimed at
-# analysis-repo authors (vs. validate.sh's toolkit-maintainer audience: skill
-# frontmatter shape, cross-namespace collisions). Different audience, different
-# failure semantics — warn-only by default, hard-fail only under --strict.
+# The (c) GUARDRAIL layer: project checks plus an explicit toolkit catalog
+# check used by maintainers and the release gate.
 #
 # Checks:
 #   figure-style    inline theme()/ggsave(width=)/figsize/raw-hex in viz
@@ -37,6 +35,7 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
+#   toolkit         skill frontmatter shape and cross-namespace collisions.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
 # `all` is the default) is given. They are SOFT warnings (exit 0) by default
 # and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are always
@@ -601,7 +600,7 @@ _lint_check_docs_layout() {
     # docs/_internal/ does not exist (docs/ itself does, so the project has
     # opted into the convention but hasn't finished scaffolding it).
     [[ -d "$projdir/docs/_internal" ]] || \
-        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: sciagent gitignore" || rc=1; }
+        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: sciagent link" || rc=1; }
 
     # docs/_internal/ exists but is NOT gitignored (in a git repo).
     if [[ -d "$projdir/docs/_internal" ]]; then
@@ -738,11 +737,11 @@ _lint_run_checks() {
     for n in "${names[@]}"; do
         case "$n" in
             all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout) run+=("$n") ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|toolkit) run+=("$n") ;;
             "") ;;
             *)
                 echo "sciagent lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout toolkit all" >&2
                 return 1 ;;
         esac
     done
@@ -759,6 +758,7 @@ _lint_run_checks() {
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-layout)   _lint_check_stage_layout   "$projdir" "$strict" "$quiet" || rc=1 ;;
+            toolkit)        _catalog_check "$quiet" || rc=1 ;;
         esac
     done
 
@@ -776,15 +776,15 @@ cmd_lint() {
             -h|--help)
                 cat <<'USAGE'
 sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
-  Run the opt-in PROJECT guardrail checks (the (c) GUARDRAIL layer) against
-  --project-dir. Aimed at analysis-repo authors, not the toolkit itself — see
-  `sciagent validate` for the toolkit-wide skill-frontmatter walk.
+  Run guardrail checks against --project-dir. Use --check toolkit for the
+  toolkit-wide skill-frontmatter and namespace-collision check.
 
   --project-dir <d>  Project directory to lint (default: .).
   --check <name>     Run only the named check(s). Repeatable.
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | hooks | docs-layout |
-                            stage-thinness | comment-intent | stage-layout | all.
+                            stage-thinness | comment-intent | stage-layout |
+                            toolkit | all.
                      Default (no --check given): all.
   --strict           Findings become HARD failures (exit 1) instead of WARN.
   --quiet            Suppress soft-WARN output on success/no-strict findings.

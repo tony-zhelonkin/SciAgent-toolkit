@@ -73,11 +73,8 @@ sciagent lint --project-dir /path/to/project
 | `link [--project-dir D]` | Bind the six catalog trees and ensure guardrail hooks |
 | `craft [--project-dir D] [--force] [--quiet]` | Render or refresh `SCIAGENT:CRAFT` in `AGENTS.md` |
 | `lint [--project-dir D] [--check <name>...] [--strict] [--quiet]` | Run project guardrail checks |
-| `validate [--quiet]` | Validate toolkit skill frontmatter and namespace collisions |
-| `gitignore [<path>]` | Refresh the `SCIAGENT:GITIGNORE` block |
 
-`validate` and `gitignore` are transitional surfaces during the CLI
-demolition. Run `sciagent --help` for the terse reference.
+Run `sciagent --help` for the terse reference.
 
 ## What `link` writes
 
@@ -96,6 +93,8 @@ project/
     ├── agents   -> <toolkit>/agents
     └── commands -> <toolkit>/commands
 ```
+
+`link` also refreshes the `SCIAGENT:GITIGNORE` block in `.gitignore`.
 
 `link` is convergent. A missing category link is created, a correct link is a
 silent no-op, and a link pointing elsewhere is replaced with a message. It
@@ -123,7 +122,7 @@ The catalog and managed context come out in two operations:
 
 ```bash
 rm .claude/{skills,agents,commands} .agents/{skills,agents,commands}
-# Edit AGENTS.md and remove the complete BEGIN/END SCIAGENT managed blocks.
+# Edit AGENTS.md and remove the complete SCIAGENT:CRAFT block.
 ```
 
 One link per category makes the filesystem portion a single explicit `rm`
@@ -131,12 +130,21 @@ line. The materialized hooks and their settings registrations remain project
 guardrails; remove those files and registrations separately when retiring the
 enforcement layer too.
 
+Historical consumer repositories may still carry `SCIAGENT:ROLES`. The
+shipped block library retains the removal path:
+
+```bash
+TOOLKIT_PATH=/path/to/SciAgent-toolkit
+bash -c '. "$1/lib/sciagent/block.sh"; block_remove "$2" ROLES' \
+  _ "$TOOLKIT_PATH" /path/to/project/AGENTS.md
+```
+
 ## Validation and linting
 
-`sciagent validate` checks every skill's `name` and `description` frontmatter.
-The name must match the directory and the description must fit the configured
-length cap. Cross-namespace collisions among skills, agents, commands, and
-roles are warnings.
+`sciagent lint --check toolkit` checks every skill's `name` and `description`
+frontmatter. The name must match the directory and the description must fit
+the configured length cap. Cross-namespace collisions among skills, agents,
+and commands are warnings.
 
 `sciagent lint` runs project checks for figure style, results layout, captions,
 provenance, freshness, stage structure, comment intent, documentation layout,

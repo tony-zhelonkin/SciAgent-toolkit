@@ -28,7 +28,7 @@ save has already completed hop 1 for that working tree.
 Two commands materialize project state from the pinned checkout:
 
 - `sciagent link` creates the six category links and refreshes guardrail hook
-  bodies and registrations.
+  bodies, registrations, and the `SCIAGENT:GITIGNORE` block.
 - `sciagent craft` renders `SCIAGENT:CRAFT` into `AGENTS.md`.
 
 Both commands accept `--project-dir D` and are idempotent.
@@ -58,7 +58,7 @@ The project owns copies or rendered text:
 | `.claude/hooks/*.sh` | `sciagent link` |
 | `.claude/settings.json` hook registrations | `sciagent link` |
 | `AGENTS.md` `SCIAGENT:CRAFT` block | `sciagent craft` |
-| `.gitignore` `SCIAGENT:GITIGNORE` block | `sciagent gitignore` |
+| `.gitignore` `SCIAGENT:GITIGNORE` block | `sciagent link` |
 
 These require hop 1 followed by the producing command. A hook-template change
 needs `link`; a `craft.yaml` change needs `craft`.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_description_scalar_styles.sh — the `description:` length
-# check in `sciagent validate` must measure the value a YAML parser actually
+# catalog check must measure the value a YAML parser actually
 # produces, across every scalar style a skill author might reach for: plain,
 # single-quoted, double-quoted, and folded/literal block scalars (`>-`, `|-`).
 #
@@ -11,7 +11,7 @@
 #       <content on continuation lines>
 # that first line is literally the 2-char style indicator `>-`, so the
 # measured length was 2 regardless of how long the folded value actually was
-# — `sciagent validate` exited 0 no matter how far over SCIAGENT_DESC_MAX the
+# — the former validator exited 0 no matter how far over SCIAGENT_DESC_MAX the
 # real description ran. Five in-repo skills were over cap and undetected
 # before the fix (see docs/changelog.md or the commit that added this test).
 #
@@ -40,10 +40,10 @@ _plant() {
     printf '%s\n' "$root"
 }
 
-# _run <toolkit-root> — run validate, capture combined output into $out, rc into $rc.
+# _run <toolkit-root> — run the catalog check and capture output and status.
 _run() {
     set +e
-    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" validate 2>&1)
+    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" lint --check toolkit 2>&1)
     rc=$?
     set -e
 }

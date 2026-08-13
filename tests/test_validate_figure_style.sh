@@ -6,7 +6,7 @@
 #      no inline styling) → exit 0 default AND exit 0 under --strict.
 #   2. VIOLATION project (base_size 12, inline theme()/ggsave(width=)/raw hex,
 #      no theme call) → default exit 0 with WARN on stderr; --strict exit 1.
-#   3. No-false-positive: `validate --check all` on the conformant project → 0.
+#   3. No-false-positive: `lint --check all` on the conformant project → 0.
 #   4. Software / empty project (no analysis layout) → exit 0 (clean no-op).
 #   5. Activate-internal path is unaffected: plain `validate` ignores --check.
 set -u
@@ -81,12 +81,12 @@ CONF="$TMPDIR_TEST/conf"
 make_conformant "$CONF"
 
 set +e
-out=$("$SCIAGENT" validate --check figure-style --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1: conformant default exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" validate --check figure-style --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1: conformant strict exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -109,7 +109,7 @@ col <- "#FF00AA"
 R
 
 set +e
-out=$("$SCIAGENT" validate --check figure-style --project-dir "$VIOL" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$VIOL" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2: violation default expected exit 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN figure-style:.*base_size = 12' \
@@ -122,7 +122,7 @@ printf '%s\n' "$out" | grep -q 'WARN figure-style:.*without calling project_them
     || { echo "FAIL [$_TEST_NAME] test2: expected missing-theme WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" validate --check figure-style --strict --project-dir "$VIOL" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --strict --project-dir "$VIOL" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test2: violation strict expected exit 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'ERROR figure-style:' \
@@ -130,7 +130,7 @@ printf '%s\n' "$out" | grep -q 'ERROR figure-style:' \
 
 # Default WARNs go to STDERR (so a clean stdout stays usable by callers).
 set +e
-serr=$("$SCIAGENT" validate --check figure-style --project-dir "$VIOL" 2>&1 1>/dev/null)
+serr=$("$SCIAGENT" lint --check figure-style --project-dir "$VIOL" 2>&1 1>/dev/null)
 set -e
 printf '%s\n' "$serr" | grep -q 'WARN figure-style:' \
     || { echo "FAIL [$_TEST_NAME] test2: WARN must be on stderr"; printf '%s\n' "$serr" >&2; exit 1; }
@@ -139,11 +139,11 @@ printf '%s\n' "$serr" | grep -q 'WARN figure-style:' \
 # Test 3: no-false-positive — `--check all` on conformant exits 0.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" validate --check all --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check all --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test3: --check all conformant exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 set +e
-out=$("$SCIAGENT" validate --check all --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check all --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test3: --check all --strict conformant exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -153,21 +153,19 @@ set -e
 SW="$TMPDIR_TEST/sw"
 mkdir -p "$SW/src"; echo 'int main(){return 0;}' > "$SW/src/main.c"
 set +e
-out=$("$SCIAGENT" validate --check all --strict --project-dir "$SW" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check all --strict --project-dir "$SW" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: software project exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Test 5: plain `validate` (no --check) ignores project checks entirely.
-# Even with a flagrant figure-style violation present, plain validate must
-# pass because the default validation path never runs opt-in project checks.
+# Test 5: the toolkit-subject check ignores project findings.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" validate --project-dir "$VIOL" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check toolkit --project-dir "$VIOL" 2>&1); rc=$?
 set -e
-[[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: plain validate over violation expected exit 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
+[[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: toolkit check over violation expected exit 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'figure-style' \
-    && { echo "FAIL [$_TEST_NAME] test5: plain validate must NOT run figure-style"; printf '%s\n' "$out" >&2; exit 1; }
+    && { echo "FAIL [$_TEST_NAME] test5: toolkit check ran figure-style"; printf '%s\n' "$out" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
 # Test 6: migration window — viz scripts are scanned under the canonical
@@ -182,7 +180,7 @@ p <- ggplot(df) + theme(text = element_text(size = 8))
 ggsave("x.png", p, width = 7, height = 5)
 R
 set +e
-out=$("$SCIAGENT" validate --check figure-style --project-dir "$STG" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$STG" 2>&1); rc=$?
 set -e
 printf '%s\n' "$out" | grep -q 'WARN figure-style:.*02_analysis/stages/10_qc_viz.R' \
     || { echo "FAIL [$_TEST_NAME] test6: stages/ viz script not scanned"; printf '%s\n' "$out" >&2; exit 1; }
@@ -191,7 +189,7 @@ printf '%s\n' "$out" | grep -q 'WARN figure-style:.*02_analysis/stages/10_qc_viz
 mkdir -p "$STG/02_analysis/scripts"
 cp "$STG/02_analysis/stages/10_qc_viz.R" "$STG/02_analysis/scripts/09_old_viz.R"
 set +e
-out=$("$SCIAGENT" validate --check figure-style --project-dir "$STG" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check figure-style --project-dir "$STG" 2>&1); rc=$?
 set -e
 printf '%s\n' "$out" | grep -q '02_analysis/scripts/09_old_viz.R' \
     || { echo "FAIL [$_TEST_NAME] test6: legacy scripts/ dir no longer scanned"; printf '%s\n' "$out" >&2; exit 1; }

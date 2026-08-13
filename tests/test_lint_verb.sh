@@ -1,18 +1,11 @@
 #!/usr/bin/env bash
-# tests/test_lint_verb.sh — `sciagent lint`, the extracted (c) GUARDRAIL verb.
-#
-# validate.sh used to own both the toolkit-wide skill-frontmatter walk AND the
-# opt-in per-project guardrail checks (--check). This test covers the new
-# standalone `sciagent lint` surface + the `sciagent validate --check`
-# backward-compat delegation (deprecation note + still-functional checks).
+# tests/test_lint_verb.sh — `sciagent lint` dispatch and hardness behavior.
 #
 # Tests:
 #   1. `lint --help` exits 0.
 #   2. unknown `--check` name exits 1 and names the valid set.
 #   3. no `--check` given → runs `all` (a planted figure-style finding shows up).
 #   4. `--strict` turns a planted finding into exit 1; default is exit 0.
-#   5. `validate --check` still works and emits the deprecation note.
-#   6. `--quiet` suppresses the deprecation note.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -38,6 +31,8 @@ set -e
 [[ "$rc" -eq 0 ]] || fail "lint --help exited $rc (expected 0)" "$out"
 printf '%s\n' "$out" | grep -q 'hooks' \
     || fail "lint --help omits 'hooks' from the valid --check names" "$out"
+printf '%s\n' "$out" | grep -q 'toolkit' \
+    || fail "lint --help omits 'toolkit' from the valid --check names" "$out"
 
 # ---------------------------------------------------------------------------
 # Test 2: unknown --check name exits 1 and names the valid set.
@@ -85,33 +80,5 @@ set -e
 [[ "$rc" -eq 1 ]] || fail "lint --check figure-style --strict exited $rc (expected 1)" "$out"
 printf '%s\n' "$out" | grep -q 'ERROR figure-style:.*raw hex color literal' \
     || fail "--strict finding is not an ERROR" "$out"
-
-# ---------------------------------------------------------------------------
-# Test 5: `validate --check` still works and emits the deprecation note.
-# ---------------------------------------------------------------------------
-set +e
-out=$("$SCIAGENT" validate --check figure-style --project-dir "$PROJ" 2>&1); rc=$?
-set -e
-[[ "$rc" -eq 0 ]] || fail "validate --check figure-style exited $rc (expected 0)" "$out"
-printf '%s\n' "$out" | grep -q 'WARN figure-style:.*raw hex color literal' \
-    || fail "validate --check delegation did not run the check" "$out"
-printf '%s\n' "$out" | grep -q 'sciagent validate --check is deprecated; use: sciagent lint --check' \
-    || fail "validate --check did not emit the deprecation note" "$out"
-
-# ---------------------------------------------------------------------------
-# Test 6: --quiet suppresses the deprecation note (but not a --strict ERROR).
-# ---------------------------------------------------------------------------
-set +e
-out=$("$SCIAGENT" validate --check figure-style --quiet --project-dir "$PROJ" 2>&1); rc=$?
-set -e
-printf '%s\n' "$out" | grep -q 'deprecated' \
-    && fail "--quiet did not suppress the deprecation note" "$out"
-
-set +e
-out=$("$SCIAGENT" validate --check figure-style --strict --quiet --project-dir "$PROJ" 2>&1); rc=$?
-set -e
-[[ "$rc" -eq 1 ]] || fail "validate --check --strict --quiet exited $rc (expected 1)" "$out"
-printf '%s\n' "$out" | grep -q 'ERROR figure-style:' \
-    || fail "--quiet suppressed a --strict ERROR (must never happen)" "$out"
 
 pass

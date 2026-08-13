@@ -39,15 +39,15 @@ fi
 
 # --- 1. happy path ---------------------------------------------------------
 mkdir ok && cd ok
-block_write AGENTS.md "hello" ROLES || fail "happy-path block_write returned non-zero"
-assert_exit 0 block_hash_check AGENTS.md ROLES
+block_write AGENTS.md "hello" CRAFT || fail "happy-path block_write returned non-zero"
+assert_exit 0 block_hash_check AGENTS.md CRAFT
 [[ -s AGENTS.md ]] || fail "happy-path block_write left an empty AGENTS.md"
 cd ..
 
 # --- 2. unwritable directory (create branch) -------------------------------
 mkdir ro && chmod 555 ro
 set +e
-( cd ro && block_write AGENTS.md "hello" ROLES ) 2>/dev/null
+( cd ro && block_write AGENTS.md "hello" CRAFT ) 2>/dev/null
 rc=$?
 set -e
 [[ "$rc" -ne 0 ]] || fail "block_write returned 0 into an unwritable directory"
@@ -57,7 +57,7 @@ chmod 755 ro
 # --- 3. a directory sits where the file should be --------------------------
 mkdir -p dir/AGENTS.md
 set +e
-( cd dir && block_write AGENTS.md "hello" ROLES ) 2>/dev/null
+( cd dir && block_write AGENTS.md "hello" CRAFT ) 2>/dev/null
 rc=$?
 set -e
 [[ "$rc" -ne 0 ]] || fail "block_write returned 0 with a directory in the target's place"
@@ -77,7 +77,7 @@ printf '%s\n' "$out" | grep -q 'added SCIAGENT:CRAFT block' \
 # --- 5. append branch: existing, unwritable file ---------------------------
 mkdir ap && : > ap/AGENTS.md && chmod 444 ap/AGENTS.md
 set +e
-( cd ap && block_write AGENTS.md "hello" ROLES ) 2>/dev/null
+( cd ap && block_write AGENTS.md "hello" CRAFT ) 2>/dev/null
 rc=$?
 set -e
 chmod 644 ap/AGENTS.md

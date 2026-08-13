@@ -1,9 +1,7 @@
 # Skill lifecycle
 
-Skills have a *natural*, judgment-driven lifecycle. It is **not** enforced by
-hooks or fail-closed checks — there is no PreToolUse/Stop hook and nothing in
-`validate` fails on a skill's maturity. Deciding when a skill graduates or
-retires is a human call made during practice.
+Skills have a *natural*, judgment-driven lifecycle. Graduation and retirement
+are human calls made during practice.
 
 ```
 in use  →  _attic  →  (delete if truly dead)
@@ -23,9 +21,9 @@ reader is already looking.
 
 ## The attic (`_attic/`)
 
-A skill under `_attic/<name>/` is **reference-only**. Active-skill operations
-walk `skills/<name>/`, so the top-level attic stays outside validation,
-resolution, mounting, and active-skill counts.
+A skill under `_attic/<name>/` is **reference-only**. The toolkit catalog check
+walks `skills/<name>/`, so the top-level attic stays outside validation,
+mounting, and active-skill counts.
 
 ### Retiring a skill
 

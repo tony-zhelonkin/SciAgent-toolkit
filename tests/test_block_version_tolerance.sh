@@ -29,11 +29,11 @@ printf '# Project\n' > without-block.expected
 assert_file_eq AGENTS.md without-block.expected "v2 block removed"
 
 : > v1.actual
-block_write v1.actual $'some body\n' ROLES
+block_write v1.actual $'some body\n' CRAFT
 cat > v1.expected <<'EOF'
-<!-- BEGIN SCIAGENT:ROLES v1 hash=41c9105ed1d3fe88123bd360d947c909fb85fd07 -->
+<!-- BEGIN SCIAGENT:CRAFT v1 hash=41c9105ed1d3fe88123bd360d947c909fb85fd07 -->
 some body
-<!-- END SCIAGENT:ROLES -->
+<!-- END SCIAGENT:CRAFT -->
 EOF
 assert_file_eq v1.actual v1.expected "v1 write bytes unchanged"
 

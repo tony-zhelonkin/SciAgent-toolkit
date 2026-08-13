@@ -7,19 +7,19 @@ set -u
 setup_tmpdir
 cat > AGENTS.md <<'EOF'
 # AGENTS
-<!-- BEGIN SCIAGENT:ROLES v1 hash=0000000000000000000000000000000000000000 -->
+<!-- BEGIN SCIAGENT:CRAFT v1 hash=0000000000000000000000000000000000000000 -->
 some body
 EOF
 
-assert_exit 2 block_read AGENTS.md ROLES
-assert_exit 2 block_hash_check AGENTS.md ROLES
+assert_exit 2 block_read AGENTS.md CRAFT
+assert_exit 2 block_hash_check AGENTS.md CRAFT
 
 cat > AGENTS.md <<'EOF'
 # AGENTS
 some body
-<!-- END SCIAGENT:ROLES -->
+<!-- END SCIAGENT:CRAFT -->
 EOF
 
-assert_exit 2 block_read AGENTS.md ROLES
-assert_exit 2 block_hash_check AGENTS.md ROLES
+assert_exit 2 block_read AGENTS.md CRAFT
+assert_exit 2 block_hash_check AGENTS.md CRAFT
 pass

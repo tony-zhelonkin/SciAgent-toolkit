@@ -86,18 +86,12 @@ pass() {
 }
 
 # build_fake_toolkit <dir>
-# Create a minimal toolkit layout with fixture roles, skills, agents, commands.
-# Roles defined:
-#   base       — skills: s_a, s_b; agents: ag_a; commands: c_a
-#   reviewer   — skills: s_b, s_c; agents: ag_b; commands: c_b (overlay)
-#   alpha      — skills: s_a       (used in idempotent / max-stack tests)
+# Create a minimal toolkit layout with fixture skills, agents, and commands.
 build_fake_toolkit() {
     local root="$1"
-    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,lib,bin}
+    mkdir -p "$root"/{skills/s_a,skills/s_b,skills/s_c,agents,commands,lib,bin}
 
-    # Skills (directory format). Frontmatter carries the two fields
-    # `sciagent validate` hard-checks: a `name:` matching the directory and a
-    # `description:` within the length cap.
+    # Skills carry the two fields checked by `sciagent lint --check toolkit`.
     local _s
     for _s in s_a s_b s_c; do
         cat > "$root/skills/$_s/SKILL.md" <<EOF
@@ -117,44 +111,6 @@ EOF
     # Commands
     echo "cmd c_a"   > "$root/commands/c_a.md"
     echo "cmd c_b"   > "$root/commands/c_b.md"
-
-    # Roles
-    cat > "$root/roles/base.yaml" <<EOF
-name: base
-description: fixture base role
-skills:
-  - s_a
-  - s_b
-agents:
-  - ag_a
-commands:
-  - c_a
-EOF
-    cat > "$root/roles/reviewer.yaml" <<EOF
-name: reviewer
-description: fixture overlay
-skills:
-  - s_b
-  - s_c
-agents:
-  - ag_b
-commands:
-  - c_b
-EOF
-    cat > "$root/roles/alpha.yaml" <<EOF
-name: alpha
-description: fixture alpha
-skills:
-  - s_a
-EOF
-
-    # Retained fixture file for tests that exercise historical tag inputs.
-    cat > "$root/tags.yaml" <<'EOF'
-tags:
-  - name: tooling
-    description: Test fixture tag.
-    since: 2026-05-24
-EOF
 
     # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
     ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"

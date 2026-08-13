@@ -25,6 +25,8 @@ done
 assert_file_exists "$TMPDIR_TEST/project/.claude/hooks/no_ephemeral.sh"
 assert_file_exists "$TMPDIR_TEST/project/.claude/hooks/caption_sweep.sh"
 assert_file_exists "$TMPDIR_TEST/project/.claude/settings.json"
+assert_file_exists "$TMPDIR_TEST/project/.gitignore"
+assert_grep 'BEGIN SCIAGENT:GITIGNORE' "$TMPDIR_TEST/project/.gitignore"
 
 second=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/project" 2>&1) || {
     echo "FAIL [$_TEST_NAME] idempotent link failed" >&2

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_frontmatter_shape.sh — the toolkit-wide walk in
-# `sciagent validate` hard-fails on a malformed skill frontmatter.
+# `sciagent lint --check toolkit` hard-fails on malformed skill frontmatter.
 #
 # This is the check that replaced the requires-graph and tag-vocab walks when
 # the metadata: block was retired. `name` and `description` are the entire
@@ -30,10 +30,10 @@ _plant() {
     printf '%s\n' "$root"
 }
 
-# _run <toolkit-root> — run validate, capture combined output into $out, rc into $rc.
+# _run <toolkit-root> — run the catalog check and capture output and status.
 _run() {
     set +e
-    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" validate 2>&1)
+    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" lint --check toolkit 2>&1)
     rc=$?
     set -e
 }
@@ -43,7 +43,7 @@ CLEAN=$(_plant "name: s_a
 description: A perfectly ordinary fixture skill.")
 _run "$CLEAN"
 if [[ "$rc" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] case1: clean fixture failed validate (rc=$rc)" >&2
+    echo "FAIL [$_TEST_NAME] case1: clean fixture failed catalog lint (rc=$rc)" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi
@@ -52,7 +52,7 @@ fi
 NONAME=$(_plant "description: A fixture with no name field.")
 _run "$NONAME"
 if [[ "$rc" -eq 0 ]]; then
-    echo "FAIL [$_TEST_NAME] case2: missing name: passed validate" >&2
+    echo "FAIL [$_TEST_NAME] case2: missing name passed catalog lint" >&2
     exit 1
 fi
 if ! printf '%s\n' "$out" | grep -q 's_a.*no name:'; then
@@ -66,7 +66,7 @@ MISMATCH=$(_plant "name: not_s_a
 description: A fixture whose name disagrees with its directory.")
 _run "$MISMATCH"
 if [[ "$rc" -eq 0 ]]; then
-    echo "FAIL [$_TEST_NAME] case3: mismatched name: passed validate" >&2
+    echo "FAIL [$_TEST_NAME] case3: mismatched name passed catalog lint" >&2
     exit 1
 fi
 if ! printf '%s\n' "$out" | grep -q "does not match its directory"; then
@@ -79,7 +79,7 @@ fi
 NODESC=$(_plant "name: s_a")
 _run "$NODESC"
 if [[ "$rc" -eq 0 ]]; then
-    echo "FAIL [$_TEST_NAME] case4: missing description: passed validate" >&2
+    echo "FAIL [$_TEST_NAME] case4: missing description passed catalog lint" >&2
     exit 1
 fi
 if ! printf '%s\n' "$out" | grep -q 's_a.*no description:'; then
@@ -94,7 +94,7 @@ OVER=$(_plant "name: s_a
 description: $LONG")
 _run "$OVER"
 if [[ "$rc" -eq 0 ]]; then
-    echo "FAIL [$_TEST_NAME] case5: 351-char description passed validate" >&2
+    echo "FAIL [$_TEST_NAME] case5: 351-char description passed catalog lint" >&2
     exit 1
 fi
 if ! printf '%s\n' "$out" | grep -q 'description is 351 chars (max 350)'; then

@@ -79,7 +79,7 @@
 # ---------------------------------------------------------------------------
 # The pre-flight gate, and why it runs against the EXPORT
 # ---------------------------------------------------------------------------
-# `./bin/sciagent validate` and `bash tests/run-all.sh` run against a clean
+# `./bin/sciagent lint --check toolkit` and `bash tests/run-all.sh` run against a clean
 # export of <ref>, not against the working tree. The working tree may sit at a
 # different commit than <ref>, and it carries untracked residue the artifact
 # will not; testing it would certify bytes nobody ships. The export is exactly
@@ -134,7 +134,7 @@ Produces (in DIR):
   ${ARTIFACT_NAME}-<version>-<short-sha>.metadata.json   (full 40-char SHA)
 
 Refuses: a dirty working tree, a missing/unresolvable ref, a ref whose exported
-tree fails \`sciagent validate\` or \`tests/run-all.sh\`. No network access.
+tree fails the toolkit catalog check or \`tests/run-all.sh\`. No network access.
 EOF
 }
 
@@ -282,12 +282,12 @@ git -C "$repo_root" archive --format=tar "$full_sha" | tar -x -C "$export_dir"
     || die "exported tree has no tests/run-all.sh — refusing to release an ungated commit"
 
 say ""
-say "$_prog: gate 1/2 — sciagent validate (against the exported tree)"
+say "$_prog: gate 1/2 — toolkit catalog lint (against the exported tree)"
 # `env -u SCIAGENT_TOOLKIT` matters: bin/sciagent honours an inherited
-# SCIAGENT_TOOLKIT, so without this the gate could validate the BUILDER's
+# SCIAGENT_TOOLKIT, so without this the gate could inspect the BUILDER's
 # toolkit instead of the exported one.
-if ! ( cd "$export_dir" && env -u SCIAGENT_TOOLKIT ./bin/sciagent validate ); then
-    die "sciagent validate failed for $short_sha — no artifact produced"
+if ! ( cd "$export_dir" && env -u SCIAGENT_TOOLKIT ./bin/sciagent lint --check toolkit --strict --quiet ); then
+    die "toolkit catalog lint failed for $short_sha — no artifact produced"
 fi
 
 say ""
@@ -318,7 +318,7 @@ mkdir -p "$work/meta"
     printf '  "install_subdir": "share/%s/versions/%s",\n' "$ARTIFACT_NAME" "$full_sha"
     printf '  "executable": "bin/sciagent",\n'
     printf '  "build_method": "git archive --format=tar <commit> | gzip -n",\n'
-    printf '  "gates": ["sciagent validate", "tests/run-all.sh"]\n'
+    printf '  "gates": ["sciagent lint --check toolkit", "tests/run-all.sh"]\n'
     printf '}\n'
 } > "$core_meta"
 

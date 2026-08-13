@@ -6,12 +6,12 @@ set -u
 
 setup_tmpdir
 printf '# AGENTS\n' > AGENTS.md
-block_write AGENTS.md $'line one\nline two\n' ROLES
+block_write AGENTS.md $'line one\nline two\n' CRAFT
 
-assert_exit 0 block_hash_check AGENTS.md ROLES
+assert_exit 0 block_hash_check AGENTS.md CRAFT
 
 # Mutate body inside markers.
 sed -i 's/line one/LINE ONE/' AGENTS.md
 
-assert_exit 3 block_hash_check AGENTS.md ROLES
+assert_exit 3 block_hash_check AGENTS.md CRAFT
 pass

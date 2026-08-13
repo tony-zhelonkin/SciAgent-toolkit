@@ -5,21 +5,14 @@
 #   <!-- BEGIN SCIAGENT:<ID> v1 hash=<sha1> -->
 #   <!-- END SCIAGENT:<ID> -->
 #
-# CRAFT is the actively rendered block id. ROLES remains a recognized id so
-# existing projects can inspect and manually remove their historical block.
-#
-# id used to default to ROLES on every function below. That default is
-# GONE (2026-08, Phase 5c follow-up): a bare `block_write AGENTS.md "$body"`
-# silently meant "write the ROLES block", which is exactly the kind of trap
-# that outlives the person who understood it — it briefly looked, from the
-# call sites alone, like ROLES might be a dead id nothing writes any more.
-# It isn't; the default was just hiding it. Every call site now names its
-# id explicitly. Public functions below reject a missing/empty id outright.
+# CRAFT is writable. ROLES remains readable and removable so owners can retire
+# historical blocks from consumer repositories.
 #
 # Exit conventions:
 #   block_read         0=ok, 1=no markers, 2=one marker only
 #   block_hash_check   0=match, 1=no block, 2=corrupted, 3=drift
-#   block_write        0=written, 1=I/O error or unsupported marker version
+#   block_write        0=written, 1=I/O error or unsupported marker version,
+#                      4=an id other than CRAFT
 #   block_remove       always 0 unless I/O fails
 #   any public function with a missing/empty id: returns 4, prints to stderr
 #
@@ -41,7 +34,7 @@
 _block_begin_prefix() {
     # Emit the complete ERE prefix used to locate any numeric version.
     # Format: ^<!-- BEGIN SCIAGENT:<id> v[[:digit:]]+ hash=
-    local id="${1:-ROLES}"
+    local id="$1"
     id=$(printf '%s' "$id" | sed 's/[][\\.^$*+?{}|()]/\\&/g')
     printf '^<!-- BEGIN SCIAGENT:%s v[[:digit:]]+ hash=' "$id"
 }
@@ -49,14 +42,14 @@ _block_begin_prefix() {
 _block_begin_prefix_v1() {
     # Emit the byte-stable prefix used for new and rewritten blocks.
     # Format: <!-- BEGIN SCIAGENT:<id> v1 hash=
-    local id="${1:-ROLES}"
+    local id="$1"
     printf '<!-- BEGIN SCIAGENT:%s v1 hash=' "$id"
 }
 
 _block_end_marker() {
     # Emit the full END marker for a given block id.
     # Format: <!-- END SCIAGENT:<id> -->
-    local id="${1:-ROLES}"
+    local id="$1"
     printf '<!-- END SCIAGENT:%s -->' "$id"
 }
 
@@ -96,7 +89,7 @@ sciagent_sha1_stream() {
 _block_require_id() {
     local id="$1" caller="$2"
     if [[ -z "$id" ]]; then
-        echo "$caller: missing required <id> argument (pass ROLES/CRAFT explicitly)" >&2
+        echo "$caller: missing required <id> argument" >&2
         return 1
     fi
     return 0
@@ -252,6 +245,10 @@ block_write() {
     local body="$2"
     local id="${3:-}"
     _block_require_id "$id" "block_write" || return 4
+    if [[ "$id" != CRAFT ]]; then
+        echo "block_write: only SCIAGENT:CRAFT is writable" >&2
+        return 4
+    fi
     # INVARIANT: body must be hashed AFTER trailing-newline canonicalisation,
     # so the stored hash matches block_read's awk-based reconstruction (awk
     # `print` always emits a trailing \n).

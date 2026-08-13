@@ -29,8 +29,6 @@ Usage:
   sciagent link [--project-dir D]      Link catalog trees and ensure hooks
   sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]
                                        Run project guardrail checks
-  sciagent validate [--quiet]          Validate toolkit catalog metadata
-  sciagent gitignore [<path>]          Refresh SCIAGENT:GITIGNORE
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
@@ -52,14 +50,8 @@ case "$verb" in
         modules="block.sh ownership.sh claude_settings.sh link.sh"
         entry=cmd_link ;;
     lint)
-        modules="block.sh craft.sh lint.sh"
+        modules="block.sh craft.sh catalog.sh lint.sh"
         entry=cmd_lint ;;
-    validate)
-        modules="block.sh craft.sh collisions.sh lint.sh validate.sh"
-        entry=cmd_validate ;;
-    gitignore)
-        modules="gitignore.sh"
-        entry=cmd_gitignore ;;
     *)
         echo "sciagent: unknown verb '$verb'" >&2
         usage >&2

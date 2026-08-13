@@ -58,7 +58,7 @@ EOF
 
 run_check() {   # run_check <projdir> [--strict] -> sets OUT / RC
     set +e
-    OUT=$("$SCIAGENT" validate --check hooks --project-dir "$1" ${2:-} 2>&1)
+    OUT=$("$SCIAGENT" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
     RC=$?
     set -e
 }

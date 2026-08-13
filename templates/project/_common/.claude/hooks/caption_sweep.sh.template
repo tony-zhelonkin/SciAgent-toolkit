@@ -110,7 +110,7 @@ _self_contained_check || findings_found=true
 # Best-effort: never hard-error if sciagent fails.
 # ---------------------------------------------------------------------------
 if [[ "$findings_found" == "true" ]] && command -v sciagent >/dev/null 2>&1; then
-    sciagent validate --check captions --project-dir "$proj_dir" 2>/dev/null || true
+    sciagent lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
 elif [[ "$findings_found" == "true" ]] \
      && [[ -x "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" ]]; then
     "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" \

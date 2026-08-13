@@ -48,7 +48,7 @@ touch "$CONF/03_results/master/de.csv"
 touch "$CONF/03_results/_scratch/scratch.png"   # exempt ephemeral zone
 
 set +e
-out=$("$SCIAGENT" validate --check results-layout --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check results-layout --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1: conformant strict exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -63,7 +63,7 @@ touch "$VIOL/03_results/99_bad/figures/x.png"                       # unknown st
 touch "$VIOL/03_results/01_qc/figures/_overview/orphan.screen.png"  # no sibling table
 
 set +e
-out=$("$SCIAGENT" validate --check results-layout --project-dir "$VIOL" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check results-layout --project-dir "$VIOL" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2: violation default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN results-layout:.*artifact at 03_results/ root: loose.png' \
@@ -75,13 +75,13 @@ printf '%s\n' "$out" | grep -q 'WARN results-layout:.*same-stem table neighbor.*
 
 # WARNs must be on stderr.
 set +e
-serr=$("$SCIAGENT" validate --check results-layout --project-dir "$VIOL" 2>&1 1>/dev/null)
+serr=$("$SCIAGENT" lint --check results-layout --project-dir "$VIOL" 2>&1 1>/dev/null)
 set -e
 printf '%s\n' "$serr" | grep -q 'WARN results-layout:' \
     || { echo "FAIL [$_TEST_NAME] test2: WARN must be on stderr"; printf '%s\n' "$serr" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" validate --check results-layout --strict --project-dir "$VIOL" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check results-layout --strict --project-dir "$VIOL" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test2: violation strict expected 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'ERROR results-layout:' \
@@ -126,7 +126,7 @@ git -C "$CONF" add -A
 git -C "$CONF" commit -qm init
 
 set +e
-out=$("$SCIAGENT" validate --check all --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check all --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test3: --check all conformant exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -136,7 +136,7 @@ set -e
 EMPTY="$TMPDIR_TEST/empty"
 mkdir -p "$EMPTY"
 set +e
-out=$("$SCIAGENT" validate --check results-layout --strict --project-dir "$EMPTY" 2>&1); rc=$?
+out=$("$SCIAGENT" lint --check results-layout --strict --project-dir "$EMPTY" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: empty project exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 

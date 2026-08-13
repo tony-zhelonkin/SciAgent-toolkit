@@ -1,9 +1,7 @@
 #!/usr/bin/env bash
 # tests/test_validate_docs_layout.sh — docs-layout project check, now
 # `sciagent lint --check docs-layout --project-dir <dir>` (moved out of
-# validate.sh's default path — see validate.sh's header comment and defect
-# #2/#1 of the arch review: a docs/_internal gitignore miss used to hard-fail
-# the default `sciagent validate` path).
+# the toolkit-subject catalog path.
 #
 # Tests:
 #   1. Project dir with no docs/ at all → CLEAN no-op: exit 0, NO output
@@ -20,15 +18,14 @@
 #   2. docs/_internal/ NOT gitignored, no --strict → soft WARN only, exit 0
 #      (severity is now consistent with every other opt-in lint check: WARN
 #      unless --strict, not an unconditional hard-fail like the old
-#      validate.sh behavior).
+#      project-check behavior).
 #   2b. Same fixture with --strict → hard ERROR, exit nonzero.
 #   3. docs/_internal/ gitignored → no ERROR/WARN about it, exit 0 (even
 #      under --strict).
 #   4. .md file in 03_results/ → exit 0, output contains "WARN docs-layout: report in results"
 #   5. Non-standard handoff filename → exit 0, output contains "WARN docs-layout: non-standard handoff"
-#   6. `sciagent validate` (default, no --check) run against the same
-#      not-gitignored fixture from test 2 must be silent about docs-layout
-#      and exit 0 — pins that the check truly left validate's default path.
+#   6. `lint --check toolkit` against the same not-gitignored fixture remains
+#      silent about docs-layout and exits 0.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -226,22 +223,20 @@ if printf '%s\n' "$out5" | grep -q 'handoff_20260101_120000.md'; then
 fi
 
 # ---------------------------------------------------------------------------
-# Test 6: `sciagent validate` (default, no --check) against PROJ2 (the
-# not-gitignored fixture) must be silent about docs-layout and exit 0 — the
-# check must have truly left validate's default path, not just become softer.
+# Test 6: the toolkit-subject check is silent about project docs layout.
 # ---------------------------------------------------------------------------
 set +e
-out6=$("$SCIAGENT" validate --project-dir "$PROJ2" 2>&1)
+out6=$("$SCIAGENT" lint --check toolkit --project-dir "$PROJ2" 2>&1)
 rc6=$?
 set -e
 
 if [[ "$rc6" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] test6: expected exit 0 from default validate path, got $rc6" >&2
+    echo "FAIL [$_TEST_NAME] test6: expected exit 0 from toolkit check, got $rc6" >&2
     printf '%s\n' "$out6" >&2
     exit 1
 fi
 if printf '%s\n' "$out6" | grep -qi 'docs-layout\|docs/_internal'; then
-    echo "FAIL [$_TEST_NAME] test6: default validate path must not mention docs-layout at all" >&2
+    echo "FAIL [$_TEST_NAME] test6: toolkit check mentioned docs-layout" >&2
     printf '%s\n' "$out6" >&2
     exit 1
 fi

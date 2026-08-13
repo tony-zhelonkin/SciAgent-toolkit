@@ -8,7 +8,8 @@ Usage: sciagent link [--project-dir D]
 
 Link the toolkit's skills, agents, and commands directories into both
 D/.claude/ and D/.agents/ (default: cwd). Materialize the two project
-guardrail hooks and merge their registrations into .claude/settings.json.
+guardrail hooks, merge their registrations into .claude/settings.json, and
+refresh the SCIAGENT:GITIGNORE block in .gitignore.
 
 Existing toolkit-owned mounts are swept first. A populated real category
 directory is preserved and refused with relocation instructions.
@@ -246,6 +247,59 @@ _link_analysis_helpers() {
     return "$failed"
 }
 
+_LINK_GITIGNORE_BEGIN='# BEGIN SCIAGENT:GITIGNORE'
+_LINK_GITIGNORE_END='# END SCIAGENT:GITIGNORE'
+
+_link_gitignore_block() {
+    cat <<'EOF'
+# BEGIN SCIAGENT:GITIGNORE
+docs/_internal/
+.claude/
+.agents/
+.gemini/
+.sciagent/
+02_analysis/helpers/figure-style
+.mcp.json
+.env
+.env.*
+# END SCIAGENT:GITIGNORE
+EOF
+}
+
+# Refresh the legacy ignore block as part of project binding.
+_link_ensure_gitignore() {
+    local target=".gitignore" stripped desired target_mode="644"
+    stripped=$(mktemp) || return 1
+    desired=$(mktemp) || { rm -f "$stripped"; return 1; }
+
+    if [[ -f "$target" ]]; then
+        target_mode=$(stat -c '%a' "$target" 2>/dev/null || printf '644')
+        awk -v begin="$_LINK_GITIGNORE_BEGIN" -v end="$_LINK_GITIGNORE_END" '
+            $0 == begin { in_block=1; next }
+            $0 == end { in_block=0; next }
+            !in_block { lines[++n]=$0 }
+            END {
+                while (n > 0 && lines[n] == "") n--
+                for (i=1; i<=n; i++) print lines[i]
+            }
+        ' "$target" > "$stripped"
+    fi
+    {
+        cat "$stripped"
+        [[ ! -s "$stripped" ]] || printf '\n'
+        _link_gitignore_block
+    } > "$desired"
+
+    if [[ -f "$target" ]] && cmp -s "$desired" "$target"; then
+        rm -f "$stripped" "$desired"
+        return 0
+    fi
+    chmod "$target_mode" "$desired" || { rm -f "$stripped" "$desired"; return 1; }
+    mv "$desired" "$target" || { rm -f "$stripped" "$desired"; return 1; }
+    rm -f "$stripped"
+    echo "refreshed: .gitignore SCIAGENT:GITIGNORE block"
+}
+
 cmd_link() {
     local project_dir="" failed=0
     while [[ $# -gt 0 ]]; do
@@ -280,6 +334,7 @@ cmd_link() {
             rmdir .claude/output-styles 2>/dev/null || true
         fi
         _link_analysis_helpers || failed=1
+        _link_ensure_gitignore || { echo "sciagent link: failed to refresh .gitignore" >&2; return 1; }
 
         if [[ -f .sciagent/manifest.json ]]; then
             rm .sciagent/manifest.json || { echo "sciagent link: failed to remove legacy state" >&2; return 1; }

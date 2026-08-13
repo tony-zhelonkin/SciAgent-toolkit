@@ -3,7 +3,7 @@
 #   1. A YAML frontmatter block (lines 1..N delimited by ---)
 #   2. A `name:` top-level field that matches the parent directory name
 #   3. NO `metadata:` block — taxonomy lives in the body, not the frontmatter
-#   4. A `description:` within the length cap enforced by `sciagent validate`
+#   4. A `description:` within the toolkit catalog length cap
 #
 set -u
 . "$(dirname "$0")/_lib.sh"

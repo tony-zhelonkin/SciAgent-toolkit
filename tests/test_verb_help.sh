@@ -20,7 +20,7 @@ fail() {
 WORK="$TMPDIR_TEST/work"
 mkdir -p "$WORK"
 
-for verb in craft link lint validate gitignore; do
+for verb in craft link lint; do
     for flag in -h --help; do
         set +e
         out=$(cd "$WORK" && "$SCIAGENT" "$verb" "$flag" 2>&1)
@@ -35,7 +35,7 @@ done
 [[ -z "$(ls -A "$WORK")" ]] \
     || fail "help created project files: $(ls -A "$WORK" | tr '\n' ' ')"
 
-for retired in activate deactivate status list new update; do
+for retired in activate deactivate status list new update validate gitignore; do
     set +e
     out=$("$SCIAGENT" "$retired" --help 2>&1)
     rc=$?

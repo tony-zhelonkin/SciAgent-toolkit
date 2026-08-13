@@ -24,9 +24,7 @@ run_verb() {
 }
 
 run_verb link
-run_verb validate --quiet
-run_verb lint
+run_verb lint --check toolkit --quiet
 run_verb craft
-run_verb gitignore
 
 pass

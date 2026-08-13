@@ -10,6 +10,7 @@
 # Lines are: <sha1>  <path relative to templates/>
 82c51109600cbab289d28bc2d133595effb5527f  project/_common/.claude/hooks/no_ephemeral.sh.template
 12dafe8a3e39dde0663827ee6f0cb559b6821fd6  project/_common/.claude/hooks/no_ephemeral.sh.template
+c9572d2ffa88f20864cbb9b3ac328f18e8c7de3c  project/_common/.claude/hooks/caption_sweep.sh.template
 b33e20330ad892a79f7ea5485fc989eab8b70f53  project/_common/.claude/hooks/caption_sweep.sh.template
 99ed9c53d1ca0b35df1ed949065686448d0dbc66  project/analysis/02_analysis/helpers/figure_style.py.template
 4a4d1946932c285e9fe61ab549fad173d6e1d37a  project/analysis/02_analysis/helpers/figure_style.py.template

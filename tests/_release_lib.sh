@@ -52,7 +52,7 @@ fixture_commit() {
     fi
 }
 
-# fixture_repo <dir> [validate_rc] [tests_rc]
+# fixture_repo <dir> [catalog_rc] [tests_rc]
 #
 # Build a minimal releasable "toolkit": an executable bin/sciagent, a
 # tests/run-all.sh, a copy of the real scripts/build-release.sh, a little
@@ -60,11 +60,11 @@ fixture_commit() {
 # reach an artifact (mirroring the 171 MB skill virtualenv in the real repo,
 # which is the whole reason the contract mandates `git archive`).
 #
-# validate_rc / tests_rc are baked into the stubs as literal exit codes, so the
+# catalog_rc / tests_rc are baked into the stubs as literal exit codes, so the
 # release gate's pass and fail paths are both reachable without any environment
 # dependence.
 fixture_repo() {
-    local dir="$1" validate_rc="${2:-0}" tests_rc="${3:-0}"
+    local dir="$1" catalog_rc="${2:-0}" tests_rc="${3:-0}"
 
     mkdir -p "$dir"/{bin,tests,scripts,lib,docs,.venv/lib}
 
@@ -72,7 +72,7 @@ fixture_repo() {
 #!/usr/bin/env bash
 # fixture CLI stub — enough surface for the release gate and for install tests.
 case "\${1:-}" in
-    validate) echo "fixture: validate"; exit $validate_rc ;;
+    lint) echo "fixture: toolkit lint"; exit $catalog_rc ;;
     --help|help) echo "fixture sciagent"; exit 0 ;;
     *) echo "fixture sciagent: \$*"; exit 0 ;;
 esac
