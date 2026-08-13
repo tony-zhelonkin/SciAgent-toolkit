@@ -27,13 +27,14 @@ assert_file_exists "$MANIFEST" "the provenance manifest is committed"
 
 _hash() { sha1sum "$1" | cut -d' ' -f1; }
 
-# The set of templates `link` materializes verbatim, derived the same way the
-# library derives it: glob the hooks directory rather than using a second
-# hardcoded list that could drift out of sync. Anything the caller materializes is
-# therefore checked here automatically, including the {{PLACEHOLDER}} check
-# below, which is the invariant content-provenance rests on.
+# The set of templates `link` materializes verbatim, derived from the hook and
+# helper-shim source directories. Anything the caller materializes is checked
+# here automatically, including the {{PLACEHOLDER}} invariant below.
 MANAGED=()
-for f in "$TOOLKIT_ROOT"/templates/project/_common/.claude/hooks/*.sh.template; do
+for f in \
+    "$TOOLKIT_ROOT"/templates/project/_common/.claude/hooks/*.sh.template \
+    "$TOOLKIT_ROOT"/templates/project/analysis/02_analysis/helpers/*.template
+do
     [[ -f "$f" ]] && MANAGED+=("${f#"$TOOLKIT_ROOT"/templates/}")
 done
 if [[ ${#MANAGED[@]} -eq 0 ]]; then

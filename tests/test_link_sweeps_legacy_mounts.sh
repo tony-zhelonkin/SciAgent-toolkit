@@ -35,6 +35,7 @@ printf 'user style\n' > project/.claude/output-styles/user-style.md
 
 ln -s "$TOOLKIT_ROOT/lib/figure-style" project/02_analysis/helpers/figure-style
 ln -s /workspaces/demo/01_modules/SciAgent-toolkit/lib/interactive-style project/02_analysis/helpers/interactive-style
+ln -s "$TOOLKIT_ROOT/lib/figure-style" project/02_analysis/helpers/retired-helper
 printf 'user shim\n' > project/02_analysis/helpers/user_helper.py
 
 out=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/project" 2>&1) || {
@@ -55,8 +56,13 @@ assert_absent project/.claude/output-styles/container-retired
 assert_symlink project/.claude/output-styles/outside-link "outside output-style link preserved"
 assert_file_exists project/.claude/output-styles/user-style.md
 
-assert_absent project/02_analysis/helpers/figure-style
-assert_absent project/02_analysis/helpers/interactive-style
+assert_symlink project/02_analysis/helpers/figure-style
+assert_symlink project/02_analysis/helpers/interactive-style
+assert_eq "$(realpath project/02_analysis/helpers/figure-style)" "$TOOLKIT_ROOT/lib/figure-style"
+assert_eq "$(realpath project/02_analysis/helpers/interactive-style)" "$TOOLKIT_ROOT/lib/interactive-style"
+assert_eq "$(readlink project/02_analysis/helpers/figure-style)" "$TOOLKIT_ROOT/lib/figure-style" \
+    "live helper mount was rewritten"
+assert_absent project/02_analysis/helpers/retired-helper
 assert_file_exists project/02_analysis/helpers/user_helper.py
 
 case "$out" in

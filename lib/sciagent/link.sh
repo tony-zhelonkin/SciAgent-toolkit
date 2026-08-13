@@ -150,6 +150,102 @@ _link_category() {
     echo "linked: $dst -> $src"
 }
 
+_HELPER_SHIM_TPL_REL="project/analysis/02_analysis/helpers"
+_HELPER_SHIM_STATE_DIR=".sciagent/helper_shim_state"
+
+# Sweep retired helper mounts while preserving canonical live bindings.
+_link_sweep_helper_links() {
+    local dir="02_analysis/helpers" entry name src
+    [[ -d "$dir" && ! -L "$dir" ]] || return 0
+
+    while IFS= read -r -d '' entry; do
+        name=$(basename "$entry")
+        case "$name" in
+            figure-style|interactive-style)
+                src="$SCIAGENT_TOOLKIT/lib/$name"
+                if [[ -d "$src" && "$(_link_target_path "$entry")" == "$(_link_resolve "$src")" ]]; then
+                    continue
+                fi ;;
+        esac
+        if _link_owned_by_toolkit "$entry"; then
+            rm "$entry" || { echo "sciagent link: failed to remove legacy link: $entry" >&2; return 1; }
+            echo "removed stale toolkit link: $entry"
+        fi
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -type l -print0 2>/dev/null)
+}
+
+# Bind the shared libraries beside their importable project shims.
+_link_helper_libs() {
+    local link_dir="02_analysis/helpers" libdir src dst target old failed=0
+    mkdir -p "$link_dir" || { echo "sciagent link: failed to create $link_dir" >&2; return 1; }
+
+    for libdir in figure-style interactive-style; do
+        src="$SCIAGENT_TOOLKIT/lib/$libdir"
+        [[ -d "$src" ]] || continue
+        dst="$link_dir/$libdir"
+
+        if [[ -L "$dst" ]]; then
+            if [[ "$(_link_target_path "$dst")" == "$(_link_resolve "$src")" ]]; then
+                continue
+            fi
+            if ! _link_owned_by_toolkit "$dst"; then
+                echo "sciagent link: refusing $dst; its symlink target is user-owned" >&2
+                failed=1
+                continue
+            fi
+            old=$(readlink "$dst")
+            if ! rm "$dst"; then
+                echo "sciagent link: failed to remove legacy link: $dst" >&2
+                failed=1
+                continue
+            fi
+            echo "removed stale toolkit link: $dst -> $old"
+        elif [[ -e "$dst" ]]; then
+            echo "sciagent link: refusing $dst; move the existing non-symlink path aside and run sciagent link again." >&2
+            failed=1
+            continue
+        fi
+
+        if realpath --relative-to="$link_dir" "$src" >/dev/null 2>&1; then
+            target=$(realpath --relative-to="$link_dir" "$src")
+        else
+            target="$src"
+        fi
+        ln -s "$target" "$dst" || { echo "sciagent link: failed to create $dst" >&2; return 1; }
+        echo "linked: $dst -> $src"
+    done
+    return "$failed"
+}
+
+# Materialize import shims with content-provenance ownership.
+_link_helper_shims() {
+    local tpl_dir="$SCIAGENT_TOOLKIT/templates/$_HELPER_SHIM_TPL_REL"
+    [[ -d "$tpl_dir" ]] || return 0
+
+    local src base
+    for src in "$tpl_dir"/*.template; do
+        [[ -f "$src" ]] || continue
+        base=$(basename "${src%.template}")
+        ownership_ensure_body \
+            "$src" "02_analysis/helpers/$base" \
+            "$_HELPER_SHIM_TPL_REL/$base.template" \
+            "$_HELPER_SHIM_STATE_DIR/$base.sha1" \
+            "$_HELPER_SHIM_STATE_DIR/$base.ceded" \
+            plain || return 1
+    done
+}
+
+# Materialize the analysis helper seam when the project declares that layout.
+_link_analysis_helpers() {
+    [[ -d 02_analysis ]] || return 0
+
+    local failed=0
+    _link_sweep_helper_links || failed=1
+    _link_helper_libs || failed=1
+    _link_helper_shims || failed=1
+    return "$failed"
+}
+
 cmd_link() {
     local project_dir="" failed=0
     while [[ $# -gt 0 ]]; do
@@ -183,7 +279,7 @@ cmd_link() {
         if [[ -d .claude/output-styles ]]; then
             rmdir .claude/output-styles 2>/dev/null || true
         fi
-        _link_sweep_dir 02_analysis/helpers || failed=1
+        _link_analysis_helpers || failed=1
 
         if [[ -f .sciagent/manifest.json ]]; then
             rm .sciagent/manifest.json || { echo "sciagent link: failed to remove legacy state" >&2; return 1; }

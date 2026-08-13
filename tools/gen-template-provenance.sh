@@ -3,8 +3,8 @@
 #
 # WHY THIS EXISTS
 #
-# `sciagent link` materializes the guardrail hooks into a project with a plain
-# `cp` — no
+# `sciagent link` materializes guardrail hooks and analysis helper shims into a
+# project with a plain `cp` — no
 # placeholder substitution, so the file in the project is byte-identical to the
 # template that produced it. Those bodies were written ONLY IF ABSENT, so a
 # consumer provisioned once never received any later fix to a hook. Measured
@@ -45,13 +45,25 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 MANIFEST="templates/PROVENANCE.sha1"
 
 # The templates `link` materializes verbatim. Keep in sync with
-# claude_settings.sh's ensure_hooks. tests/test_template_provenance.sh derives
-# the same set by globbing that source directory, so a template added there and
-# added here fails the suite rather than shipping un-refreshable.
+# claude_settings.sh's ensure_hooks and link.sh's _link_helper_shims.
+# tests/test_template_provenance.sh derives the same set by globbing both
+# source directories, so additions remain refreshable.
+#
+# README.md.template carries a {{PROJECT_ID}} placeholder and belongs to the
+# project scaffolder's substitution pass. Its rendered copies have distinct
+# bytes and therefore use their own provenance model.
+#
+# The 02_analysis/helpers shims use the same content-provenance ownership as
+# the hooks. Existing scaffolded copies carry authorship evidence in their
+# bytes, and the placeholder check in tests/test_template_provenance.sh keeps
+# those bytes identical to their templates.
 #
 MANAGED=(
     "project/_common/.claude/hooks/no_ephemeral.sh.template"
     "project/_common/.claude/hooks/caption_sweep.sh.template"
+    "project/analysis/02_analysis/helpers/figure_style.py.template"
+    "project/analysis/02_analysis/helpers/figure_style.R.template"
+    "project/analysis/02_analysis/helpers/interactive_style.py.template"
 )
 
 _sha1() {
