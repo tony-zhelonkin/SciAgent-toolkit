@@ -7,9 +7,10 @@ revised: 2026-04-29
 
 # Integration guide — wiring git automation into the harness (v2)
 
-The concrete steps to take this proposal from spec to shipped. Read
-`01-architecture.md` and `03-decisions.md` first; this file assumes the
-v2 decisions are accepted.
+The concrete steps to take this proposal from spec to shipped. The adjacent
+`01-architecture.md` and `03-decisions.md` preserve the v2 design rationale;
+this guide's file map and project-opt-in section record the current
+router/reference integration points after the three-verb demolition.
 
 ---
 
@@ -19,7 +20,7 @@ v2 decisions are accepted.
 |------|---------|
 | `scripts/architect-commit.sh` | L2 git operator. ~120 lines bash. |
 | `scripts/_render.py` | L3 subject/body renderer + `guard()` filter. ~150 lines Python. |
-| `scripts/_render_test.py` | pytest: 13 commands × happy-path + forbidden-string rejection. ~80 lines. |
+| `scripts/_render_test.py` | pytest: 13 workflow operations × happy-path + forbidden-string rejection. ~80 lines. |
 | `templates/architect.git.template` | L1 config template. ~15 lines. |
 | `docs/workflows/architect/git/examples/sample-log.md` | Worked `git log --oneline` from one feature run. |
 | `docs/workflows/architect/git/examples/sample-architect.git.log` | Worked transparency log from the same run. |
@@ -28,23 +29,20 @@ v2 decisions are accepted.
 
 | Path | What changes |
 |------|--------------|
-| `commands/map.md` | + 3-line "Phase N: Commit" trigger |
-| `commands/review.md` | + 3-line trigger |
-| `commands/synthesize.md` | + 3-line trigger |
-| `commands/design.md` | + 3-line trigger (single commit at Gate 2 — see ADR-014) |
-| `commands/architect.md` | + 3-line trigger |
-| `commands/plan.md` | + 3-line trigger |
+| `skills/architecture-first-dev/references/map.md` | + 3-line "Phase N: Commit" trigger |
+| `skills/architecture-first-dev/references/review.md` | + 3-line trigger |
+| `skills/architecture-first-dev/references/synthesize.md` | + 3-line trigger |
+| `skills/architecture-first-dev/references/design.md` | + 3-line trigger (single commit at Gate 2 — see ADR-014) |
+| `skills/architecture-first-dev/references/architect.md` | + 3-line trigger |
+| `skills/architecture-first-dev/references/plan.md` | + 3-line trigger |
 | `commands/implement.md` | + 3-line trigger as Phase 5 (current Phase 5 hand-off becomes Phase 6) |
-| `commands/verify.md` | + 3-line trigger |
-| `commands/meta-map.md` | + 3-line trigger |
-| `commands/meta-design.md` | + 3-line trigger |
-| `commands/meta-apply.md` | + 3-line trigger (single atomic commit — see ADR-014) |
-| `commands/meta-plan.md` | + 3-line trigger |
-| `commands/status.md` | + one-line note: "This command does not commit." |
-| `sciagent activate` | + `--with-git` flag (~6 lines) |
+| `skills/architecture-first-dev/references/verify.md` | + 3-line trigger |
+| `skills/architecture-first-dev/references/portfolio.md` | + triggers for `meta-map`, `meta-design`, `meta-apply`, and `meta-plan` |
+| `skills/architecture-first-dev/references/status.md` | + one-line note: "This route does not commit." |
+| `docs/workflows/architect/git/README.md` | + explicit project opt-in instructions |
 | `docs/workflows/architect/README.md` | + link to `git/README.md` in document index |
 
-Total docs/script delta from v1: **~325 lines fewer in command files**
+Total docs/script delta from v1: **~325 lines fewer in stage specifications**
 (no bash heredocs); **~230 lines added in scripts** (renderer + tests +
 helper trim); net ≈ 95 lines smaller AND testable AND single-source-of-truth.
 
@@ -328,7 +326,7 @@ if __name__ == "__main__":
 
 Coverage:
 
-- 13 commands × happy-path: feed a fixture `docs/` tree, assert
+- 13 workflow operations × happy-path: feed a fixture `docs/` tree, assert
   `(subject, body)` shape matches the catalog in `02-behavior.md §
   Worked examples`.
 - 7 forbidden-string injection cases (one per pattern class): assert
@@ -347,8 +345,8 @@ pytest scripts/_render_test.py -v
 
 ## L1 — `templates/architect.git.template`
 
-Exact contents (copy verbatim into `.claude/architect.git` by
-`activate-role.sh --with-git`):
+Exact contents. A project opts in by copying this template to
+`.claude/architect.git` explicitly:
 
 ```bash
 # Architect git automation — local config
@@ -356,7 +354,7 @@ Exact contents (copy verbatim into `.claude/architect.git` by
 
 ARCHITECT_GIT_AUTOCOMMIT=true
 
-# Which commands may auto-commit. Comma-separated. Default: all.
+# Which workflow operations may auto-commit. Comma-separated. Default: all.
 ARCHITECT_GIT_COMMIT_ON=map,review,synthesize,design,architect,plan,implement,verify,meta-map,meta-design,meta-apply,meta-plan
 
 # Create a feature branch (prefix + slug) on first commit for that
@@ -373,11 +371,10 @@ Note: `ARCHITECT_GIT_META_BRANCH` was removed in v2 (see ADR-015).
 
 ---
 
-## L4 — Command-level integration template
+## L4 — Stage-level integration template
 
-Paste this block at the end of each `commands/*.md` that writes an
-artifact. **No subject template**, **no body composition**, **no
-attribution reminder** (renderer's `guard()` is the enforcement).
+Add this block to each router reference or external command that writes an
+artifact. The renderer's `guard()` enforces the attribution constraint.
 
 ```markdown
 ## Phase N: Commit (if enabled)
@@ -402,9 +399,9 @@ pass `--no-verify`.
 
 ---
 
-## Per-command path lists
+## Per-operation path lists
 
-The `<paths>` substitution per command (the renderer derives subject
+The `<paths>` substitution per operation (the renderer derives subject
 and body from frontmatter, so paths are the only command-specific
 context here):
 
@@ -425,27 +422,20 @@ context here):
 
 ---
 
-## `activate-role.sh` change
+## Project opt-in
 
-Add one flag and one block:
+Git automation remains project-owned configuration. After `sciagent link`, a
+project enables this proposal explicitly:
 
 ```bash
-# New flag
-    --with-git) WITH_GIT=true ;;
-
-# Near the end, after agent/skill symlinking:
-if [[ "${WITH_GIT:-false}" == "true" ]]; then
-  TEMPLATE="$TOOLKIT_ROOT/templates/architect.git.template"
-  TARGET="$PROJECT_DIR/.claude/architect.git"
-  if [[ -f "$TARGET" ]]; then
-    echo "architect-commit: $TARGET already exists; leaving it alone"
-  else
-    cp "$TEMPLATE" "$TARGET"
-    echo "architect-commit: installed $TARGET (edit to customise)"
-    echo "architect-commit: log will accumulate at $PROJECT_DIR/.claude/architect.git.log"
-  fi
-fi
+mkdir -p .claude
+cp /path/to/SciAgent-toolkit/templates/architect.git.template \
+  .claude/architect.git
 ```
+
+An existing `.claude/architect.git` stays project-owned. `sciagent link`
+manages catalog links and guardrail hooks, so this opt-in file remains outside
+its write set.
 
 ---
 
@@ -455,21 +445,21 @@ The reduced v2 scope merits a tighter sequence. Between PRs the harness
 remains usable; users without `.claude/architect.git` see no
 behavioural change.
 
-1. **PR 1 — L0 + L1 + L2 + L3 + tests (no command changes).**
+1. **PR 1 — L0 + L1 + L2 + L3 + tests.**
    Adds `scripts/architect-commit.sh`, `scripts/_render.py`,
    `scripts/_render_test.py`, and `templates/architect.git.template`.
    Acceptance: `pytest scripts/_render_test.py -v` passes;
    `./scripts/architect-commit.sh --selftest` passes.
-2. **PR 2 — `activate-role.sh --with-git` flag.** Copies the template
-   into `.claude/architect.git` on opt-in. No command files changed yet.
-3. **PR 3 — wire cheap commands.** `/map`, `/verify`, `/status`. Run a
+2. **PR 2 — document explicit project opt-in.** A project copies the template
+   into `.claude/architect.git`; catalog binding stays unchanged.
+3. **PR 3 — wire cheap routes.** `/map`, `/verify`, `/status`. Run a
    walkthrough on a test feature; confirm `git log` shape matches
    `02-behavior.md § Log-shape` and `.claude/architect.git.log` reflects
    each invocation.
-4. **PR 4 — wire artifact + design commands.** `/review`,
+4. **PR 4 — wire artifact and design routes.** `/review`,
    `/synthesize`, `/plan`, `/design`, `/architect`. Test single-commit
    `/design` (Gate 2 only).
-5. **PR 5 — wire `/implement` + meta commands.** Code-touching
+5. **PR 5 — wire `/implement` and portfolio routes.** Code-touching
    command with intentional pre-commit hook failure to verify
    halt-and-surface. Then `/meta-map`, `/meta-design`, `/meta-apply`
    (single atomic commit), `/meta-plan`.
@@ -480,7 +470,7 @@ behavioural change.
 
 A v2 rollout is done when:
 
-- [ ] `pytest scripts/_render_test.py -v` passes (13 commands × happy
+- [ ] `pytest scripts/_render_test.py -v` passes (13 workflow operations × happy
       path + 7 forbidden-string rejections + frontmatter-missing).
 - [ ] `./scripts/architect-commit.sh --selftest` passes.
 - [ ] Walkthrough on a throwaway feature produces the 11-commit log
@@ -507,11 +497,11 @@ When all boxes are checked, update `git/README.md` status from
 
 ## After-implementation maintenance
 
-- **New command added to harness** (e.g. hypothetical `/deprecate`):
+- **New route added to the workflow** (e.g. hypothetical `/deprecate`):
   add an entry to `COMMAND_HANDLERS` in `_render.py`, add a happy-path
   test in `_render_test.py`, add the command to
   `ARCHITECT_GIT_COMMIT_ON`'s default list, paste the L4 trigger block
-  into the new command file.
+  into the new reference or external command file.
 - **New reviewer added to `/review`** (e.g. `security`): no changes
   needed. The renderer derives the reviewer list from the `--paths`
   list automatically.

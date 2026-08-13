@@ -1,5 +1,9 @@
 # 07 — uv vs container reproducibility
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 ADR-009's "Personal take" section poses the question directly: working in Docker containers with pre-installed packages, does `uv` add reproducibility on top?
 
 ## Where uv and containers overlap

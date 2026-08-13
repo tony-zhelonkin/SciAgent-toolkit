@@ -412,7 +412,7 @@ The harness is meant to be navigated, not memorised. Ask.
 
 ## See also
 
-- [README.md](./README.md) — index + activation
+- [README.md](./README.md) — index + catalog availability
 - [01-architecture.md](./01-architecture.md) — what files exist, what binds them
 - [02-behavior.md](./02-behavior.md) — per-stage behaviour with sequence diagrams
 - [03-decisions.md](./03-decisions.md) — why the harness has this shape

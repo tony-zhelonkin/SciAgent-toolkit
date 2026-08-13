@@ -1,5 +1,9 @@
 # SciAgent-toolkit — Extension Design Spec
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../architecture.md).
+> Retained as a dated design record; the original body below is unchanged.
+
 **Date**: 2026-05-22
 **Status**: Proposed, awaiting decision
 **Author**: synthesized from a conversation about Antigravity Science Skills / ERA / Co-Scientist / Robin, against the current `SciAgent-toolkit` architecture (`docs/architecture.md`)

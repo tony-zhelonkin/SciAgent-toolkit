@@ -9,6 +9,10 @@ motivation: Gaps surfaced by the contrast-adapter session under pathway-explorer
 
 # Harness MADRs — architecture-first-dev improvements
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../../architecture.md).
+> Retained as a dated decision record; the original body below is unchanged.
+
 Four MADRs against the architect harness itself. Each is self-contained; they compose
 but can be accepted independently. All four are PROPOSED; status flips to ACCEPTED
 on user approval, at which point the referenced harness files are edited.

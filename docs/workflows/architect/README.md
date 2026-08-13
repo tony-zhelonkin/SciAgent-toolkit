@@ -1,102 +1,103 @@
-# architect role — Workflow documentation
+# Architecture-first workflow documentation
 
-An architecture-first software development harness for Claude Code. Composable expert review panel + staged pipeline + human gates at every boundary.
+An architecture-first software workflow with composable expert review, staged
+artifacts, and human judgment gates.
 
 ---
 
 ## TL;DR
 
-You're building a non-trivial feature. You want to think about structure, behavior, and decisions before writing code — and you want multiple expert lenses (statistical, ML, wet-lab, UX, contrarian) applied before design. This harness gives you six slash commands that walk through that process, each stage producing a markdown artifact the next stage reads.
+The mounted entry point is
+[`skills/architecture-first-dev/SKILL.md`](../../../skills/architecture-first-dev/SKILL.md).
+It selects one route and loads that route's complete specification from
+`skills/architecture-first-dev/references/`.
 
-```
-/map <feature>                   → docs/{feature}/map.md
-/review <feature> --as <spec>    → docs/{feature}/review/<reviewer>.md (parallel)
-/synthesize <feature>            → docs/{feature}/synthesis.md (if ≥2 reviewers)
-/design <feature>                → docs/{feature}/design/*.md (gated by architect)
-/plan <feature>                  → docs/{feature}/plan/phase-NN.md
-/implement <feature> <phase>     → code, one phase at a time
+```text
+map → review → synthesize → design → plan → implement → verify
 ```
 
-**Meta-layer (optional, for ≥2 features in flight):**
+`review` and `synthesize` are conditional. `architect`, `diagram`, and `status`
+are utility routes. The portfolio routes coordinate two or more related
+features, and the architecture-treemap route supports retrospective audits.
 
-```
-/meta-map                        → docs/_meta/map.md (cross-feature inventory + touch-points)
-/meta-design                     → docs/_meta/design.md (inter-feature ADRs — MADRs)
-/meta-plan                       → docs/_meta/plan.md (sequences per-feature phases across portfolio)
-```
-
----
+Each route produces or inspects the durable Markdown artifacts described in
+[00-quickstart.md](./00-quickstart.md). Implementation and large-campaign
+decomposition remain external commands at
+[`commands/implement.md`](../../../commands/implement.md) and
+[`commands/decompose.md`](../../../commands/decompose.md).
 
 ## Document index
 
 | File | View | What it answers |
-|------|------|------------------|
-| [00-quickstart.md](./00-quickstart.md) | **Start here** | Cadence, decision tree, per-stage tips, prototypical meta-design walkthrough |
-| [01-architecture.md](./01-architecture.md) | Structural | What files exist, how they connect, what the role YAML binds together |
-| [02-behavior.md](./02-behavior.md) | Behavioral | What each stage does, data flow between stages, dispatch patterns |
-| [03-decisions.md](./03-decisions.md) | Decisions | Why this shape — the token-efficiency contract, composable panel design, naming conventions, tradeoffs |
-| [04-extending.md](./04-extending.md) | How-to | Adding a new reviewer, a new command, or adapting the role for a different project |
-| [05-meta-approach.md](./05-meta-approach.md) | How-to | The meta-layer — when, how, and why to invoke `/meta-map` / `/meta-design` / `/meta-plan` for cross-feature work |
+|---|---|---|
+| [00-quickstart.md](./00-quickstart.md) | Start here | Cadence, route selection, stage transitions, and worked examples |
+| [01-architecture.md](./01-architecture.md) | Structural | Router, references, agents, commands, mounts, and artifact flow |
+| [02-behavior.md](./02-behavior.md) | Behavioral | Exact stage behavior and data flow |
+| [03-decisions.md](./03-decisions.md) | Decisions | Why the workflow has this shape and where its gates live |
+| [04-extending.md](./04-extending.md) | How-to | Adding a reviewer, stage reference, or router route |
+| [05-meta-approach.md](./05-meta-approach.md) | How-to | Cross-feature map, design, apply, and planning |
 
----
+## Availability
 
-## Quick start
-
-### Activate the role
-
-From the toolkit root:
+Bind the toolkit catalog into a project from that project's pinned checkout:
 
 ```bash
-sciagent activate architect
+./01_modules/SciAgent-toolkit/bin/sciagent link
 ```
 
-This symlinks 10 agents, 1 skill, and 9 commands into `.claude/` of the target project. Reload Claude Code to pick them up.
+`link` mounts the complete `skills/`, `agents/`, and `commands/` trees into
+both `.claude/` and `.agents/`. The architecture-first router, its references,
+the reviewer agents, and the external implementation commands then travel as
+one pinned catalog.
 
-### Run the pipeline on a feature
+Invoke the `architecture-first-dev` skill explicitly or describe the
+architecture task in terms covered by its frontmatter. The router preserves
+the selected route's arguments and loads its full reference before acting.
 
-```
-/map umap-fix "Audit UMAP primitive: neighbour-preservation, entity mixing, contrast dependence"
-/review umap-fix --as all
-/synthesize umap-fix
-/design umap-fix
-/plan umap-fix
-/implement umap-fix 1
-```
+## Common routes
 
-Each command stops at a human gate. Review the artifact, redirect if needed, advance when satisfied.
-
-### Invocation shapes for `/review`
-
-```
-/review <feature> --as all                           — all 6 reviewers in parallel
-/review <feature> --as all --but stat,divergent      — all minus listed
-/review <feature> --as bioinf,ml                     — specific subset
-/review <feature>                                    — interactive; asks which to run
+```text
+map <feature>                         → docs/{feature}/map.md
+review <feature> --as <spec>          → docs/{feature}/review/<reviewer>.md
+synthesize <feature>                  → docs/{feature}/synthesis.md
+design <feature>                      → docs/{feature}/design/*.md
+plan <feature>                        → docs/{feature}/plan/phase-NN.md
+implement <feature> <phase>           → code through commands/implement.md
+verify <feature> [phases]             → docs/{feature}/verify.md
+status [feature,...]                  → chat-only portfolio snapshot
 ```
 
----
+The optional portfolio routes are `meta-map`, `meta-design`, `meta-apply`, and
+`meta-plan`; one shared reference specifies all four.
 
-## What this is not
+## Review invocation shapes
 
-- **Not for one-line fixes** — use the generic Claude Code flow
-- **Not for throwaway scripts** — the gate overhead dominates small work
-- **Not a bioinformatics role** — intentionally minimal; use `base` or `pathway-signature` alongside if you need anndata/scanpy/scvi skills
+```text
+review <feature> --as all
+review <feature> --as all --but stat,divergent
+review <feature> --as bioinf,ml
+review <feature>
+```
 
----
+The last form is interactive. An iterate round adds `--iterate` and preserves
+the preceding reviews under `.history/`.
 
-## At a glance — what was built
+## Scope
+
+This workflow is intended for non-trivial features, refactors, redesigns,
+cross-cutting portfolio decisions, and retrospective architecture audits.
+One-line fixes, throwaway scripts, and routine data analysis usually proceed
+directly through the relevant coding or scientific skill.
+
+## Shipped pieces
 
 | Artifact | Location | Purpose |
-|----------|----------|---------|
-| Role YAML | `roles/architect.yaml` | Manifest binding 10 agents + 1 skill + 9 commands |
-| Reviewer agents | `agents/{bioinf,wetlab,graphic,stat,divergent,ml}.md` | 6 reviewer perspectives |
-| Pipeline agents | `agents/{mapper,architect,synth}.md` | 3 per-feature pipeline agents |
-| Meta agent | `agents/meta-architect.md` | Cross-feature orchestrator (writes only `docs/_meta/*`) |
-| Per-feature commands | `commands/{map,review,synthesize,design,plan,implement}.md` | The 6 per-feature slash-command templates |
-| Meta commands | `commands/{meta-map,meta-design,meta-plan}.md` | The 3 cross-feature slash-command templates |
-| Skill | `skills/architecture-first-dev/SKILL.md` | Methodology reminder loaded with the role |
-| Activation | `sciagent activate` (extended) | Now symlinks `commands:` list in addition to agents/skills |
-| Runtime per-feature artifacts | `docs/{feature}/{map,review,synthesis,design,plan}/` | Where the pipeline writes per feature |
-| Runtime meta artifacts | `docs/_meta/{map,design,plan,deferred}.md` | Where the meta-layer writes (sibling of per-feature dirs) |
+|---|---|---|
+| Router | `skills/architecture-first-dev/SKILL.md` | Selects a route and loads its complete contract |
+| Stage specifications | `skills/architecture-first-dev/references/*.md` | Own phases, arguments, gates, outputs, and stop conditions |
+| Reviewer and pipeline agents | `agents/*.md` | Provide cartography, expert lenses, synthesis, gates, and portfolio operations |
+| External commands | `commands/implement.md`, `commands/decompose.md` | Preserve implementation and campaign-decomposition boundaries |
+| Workflow rationale | `docs/workflows/architect/` | Canonical sequence, behavior, decisions, and extension guide |
+| Runtime artifacts | `docs/{feature}/`, `docs/_meta/` | Durable feature and portfolio state in consumer projects |
 
-See [01-architecture.md](./01-architecture.md) for the complete component map.
+See [01-architecture.md](./01-architecture.md) for the component map.

@@ -1,5 +1,9 @@
 # 06 — ERA: "An AI system to help scientists write expert-level empirical software"
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 Grounds ADRs 004 (`scorable` overlay) and 009 (uv-pinned execution).
 
 ## The paper exists; the spec's attribution is mostly correct

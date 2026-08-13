@@ -224,7 +224,7 @@ Recommended next step: /synthesize {feature}
 2. **Reviewers read the map — they do not re-explore.** Enforce this in their prompt.
 3. **One file per reviewer.** If a reviewer writes elsewhere, flag it and ask user.
 4. **Synthesis is conditional.** With only one reviewer, tell the user to just read the one file — don't auto-invoke `/synthesize`.
-5. **Never invent a reviewer name.** The six names are canonical. Adding more requires a new agent file + role YAML update.
+5. **Never invent a reviewer name.** The six names are canonical. Adding more requires a new agent file plus a roster update in this reference.
 6. **Round-1 is always parallel-independent; iterate is always cross-informed.** Do not mix the regimes. Round-1 without `--iterate` forbids injecting sibling reviews (divergence-surfacing would be defeated); iterate with `--iterate` requires injecting them (reconciliation is the whole point). See MADR-H5 for the rationale.
 7. **Never overwrite a review file.** On `--iterate`, the prior round is archived to `review/.history/round-N/<name>.md` *before* the new round is dispatched. If a file under `.history/` would be overwritten, abort and ask the user — this indicates a prior move was interrupted or the round-numbering is wrong.
 8. **Iterate requires a prior round.** There is no "round-1 iterate." Reject `--iterate` if `review/*.md` is empty; the user should run `/review <feature> --as ...` first.

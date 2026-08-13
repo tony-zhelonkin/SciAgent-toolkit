@@ -9,7 +9,7 @@ The division of labour is absolute and is the whole point of the design:
 |---|---|---|
 | `scripts/build-release.sh` | producing bytes from a Git ref | fetch, publish, install, touch a project |
 | `install.sh` | placing bytes on this machine | resolve URLs, fetch, choose a harness, touch a project |
-| `sciagent` itself | mutating projects (`activate`, later `bind`) | install itself |
+| `sciagent` itself | project binding, managed context, and linting | install itself |
 
 ---
 
@@ -24,11 +24,11 @@ The division of labour is absolute and is the whole point of the design:
   tracked content, and 171 MB of the difference is one skill's virtualenv.
 - **Produces exactly three things:**
   ```
-  sciagent-<tag>-<short-sha>.tar.gz
-  sciagent-<tag>-<short-sha>.tar.gz.sha256
-  release metadata recording the COMPLETE git SHA (not abbreviated)
+  scio-<version>-<short-sha>.tar.gz
+  scio-<version>-<short-sha>.tar.gz.sha256
+  scio-<version>-<short-sha>.metadata.json recording the complete Git SHA
   ```
-- **Runs `./bin/sciagent validate` and `bash tests/run-all.sh` before producing the artifact.** A
+- **Runs `./bin/sciagent lint --check toolkit` and `bash tests/run-all.sh` before producing the artifact.** A
   release that fails its own suite must not exist as a file.
 - **Deterministic:** a test builds the same ref twice and asserts identical checksums.
 - **No network operations whatsoever.**
@@ -72,8 +72,8 @@ Abbreviated SHAs collide as history grows; a supplement that ships one is a supp
 ### Invocation — local inputs only
 
 ```bash
-./install.sh --archive  sciagent-0.1.0-<sha>.tar.gz \
-             --checksum sciagent-0.1.0-<sha>.tar.gz.sha256 \
+./install.sh --archive  scio-0.1.0-<sha>.tar.gz \
+             --checksum scio-0.1.0-<sha>.tar.gz.sha256 \
              --prefix   "$HOME/.local"
 ```
 
@@ -86,15 +86,14 @@ A local checkout is equally acceptable as input. Nothing else is.
 - **Verifies the checksum before extracting anything.**
 - **Installs atomically into a content-addressed directory** keyed by the full Git SHA:
   ```
-  ~/.local/share/sciagent/versions/<full-git-sha>/
+  ~/.local/share/scio/versions/<full-git-sha>/
   ```
   Two versions coexist by construction; an interrupted install leaves no half-tree.
 - **Links only the executable** into `~/.local/bin`. Nothing else escapes the version directory.
-- **Writes an installation receipt** sufficient for an exact uninstall — same ownership-record
-  discipline the toolkit now uses everywhere else (symlinks carry their target, managed blocks carry
-  hash-framed markers, settings artifacts carry state tags). An artifact without a record is an
-  artifact that cannot be reversed, which is the class of bug Phase 5c and the `deactivate` work
-  existed to eliminate.
+- **Writes an installation receipt** sufficient for an exact uninstall. The
+  installer removes only paths the receipt proves it wrote; project catalog
+  links carry ownership in their targets, and managed bodies carry recognized
+  hashes or markers.
 - **Supports `--dry-run`.**
 - **Never mutates a project.** Installation and project binding are different verbs on different
   layers.
@@ -107,26 +106,25 @@ program on the machine; `sciagent` decides what a project gets. Merging those is
 
 ---
 
-## 3. Project binding stays in `sciagent`
+## 3. Project binding stays in `sciagent link`
 
-Eventually the project-mutating verb becomes `bind` (or `link`), with the harness set explicit:
+Project binding is one convergent operation:
 
 ```bash
-sciagent bind --project . --harness portable
-sciagent bind --project . --harness portable,claude
+sciagent link --project-dir .
 ```
 
-`portable` = the common layer only: `AGENTS.md` + `.agents/skills` + the ownership receipt. Adding
-`claude` adds `CLAUDE.md` + `.claude/*` + hooks/settings. This is ADR-D5's adapter split surfaced as
-a flag, and it is what makes rule 1 ("packaging must not select or configure harnesses") checkable:
-the harness set is always something the user typed.
+`link` creates six whole-tree category links under `.agents/` and `.claude/`,
+materializes the two Claude guardrail hooks, merges their settings
+registrations, and refreshes the managed gitignore block. `craft` separately
+renders the `SCIAGENT:CRAFT` block into `AGENTS.md`. The local installer still
+performs neither operation, preserving the packaging/project boundary from
+ADR-D3.
 
 **Fleet precedence is unchanged and must stay that way:** a project-local
 `01_modules/SciAgent-toolkit` overrides any global installation. The locality guard already enforces
-this distinction — `bin/sciagent` sources its modules from `$SCIAGENT_TOOLKIT`, so pointing that
-variable elsewhere runs *that* checkout's code, and `_guard_toolkit_locality` plus the inline guard
-in `deactivate.sh` refuse the mismatch. Exact-commit reproducibility depends on that precedence, not
-on convention.
+this distinction: `link` detects the in-project toolkit and refuses an active
+external copy. Exact-commit reproducibility depends on that precedence.
 
 ---
 

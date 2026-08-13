@@ -11,6 +11,11 @@ The catalog now binds through one directory symlink per harness category.
 
 ### Changed
 
+- **SciAgent now ships as the three-verb `link`, `craft`, and `lint`
+  toolkit.** The demolition series removed role activation and stack state,
+  deactivation, status/list, project scaffolding, update and provisioning,
+  standalone validation, per-entry symlink and manifest machinery, and the
+  retired role files. `lib/sciagent/` decreased from 7,382 to 2,555 lines.
 - **`sciagent link` converges projects on six whole-tree catalog links.** It
   sweeps legacy toolkit-owned child mounts, dangling container paths, retired
   output styles, and helper-library links; preserves real files and

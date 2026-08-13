@@ -3,6 +3,10 @@
 
 # 02 — Trace recording in Pi coding agent
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 ## What "Pi coding agent" actually is
 
 Identifiable. Pi is an open-source terminal coding harness developed by earendil-works (Mario Zechner), published as `@earendil-works/pi-coding-agent`. The `pi-mono` monorepo contains four packages: `pi-ai` (provider-agnostic LLM API), `pi-agent-core` (runtime), `pi-coding-agent` (CLI), `pi-tui` (TUI library). License MIT, harness in TypeScript. The earlier `@mariozechner/pi-coding-agent` npm name and `badlogic/pi-mono` GitHub path are pre-rename references.

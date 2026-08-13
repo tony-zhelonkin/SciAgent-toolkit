@@ -1,5 +1,9 @@
 # 09 — Validator tooling patterns for ADR-007
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 ADR-007 specifies `sciagent doctor` with five check classes:
 1. SKILL.md YAML/markdown parse
 2. `metadata.sciagent.*` namespace conformance (ADR-001)

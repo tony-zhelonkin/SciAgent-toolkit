@@ -1,4 +1,4 @@
-# implementation-kickoff — sciagent extension (ARCHIVED — superseded, not live direction)
+# implementation-kickoff — sciagent extension (ARCHIVED — superseded by the three-verb toolkit)
 
 > **STATUS: HISTORICAL RECORD. DO NOT EXECUTE. DO NOT PASTE §7 INTO A SESSION.**
 >

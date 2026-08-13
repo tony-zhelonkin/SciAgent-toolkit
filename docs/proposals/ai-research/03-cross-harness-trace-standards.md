@@ -2,6 +2,10 @@
 
 # 03 — Cross-harness trace standards
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 The single most consequential research finding for ADR-005. The question: should sciagent define its own JSONL schema, adopt OpenTelemetry GenAI, adopt OpenInference, or hybrid?
 
 ---

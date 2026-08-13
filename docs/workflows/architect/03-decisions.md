@@ -3,7 +3,7 @@ parent: ./README.md
 view: decision
 ---
 
-# Decisions — architect role
+# Decisions — architecture-first workflow
 
 The design choices behind the harness, with rationale and trade-offs.
 
@@ -81,6 +81,11 @@ Autonomous multi-agent pipelines are tempting but risky: errors compound silentl
 ### Decision
 Every stage ends with a hand-off to the user. The assistant waits. There is no "run the whole pipeline" macro.
 
+**Current scope.** ADR-018 refines this decision: judgment gates remain
+mandatory, while serial execution can proceed through `/implement --auto` and
+plan drafting can use its approved upstream design without a second status
+gate.
+
 ### Trade-offs
 - **Gains:** User intervenes early; small corrections at map stage are cheap, corrections at implement stage are expensive. User sees each artifact before the next stage consumes it.
 - **Costs:** Slower wall-clock time for a perfect run. User must be present.
@@ -107,20 +112,29 @@ The markdown artifact *is* the architecture. If the architect harness disappeare
 
 ---
 
-## ADR-006: Commands as plain markdown templates
+## ADR-006: Stage contracts as on-demand Markdown references
 
 ### Context
-Claude Code supports slash commands at `.claude/commands/<name>.md`. The file content is injected as the user prompt when the slash command fires.
+The workflow needs detailed, inspectable stage contracts without loading every
+phase specification into context for every architecture request.
 
 ### Decision
-Each command is a plain markdown file (no YAML frontmatter needed) that reads as a detailed set of phased instructions. Claude Code injects these verbatim; the main agent then follows them.
+`skills/architecture-first-dev/SKILL.md` is the routing spine. Each internal
+stage lives in a plain Markdown file under
+`skills/architecture-first-dev/references/`, and the router loads the complete
+reference only after selecting that stage. Implementation and large-campaign
+decomposition remain external command contracts in `commands/`.
 
 ### Trade-offs
-- **Gains:** No custom DSL. Command authors write in natural English. Commands are self-documenting (reading `commands/review.md` tells you exactly what `/review` does).
-- **Costs:** Verbose. No compile-time validation of references (e.g., if a command names an agent that doesn't exist, it fails at runtime).
+- **Gains:** One mounted entry point, inspectable Markdown contracts, and
+  stage-sized context. Reading `references/review.md` shows the complete review
+  behavior.
+- **Costs:** The router and reference table must agree on filenames and
+  argument entry. Those links are checked through toolkit lint and tests.
 
-### Anti-pattern avoided
-Earlier prototypes put the command logic inside the main agent's prompt. This made commands opaque — you couldn't read what a command did without asking Claude. Putting dispatch logic in a per-command markdown file makes the behavior inspectable.
+### Extension rule
+A new internal stage adds `references/<stage>.md` plus a router row. A new
+external execution boundary adds a command file and a router boundary row.
 
 ---
 
@@ -138,20 +152,29 @@ Six reviewers dispatched sequentially is 6× the wall-clock time. Sequential dis
 
 ---
 
-## ADR-008: Role YAML as the only manifest
+## ADR-008: One router over the mounted catalog
 
 ### Context
-A role could be a Python class, a JSON manifest, a set of environment variables, or a declarative YAML file.
+The former role layer selected subsets of agents, skills, and commands through
+YAML manifests. Whole-tree catalog links now expose every mountable entry from
+the project's pinned toolkit checkout.
 
 ### Decision
-`roles/<name>.yaml` with three lists: `agents`, `skills`, `commands`. Activation script symlinks by name.
+Use `skills/architecture-first-dev/SKILL.md` as the workflow manifest: its
+decision tree and route tables bind intents to references, agents, and the two
+external commands. `sciagent link` mounts the complete `skills/`, `agents/`,
+and `commands/` trees into `.claude/` and `.agents/`.
 
 ### Trade-offs
-- **Gains:** Declarative, inspectable, git-diffable. Easy to write by hand. No language runtime needed. Consistent with existing roles in the toolkit (`base.yaml`, `pathway-signature.yaml`).
-- **Costs:** No schema validation beyond what the activation script does (warn on missing files). No cross-role inheritance.
+- **Gains:** The routing graph is visible in one skill, every route loads its
+  complete contract, and catalog availability follows the pinned source tree.
+- **Costs:** Selection happens at request time, so route descriptions and the
+  router table must remain precise.
 
-### Backward compatibility
-The `commands:` key was added for this role; existing roles that omit it work unchanged (the script silently no-ops if the key is absent).
+### Binding
+Correct whole-tree links expose source edits immediately. `sciagent link`
+creates or repairs the six category links and preserves populated user-owned
+directories.
 
 ---
 
@@ -182,7 +205,7 @@ If Haiku 4.5+ approaches Sonnet quality, consider downgrading `mapper` (pure fac
 First two `/design` runs (umap, normalisation) showed frontmatter drift: `status:` present in one feature's frontmatter but missing in the other, `view: behavioural` (UK) vs `view: behavioral` (US), and ad-hoc values like `view: data` vs `view: pipeline` for the same document role. A frontmatter field that drifts is worse than no frontmatter at all — consumers can't rely on it, and the indexing benefit evaporates.
 
 ### Decision
-`commands/design.md` Phase 2.5 pins the frontmatter exactly:
+`skills/architecture-first-dev/references/design.md` Phase 2.5 pins the frontmatter exactly:
 - `feature: {slug}`
 - `view:` from a fixed vocabulary — exactly `structural | behavioral | decision | data-flow | api-contract` (US spelling; README.md omits `view:` because it's the index, not a view)
 - `status:` lives ONLY in frontmatter — never duplicated as `**Status**:` in body
@@ -193,7 +216,7 @@ First two `/design` runs (umap, normalisation) showed frontmatter drift: `status
 - **Costs:** Slightly more rigid. If a novel view emerges, the vocabulary must be extended in the command spec before it can be used.
 
 ### Revisit trigger
-If two features drift on a new view dimension (e.g., need a `migration` or `testing` view), extend the vocabulary in `commands/design.md` rather than letting the main agent free-form.
+If two features drift on a new view dimension (e.g., need a `migration` or `testing` view), extend the vocabulary in `skills/architecture-first-dev/references/design.md` rather than letting the main agent free-form.
 
 ---
 
@@ -308,8 +331,8 @@ If both classes stay only in the per-feature `03-decisions.md`, an architect re-
 - **Time-boxed deferrals** ALSO get appended to `docs/_meta/deferred.md` as a row with full provenance: ID, source feature, source doc, description, reason deferred, cost (S/M/L), depends-on, status (`DEFERRED | IN-CONSIDERATION | REJECTED | ACTIVATED`).
 - The file is **append-only** with monotonically increasing IDs (`D-001`, `D-002`, …). The dispatching command reads the current max ID before appending.
 - **Two append paths**, sharing one schema:
-  - `commands/design.md` Phase 3b — per-feature `/design` appends with `Source feature: <slug>`.
-  - `commands/meta-design.md` Phase 6.5 — `/meta-design` appends with `Source feature: _meta` for items pulled from the meta-design's `Deliberate meta-level rejections § Time-boxed sub-items` subsection, deferred `OQ-M-N` items, and MADR Consequences referencing future rounds.
+  - `skills/architecture-first-dev/references/design.md` Phase 3b — per-feature `/design` appends with `Source feature: <slug>`.
+  - `skills/architecture-first-dev/references/portfolio.md` Phase 6.5 — `/meta-design` appends with `Source feature: _meta` for items pulled from the meta-design's `Deliberate meta-level rejections § Time-boxed sub-items` subsection, deferred `OQ-M-N` items, and MADR Consequences referencing future rounds.
 - `/meta-plan` consumes `deferred.md` for its "Parking items" section regardless of which command appended each row.
 
 ### Trade-offs
@@ -392,7 +415,7 @@ Add `/meta-apply` as a command that dispatches N `feature-reviser` subagents in 
 If ≥30% of `/meta-apply` invocations return majority-`MANUAL_REDESIGN_NEEDED`, the sub-agent's mechanical-application heuristic is failing — either MADRs are systematically too aggressive (meta-design is doing work that per-feature design should own) or `feature-reviser` is too conservative. Introduce either an escape-hatch for sub-agents to ask `architect` for judgment mid-run, or scale back `/meta-apply` to be opt-in per feature. Until then, MANUAL is a correctness signal, not a defect.
 
 ### Implementation pointer
-See `commands/meta-apply.md` for the 8-phase command logic, `agents/feature-reviser.md` for the sub-agent's scope contract and output format, and [02-behavior.md § Stage 4c](./02-behavior.md) for the flow diagram.
+See `skills/architecture-first-dev/references/portfolio.md` for the 8-phase route logic, `agents/feature-reviser.md` for the sub-agent's scope contract and output format, and [02-behavior.md § Stage 4c](./02-behavior.md) for the flow diagram.
 
 ---
 
@@ -421,7 +444,7 @@ Gates live where human judgment is required, not where execution is merely seria
 - **Add a config setting** (`gate_mode: strict|relaxed`). Rejected: adds surface area and session-level mutable state. Positional arguments on `/implement` (no flag vs `--auto`) carry the mode explicitly and without persistence.
 
 ### Consequences
-- `commands/plan.md` Phase 4 reworded; plan README template now defaults to `status: APPROVED`.
+- `skills/architecture-first-dev/references/plan.md` Phase 4 reworded; plan README template now defaults to `status: APPROVED`.
 - `commands/implement.md` gains `--auto` flag parsing and an end-to-end execution loop with one-liner per-phase reporting; single-phase default unchanged.
 - `skills/architecture-first-dev/SKILL.md` gains a gate-placement framing sentence and an anti-pattern entry ("Asking the user to approve plan decomposition — the `/design` architect verdict is the real gate").
 - This ADR is the citeable reference for why those edits are not a relaxation of the harness's human-gate discipline, but a sharpening of where that discipline applies.
@@ -454,10 +477,10 @@ Two primitives land together:
 - **Make iterate implicit (re-running `/review` auto-iterates if prior exists)** — rejected. Users who hand-edit one reviewer file and want to re-run the others would find their edits silently archived. Explicit `--iterate` preserves intent.
 
 ### Consequences
-- `commands/review.md` gains `--iterate` flag, Phase 2.5 (archive prior round), and a distinct iterate-dispatch prompt with required position-shift tagging. Rules 6–9 added documenting regime discipline.
-- `commands/synthesize.md` gains Phase 1.5 (archive prior synthesis on re-run) and updates the `synth` dispatch prompt to consume the prior synthesis + prior reviewer round when producing an iterate synthesis. Rules 4–5 added.
+- `skills/architecture-first-dev/references/review.md` gains `--iterate` flag, Phase 2.5 (archive prior round), and a distinct iterate-dispatch prompt with required position-shift tagging. Rules 6–9 added documenting regime discipline.
+- `skills/architecture-first-dev/references/synthesize.md` gains Phase 1.5 (archive prior synthesis on re-run) and updates the `synth` dispatch prompt to consume the prior synthesis + prior reviewer round when producing an iterate synthesis. Rules 4–5 added.
 - `docs/workflows/architect/00-quickstart.md` documents both regimes and their distinct purposes. `skills/architecture-first-dev/SKILL.md` gains a cheat-sheet row for the "locked direction → iterate" flow.
-- Reviewer agents (`bioinf`, `wetlab`, `graphic`, `stat`, `divergent`, `ml`) gain a single `## Iterate rounds` subsection that conditionally asks for a `## Round N iterate summary` prepend with UPDATED/STOOD BY/RETIRED tags. Round-1 behaviour is unchanged (the subsection triggers only when the dispatch prompt names the round ≥ 2). This is a minor revision of MADR-H5's original "no agent YAML changes" clause: empirically, reviewer output templates are prescriptive enough that a hardcoded `## Summary`-first template fights a dispatch-prompt "prepend a new section" instruction, especially for Sonnet-backed reviewers. The conditional prepend is narrow — regime-gated on the dispatch prompt, no round-1 leakage — and makes the iterate contract robust rather than fragile. No role YAML changes.
+- Reviewer agents (`bioinf`, `wetlab`, `graphic`, `stat`, `divergent`, `ml`) gain a single `## Iterate rounds` subsection that conditionally asks for a `## Round N iterate summary` prepend with UPDATED/STOOD BY/RETIRED tags. Round-1 behaviour is unchanged (the subsection triggers only when the dispatch prompt names the round ≥ 2). This is a minor revision of MADR-H5's original "no agent YAML changes" clause: empirically, reviewer output templates are prescriptive enough that a hardcoded `## Summary`-first template fights a dispatch-prompt "prepend a new section" instruction, especially for Sonnet-backed reviewers. The conditional prepend is narrow — regime-gated on the dispatch prompt, no round-1 leakage — and makes the iterate contract robust rather than fragile. The router roster is unchanged.
 - `agents/synth.md` gains permission to read `.history/` archives when the dispatch prompt names them, a `## Position shifts` section (iterate-only) and a `## User resolutions` section (always-present) in its output template, and a carve-out in the "No invention" hard rule so scribing user chat decisions verbatim is not an "invention." This is a permanent capability change, not regime-leakage: `synth` genuinely has new inputs (history files) and new output sections (User resolutions) that outlast any single iterate run.
 - This ADR closes OQ-2; the `synthesis.md` primary-file convention keeps ADR-018 (gate-placement) and MADR-H3 (scribe-on-latest) composable without edit.
 
@@ -480,9 +503,10 @@ None at present. Future decisions may introduce tensions (e.g., if a new archite
 
 ---
 
-## Constraints — things this harness assumes
+## Constraints — things this workflow assumes
 
-- Claude Code as the execution environment (subagent dispatch, slash commands, Agent tool)
+- A harness that can load the router skill and dispatch the selected agents;
+  provider-specific invocation and parallelism follow that harness's surface
 - A git-tracked project where `docs/` is an acceptable place for design artifacts
-- Users comfortable reading markdown (not just interacting via chat)
+- Users comfortable reading durable Markdown artifacts alongside chat
 - Features small enough that a single map.md captures their scope (very large cross-cutting initiatives may need a project-level map too)

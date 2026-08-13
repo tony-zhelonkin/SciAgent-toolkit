@@ -27,6 +27,11 @@ is already the place this project enforces invariants.
 
 **Blocks:** `build-release.sh`. **Reversible:** yes, cheaply — adding a manifest later is additive.
 
+**Demolition note, 2026-08-13.** The release gate now runs `sciagent lint
+--check toolkit` plus the full test suite. The activation stack's
+`.sciagent/manifest.json` was deleted; catalog-link ownership is carried by
+each symlink target. Git remains the version authority described by this ADR.
+
 ---
 
 ## ADR-D2 — Offline-first Bash transport; marketplaces and `npx` are optional compatibility paths, not architecture [Arch]
@@ -69,6 +74,11 @@ harness name and the invariant either holds or it doesn't.
 **Blocks:** `install.sh`, the `bind` verb. **Reversible:** yes, but re-merging the layers would
 reintroduce exactly the confusion this separates.
 
+**Demolition note, 2026-08-13.** The shipped project verb is `link`. It binds
+the six fixed catalog surfaces and materializes project guardrails; the local
+installer still performs no project or harness mutation. The explicit harness
+set proposed here was removed with the adapter premise.
+
 ---
 
 ## ADR-D4 — User-global provisioning becomes an opt-in personal bootstrap [Arch]
@@ -88,6 +98,10 @@ capability that ships.
 `activate` project-scoped, which is what makes the per-project reproducibility claim meaningful.
 
 **Blocks:** the `architecture.md` reconciliation in the merge gates. **Reversible:** yes.
+
+**Demolition note, 2026-08-13.** User-global provisioning moved completely
+outside this toolkit, and `provision` and `activate` were retired. The toolkit
+now exposes the project-scoped verbs `link`, `craft`, and `lint`.
 
 ---
 
@@ -114,6 +128,11 @@ would put the hardening and its refactor in the same reviewable unit.
 
 **Blocks:** the `bind` verb. **Reversible:** at refactor cost — it is a re-shaping of existing
 behaviour, and the test suite is the safety net.
+
+**Demolition note, 2026-08-13.** The adapter split and `bind` surface were
+superseded by one convergent `link` operation. It creates one whole-tree link
+per category under both `.agents/` and `.claude/`, with hook materialization
+at the Claude boundary. Per-entry links and the project manifest were deleted.
 
 ---
 
@@ -173,6 +192,11 @@ directions, so prose reviewed alongside each skill is the chosen source for its 
 
 **Blocks:** nothing. **Reversible:** trivially.
 
+**Demolition note, 2026-08-13.** `symlinks.sh` was deleted, while `link.sh`
+continues to materialize the two audited helper-library contracts. Citations
+above to `symlinks.sh` remain the evidence for the semantic audit as performed;
+their historical paths are intentionally preserved.
+
 ---
 
 ## ADR-D7 — Release naming and starting version [Taste] — **DECIDED 2026-08-11**
@@ -208,6 +232,11 @@ break.
 **Blocks:** nothing further — `build-release.sh` can be written now. **Reversible:** the version
 trivially; the name awkwardly once published, which is why the CLI rename is deliberately deferred
 rather than bundled in.
+
+**Demolition note, 2026-08-13.** The artifact/CLI naming decision still holds.
+The locality check cited above now lives in `lib/sciagent/link.sh`, and the
+retired activation and teardown modules no longer contribute paths to a future
+CLI rename.
 
 ---
 
@@ -253,3 +282,9 @@ problem. Check the existing workstation tooling before designing fleet-scope any
 
 **Blocks:** nothing. **Reversible:** yes, but reversing means re-litigating a boundary the owner has
 already drawn twice.
+
+**Demolition note, 2026-08-13.** The fleet boundary remains in force. Within
+one project, SciAgent owns six catalog links, the CRAFT block, guardrail hook
+bodies and registrations, and their narrow ownership records. Project removal
+is an explicit manual operation; the retired teardown verb contributes no
+toolkit state.

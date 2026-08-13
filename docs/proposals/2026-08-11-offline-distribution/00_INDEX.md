@@ -1,7 +1,7 @@
 # Offline-first distribution — plan index
 
 **Date:** 2026-08-11
-**Status:** approved shape, not yet implemented
+**Status:** implemented; live distribution plan of record
 **Supersedes:** "Phase 6 — package" as specified in `sciagent-rna/docs/10_sciagent-plan-of-record.md` §3.2
 **Narrows:** `docs/_internal/plans/2026-07-02-provider-agnostic/` **(untracked — see §7)** — its core insight survives; two amendments in §4 below
 **Owner decision, verbatim:** *"Git is the version authority, the submodule is the scientific lock, a deterministic tarball is the portable package, and Bash performs installation and harness binding without owning network transport."*
@@ -25,7 +25,7 @@ harness configuration.
 
 ```
 SciAgent source
-  skills/ + craft.yaml + hooks + helpers + agents/ + commands/
+  skills/ + agents/ + commands/ + craft.yaml + hooks + helpers
                     │
                     ▼
 Offline transport                     ← owns bytes, never projects
@@ -33,27 +33,25 @@ Offline transport                     ← owns bytes, never projects
                     │
                     ▼
 Project binder                        ← owns projects, never transport
-  common:  AGENTS.md + .agents/skills + ownership receipt
-  claude:  CLAUDE.md + .claude/* + hooks/settings
-  codex:   usually no extra skill binding (reads .agents/skills directly)
-  pi / opencode / agy: only their supported native surfaces
+  sciagent link: six whole-tree catalog links + hooks/settings + gitignore
+  sciagent craft: SHA1-guarded SCIAGENT:CRAFT block in AGENTS.md
 ```
 
 Two rules follow, and they are the load-bearing ones:
 
 1. **Packaging must not select or configure harnesses.** An installer that decides you are a Claude
    user has merged layers 2 and 3.
-2. **User-global provisioning is a separate opt-in personal bootstrap**, not part of normal project
-   activation. See ADR-D4 — this is also the fix for a live doc/code contradiction.
+2. **User-global provisioning belongs to the user's environment bootstrap.** The toolkit's project
+   surface is the three verbs `link`, `craft`, and `lint`. See ADR-D4.
 
-## 3. Why per-skill symlink binding remains the portable basis
+## 3. Why whole-tree catalog links are the portable basis
 
-Codex reads project `.agents/skills` directly and follows symlinked skill directories; Claude Code
-supports project-local `.claude/skills` and follows per-skill symlinks. Both of the harnesses that
-matter therefore consume exactly what `activate` already produces. **Marketplaces are unnecessary
-for either.** This is the strongest argument that Phases 1–5 got the mount shape right, and it is
-independently corroborated: `vercel-labs/skills` converged on the same design from scratch —
-canonical copy in `.agents/skills`, per-harness symlinks into it, a lock file for ownership.
+Codex reads project `.agents/skills` directly and follows a linked skill tree;
+Claude Code supports project-local `.claude/skills` the same way. `sciagent
+link` binds each complete catalog category into both discovery namespaces:
+one link each for skills, agents, and commands under `.agents/` and `.claude/`.
+The link target identifies the owning toolkit checkout, so a separate project
+manifest is unnecessary. Marketplaces remain optional compatibility paths.
 
 Refs:
 - Codex skill locations — https://learn.chatgpt.com/docs/build-skills
@@ -66,14 +64,15 @@ changes:
 
 | July plan | Amendment |
 |---|---|
-| Tier 1 user-global provisioning as a normal tier | Becomes opt-in personal bootstrap, out of the activate path (ADR-D4) |
+| Tier 1 user-global provisioning as a normal tier | Lives in the user's environment bootstrap, outside this toolkit (ADR-D4) |
 | Packaging/provisioning may detect and seed harnesses | Packaging must not select or configure harnesses (ADR-D3) |
-| Tier 2 adapters, whole-toolkit scope | Kept, **narrowed to project scope** (ADR-D5) |
+| Tier 2 adapters, whole-toolkit scope | Project binding is one fixed, convergent `link` operation (ADR-D5 note) |
 
-**What does not exist in code today.** There is no `lib/sciagent/harness/{common,claude,codex,…}.sh`.
-Project activation remains Claude-shaped. The toolkit is only *partially* harness-agnostic: neutral
-source dirs, `AGENTS.md` + `.agents/skills`, detection and global-context paths for five harnesses,
-but full project materialization for Claude plus `.agents` mirrors only.
+**What exists in code today.** `sciagent link` exposes the same complete
+catalog through `.claude/` and `.agents/`, materializes the two Claude
+guardrail hooks, merges their registrations, refreshes the project gitignore
+block, and refuses an external toolkit when the project carries a pinned local
+checkout. `sciagent craft` owns the managed `AGENTS.md` context separately.
 
 ## 5. Verified findings that motivated this (with evidence)
 

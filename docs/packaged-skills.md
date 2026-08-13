@@ -61,7 +61,7 @@ Opinionated, in order:
 - **NEVER nested git submodules.** The toolkit is *already* a submodule of analysis projects; nesting a
   packaged skill as a sub-submodule means a three-level pointer-bump every change — don't.
 - **Separate interface from implementation.** When a skill is promoted, the **SKILL.md interface
-  contract stays discoverable** in the toolkit (so activation + routing still see it); the
+  contract stays discoverable** in the toolkit (so catalog binding + routing still see it); the
   **implementation package can live anywhere** (PyPI, its own repo). The launcher resolves the tool;
   the toolkit need not vendor the code.
 

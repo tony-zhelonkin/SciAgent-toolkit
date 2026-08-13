@@ -1,5 +1,9 @@
 # 08 — Bio benchmark harnesses for ADR-006 tier-2
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 ## BixBench
 
 **Scope:** 205 questions derived from 60 real-world published Jupyter notebooks; 53 expert-curated analytical scenarios, 296 open-answer questions. From FutureHouse + ScienceMachine.

@@ -2,6 +2,10 @@
 
 # 04 — Anthropic Skills, `skill-creator`, and the "Antigravity Skills" attribution
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 ## Negative finding first: there is no Anthropic "Antigravity Skills" paper
 
 The spec's executive summary and ADRs 005 and 006 reference "the Antigravity Skills paper" as if it were an Anthropic publication describing a three-tier eval pattern, a `workflow-skill-creator` skill, and biology-domain numbers (49% → 93% internal reliability, BioReason VEP 41% → 61%). This conflates two different things:
