@@ -7,6 +7,25 @@ The toolkit keeps its mount sources in the same shape the harnesses consume:
 84 skill directories, 21 flat agent files, and 7 flat command files. A project
 binds each category with one directory symlink.
 
+## Where this came from
+
+The same needs kept recurring in every analysis project I worked in: a figure
+that stays legible whether it is shrunk into a journal column or projected to
+the back of a room, results that land where the next person looks for them, a
+caption written while the result is still fresh, a decision recorded before the
+next stage consumes it. I re-derived those conventions per project and lost them
+in between. They live here once now, and each project pins the version it was
+analysed with.
+
+The road was bumpy. This began as a role-and-activation system that mounted
+curated subsets of a catalog and grew a manifest, a stack, a collision resolver
+and a provider-dispatch table on the way to 7,382 lines of Bash; measuring it
+showed the curation saved about 3% of a context window while breaking the
+routing graph between skills. What survives is three verbs over the catalog, one
+block of standing conventions, and a set of checks that run. The catalog was
+always the asset — the machinery around it was a long detour into finding that
+out.
+
 ## Install
 
 Most analysis of my projects started out vendoring this repository at
