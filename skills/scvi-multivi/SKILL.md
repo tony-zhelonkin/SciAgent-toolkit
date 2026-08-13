@@ -1,28 +1,7 @@
 ---
 name: scvi-multivi
-description: MultiVI jointly integrates paired and unpaired single-cell RNA and ATAC data using scvi-tools, producing a shared latent embedding with cross-modality imputation. Use when combining 10x Multiome with RNA-only or ATAC-only datasets, when running differential expression plus differential accessibility on joint embeddings, or for multiome batch correction. For ATAC-only analysis use scvi-peakvi; for regulatory TF-to-gene inference on unpaired data use scglue-unpaired-multiomics-integration.
+description: "MultiVI jointly integrates paired and unpaired single-cell RNA and ATAC via scvi-tools, producing a shared latent embedding with cross-modality imputation. Use when combining 10x Multiome with RNA-only or ATAC-only datasets, or running DE plus DA on joint embeddings. For ATAC-only use scvi-peakvi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html
-  category: integration
-  tier: simple
-  tags:
-  - integration
-  - multimodal
-  - chromatin
-  complementary-skills:
-  - scvi-framework
-  - scvi-peakvi
-  - scglue-unpaired-multiomics-integration
-  - cellranger-arc-multiome
-  contraindications:
-  - Do not use for ATAC-only datasets. Use scvi-peakvi instead.
-  - Do not use for unpaired multi-omics where cells are not shared. Use scglue-unpaired-multiomics-integration.
 ---
 
 # MultiVI: RNA + ATAC Multimodal Integration
@@ -179,3 +158,20 @@ da = model.differential_accessibility(
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/multivi.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/multimodal/MultiVI_tutorial.html
 - **Paper:** https://www.biorxiv.org/content/10.1101/2021.08.11.455920
+
+---
+
+## When not to use
+
+- Do not use for ATAC-only datasets. Use scvi-peakvi instead.
+- Do not use for unpaired multi-omics where cells are not shared. Use scglue-unpaired-multiomics-integration.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-peakvi`
+- `scglue-unpaired-multiomics-integration`
+- `cellranger-arc-multiome`
+- `muon-multimodal-analysis` — for loading, storing, and manipulating the paired RNA+ATAC `MuData` object that MultiVI's inputs and outputs are typically organized around

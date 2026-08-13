@@ -1,28 +1,7 @@
 ---
 name: scrna-cxg-host
-description: 'scrna-cxg-host — two-phase skill for hosting AnnData on CellxGene over an internal network. Phase A: schema preparation (convert obsm DataFrames to np.float32 arrays, unique cell_id/var_names with __N suffix, set uns[title], realign aligned mappings, ensure X_umap, optionally re-embed per-celltype subsets with their own HVG/PCA/UMAP/leiden). Phase B: Docker Compose deployment (N cellxgene containers with --backed --annotations-dir for autosave + N nginx reverse proxies with htpasswd basic-auth, host UID/GID-aware mounts, deterministic ports, port-collision probe). Use when standing up wet-lab–facing interactive single-cell exploration (one full + N celltype-specific instances) on a university intranet. For one-off local exploration of one .h5ad use cellxgene CLI directly. For cell-type annotation transfer use cellxgene-census-annotation. For schema-prep on an already-built file use anndata + this skill''s Phase A only.'
+description: "Two-phase skill for hosting AnnData on CellxGene over an internal network: Phase A preps the schema (float32 obsm, unique ids, X_umap); Phase B deploys N cellxgene containers behind nginx basic-auth via Docker Compose. Use for wet-lab-facing interactive exploration on an intranet — not one-off .h5ad viewing (cellxgene launch) or public hosting."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-29
-  category: workflow
-  tier: rich
-  version: 0.1.0
-  upstream-docs: https://cellxgene.cziscience.com/
-  tags:
-  - hosting
-  complementary-skills:
-  - anndata
-  - scanpy
-  - scrna-pipeline-conventions
-  - scvi-scanvi
-  contraindications:
-  - Do not use for one-off cellxgene CLI exploration on a single .h5ad. Run cellxgene launch directly.
-  - Do not use on .h5ad with obsm DataFrames left in place. Phase A must run first; deploying an unprepared file produces 502s and silent autosave failures.
-  - Do not use for cell-type annotation transfer. Use cellxgene-census-annotation.
-  - Do not use to expose data on the public internet. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope.
 ---
 
 # scRNA CellxGene Host — schema preparation and Docker deployment
@@ -61,6 +40,8 @@ Need to share single-cell data with the wet lab?
 ## Quick Start
 
 Two phases. Run Phase A interactively; Phase B is a one-shot `docker compose up` after templates render.
+
+> **Pre-finalized deliverable h5ad** (symbols already active as `var_names`, cleaned obs, named 2D UMAPs already present): A.2 (`ensure_unique_varnames`) is a no-op and A.5 (`ensure_umap`) is replaced by A.5b (drop high-dim obsm); the input path is `03_results/objects/<project>_annotated.h5ad`, not a stage checkpoint. Steps A.0, A.1, A.3, A.4, and A.6 still apply.
 
 ```python
 # Phase A — schema prepare on the full dataset
@@ -120,7 +101,7 @@ enforce_cxg_dtypes(adata, sanitize_column_names=True)
 # Applied to obs, var, AND raw.var.  Also renames columns containing '.' -> '_'.
 ```
 
-CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the pinned Dockerfile) and **cannot decode pandas-nullable extension arrays at load time**. A single `Int64` column with `pd.NA` survives the .h5ad write through anndata's MaskedArray codec and crashes the cellxgene server with `TypeError: did not understand one of the types; 'None' not accepted`. The most common source is Seurat→AnnData conversion via `anndataR` (integer columns with NA → `Int64`), but pandas ≥ 1.0 will also produce these from any read with nullable inference. This step must run **before** every other Phase A step because some helpers (e.g. `final_checks`) themselves choke on `pd.NA`.
+CellxGene 1.2.0 ships with `pandas==1.5.3 + numpy==1.23.5` (per the pinned Dockerfile) and **cannot decode pandas-nullable extension arrays at load time**. A single `Int64` column with `pd.NA` survives the .h5ad write through anndata's MaskedArray codec and crashes the cellxgene server with `TypeError: did not understand one of the types; 'None' not accepted`. The most common source is Seurat→AnnData conversion via `anndataR` (integer columns with NA → `Int64`), but pandas ≥ 1.0 will also produce these from any read with nullable inference. This step must run **before** every other Phase A step because some helpers (e.g. `final_checks`) themselves choke on `pd.NA`. **Provenance note:** this step is critical when the h5ad came from anndataR / R-origin conversion (which produces `Int64`/`boolean`/`string` extension dtypes); for Python-native h5ads built with explicit dtype assignments throughout, A.0 is a no-op — harmless to run, not required.
 
 ### A.1 — Convert obsm DataFrames to numpy arrays
 
@@ -165,11 +146,26 @@ ensure_umap(adata, n_pcs=50)
 # Computes PCA → neighbors → UMAP only if missing.
 ```
 
+### A.5b — Drop non-2D obsm entries
+
+cellxgene exposes every obsm key as a layout option; any array with shape[1] > 2 renders
+as a meaningless scatter of its first two components. Run this AFTER A.5: `ensure_umap` may
+(re)compute `X_pca` via neighbors, so drop the high-dim latents last.
+
+```python
+HIGH_DIM = ["X_pca", "X_scANVI", "X_lsi", "X_nmf"]   # add any project latents
+for k in HIGH_DIM:
+    if k in adata.obsm and adata.obsm[k].shape[1] > 2:
+        del adata.obsm[k]
+```
+
+Expose only the 2D embeddings (e.g. `X_umap_unsupervised`, `X_umap_integrated`).
+
 ### A.6 — Final checks
 
 ```python
 final_checks(adata)
-# Asserts: obs/var unique, obs['barcode'] unique, X_umap shape (n,2), index dtypes are 'string'
+# Asserts: obs/var unique, obs['barcode'] unique, at least one X_umap* key each (n,2), index dtypes are 'string'
 ```
 
 Then write:
@@ -336,7 +332,7 @@ After running this skill, confirm:
 - [ ] **All `obsm` are arrays.** `all(isinstance(adata.obsm[k], np.ndarray) for k in adata.obsm)` returns `True`.
 - [ ] **No NaN in `obsm`.** `all(not np.isnan(adata.obsm[k]).any() for k in adata.obsm if adata.obsm[k].dtype.kind == "f")`.
 - [ ] **Unique cell_id and var_names.** `adata.obs.index.is_unique and adata.var_names.is_unique`.
-- [ ] **`X_umap` present and shape (n,2).** `adata.obsm["X_umap"].shape == (adata.n_obs, 2)`.
+- [ ] **At least one `X_umap*` key present, all (n,2).** `any(k.startswith('X_umap') for k in adata.obsm)` returns True.
 - [ ] **Title set.** `"title" in adata.uns`.
 - [ ] **Pre-deploy schema check passes.** `python checks/validate_cxg_h5ad.py 03_results/objects/<dataset>.h5ad` exits 0.
 - [ ] **All containers Up.** `docker compose ps --format json | jq -r '.[].State' | sort -u` returns only `running`.
@@ -442,17 +438,11 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 - **Cause:** `--annotations-dir` flag is missing or pointing at a path that is not a Docker-volume-mounted host directory.
 - **Fix:** Both must be true: cellxgene is launched with `--annotations-dir /annotations`, and the compose mount has `<host>:/annotations` (read-write). Verify with `docker compose exec cellxgene-full ls /annotations`.
 
----
+### Pitfall: `BlockingIOError: [Errno 11]` writing h5ad on NFS
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Operate on the `.h5ad` before schema-prep (subset, copy, layer manipulation) | `anndata` | Prerequisite-adjacent |
-| Standard scRNA-seq UMAP/leiden pipeline (upstream of subset re-embed) | `scanpy` | Prerequisite |
-| House style for `03_results/objects/` and `03_results/annotation/` paths | `scrna-pipeline-conventions` | Convention |
-| Annotate cell types via reference mapping before hosting | `scvi-scanvi` | Upstream (often) |
-| Cell-type annotation transfer from CellxGene Census | `cellxgene-census-annotation` | Adjacent / alternative |
+- **Symptom:** `adata.write_h5ad(out)` raises `BlockingIOError: [Errno 11] Resource temporarily unavailable`.
+- **Cause:** HDF5 default file-locking fails on NFS / network filesystems (advisory locks are unreliable). Common in devcontainers where the project directory is a network mount.
+- **Fix:** `export HDF5_USE_FILE_LOCKING=FALSE` before the write (single-writer only).
 
 ---
 
@@ -463,3 +453,22 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 - nginx auth_basic: http://nginx.org/en/docs/http/ngx_http_auth_basic_module.html
 - Docker Compose volume + UID semantics: https://docs.docker.com/storage/volumes/
 - Reference Docker Compose example (anonymised, in-repo): `01_modules/.ref/<ref-scrna>/cellxgene-deploy/`
+
+---
+
+## When not to use
+
+- Do not use for one-off cellxgene CLI exploration on a single .h5ad. Run cellxgene launch directly.
+- Do not use on .h5ad with obsm DataFrames left in place. Phase A must run first; deploying an unprepared file produces 502s and silent autosave failures.
+- Do not use for cell-type annotation transfer. Use cellxgene-census-annotation.
+- Do not use to expose data on the public internet. The skill ships internal-network templates only; SSL termination + auth hardening are out of scope.
+
+---
+
+## See also
+
+- `anndata` — Prerequisite-adjacent; operate on the `.h5ad` before schema-prep (subset, copy, layer manipulation)
+- `scanpy` — Prerequisite; standard scRNA-seq UMAP/leiden pipeline (upstream of subset re-embed)
+- `scrna-pipeline-conventions` — Convention; house style for `03_results/objects/` and `03_results/annotation/` paths
+- `scvi-scanvi` — Upstream (often); annotate cell types via reference mapping before hosting
+- `cellxgene-census-annotation` — Adjacent / alternative; cell-type annotation transfer from CellxGene Census

@@ -2,29 +2,6 @@
 name: scvi-scanvi
 description: scANVI — semi-supervised deep generative model for scRNA-seq with partial cell type labels. Use when you have seed labels (full or partial) and need label transfer with better bio-conservation than scVI alone. Always initialize from a trained scVI model. For unsupervised integration use scvi-basic.
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: annotation
-  tier: standard
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-framework
-  - scvi-basic
-  - anndata
-  - scvi-scarches-reference-mapping
-  - cellxgene-census-annotation
-  contraindications:
-  - Do not use without any labeled cells. scANVI is semi-supervised — it needs seed labels.
-  - Do not use on normalized data. Raw counts required.
-  - Do not use without training scVI first. Always initialize scANVI from scVI.
-  - Do not use for scATAC-seq or multiome.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/scanvi.html
 ---
 
 # scANVI: Semi-Supervised Label Transfer
@@ -58,6 +35,13 @@ import scvi
 scvi.model.SCVI.setup_anndata(adata, layer="counts", batch_key="batch")
 scvi_model = scvi.model.SCVI(adata, n_layers=2, n_latent=30)
 scvi_model.train()
+
+# PLANNING TO USE THIS AS A SURGERY REFERENCE? The base scVI MUST set:
+#   use_layer_norm="both"   (LayerNorm stays valid for unseen query batches; BatchNorm does not)
+#   use_batch_norm="none"   (frozen BatchNorm stats are wrong for new batches)
+#   encode_covariates=True  (batch covariate must enter the encoder for surgery to graft on)
+# Omitting any one makes load_query_data() fail or produce a degenerate projection.
+# See scvi-scarches-reference-mapping.
 
 # 2. Initialize scANVI from scVI
 scanvi_model = scvi.model.SCANVI.from_scvi_model(
@@ -170,7 +154,9 @@ scanvi_model = scvi.model.SCANVI.from_scvi_model(
 
 scanvi_model.train(
     max_epochs=20,
-    n_samples_per_label=100,  # Balance rare types
+    n_samples_per_label=100,  # SET when any class has <500 cells: otherwise a minibatch may draw
+                              # 0-1 cells from a rare class per step, starving its classifier head.
+                              # Rule of thumb: use when min(class_count) < 500.
     plan_kwargs={
         "classification_ratio": 50  # Weight of classification loss (default)
         # Low (1-10): prioritize reconstruction
@@ -189,6 +175,13 @@ Cells with low confidence may be novel types:
 probs = scanvi_model.predict(soft=True)
 max_prob = probs.max(axis=1)
 
+# NOTE: scANVI confidence (max softmax probability) is a poor novelty detector.
+# Cross-entropy training drives the winning logit far above the rest, so well-trained
+# scANVI models routinely report >0.9 for transcriptionally ambiguous or out-of-distribution
+# cells. The threshold below is a rough filter only when labels are well-separated in the
+# reference; it does NOT reliably detect cells from conditions/states absent during training.
+# For open-set novel-cell detection against a reference, use scHPL (treearches-hierarchy-learning)
+# — it has an explicit reject class.
 # Flag uncertain cells
 uncertain = max_prob < 0.5
 adata.obs["is_uncertain"] = uncertain
@@ -217,3 +210,23 @@ sc.tl.leiden(uncertain_adata, resolution=0.3)
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/scanvi.html
 - **Seed Labeling:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/seed_labeling.html
 - **Paper:** https://www.embopress.org/doi/full/10.15252/msb.20209620
+
+---
+
+## When not to use
+
+- Do not use without any labeled cells. scANVI is semi-supervised — it needs seed labels.
+- Do not use on normalized data. Raw counts required.
+- Do not use without training scVI first. Always initialize scANVI from scVI.
+- Do not use for scATAC-seq or multiome.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-basic`
+- `anndata`
+- `scvi-scarches-reference-mapping`
+- `cellxgene-census-annotation`
+- `treearches-hierarchy-learning` — for open-set detection of novel cell types not present in the label set, or for building a hierarchical ontology on top of the scANVI latent space

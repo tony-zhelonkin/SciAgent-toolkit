@@ -1,0 +1,54 @@
+# .claude/hooks — enforcement hooks for {{PROJECT_ID}}
+
+Project-scoped Claude Code hooks that deterministically enforce two
+conventions LLMs tend to break under pressure:
+
+## Hooks
+
+### no_ephemeral.sh (PreToolUse / Bash)
+
+**Convention E: results must be reproducible from a committed stage.**
+
+Detects when a Bash command would write under `03_results/` using an
+inline interpreter (`python3 -c`, `python -c`, `Rscript -e`) or a
+script located outside `02_analysis/stages/`.  Such ephemeral writes
+cannot be reproduced from the committed codebase.
+
+- Advisory message names the rule and suggests `_scratch/` or a
+  reasoning trace for throwaway probes.
+- Also nudges routing `ggsave()` / `plt.savefig()` through the project
+  helpers `save_figure()` / `save_overview()` (always advisory).
+- `_scratch/` and `$TMPDIR` are **always sanctioned** and never flagged.
+
+### caption_sweep.sh (Stop)
+
+**Convention C: every figure artifact must carry an adjacent caption.**
+
+On every Stop event, scans `03_results/` for figure files that lack a
+`## <relative/path>` heading in the sibling stage README.md.
+
+- Prefers `sciagent lint --check captions` when `sciagent` is on
+  PATH or resolvable; falls back to a self-contained scan otherwise.
+- Degrades gracefully when `sciagent` is absent — never hard-errors on
+  a missing binary.
+- `_scratch/` and `$TMPDIR` artifacts are exempt.
+
+## SCIAGENT_STRICT toggle
+
+Set `SCIAGENT_STRICT=1` (or `=true`) in the shell environment to
+upgrade both hooks from advisory to enforcing:
+
+| Hook | Default (warn) | Strict (enforce) |
+|------|---------------|-----------------|
+| no_ephemeral | exit 0, advisory on stderr | exit 2, BLOCK the tool call |
+| caption_sweep | exit 0, reminder on stderr | exit 2, force continuation |
+
+## Scope and graceful degradation
+
+These hooks are **project-scoped** (`.claude/settings.json`, not
+global settings).  On harnesses other than Claude Code they are
+simply ignored — no side-effects on CI or other editors.
+
+`sciagent lint --check captions` and `sciagent lint --check
+provenance` are the harness-agnostic CI mirrors of these guardrails
+and are safe to add to any CI pipeline regardless of editor.

@@ -1,0 +1,78 @@
+<!--
+  HOW TO USE THIS TEMPLATE
+  ========================
+  One INDEX per plan, one NN_<slug>.md per phase — both under:
+      docs/_internal/plans/{{DATE}}-<plan-slug>/
+
+  Fill every <angle-bracket> placeholder with your plan-specific text.
+  The only auto-substituted token is {{DATE}} (injected by `sciagent new plan` /
+  `_subst`). All other structural placeholders are filled by the planner.
+
+  Companion file: NN_slug.md.template — copy + fill one per phase.
+-->
+
+# Plan INDEX — <title: one-line summary of what this plan ships>
+
+**Date:** {{DATE}} · **Scope:** IN — <what this plan covers> / OUT — <explicit exclusions, comma-separated>
+
+**Rule:** one phase == one bounded brief == one implementer (~30–40% of a 200k context = one coherent change). Numbering is authoritative by **slug**, not by reading order. Opus REVIEW CHECKPOINT rows sit every 2–3 phases and each verifies: plan adherence, cleanliness/namespace, AND that `bash tests/run-all.sh` passes + the new artifacts exist and behave.
+
+See `00_ARCHITECTURE.md` (optional companion) for design rationale. This INDEX is rich enough that a follow-up Opus can expand each `NN_<slug>.md` into a full brief without re-exploring.
+
+---
+
+## Phase table
+
+| seq | slug | title | tier | concern | depends_on |
+|----|------|-------|------|---------|------------|
+| 01 | <slug-for-first-phase> | <Short title of what this phase ships> | Sonnet | <concern label e.g. A (mechanism)> | — |
+| 02 | <slug-for-second-phase> | <Short title> | Sonnet | <concern label> | 01 |
+| R1 | review-<checkpoint-name> | **Opus REVIEW CHECKPOINT** — <what the reviewer verifies: adherence + cleanliness + tests green + artifacts present> | Opus | review | 01,02 |
+| 03 | <slug> | <title> | Sonnet | <concern> | R1 |
+
+<!-- Add rows following the pattern above. Tier = Sonnet (bounded edit) or Opus (open
+     judgement, design, or review checkpoint). depends_on lists seq ids, comma-separated. -->
+
+**<N> substantive phases + <M> Opus review checkpoints.** Checkpoints fall after every 2–4 phases at each subsystem boundary.
+
+---
+
+## toolkit_additions (new/changed files under the toolkit)
+
+<!-- List every file this plan touches, grouped by subsystem. Tag each with [PNN] so
+     reviewers can trace source. Example structure below — replace with actuals. -->
+
+**<subsystem-1>/**
+- `<path/to/file.sh>` — <one-line description of what changes and why>. [P01]
+
+**<subsystem-2>/**
+- `<path/to/file.py>` — <description>. [P02]
+
+**tests/**
+- `tests/test_<slug>.sh` — <what the test covers>. [each phase]
+
+---
+
+## config_additions
+
+<!-- Verbatim YAML blocks to append to analysis_config.yaml.template (if any).
+     Leave section empty (or delete) if this plan makes no config changes. -->
+
+```yaml
+# Example — replace or remove:
+# figures:
+#   new_key: <value>   # <rationale>
+```
+
+---
+
+## Global notes
+
+- **Idempotency contract.** Scripts cache via `load_or_compute(expected_keys=...)` with stale-detection; `round_numeric_cols(sig=9)` before every master CSV for byte-stable diffs; `append_master_table()` and `write_caption()` are both idempotent (filter-then-bind / exact-heading match).
+- **Strict compute→viz split.** Compute scripts (`NN_<concern>.R/py`) produce checkpoints only — they never call `ggsave` / `plt.savefig`. Viz scripts (`NN_<concern>_viz.R/py`) read checkpoints and never re-run models. The named anti-pattern is "ggsave-inside-compute"; greps for it are in every acceptance check.
+- **Figure-style contract.** Every figure goes through `project_theme()` / `set_paper_style()` reading sizes from `analysis_config.yaml:figures`; saved via `save_figure()` or `save_overview()` (atomic figure + table + caption). Acceptance greps ban inline `theme(text` / raw `ggsave(width=<number>` / raw hex colours in `*_viz.*` files.
+- **Results placement.** Artifacts land under `03_results/<stage_id>/{figures,tables}/by_contrast/<c>/` or `_overview/`; stage must be declared in `analysis_config.yaml:stages` before first write.
+- **Claim ladder.** README captions state the evidential tier: L0 raw counts → L3 statistical association → L7 mechanistic claim. L7 requires orthogonal validation; it is never licensed from a single differential result.
+- **Reasoning traces.** Before any non-trivial algorithmic decision (model choice, cutoff, decomposition criterion), write a reasoning note to `docs/_internal/reasoning/` citing evidence and alternatives rejected.
+- **Single source of truth.** <cite your SSOTs — e.g. craft.yaml, lib/figure-style/, templates/plan/>. Deletions of second homes are part of the work.
+- **<Add plan-specific global notes here.>**

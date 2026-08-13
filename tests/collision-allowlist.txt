@@ -1,17 +1,15 @@
 # tests/collision-allowlist.txt — intentional cross-namespace name overlaps.
 #
-# Each line: <name> <kind1>,<kind2>[,<kind3>[,<kind4>]] # rationale
-# Kinds are one of: skill, agent, command, role.
-# Kinds in the csv must be sorted in the canonical order skill,agent,command,role
+# Each line: <name> <kind1>,<kind2>[,<kind3>] # rationale
+# Kinds are one of: skill, agent, command.
+# Kinds in the csv must be sorted in the canonical order skill,agent,command
 # (the same order tests/test_no_duplicate_basenames.sh and the runtime helper
 # emit). Lines starting with `#` and blank lines are ignored.
 #
 # New entries require PR review and a written rationale. Adding to this file
 # is the only way to make tests/test_no_duplicate_basenames.sh tolerate a
-# cross-namespace overlap; the runtime `sciagent validate` check is the
-# soft-warn mirror at activation time.
+# cross-namespace overlap; `sciagent lint --check toolkit` is the runtime
+# soft-warn mirror.
 #
 # Mutation rule: this file shrinks when an overlap is removed and grows only
 # with a deliberate family-overlap decision. Out-of-tree edits are a smell.
-architect agent,command,role # /architect dispatches @architect; both live under roles/architect.yaml
-architecture-treemap skill,command # /architecture-treemap invokes the architecture-treemap skill

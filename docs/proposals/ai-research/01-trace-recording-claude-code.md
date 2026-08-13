@@ -1,5 +1,9 @@
 # 01 — Trace recording in Claude Code
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 Use case for sciagent: ADR-005 requires recording sessions so a `trace-distiller` sub-agent can convert ad-hoc workflows into shipping skills. This file answers: *what trace surface does Claude Code already expose?*
 
 ---

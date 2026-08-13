@@ -1,27 +1,7 @@
 ---
 name: scvi-peakvi
-description: PeakVI is a deep generative model in scvi-tools for scATAC-seq that produces batch-corrected latent embeddings and region-level differential accessibility. Use for standard scATAC clustering, batch correction across experiments, and scaling to more than one million cells. For paired RNA+ATAC multiome use scvi-multivi; for quantitative fragment-level analysis use PoissonVI; for TF-activity inference use chromvar-motif-accessibility.
+description: "PeakVI is a deep generative model in scvi-tools for scATAC-seq, producing batch-corrected latent embeddings and region-level differential accessibility. Use for standard scATAC clustering, batch correction across experiments, and scaling past a million cells. For paired RNA+ATAC use scvi-multivi; for TF activity use chromvar-motif-accessibility."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/peakvi.html
-  category: integration
-  tier: simple
-  tags:
-  - integration
-  - chromatin
-  complementary-skills:
-  - scvi-framework
-  - scvi-multivi
-  - chromvar-motif-accessibility
-  - iterative-peak-merging
-  contraindications:
-  - Do not use for paired multiome (RNA+ATAC) integration. Use scvi-multivi instead.
-  - Do not use for TF motif deviation scoring. Use chromvar-motif-accessibility.
 ---
 
 # PeakVI: scATAC-seq Analysis
@@ -255,3 +235,20 @@ adata = sc.read_h5ad("signac_data.h5ad")
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/peakvi.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/atac/PeakVI.html
 - **Paper:** Ashuach et al. (2021), *PeakVI: A Deep Generative Model For Single Cell Chromatin Accessibility Analysis*
+
+---
+
+## When not to use
+
+- Do not use for paired multiome (RNA+ATAC) integration. Use scvi-multivi instead.
+- Do not use for TF motif deviation scoring. Use chromvar-motif-accessibility.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-multivi`
+- `chromvar-motif-accessibility`
+- `iterative-peak-merging`
+- `pycistopic-atac-topic-modeling` — for topic-model-based cCRE/regulon discovery as an alternative accessibility model when you want interpretable topics rather than a VAE latent space

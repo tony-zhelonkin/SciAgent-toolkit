@@ -14,7 +14,7 @@ build_fake_toolkit "$FAKE"
 echo "cmd s_a (deliberate listed collision)" > "$FAKE/commands/s_a.md"
 
 # Allowlist that documents this exact overlap. Kinds csv must match the
-# collisions_enumerate canonical order (skill,agent,command,role).
+# Catalog collision canonical order (skill,agent,command).
 ALLOWLIST="$TMPDIR_TEST/allowlist.txt"
 cat > "$ALLOWLIST" <<'EOF'
 # fixture allowlist

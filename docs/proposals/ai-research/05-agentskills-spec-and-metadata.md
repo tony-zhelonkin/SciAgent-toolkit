@@ -1,5 +1,9 @@
 # 05 — agentskills.io spec, metadata semantics, and the reference validator
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 Grounds ADRs 001 (`metadata.sciagent.*` namespace), 002 (`requires` graph), 003 (orchestrator/atomic scope), 007 (`sciagent doctor`).
 
 ## Where the spec lives

@@ -99,6 +99,33 @@ Because `LogNormalize` is `log1p(x / sum_per_cell * scale.factor)`, and `log1p(a
 
 For the rare HVG-set collisions, recomputing PCA would give numerically different cell embeddings. The downstream UMAP was built from the original PCA — recomputing would invalidate it (and the leiden clusterings already on disk). The pragmatic choice: keep `pca@cell.embeddings` as-is (it's a cell × dim matrix with no gene rownames), apply first-wins drop to `pca@feature.loadings` for the rare collisions, accept that the loadings are slightly inconsistent with the new `scale.data` for ~0–2 HVGs, and document. The cell embeddings remain authoritative for downstream analysis; loadings serve as a gene-contribution annotation.
 
+## Two upstream conventions, and how each maps to a both-ids .rds
+
+The fix above renames rows. But the *goal* of a deliverable `.rds` is to carry
+**both** identifiers in Seurat-native slots: gene **symbol** as the active features
+(rownames), **Ensembl** as a secondary id in the RNA assay's feature metadata
+(`obj[["RNA"]][[]]`), with a convenience copy in `obj@misc$gene_metadata`. The full
+producer recipe (feature-metadata accessor + pitfall, the HVG-subset trap, raw
+counts from the h5ad `raw/X` CSR group, sanitized-name alignment) is in
+[`../SKILL.md`](../SKILL.md#producing-a-fully-seurat-native-rds-carrying-both-gene-ids).
+How you get there depends on which convention the upstream h5ad used:
+
+- **`var_names = Ensembl`** (this document's case). rownames are `ENSG…`/`ENSMUSG…`.
+  You must **rename to symbols and sum-collapse duplicate symbols on `counts`**
+  (re-deriving `data` via `NormalizeData`, never collapsing log-values), *then*
+  attach the annotation so the collapsed object still carries `gene_id` (Ensembl)
+  and `gene_name` in its feature metadata. Requirement mapping: this step produces
+  requirement 1 (symbol as active id) and feeds requirement 2 (both ids native).
+- **`var_names = symbol`** (already symbols upstream). No collapse is needed —
+  symbols are already the rownames. You still attach the full-gene-space annotation
+  from `raw/var` (Ensembl → `gene_id`, etc.) to make it a both-ids object. This is
+  the exact shape the producer helper `convert_ops.R` handles.
+
+**In both cases** the gene annotation must be sourced from the **full `raw/var`
+group** (aligned to `raw/var/_index`), never the main `var` when that is an HVG
+subset — otherwise ~50k features silently lose their Ensembl id. See the HVG-subset
+trap in [`../SKILL.md`](../SKILL.md#the-hvg-subset-trap-source-gene-metadata-from-rawvar-not-main-var).
+
 ## Cross-references
 
 - `02_analysis/scripts/04_seurat_export.R` — full implementation in section 4b.

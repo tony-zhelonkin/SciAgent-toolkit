@@ -1,32 +1,13 @@
 ---
 name: mllmcelltype-consensus-annotation
-description: "mllmct — a version-locked CLI that annotates scRNA-seq clusters by multi-LLM consensus over marker genes, doing BOTH classic cell-TYPE annotation and evidence-injected cell-STATE annotation (the mode is one YAML profile). Reference-free (no atlas), with Python-recomputed per-cluster uncertainty (consensus proportion + Shannon entropy), forced determinism, captured token cost, and a full prompt→label trace. Use when you have per-cluster marker genes (from scanpy rank_genes_groups or Seurat FindAllMarkers) and want automated, no-reference labels plus a confidence score to flag clusters for review — or when you additionally have per-cluster evidence (programs, signatures, binned scores) and want functional-state calls. For label transfer from an annotated atlas use cellxgene-census-annotation; for semi-supervised propagation from partial labels use scvi-scanvi."
+description: "mllmct — a version-locked CLI that annotates scRNA-seq clusters by multi-LLM consensus over marker genes, doing both cell-TYPE and evidence-injected cell-STATE annotation. Reference-free, with per-cluster uncertainty, forced determinism, and a full prompt-to-label trace. Use with per-cluster markers for no-reference labels plus confidence."
 license: MIT
-metadata:
-  scope: atomic
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-29
-  version: 0.2.0
-  upstream-docs: https://github.com/cafferychen777/mLLMCelltype
-  category: annotation
-  tier: standard
-  packaged: true   # ships a uv-locked, CLI-driven, tested package — see docs/packaged-skills.md
-  tags:
-    - annotation
-  complementary-skills:
-    - scanpy
-    - cellxgene-census-annotation
-    - scvi-scanvi
-    - single-cell-rna-qc
-    - consensus-nmf-multirun
-  contraindications:
-    - "Do not use for label transfer from an annotated reference atlas. Use cellxgene-census-annotation instead."
-    - "Do not use for semi-supervised propagation from partial ground-truth labels. Use scvi-scanvi instead."
-    - "Do not pass Ensembl IDs (ENSG…/ENSMUSG…)"
 ---
 
 # mllmct — Multi-LLM Consensus Cell-Type / Cell-State Annotation
+
+**Packaged skill** — execution is outsourced to the pinned CLI below, not re-derived from this
+prose. See [docs/packaged-skills.md](../../docs/packaged-skills.md).
 
 One **version-locked, tested command-line tool**. You hand it per-cluster marker genes
 (and, for cell-state, per-cluster evidence); it asks several LLMs, reconciles them by consensus
@@ -78,7 +59,7 @@ export OPENROUTER_API_KEY=sk-or-...        # or GEMINI_API_KEY, OPENAI_API_KEY, 
 ```
 
 `bin/mllmct` runs the tool inside its locked sandbox — no venv activation needed, and it works
-even when the skill is symlinked into `.claude/skills/` by `sciagent activate`.
+even when the skill is discovered through `.claude/skills` after `sciagent link`.
 
 **Input — `--markers` CSV:** a `cluster` column + a `markers` column of `;`-joined **gene symbols**:
 
@@ -206,25 +187,33 @@ writing your own `EvidenceProvider`, and the reconcile config live in
 You don't need these to use the tool. When you want internals or to adapt it:
 
 - `references/cell-state-annotation.md` — cell-state mode, profile knobs, writing an `EvidenceProvider`, reconcile.
-- `references/monkeypatch-internals.md` — the four version-sensitive patches + the lock-regeneration procedure.
+- `references/monkeypatch-internals.md` — the version-sensitive patches + the lock-regeneration procedure.
 - `references/packaging-template.md` — the "locked tool + CLI + logging + tests" pattern, to copy into other skills.
 - `references/api-reference.md` — underlying mLLMCelltype API + the Python-recomputed-metrics override.
 - `references/r-seurat-workflow.md`, `references/uncertainty-and-hierarchy.md` — upstream-library context.
 
 ---
 
-## Complementary skills
-
-| When you need… | Use skill | Relationship |
-|---|---|---|
-| Clustering + marker genes that feed this tool | `scanpy` | Prerequisite |
-| MAD-based QC before clustering | `single-cell-rna-qc` | Prerequisite |
-| Gene programs to inject as cell-state evidence | `consensus-nmf-multirun` | Upstream (evidence) |
-| Label transfer from an annotated atlas | `cellxgene-census-annotation` | Alternative |
-| Semi-supervised propagation from partial labels | `scvi-scanvi` | Alternative |
-
 ## Resources
 
 - Repository: https://github.com/cafferychen777/mLLMCelltype
 - Preprint (Yang et al., 2025): https://doi.org/10.1101/2025.04.10.647852
-- PyPI: https://pypi.org/project/mllmcelltype/ (this skill pins `2.0.5`)
+- PyPI: https://pypi.org/project/mllmcelltype/ (this skill pins `2.0.7`)
+
+---
+
+## When not to use
+
+- Do not use for label transfer from an annotated reference atlas. Use cellxgene-census-annotation instead.
+- Do not use for semi-supervised propagation from partial ground-truth labels. Use scvi-scanvi instead.
+- Do not pass Ensembl IDs (ENSG…/ENSMUSG…)
+
+---
+
+## See also
+
+- `scanpy` — Prerequisite; clustering + marker genes that feed this tool
+- `cellxgene-census-annotation` — Alternative; label transfer from an annotated atlas
+- `scvi-scanvi` — Alternative; semi-supervised propagation from partial labels
+- `single-cell-rna-qc` — Prerequisite; MAD-based QC before clustering
+- `consensus-nmf-multirun` — Upstream (evidence); gene programs to inject as cell-state evidence

@@ -1,27 +1,7 @@
 ---
 name: scvi-scarches-reference-mapping
-description: Performs scArches architectural surgery to map a query dataset onto an existing scvi-tools or scArches reference model (scVI, scANVI, totalVI, MultiVI, trVAE). Covers prepare_query_anndata for gene padding, load_query_data to add adapter layers, fine-tuning with a frozen encoder (weight_decay=0), scANVI or weighted-KNN label transfer, novel-cell-state detection from low confidence, and the required reference-training flags use_layer_norm=both, use_batch_norm=none, encode_covariates=True. Use when the reference already exists and you want to project query cells without retraining from scratch. Unlike scvi-hub-models, which only browses and loads pretrained models, this skill owns the actual surgery and fine-tuning workflow. For hierarchical ontology transfer use treearches-hierarchy-learning; for de novo integration without a reference use scvi-basic.
+description: "scArches architectural surgery to map a query dataset onto an existing scvi-tools reference (scVI, scANVI, totalVI, MultiVI, trVAE): gene padding, adapter layers, fine-tuning with a frozen encoder, weighted-KNN label transfer, and novel-state detection. Use when the reference exists and you want to project queries without retraining."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scarches.org/en/latest/
-  category: annotation
-  tier: simple
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-framework
-  - scvi-hub-models
-  - treearches-hierarchy-learning
-  - scvi-scanvi
-  contraindications:
-  - Do not use for de novo integration without a pretrained reference. Use scvi-basic or scvi-framework.
-  - Do not use for hierarchical cell-type ontology mapping. Use treearches-hierarchy-learning.
 ---
 
 # scArches: Query-to-Reference Mapping
@@ -43,8 +23,10 @@ This file covers only the advanced parts: architectural surgery, weighted-KNN la
 - Collaborative atlas building
 
 **Two options:**
-- `scvi-tools` (native): scVI, scANVI, totalVI, MultiVI
-- `scarches` package: trVAE, scGen, expiMap, treeArches, scPoli
+- `scvi-tools` (native): scVI, scANVI, totalVI, MultiVI — surgery via `load_query_data()`
+- `scarches` package: trVAE, scGen, expiMap, scPoli — models not in scvi-tools
+
+treeArches is a workflow (scArches surgery + scHPL), not a separate model — see treearches-hierarchy-learning.
 
 ---
 
@@ -183,15 +165,24 @@ query_adata.obs["knn_proba"] = knn.predict_proba(query_latent).max(axis=1)
 
 ## Detecting Novel Cell Types
 
-Low prediction confidence may indicate novel populations:
+Confidence scores are worth computing, but they are NOT a novelty detector after scArches surgery:
 
 ```python
-# From scANVI
+# WARNING: scANVI confidence is NOT a novelty detector after scArches surgery.
+# The softmax is a closed simplex over N known classes; with the classifier frozen,
+# the reference decision surface is unchanged. Novel treated cells land in the nearest
+# known region with near-1.0 confidence (observed: median conf=1.000, <0.5 fraction=0.4%
+# across 89k cells). For genuine open-set rejection, use scHPL (treearches-hierarchy-learning).
+# Still worth computing as a self-consistency score — but it is not calibrated P(correct).
 probs = query_scanvi.predict(soft=True)
-query_adata.obs["confidence"] = probs.max(axis=1)
-query_adata.obs["is_novel"] = query_adata.obs["confidence"] < 0.5
+conf    = probs.max(axis=1)
+entropy = -(probs * np.log(probs + 1e-10)).sum(axis=1)
+query_adata.obs["confidence"] = conf
+query_adata.obs["entropy"]    = entropy
 
-# Subcluster novel cells
+# Subcluster the FLAGGED cells to characterize candidate novel states. Get the flag from
+# scHPL open-set rejection (see treearches-hierarchy-learning), NOT a confidence threshold:
+#     query_adata.obs["is_novel"] = scHPL_rejected_mask
 novel_adata = query_adata[query_adata.obs["is_novel"]]
 sc.pp.neighbors(novel_adata, use_rep="X_scANVI")
 sc.tl.leiden(novel_adata, resolution=0.3)
@@ -253,6 +244,25 @@ query_adata.obsm["X_scVI"] = query_model.get_latent_representation()
 | Poor mapping | Use `weight_decay=0.0` to preserve reference embedding |
 | New batches wrong | Ensure `encode_covariates=True` in reference |
 | Wrong var_names order | Query genes reordered automatically by `prepare_query_anndata` |
+| `UnpicklingError: Weights only load failed / GLOBAL numpy.core.multiarray._reconstruct` | torch >= 2.6 defaults `weights_only=True`; scvi 1.2.0 checkpoints contain numpy globals | Monkeypatch `torch.load` (snippet below); trusted checkpoints only |
+
+**Environment compatibility — torch >= 2.6 / scvi-tools 1.2.0**
+
+torch 2.6 changed `torch.load()` to default `weights_only=True`. scvi-tools 1.2.0 checkpoints embed numpy globals, so every `SCVI.load()` / `SCANVI.load()` / `load_query_data()` raises `UnpicklingError`. For **your own trusted** checkpoints, restore pre-2.6 behavior before any model load:
+
+```python
+# torch >= 2.6 / scvi-tools 1.2.0 incompatibility
+# torch 2.6+ made torch.load() default weights_only=True; scvi 1.2.0 checkpoints embed
+# numpy globals -> UnpicklingError on every SCVI.load() / SCANVI.load() / load_query_data().
+# For YOUR OWN trusted checkpoints, restore pre-2.6 behavior BEFORE any model load:
+import torch
+_torch_load_orig = torch.load
+def _torch_load_trusted(*args, **kwargs):
+    kwargs.setdefault("weights_only", False)
+    return _torch_load_orig(*args, **kwargs)
+torch.load = _torch_load_trusted
+# Do NOT use for untrusted third-party checkpoints.
+```
 
 ---
 
@@ -262,3 +272,21 @@ query_adata.obsm["X_scVI"] = query_model.get_latent_representation()
 - **scarches:** https://docs.scarches.org/
 - **HLCA:** https://www.nature.com/articles/s41591-023-02327-2
 - **Paper:** https://www.nature.com/articles/s41587-021-01133-0
+
+---
+
+## When not to use
+
+- Do not use for de novo integration without a pretrained reference. Use scvi-basic or scvi-framework.
+- Do not use for hierarchical cell-type ontology mapping. Use treearches-hierarchy-learning.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-hub-models`
+- `treearches-hierarchy-learning`
+- `scvi-scanvi`
+
+Upstream docs: https://docs.scarches.org/en/latest/

@@ -1,32 +1,7 @@
 ---
 name: tobias-footprint-bindetect
-description: TOBIAS pseudobulk TF footprinting and pairwise differential binding (ATACorrect → ScoreBigwig → TFBScan → BINDetect → PlotAggregate). Use for quantitative TF occupancy analysis on pseudobulked ATAC BAMs, condition-vs-condition contrasts with p-values, and bias-corrected footprint bigwigs. For multi-condition overview heatmaps use hint-atac-differential-footprint; for publication footprint plots use signac-footprint-visualization.
+description: "TOBIAS pseudobulk TF footprinting and pairwise differential binding (ATACorrect, ScoreBigwig, TFBScan, BINDetect, PlotAggregate). Use for quantitative TF occupancy on pseudobulked ATAC BAMs, condition-vs-condition contrasts with p-values, and bias-corrected footprint bigwigs. For multi-condition heatmaps use hint-atac-differential-footprint."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  tools:
-  - TOBIAS
-  - ATACorrect
-  - BINDetect
-  - ScoreBigwig
-  - TFBScan
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 1.0.0
-  upstream-docs: https://github.com/loosolab/TOBIAS
-  category: analysis
-  tier: simple
-  tags:
-  - chromatin
-  - motif
-  complementary-skills:
-  - hint-atac-differential-footprint
-  - signac-footprint-visualization
-  - chromvar-motif-accessibility
-  contraindications:
-  - Do not use for single-cell TF activity — TOBIAS requires pseudobulk BAMs.
-  - Do not use for >2-condition overview heatmaps — use hint-atac-differential-footprint.
 ---
 
 # TOBIAS Footprinting & BINDetect Differential Binding
@@ -207,3 +182,18 @@ done
 - **GitHub**: https://github.com/loosolab/TOBIAS
 - **Wiki**: https://github.com/loosolab/TOBIAS/wiki
 - **sc-framework**: https://github.com/loosolab/SC-Framework
+
+---
+
+## When not to use
+
+- Do not use for single-cell TF activity — TOBIAS requires pseudobulk BAMs.
+- Do not use for >2-condition overview heatmaps — use hint-atac-differential-footprint.
+
+---
+
+## See also
+
+- `hint-atac-differential-footprint`
+- `signac-footprint-visualization`
+- `chromvar-motif-accessibility`

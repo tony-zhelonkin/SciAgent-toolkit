@@ -1,28 +1,7 @@
 ---
 name: cellranger-arc-multiome
-description: Cell Ranger ARC processes 10x Chromium Single Cell Multiome ATAC+GEX data via mkfastq, count, aggr, and reanalyze to produce paired ATAC fragments and gene expression matrices from the same cells. Use for primary processing of multiome FASTQs, including the tricky single-indexed ATAC library demultiplexing and libraries CSV configuration. For scRNA-only use Cell Ranger (not ARC); for downstream multiome integration use cellranger-arc output with scvi-multivi or scglue.
+description: "Cell Ranger ARC processes 10x Single Cell Multiome ATAC+GEX via mkfastq, count, aggr, and reanalyze, producing paired ATAC fragments and gene expression from the same cells. Use for primary processing of multiome FASTQs, including single-indexed ATAC demultiplexing and the libraries CSV. For scRNA-only use plain Cell Ranger (external), not ARC."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://www.10xgenomics.com/support/software/cell-ranger-arc
-  category: foundation
-  tier: simple
-  tags:
-  - preprocessing
-  - multimodal
-  complementary-skills:
-  - scvi-multivi
-  - scglue-unpaired-multiomics-integration
-  - iterative-peak-merging
-  - pycistopic-atac-topic-modeling
-  contraindications:
-  - Do not use for scRNA-only 3'/5' data. Use Cell Ranger (non-ARC) instead.
-  - Do not use for scATAC-only libraries. Use Cell Ranger ATAC.
-  - Cannot analyze ATAC or GEX modality alone; both modalities are required for all ARC pipelines.
 ---
 
 # Cell Ranger ARC - 10x Multiome ATAC+GEX Pipeline
@@ -118,3 +97,22 @@ Omitting any = 25% data loss per missing oligo.
 **Installation**: Save to `/mnt/skills/user/cellranger_arc.md`  
 **Test**: `cellranger-arc count --help | grep libraries`  
 **Token count**: ~580 tokens
+
+---
+
+## When not to use
+
+- Do not use for scRNA-only 3'/5' data. Use Cell Ranger (non-ARC) instead.
+- Do not use for scATAC-only libraries. Use Cell Ranger ATAC.
+- Cannot analyze ATAC or GEX modality alone; both modalities are required for all ARC pipelines.
+
+---
+
+## See also
+
+- `scvi-multivi`
+- `scglue-unpaired-multiomics-integration`
+- `iterative-peak-merging`
+- `pycistopic-atac-topic-modeling`
+
+Upstream docs: https://www.10xgenomics.com/support/software/cell-ranger-arc

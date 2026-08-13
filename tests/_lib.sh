@@ -86,19 +86,23 @@ pass() {
 }
 
 # build_fake_toolkit <dir>
-# Create a minimal toolkit layout with fixture roles, skills, agents, commands.
-# Roles defined:
-#   base       — skills: s_a, s_b; agents: ag_a; commands: c_a
-#   reviewer   — skills: s_b, s_c; agents: ag_b; commands: c_b (overlay)
-#   alpha      — skills: s_a       (used in idempotent / max-stack tests)
+# Create a minimal toolkit layout with fixture skills, agents, and commands.
 build_fake_toolkit() {
     local root="$1"
-    mkdir -p "$root"/{roles,skills/s_a,skills/s_b,skills/s_c,agents,commands,system-prompts,lib,bin}
+    mkdir -p "$root"/{skills/s_a,skills/s_b,skills/s_c,agents,commands,lib,bin}
 
-    # Skills (directory format)
-    echo "skill s_a"  > "$root/skills/s_a/SKILL.md"
-    echo "skill s_b"  > "$root/skills/s_b/SKILL.md"
-    echo "skill s_c"  > "$root/skills/s_c/SKILL.md"
+    # Skills carry the two fields checked by `sciagent lint --check toolkit`.
+    local _s
+    for _s in s_a s_b s_c; do
+        cat > "$root/skills/$_s/SKILL.md" <<EOF
+---
+name: $_s
+description: Fixture skill $_s.
+---
+
+skill $_s
+EOF
+    done
 
     # Agents
     echo "agent ag_a" > "$root/agents/ag_a.md"
@@ -108,87 +112,7 @@ build_fake_toolkit() {
     echo "cmd c_a"   > "$root/commands/c_a.md"
     echo "cmd c_b"   > "$root/commands/c_b.md"
 
-    # System prompt fixture — exercised by tests that use output_style.
-    # Frontmatter `name:` is the logical identifier resolved by
-    # roles.sh system_prompt_path(); filename is incidental.
-    cat > "$root/system-prompts/fixture-style.md" <<'EOF'
----
-name: fixture-style
-description: stub style for tests
----
-fixture body
-EOF
-
-    # Roles
-    cat > "$root/roles/base.yaml" <<EOF
-name: base
-description: fixture base role
-skills:
-  - s_a
-  - s_b
-agents:
-  - ag_a
-commands:
-  - c_a
-EOF
-    cat > "$root/roles/reviewer.yaml" <<EOF
-name: reviewer
-description: fixture overlay
-skills:
-  - s_b
-  - s_c
-agents:
-  - ag_b
-commands:
-  - c_b
-EOF
-    cat > "$root/roles/alpha.yaml" <<EOF
-name: alpha
-description: fixture alpha
-skills:
-  - s_a
-EOF
-
-    # Minimal tags.yaml so `sciagent validate` (called internally by activate)
-    # finds the vocabulary file. Tests that need unknown-tag coverage override
-    # this file after calling build_fake_toolkit.
-    cat > "$root/tags.yaml" <<'EOF'
-tags:
-  - name: tooling
-    description: Test fixture tag.
-    since: 2026-05-24
-EOF
-
     # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
     ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
     ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
-}
-
-# tag_skill <toolkit-root> <skill-name> <tag-name>
-# Rewrites <toolkit-root>/skills/<skill-name>/SKILL.md so its frontmatter
-# carries a metadata.tags: block list containing <tag-name>. Any existing
-# file content is replaced with a minimal frontmatter + body.
-# Also ensures <tag-name> is present in <toolkit-root>/tags.yaml.
-tag_skill() {
-    local root="$1" skill="$2" tag="$3"
-
-    mkdir -p "$root/skills/$skill"
-    cat > "$root/skills/$skill/SKILL.md" <<EOF
----
-metadata:
-  scope: implementation
-  requires: []
-  complementary-skills: []
-  contraindications: []
-  tags:
-    - $tag
----
-skill $skill
-EOF
-
-    # Add the tag to tags.yaml if not already present.
-    if ! grep -q "name: $tag" "$root/tags.yaml" 2>/dev/null; then
-        printf '  - name: %s\n    description: Test fixture tag.\n    since: 2026-05-24\n' \
-            "$tag" >> "$root/tags.yaml"
-    fi
 }

@@ -163,7 +163,12 @@ clusters_for_loupe <- list()
 
 for (col in CLUSTER_COLS) {
   if (col %in% colnames(seurat@meta.data)) {
-    clusters_for_loupe[[col]] <- factor(seurat@meta.data[[col]])
+    # Recode NA / empty-string values to "unassigned" before factorising:
+    # the louper binary hard-fails with no informative error if a factor
+    # level is "" or <NA> (hit on treearches_status / novel_subcluster).
+    chr <- as.character(seurat@meta.data[[col]])
+    chr[is.na(chr) | chr == ""] <- "unassigned"
+    clusters_for_loupe[[col]] <- factor(chr)
   } else {
     cat("  Skipping '", col, "' (not in metadata)\n", sep = "")
   }

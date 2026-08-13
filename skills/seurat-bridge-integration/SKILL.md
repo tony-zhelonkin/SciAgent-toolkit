@@ -1,29 +1,7 @@
 ---
 name: seurat-bridge-integration
-description: Seurat bridge integration — map an ATAC-only query onto an RNA-only reference via a multiome bridge dataset, plus Azimuth reference mapping for paired or RNA-only queries. Use when you have an scATAC-seq query that needs cell-type labels transferred from a well-annotated scRNA-seq reference (e.g. Azimuth PBMC). For unpaired RNA+ATAC integration without a bridge, use seurat-unpaired-cross-modality.
+description: "Seurat bridge integration — map an ATAC-only query onto an RNA-only reference via a multiome bridge dataset, plus Azimuth reference mapping for paired or RNA-only queries. Use when an scATAC query needs labels transferred from a well-annotated scRNA reference. For unpaired integration without a bridge use seurat-unpaired-cross-modality."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 0.1.0
-  upstream-docs: https://satijalab.org/seurat/articles/seurat5_integration_bridge
-  category: integration
-  tier: simple
-  tags:
-  - annotation
-  - integration
-  - multimodal
-  - reference-mapping
-  complementary-skills:
-  - seurat-unpaired-cross-modality
-  - signac-chromatin-analysis
-  - seurat-multimodal-analysis
-  - treearches-hierarchy-learning
-  contraindications:
-  - Do not use without a multiome bridge dataset — see seurat-unpaired-cross-modality.
-  - Do not use for hierarchical label transfer with deep tree priors — see treearches-hierarchy-learning.
 ---
 
 # Seurat Bridge Integration & Azimuth Mapping
@@ -168,3 +146,19 @@ MapQuery(anchorset, reference, query,
 - Bridge integration tutorial: https://satijalab.org/seurat/articles/seurat5_integration_bridge
 - Azimuth: https://azimuth.hubmapconsortium.org/
 - Hao et al., Cell 2021 — Azimuth + reference-mapping paper.
+
+---
+
+## When not to use
+
+- Do not use without a multiome bridge dataset — see seurat-unpaired-cross-modality.
+- Do not use for hierarchical label transfer with deep tree priors — see treearches-hierarchy-learning.
+
+---
+
+## See also
+
+- `seurat-unpaired-cross-modality`
+- `signac-chromatin-analysis`
+- `seurat-multimodal-analysis`
+- `treearches-hierarchy-learning`

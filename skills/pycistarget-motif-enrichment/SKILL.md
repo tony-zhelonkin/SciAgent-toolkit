@@ -1,28 +1,7 @@
 ---
 name: pycistarget-motif-enrichment
-description: Runs TF motif ENRICHMENT on scATAC-seq region SETS (topics, DARs, peak clusters) using pycistarget's cisTarget (NES recovery curves) and DEM (Wilcoxon differential enrichment), and extracts cistromes (TF-to-region sets) for SCENIC+. Use when annotating pycisTopic topics or DAR sets with enriched TF motifs, building the cistrome input to SCENIC+ GRN inference, or querying pre-computed Aertslab rankings/scores feather databases. Unlike chromvar-motif-accessibility (per-cell deviation scores over the full peaks x cells matrix), this skill aggregates over a region set and returns per-TF enrichment, with no per-cell output. Unlike tf-footprint-differential-analysis, it uses motif-match evidence only, not Tn5 occupancy. For per-cell TF activity use chromvar-motif-accessibility; for footprint occupancy use tf-footprint-differential-analysis; for upstream topic discovery use pycistopic-atac-topic-modeling.
+description: "TF motif ENRICHMENT on scATAC region SETS (topics, DARs, peak clusters) via pycistarget's cisTarget and DEM, extracting cistromes for SCENIC+. Use when annotating topics or DAR sets with enriched motifs, or querying Aertslab feather databases. It aggregates over a region set — for per-cell TF activity use chromvar-motif-accessibility."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://pycistarget.readthedocs.io/
-  category: analysis
-  tier: simple
-  tags:
-  - grn
-  - motif
-  - chromatin
-  complementary-skills:
-  - pycistopic-atac-topic-modeling
-  - scenic-grn-inference
-  - chromvar-motif-accessibility
-  - tf-footprint-differential-analysis
-  contraindications:
-  - Do not use for per-cell TF activity scoring. Use chromvar-motif-accessibility.
-  - Do not use for TF footprinting / occupancy evidence. Use tf-footprint-differential-analysis.
 ---
 
 # pycistarget Motif Enrichment Skill
@@ -39,8 +18,8 @@ pycisTopic (regions) → pycistarget (motifs) → SCENIC+ (GRN)
   DARs.bed             cistromes
 ```
 
-**Upstream:** [pycisTopic skill](pycistopic-atac-topic-modeling.md) provides region sets
-**Downstream:** [SCENIC+ skill](scenic-grn-inference.md) uses motif enrichment for GRN
+**Upstream:** [pycisTopic skill](../pycistopic-atac-topic-modeling/SKILL.md) provides region sets
+**Downstream:** [SCENIC+ skill](../scenic-grn-inference/SKILL.md) uses motif enrichment for GRN
 
 ## Installation
 
@@ -336,9 +315,9 @@ For separate RNA and ATAC experiments, pycistarget analysis remains the same. Th
 
 **Key requirement:** Ensure region sets (from pycisTopic) are derived from the ATAC data that will be used in SCENIC+.
 
-See [SCENIC+ skill](scenic-grn-inference.md) for metacell configuration.
+See [SCENIC+ skill](../scenic-grn-inference/SKILL.md) for metacell configuration.
 
-For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see [scenic-r-python-interop](scenic-r-python-interop.md).
+For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see [scenic-r-python-interop](../scenic-r-python-interop/SKILL.md).
 
 ---
 
@@ -384,3 +363,19 @@ For R → Python data export (Signac/ArchR → pycisTopic → pycistarget), see 
 ## API Reference
 
 Full documentation: https://pycistarget.readthedocs.io/en/latest/api.html
+
+---
+
+## When not to use
+
+- Do not use for per-cell TF activity scoring. Use chromvar-motif-accessibility.
+- Do not use for TF footprinting / occupancy evidence. Use tf-footprint-differential-analysis.
+
+---
+
+## See also
+
+- `pycistopic-atac-topic-modeling`
+- `scenic-grn-inference`
+- `chromvar-motif-accessibility`
+- `tf-footprint-differential-analysis`

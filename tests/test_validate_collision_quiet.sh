@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_collision_quiet.sh
-# `sciagent validate --quiet` must suppress cross-namespace collision warnings
-# the same way it suppresses the "all checks passed" success line. Scripted
-# callers want silent-on-success across every soft-warn surface.
+# `sciagent lint --check toolkit --quiet` suppresses collision warnings.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -17,19 +15,19 @@ export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
 
 set +e
-out=$("$SCIAGENT" validate --quiet 2>&1)
+out=$("$SCIAGENT" lint --check toolkit --quiet 2>&1)
 rc=$?
 set -e
 
 if [[ "$rc" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] validate --quiet exited $rc on collision (expected 0)" >&2
+    echo "FAIL [$_TEST_NAME] toolkit lint --quiet exited $rc on collision (expected 0)" >&2
     echo "--- output ---" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi
 
 if [[ -n "$out" ]]; then
-    echo "FAIL [$_TEST_NAME] validate --quiet produced output on collision; expected none" >&2
+    echo "FAIL [$_TEST_NAME] toolkit lint --quiet produced output on collision; expected none" >&2
     echo "--- output ---" >&2
     printf '%s\n' "$out" >&2
     exit 1

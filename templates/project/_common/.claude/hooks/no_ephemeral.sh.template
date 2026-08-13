@@ -1,0 +1,135 @@
+#!/usr/bin/env bash
+# .claude/hooks/no_ephemeral.sh — PreToolUse/Bash guardrail (P14).
+#
+# Convention (E): results must be reproducible from a committed
+# 02_analysis/stages/NN_* stage. Ephemeral inline code, or scripts
+# living outside that tree, must not write directly under 03_results/.
+#
+# Strict toggle: SCIAGENT_STRICT=1 (or =true) → exit 2 (BLOCK);
+#                default                      → exit 0 (advisory warn).
+#
+# Sanctioned zones: _scratch/ anywhere under the project, and $TMPDIR.
+# Writes targeting those zones are never blocked or warned.
+
+set -u
+
+# ---------------------------------------------------------------------------
+# Parse JSON from stdin (PreToolUse payload).
+# We need: .tool_input.command
+# Use python3 when available; fall back to grep/sed.
+# ---------------------------------------------------------------------------
+payload=$(cat)
+
+if command -v python3 >/dev/null 2>&1; then
+    cmd=$(printf '%s' "$payload" | python3 -c "
+import sys, json
+try:
+    d = json.load(sys.stdin)
+    print(d.get('tool_input', {}).get('command', ''))
+except Exception:
+    print('')
+")
+else
+    # grep/sed fallback: extract the value of \"command\": \"...\"
+    # Handles simple single-line JSON values (multiline commands are base64-like blobs anyway).
+    cmd=$(printf '%s' "$payload" \
+        | grep -o '"command"[[:space:]]*:[[:space:]]*"[^"]*"' \
+        | head -1 \
+        | sed 's/^"command"[[:space:]]*:[[:space:]]*"//;s/"$//')
+fi
+
+[[ -z "$cmd" ]] && exit 0
+
+# ---------------------------------------------------------------------------
+# Sanctioned-zone helper: is the entire command targeting only _scratch/ or TMPDIR?
+# We check whether every 03_results/ path mention in the command falls under
+# _scratch/ or (when TMPDIR is set) under $TMPDIR.  Conservative: if ANY
+# 03_results/ reference is outside the sanctioned zone we proceed to check.
+# ---------------------------------------------------------------------------
+_is_sanctioned() {
+    local c="$1"
+    # If the command mentions 03_results/ at all, check if it's only _scratch/.
+    if printf '%s' "$c" | grep -q '03_results/'; then
+        # Strip lines/tokens that are definitely sanctioned.
+        local stripped
+        stripped=$(printf '%s' "$c" | sed 's|03_results/_scratch/[^ )'"'"'"]*||g')
+        if [[ -n "${TMPDIR:-}" ]]; then
+            stripped=$(printf '%s' "$stripped" | sed "s|${TMPDIR%/}/[^ )'\"]* ||g")
+        fi
+        # If 03_results/ still appears after stripping sanctioned refs → not fully sanctioned.
+        if printf '%s' "$stripped" | grep -q '03_results/'; then
+            return 1  # NOT fully sanctioned
+        fi
+    fi
+    return 0  # sanctioned (no 03_results/ outside _scratch/)
+}
+
+# ---------------------------------------------------------------------------
+# Check 1: Ephemeral result-producing write heuristic.
+#
+# Conditions (both must match):
+#   (a) Inline interpreter OR script outside 02_analysis/stages/
+#   (b) Writes under 03_results/ (not fully in _scratch/)
+#
+# `scripts` is accepted alongside `stages` for the duration of the rename, so
+# this hook keeps passing legitimate runs in a repo that has not renamed yet.
+# Drop it from the alternation once they all have.
+# ---------------------------------------------------------------------------
+_STAGE_DIR_RE='02_analysis/(stages|scripts)'
+
+_is_inline_or_outside_stages() {
+    local c="$1"
+    # Inline interpreter patterns.
+    if printf '%s' "$c" | grep -qE '(python3?|python|Rscript)[[:space:]]+-[ce][[:space:]]'; then
+        return 0
+    fi
+    # Runs a .py/.R file, none of which live under an accepted stage dir.
+    if printf '%s' "$c" | grep -qE '[[:space:]/][^[:space:]]*\.(py|R)[[:space:]]'; then
+        if ! printf '%s' "$c" | grep -qE "$_STAGE_DIR_RE/[^[:space:]]*\.(py|R)"; then
+            return 0
+        fi
+    fi
+    # /tmp/ or bare path scripts.
+    if printf '%s' "$c" | grep -qE '(/tmp/|/var/tmp/)[^[:space:]]*\.(py|R|sh)'; then
+        return 0
+    fi
+    return 1
+}
+
+_writes_to_results() {
+    local c="$1"
+    # Direct path mention.
+    printf '%s' "$c" | grep -q '03_results/' && return 0
+    # Common output patterns targeting results (savefig, ggsave, write_csv, to_csv).
+    printf '%s' "$c" | grep -qE "(savefig|ggsave|write_csv|to_csv|write\.csv)\s*\(" && return 0
+    return 1
+}
+
+if _writes_to_results "$cmd" && ! _is_sanctioned "$cmd" && _is_inline_or_outside_stages "$cmd"; then
+    msg="[sciagent/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/stages/NN_* stage.
+Capture throwaway probes in _scratch/ or a reasoning trace (docs/_internal/).
+If this is a real analysis step, save the code as 02_analysis/stages/NN_*.{R,py} first."
+
+    if [[ "${SCIAGENT_STRICT:-0}" == "1" || "${SCIAGENT_STRICT:-}" == "true" ]]; then
+        printf '%s\n' "$msg" >&2
+        exit 2   # BLOCK
+    else
+        printf '%s\n' "$msg" >&2
+        exit 0   # advisory warn
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# Check 2: Lightweight figure-save nudge (always advisory, never blocking).
+# If ggsave( or plt.savefig( is called directly (not from a helper), nudge
+# the author to route through save_figure / save_overview.
+# This is PURELY advisory (exit 0) regardless of SCIAGENT_STRICT.
+# ---------------------------------------------------------------------------
+if printf '%s' "$cmd" | grep -qE '(ggsave\(|plt\.savefig\()'; then
+    # Allow calls that already go through the helpers.
+    if ! printf '%s' "$cmd" | grep -qE '(save_figure\(|save_overview\()'; then
+        printf '[sciagent/figure-save] Route figure saves through save_figure() or save_overview() (defined in 02_analysis/helpers/figure_style.*) to honour the project theme and consistent geometry.\n' >&2
+    fi
+fi
+
+exit 0

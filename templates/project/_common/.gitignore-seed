@@ -1,0 +1,70 @@
+# Data files (track structure via .gitkeep, not contents)
+00_data/raw/*
+!00_data/raw/.gitkeep
+00_data/processed/*
+!00_data/processed/.gitkeep
+00_data/references/*
+!00_data/references/.gitkeep
+
+# Results — track the directory skeleton (.gitkeep) and caption READMEs, never artifacts.
+# Hard-ignore checkpoint state objects at any depth (large + recomputable).
+03_results/objects/*.h5ad
+03_results/objects/*.rds
+03_results/objects/*.rdata
+03_results/objects/*.parquet
+
+# Ignore data artifacts within phase dirs at any depth, keep the skeleton.
+# Regenerable from code + data; every rerun otherwise churns hundreds of binary diffs with
+# nothing meaningful to review. The README.md caption in each stage dir is the tracked,
+# citable record of what a figure/table shows (see the project's AGENTS.md "Artifact captions").
+03_results/**/figures/**/*.pdf
+03_results/**/figures/**/*.png
+03_results/**/figures/**/*.svg
+03_results/**/tables/**/*.csv
+03_results/**/tables/**/*.tsv
+
+# Scratch: throwaway artifacts, never committed
+03_results/_scratch/*
+!03_results/_scratch/.gitkeep
+
+# Keep .gitkeep placeholders everywhere under 03_results/.
+!03_results/**/.gitkeep
+
+# Reference codebases (gitignored by default — add explicitly if needed)
+01_modules/.ref/
+
+# Logs
+logs/
+*.log
+
+# Secrets and env
+.env
+.env.local
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+.mcp.json
+
+# CLI auth configs
+.gemini/
+.codex/
+
+# R artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/*.log

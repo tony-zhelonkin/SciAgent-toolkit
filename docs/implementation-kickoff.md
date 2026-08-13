@@ -1,13 +1,41 @@
-# implementation-kickoff — sciagent extension
+# implementation-kickoff — sciagent extension (ARCHIVED — superseded by the three-verb toolkit)
 
-A working document for executing the sciagent extension after grilling. Mirrors the dual purpose of `docs/kickoff.md`:
+> **STATUS: HISTORICAL RECORD. DO NOT EXECUTE. DO NOT PASTE §7 INTO A SESSION.**
+>
+> This document planned an *expansion* of the role layer: a `metadata.requires:`
+> dependency graph, a `tags.yaml` vocabulary + tag-based `inject --tag`/`eject`
+> verb pair, and a `scope: concept|implementation` taxonomy. None of that
+> shipped as designed. Instead, the "demolish the role layer" refactor (see
+> `docs/architecture.md`, `CHANGELOG.md`) went the opposite direction: it
+> **removed** `inject`/`eject` entirely, **removed** the `metadata:`
+> frontmatter block and every `requires:`/tag mechanism, and made roles
+> pure provenance labels — the full skill/agent/command catalog is mounted
+> unconditionally now, so there is nothing left to inject, eject, or gate by
+> tag. `sciagent validate` today is the frontmatter-shape + collision checker
+> described in `docs/architecture.md` §5, not the graph-and-tag validator PR 2
+> below designs.
+>
+> Every PR plan, file list, code skeleton, and the session-resume prompt in §7
+> below describes that abandoned direction. It is kept **only as an audit
+> trail** of what was once decided and why the team changed course — read it
+> as history, never as a task list. If you are an agent and were pointed at
+> this file to "pick up where it left off," stop and re-read
+> `docs/architecture.md` instead; nothing here should be implemented.
+>
+> The imperative mood throughout ("do not soften `skill_deps.sh`", "execute
+> PR 1", etc.) is preserved verbatim from the original working document for
+> historical accuracy — it does not apply anymore.
 
-1. **A guide for the human (Anton)** — what to build, in what order, what each PR has to verify, when to stop and ask.
-2. **A session-resume prompt for a fresh Claude Code session** — paste §7 into a clean session to pick up the work.
+---
 
-Same content serves both because the implementer's reading order and the reviewer's verification order are the same list.
+Written as a working document for executing the sciagent extension after grilling, mirroring the dual purpose of `docs/kickoff.md`:
 
-The grilling phase that produced this plan is done. `kickoff.md` §3 is empty; §9 holds the 16 resolutions; `docs/proposals/deffered.md` holds four wholesale deferrals. The grilling document stays as audit trail; this document drives PRs.
+1. **A guide for the human (Anton)** — what was to be built, in what order, what each PR had to verify, when to stop and ask.
+2. **A session-resume prompt for a fresh Claude Code session** — §7 was meant to be pasted into a clean session to pick up the work. (Superseded — do not paste it; see the banner at the top of this file.)
+
+Same content served both because the implementer's reading order and the reviewer's verification order were the same list.
+
+The grilling phase that produced this plan was done at the time. `kickoff.md` §3 was empty; §9 held the 16 resolutions; `docs/proposals/deffered.md` held four wholesale deferrals. The grilling document stays as audit trail; this document was meant to drive PRs, but the plan it describes was abandoned in favor of the opposite direction (see the banner at the top of this file).
 
 ---
 
@@ -73,7 +101,7 @@ PR 1 ───┬──► PR 2 ───► PR 3 ───► PR 4
 
 | PR | Title | Depends on | Files touched (representative) | Acceptance |
 |----|---|---|---|---|
-| 1 | ADR-001/003 metadata codemod + `tags.yaml` seed | — | `tags.yaml` (new), `skills/*/SKILL.md` (mass), `skills/_TEMPLATE/SKILL.md`, `tests/test_skill_scope_lint.sh` | All skills carry the five fields; `tags.yaml` present with 10 seeds; lint test updated to new scope vocabulary; `bin/sciagent activate base` green. |
+| 1 | ADR-001/003 metadata codemod + `tags.yaml` seed | — | `tags.yaml` (new), `skills/*/SKILL.md` (mass), `templates/skill/SKILL.md`, `tests/test_skill_scope_lint.sh` | All skills carry the five fields; `tags.yaml` present with 10 seeds; lint test updated to new scope vocabulary; `bin/sciagent activate base` green. |
 | 2 | `sciagent validate` verb + internal call from `activate` + STDERR warning surface | PR 1 | `bin/sciagent`, `lib/sciagent/validate.sh` (new), `lib/sciagent/activate.sh`, `tests/test_validate_*.sh` (new) | `sciagent validate` exits non-zero on cycle/missing/unknown-tag; `activate` continues on missing `requires` with summary block to STDERR; standalone verb works for debugging. |
 | 3 | `sciagent eject` verb + `inject --tag` / `eject --tag` | PR 1, PR 2 | `bin/sciagent`, `lib/sciagent/inject.sh`, `lib/sciagent/eject.sh` (new), `lib/sciagent/symlinks.sh` (manifest entry), `tests/test_inject_tag_*.sh`, `tests/test_eject_*.sh` (new) | Round-trip: `inject X` then `eject X` is a no-op final state; `inject --tag pathway` mounts all skills with that tag; `eject --tag` removes them; `eject` of a stack-mounted skill errors with the right pointer to `deactivate`. |
 | 4 | Consolidated test coverage pass | PR 1–3 | `tests/test_*.sh` | All three new verbs/forms have positive, negative, and idempotency tests. `bash tests/run-all.sh` green. |
@@ -93,8 +121,8 @@ PR 3 depends on PR 1 because `--tag` requires the `tags.yaml` vocabulary and ski
 
 - **New:** `tags.yaml` at toolkit root.
 - **Modified (mass):** every `skills/<name>/SKILL.md` that does not already carry all five fields. Per the audit, `scope`, `requires`, `complementary-skills`, `contraindications`, and `tags` already exist on most curated skills; the codemod normalises the ones that are missing fields (e.g. `architecture-first-dev`, `skill-creator` carry only `scope` + `requires`).
-- **Modified:** `skills/_TEMPLATE/SKILL.md` — bring the template in line with the canonical shape (the placeholders are already there; align field names with §9's decided vocabulary).
-- **Modified:** `tests/test_skill_scope_lint.sh` — change scope vocabulary AND cap values per `kickoff.md` §9, 2026-05-24 cap decision. Specifically: replace the three-way `atomic`/`orchestrator`/`foundation` switch (lines ~79–88) with `concept` ≤ 500 / `implementation` ≤ 350; change default-on-missing from `atomic` to `implementation` (line ~75); bump CUTOFF to `2026-05-24` (line ~19); add a regression-block rule that FAILs on any non-`_TEMPLATE` skill carrying `scope: atomic|orchestrator|foundation`.
+- **Modified:** `templates/skill/SKILL.md` — bring the template in line with the canonical shape (the placeholders are already there; align field names with §9's decided vocabulary).
+- **Modified:** `tests/test_skill_scope_lint.sh` — change scope vocabulary AND cap values per `kickoff.md` §9, 2026-05-24 cap decision. Specifically: replace the three-way `atomic`/`orchestrator`/`foundation` switch (lines ~79–88) with `concept` ≤ 500 / `implementation` ≤ 350; change default-on-missing from `atomic` to `implementation` (line ~75); bump CUTOFF to `2026-05-24` (line ~19); add a regression-block rule that FAILs on any active skill carrying `scope: atomic|orchestrator|foundation`.
 
 **Codemod behaviour.** One Python (or bash + `yq`) script committed under `scripts/` or run-once and discarded — author's choice. Per skill, it:
 
@@ -158,7 +186,7 @@ tags:
 - `implementation` ≤ **350** body lines (replaces `atomic ≤ 300`).
 - Default scope on missing frontmatter field: `implementation` (was `atomic`).
 - CUTOFF bump: `2026-05-21` → `2026-05-24`.
-- New rule: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill is a FAIL (regression block).
+- New rule: presence of `scope: atomic|orchestrator|foundation` in any active skill is a FAIL (regression block).
 - Existing `body_loc_no_fences` counting machinery is unchanged.
 
 The 500/350 numbers catch 100% of today's 62 skills with margin (concept p90=235 → 2.1× headroom; implementation p90=224 → 1.6× headroom). No hand-flips or content refactors are required for any existing skill; `iterative-peak-merging` (317 body lines, 0 companions) was the only would-be casualty of a tighter 300 cap.
@@ -186,7 +214,7 @@ Add a new test `tests/test_tags_vocabulary.sh` that verifies every `metadata.tag
 - ✅ **Folder-relief pattern**: blessed for both scopes (codifies the existing convention used by 12/62 skills).
 - ✅ **Default-on-missing**: `implementation` (was `atomic`).
 - ✅ **CUTOFF bump**: 2026-05-21 → 2026-05-24.
-- ✅ **Regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill = FAIL.
+- ✅ **Regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any active skill = FAIL.
 - ✅ **`architecture-treemap`**: assigned `scope: implementation` during the codemod (currently missing the field).
 
 No PR 1 architectural questions remain open. Implementation can proceed.
@@ -395,9 +423,9 @@ cmd_eject() {
 
 ---
 
-## 6. Reading order for a fresh session
+## 6. Reading order for a fresh session (historical — the plan below was never executed as designed)
 
-Before executing PR 1, load these files into context in this order:
+The plan called for loading these files into context, in this order, before executing PR 1:
 
 1. `docs/kickoff.md` §9 — authoritative resolutions. Every PR's "why" lives here.
 2. `docs/proposals/deffered.md` — what is explicitly out of scope.
@@ -409,13 +437,20 @@ Before executing PR 1, load these files into context in this order:
 8. `lib/sciagent/skill_deps.sh` — resolver behaviour shared with `validate`.
 9. `lib/sciagent/symlinks.sh` — manifest schema (where the new `via:` field lands).
 10. `tests/test_inject_creates_overlay.sh` + `tests/test_skill_scope_lint.sh` + `tests/_lib.sh` — test patterns to mirror.
-11. `skills/_TEMPLATE/SKILL.md` and 2–3 representative skill frontmatters (`scvi-basic`, `architecture-first-dev`, `skill-creator`) — current shape vs. target shape for PR 1's codemod.
+11. `templates/skill/SKILL.md` and 2–3 representative skill frontmatters (`scvi-basic`, `architecture-first-dev`, `skill-creator`) — current shape vs. target shape for PR 1's codemod.
 
 The grilling artefacts (`docs/proposals/ai-research/*.md`, `docs/proposals/sciagent-extension-design-spec.md`) are optional reading; consult only when a "why was this decided" question arises during a PR.
 
 ---
 
-## 7. Session-resume prompt
+## 7. Session-resume prompt (ARCHIVED — do not paste)
+
+> **This prompt is dead.** It was written to resume the PR 1–3 work above.
+> That work was superseded by the demolition refactor (see the banner at the
+> top of this file). Pasting it into a session today would misdirect an
+> agent into rebuilding `inject`/`eject`/`tags.yaml`/`metadata.requires:` —
+> exactly the layer that was deliberately removed. Kept verbatim below for
+> audit-trail purposes only.
 
 Paste the body below into a fresh Claude Code session. Assumes working directory `/workspaces/DC_hum_verse/01_modules/SciAgent-toolkit/`.
 
@@ -435,7 +470,7 @@ Paste the body below into a fresh Claude Code session. Assumes working directory
 >
 > **All architectural decisions are resolved** in `kickoff.md` §9 (decisions dated 2026-05-24). Do not invent answers on architectural questions — surface and stop. Key resolutions for PR-1-through-PR-3:
 > - PR 1 scope mapping: `foundation`/`orchestrator` → `concept`; `atomic` → `implementation`. Hand-flips during code review for individual outliers.
-> - PR 1 caps: `concept` ≤ 500, `implementation` ≤ 350. Folder-relief pattern (companion files in skill folder referenced by basename from SKILL.md body) blessed for both scopes. Default scope on missing field = `implementation`. CUTOFF bumped to 2026-05-24. New regression-block lint rejects `scope: atomic|orchestrator|foundation` on non-`_TEMPLATE` skills.
+> - PR 1 caps: `concept` ≤ 500, `implementation` ≤ 350. Folder-relief pattern (companion files in skill folder referenced by basename from SKILL.md body) blessed for both scopes. Default scope on missing field = `implementation`. CUTOFF bumped to 2026-05-24. New regression-block lint rejects `scope: atomic|orchestrator|foundation` on active skills.
 > - PR 2 hardness boundary: `requires` keeps hard-fail (preserves the pre-mutation safety invariant); `complementary-skills` warn-and-continue with STDERR end-of-activate summary.
 >
 > **Implementer-level micro-decisions** (sane-default and proceed; surface at PR review if uncertain):
@@ -487,4 +522,4 @@ Explicit don'ts. Lifted from §3, `deffered.md`, and the hard constraints in §5
 
 ---
 
-*End of implementation kickoff. All architectural decisions resolved in `kickoff.md` §9; deferrals in `deffered.md`. Walk into PR 1, read §5, execute.*
+*End of implementation kickoff. All architectural decisions were resolved in `kickoff.md` §9; deferrals in `deffered.md`. The plan called for walking into PR 1, reading §5, and executing — but the plan itself was superseded (see the banner at the top of this file); do not execute it.*

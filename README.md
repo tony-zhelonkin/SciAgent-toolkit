@@ -1,156 +1,166 @@
 # sciagent
 
-Per-project context manager for AI coding harnesses. Activates a role — a bundle of skills, sub-agents, and slash commands — for a session.
+SciAgent is a per-project catalog of computational-biology skills, sub-agents,
+commands, CRAFT conventions, and executable guardrails for AI coding harnesses.
 
-## Why
-
-Different work modes need different context. Reviewing code and running bioinformatics analysis call for different agents, different skills, different commands. Roles let you swap that context in one command. Everything is per-project — nothing touches your home directory.
+The toolkit keeps its mount sources in the same shape the harnesses consume:
+84 skill directories, 21 flat agent files, and 7 flat command files. A project
+binds each category with one directory symlink.
 
 ## Install
 
-The CLI is one bash script at `bin/sciagent`. To call `sciagent` (or its short alias `si`) from anywhere, symlink it into a directory on your `PATH`.
-
-`PATH` is the colon-separated list shell searches when a command is typed — `echo $PATH` prints it. 
-`~/.local/bin` is the conventional spot for user-installed binaries and is already on `PATH` in most modern shells; if it isn't, add `export PATH="$HOME/.local/bin:$PATH"` to your shell rc (`~/.bashrc`, `~/.zshrc`). 
+Most analysis projects vendor this repository at
+`01_modules/SciAgent-toolkit/`. Use a relative alias so each project invokes its
+own pinned copy:
 
 ```bash
-# Replace /absolute/path/to/SciAgent-toolkit with wherever you cloned (or submoduled) the toolkit
-ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/sciagent
-ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/si
-
-sciagent --help     # verify it resolves
+alias si='./01_modules/SciAgent-toolkit/bin/sciagent'
 ```
 
-`ln -sf` is idempotent — re-run to repoint at a different checkout. Uninstall with `rm ~/.local/bin/sciagent ~/.local/bin/si`; the toolkit itself is untouched. 
+`sciagent link` refuses an external toolkit when the project contains its own
+`SciAgent-toolkit` checkout. This keeps the binding aligned with the project's
+submodule pin.
+
+For one checkout, a PATH symlink is convenient:
+
+```bash
+ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/sciagent
+sciagent --help
+```
+
+### From a release tarball
+
+The offline installer accepts a local release artifact and checksum. The
+release artifact is named `scio`; the installed command is `sciagent`.
+
+```bash
+./install.sh --archive  scio-0.1.0-<short-sha>.tar.gz \
+             --checksum scio-0.1.0-<short-sha>.tar.gz.sha256 \
+             --prefix   "$HOME/.local"
+```
+
+It installs a content-addressed version under
+`~/.local/share/scio/versions/<full-git-sha>/`, links
+`~/.local/bin/sciagent`, and writes a receipt. The installer has no network
+path. Maintainers build an artifact with
+`scripts/build-release.sh <ref>` from a clean tree.
 
 ## Quick start
 
 ```bash
-# Bootstrap a new project directory with AGENTS.md, CLAUDE.md, context.md
-sciagent new project
+# Bind the catalog and materialize the project guardrail hooks.
+sciagent link
 
-# Activate a role — symlinks agents, skills, commands into .claude/ and .agents/
-sciagent activate base
+# Render the shared computational-biology conventions into AGENTS.md.
+sciagent craft
 
-# Add one skill on top of the current stack
-sciagent inject simplify
-
-# Show the active stack, effective tables, and block/symlink health
-sciagent status
-
-# Tear down: remove symlinks and the managed block from AGENTS.md
-sciagent deactivate
+# Run project checks.
+sciagent lint
 ```
 
-## The RPG model
-
-A project has at most two active roles: a `base` (the foundation) and an optional `overlay` (the specialization). Layering runs bottom-to-top — the overlay's entries shadow matching ones from the base. `sciagent status` shows what got shadowed.
-
-Any role can occupy either slot; there's no enforced base/overlay typing. Toggle whichever combination fits the session — `base` + `pathway-signature` for downstream interpretation, `scrna-atlas` + `planning` to layer a research stack on top of atlas work, `architect` solo for design sessions. `sciagent list roles` enumerates what's available.
+Every verb accepting a project path defaults to the current directory:
 
 ```bash
-sciagent activate base pathway-signature
+sciagent link --project-dir /path/to/project
+sciagent craft --project-dir /path/to/project
+sciagent lint --project-dir /path/to/project
 ```
-
-Stack depth is capped at 2 to stay inspectable — Claude Code's own three-tier resolution already makes "where did this come from?" painful enough.
 
 ## Verbs
 
 | Verb | Description |
-|------|-------------|
-| `activate <base> [overlay]` | Activate role(s); replaces current stack |
-| `deactivate [<role>]` | Tear down the stack or remove one role |
-| `inject <name>` | Add one skill / agent / command (auto-detect; `--skill` / `--agent` / `--command` for explicit) |
-| `eject <name>` | Remove one injected entry (symmetric to `inject`) |
-| `validate [--quiet]` | Check toolkit integrity (requires-graph, tags, refs, name collisions) |
-| `status [--json\|--effective\|--source <name>]` | Report active stack and effective tables |
-| `list [roles\|skills\|agents\|commands]` | List available content in the toolkit |
-| `new project\|role\|skill\|agent [args]` | Scaffold from templates |
+|---|---|
+| `link [--project-dir D]` | Bind the six catalog trees and ensure guardrail hooks |
+| `craft [--project-dir D] [--force] [--quiet]` | Render or refresh `SCIAGENT:CRAFT` in `AGENTS.md` |
+| `lint [--project-dir D] [--check <name>...] [--strict] [--quiet]` | Run project guardrail checks |
 
-Run `sciagent --help` for the terse reference. `si` is available as an alias if you symlink `bin/sciagent` as `si` in your PATH.
+Run `sciagent --help` for the terse reference.
 
-## inject · eject · validate
+## What `link` writes
 
-`inject <name>` auto-detects whether `<name>` is a skill, agent, or command:
-
-```
-$ sciagent inject extra-skill
-injected: extra-skill (into _injected)
-
-$ sciagent inject extra-agent
-injected: extra-agent (into _injected)
-
-$ sciagent inject extra-command
-injected: extra-command (into _injected)
-```
-
-Ambiguous names hard-fail; the explicit flags resolve them:
-
-```
-$ sciagent inject dual-name
-error: ambiguous — 'dual-name' exists as both skill and command. use --skill <name>, --agent <name>, or --command <name>
-
-$ sciagent inject --command dual-name
-injected: dual-name (into _injected)
-note: companion skill 'dual-name' available — `inject --skill dual-name` to add
-```
-
-The companion-skill note is informational — the skill is not auto-mounted. Unknown names hard-fail:
-
-```
-$ sciagent inject definitely-does-not-exist
-error: 'definitely-does-not-exist' not found as skill, agent, or command
-```
-
-`eject <name>` is symmetric. Ambiguous when the same name was injected as 2+ kinds:
-
-```
-$ sciagent eject extra-agent
-ejected: extra-agent (agent)
-
-$ sciagent eject dual-name
-error: ambiguous — 'dual-name' is injected as both command and skill. use --skill <name>, --agent <name>, or --command <name>
-```
-
-`validate` checks toolkit integrity. Cross-namespace name collisions are soft-warns (mounting both is supported); other failures are hard. `--quiet` suppresses all output (exit code only):
-
-```
-$ sciagent validate
-validate: warning — name 'architect' appears as agent, command, and role (mounting both is supported; ensure the overlap is intentional)
-validate: warning — name 'architecture-treemap' appears as both skill and command (mounting both is supported; ensure the overlap is intentional)
-sciagent validate: all checks passed
-
-$ sciagent validate --quiet
-```
-
-## What it writes
-
-`sciagent activate` creates symlinks and a managed block in `AGENTS.md`:
-
-```
+```text
 project/
-├── AGENTS.md                         # your file; sciagent appends a managed block
-├── CLAUDE.md                         # 1-line @AGENTS.md shim (from template)
 ├── .claude/
-│   ├── skills/<name>  →  toolkit/skills/<name>
-│   ├── agents/<name>.md  →  toolkit/agents/<name>.md
-│   ├── commands/<name>.md  →  toolkit/commands/<name>.md
-│   └── output-styles/<name>.md  →  toolkit/system-prompts/<name>.md
-├── .agents/
-│   ├── skills/<name>  →  toolkit/skills/<name>
-│   ├── agents/<name>.md  →  toolkit/agents/<name>.md
-│   └── commands/<name>.md  →  toolkit/commands/<name>.md
-└── .sciagent/manifest.json           # machine-readable state for safe teardown
+│   ├── skills   -> <toolkit>/skills
+│   ├── agents   -> <toolkit>/agents
+│   ├── commands -> <toolkit>/commands
+│   ├── settings.json
+│   └── hooks/
+│       ├── no_ephemeral.sh
+│       └── caption_sweep.sh
+└── .agents/
+    ├── skills   -> <toolkit>/skills
+    ├── agents   -> <toolkit>/agents
+    └── commands -> <toolkit>/commands
 ```
 
-The managed block is delimited by HTML comments (`<!-- BEGIN SCIAGENT:ROLES v1 hash=... -->`), invisible in rendered markdown. On each run, sciagent recomputes the hash and warns if you've edited inside the block.
+`link` also refreshes the `SCIAGENT:GITIGNORE` block in `.gitignore`.
 
-`deactivate` removes the block and removes only symlinks it owns (tracked via `manifest.json`).
+`link` is convergent. A missing category link is created, a correct link is a
+silent no-op, and a link pointing elsewhere is replaced with a message. It
+also sweeps legacy toolkit-owned child mounts, retired output-style links, and
+dangling absolute mounts from older container paths.
+
+A real populated category directory is preserved. `link` names every entry in
+the refusal and asks the user to relocate it before retrying. Private skills,
+agents, and commands should live outside these six category paths.
+
+Hook bodies use a hash-and-cede ownership discipline. An unchanged body from
+any shipped toolkit version can be refreshed. A user-edited body is preserved,
+reported once, and ceded from future management. Hook registrations are merged
+into `.claude/settings.json` while unrelated project settings remain intact.
+
+Claude Code treats project settings as replacements for user settings except
+for permission rules. SciAgent writes only the two project guardrail hook
+registrations; editor, model, memory, attribution, thinking, and statusline
+preferences remain user-owned.
+
+## Manual removal
+
+The `deactivate` verb has retired, so removing a project binding is manual.
+The catalog and managed context come out in two operations:
+
+```bash
+rm .claude/{skills,agents,commands} .agents/{skills,agents,commands}
+# Edit AGENTS.md and remove the complete SCIAGENT:CRAFT block.
+```
+
+One link per category makes the filesystem portion a single explicit `rm`
+line. The materialized hooks and their settings registrations remain project
+guardrails; remove those files and registrations separately when retiring the
+enforcement layer too.
+
+Historical consumer repositories may still carry `SCIAGENT:ROLES`. The
+shipped block library retains the removal path:
+
+```bash
+TOOLKIT_PATH=/path/to/SciAgent-toolkit
+bash -c '. "$1/lib/sciagent/block.sh"; block_remove "$2" ROLES' \
+  _ "$TOOLKIT_PATH" /path/to/project/AGENTS.md
+```
+
+## Validation and linting
+
+`sciagent lint --check toolkit` checks every skill's `name` and `description`
+frontmatter. The name must match the directory and the description must fit
+the configured length cap. Cross-namespace collisions among skills, agents,
+and commands are warnings.
+
+`sciagent lint` runs project checks for figure style, results layout, captions,
+provenance, freshness, stage structure, comment intent, documentation layout,
+and registered hook existence. Findings warn by default and become failures
+under `--strict`.
 
 ## Harness support
 
-Reads the native discovery directories of Claude Code (`.claude/skills/`, `.claude/agents/`, `.claude/commands/`) and Pi (`.agents/skills/`). Sub-agents and slash commands are Claude-specific today. Pi extension for `.agents/agents/` and `.agents/commands/` is the user's job — symlinks are already there.
+Claude Code reads `.claude/{skills,agents,commands}`. Pi reads
+`.agents/skills`; extensions can consume `.agents/agents` and
+`.agents/commands`. Both trees point at the same toolkit sources.
 
-## Architecture
+## Documentation
 
-See [docs/architecture.md](docs/architecture.md) for the full design spec.
+- [Propagation model](docs/propagation.md)
+- [Architecture](docs/architecture.md)
+- [Skills catalog](docs/skills.md)
+- [Agent catalog](docs/agents.md)
+- [Command catalog](docs/commands.md)

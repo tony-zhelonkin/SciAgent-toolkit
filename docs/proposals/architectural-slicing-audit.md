@@ -3,7 +3,7 @@ doc: architectural-slicing-audit
 date: 2026-05-21
 status: PROPOSED
 author: user + assistant
-scope: SciAgent-toolkit/{commands/architect,agents/architect,skills/architecture-first-dev}/ + docs/workflows/architect/
+scope: SciAgent-toolkit/{commands,agents,skills/architecture-first-dev}/ + docs/workflows/architect/
 motivation: A pathway-explorer audit ran the "thin architectural slice + synthesis" pattern by hand — six sequential single-concern slice agents, then a synthesis agent applying cohesion / connascence / decoupling lenses. The pattern proved generalizable. This proposal packages it as a first-class workflow inside the architect harness so any future audit, on any module, follows the same shape.
 ---
 
@@ -235,7 +235,7 @@ Lenses are configured at `/audit-synthesize` time (not at bootstrap), so the sam
 
 Overlays are additive — each adds one subsection to the synthesis `## Strategic overlays` block. They never replace the primary lenses; they re-read the primary findings through an additional axis. This composition matches how `/review` reviewers stack on top of `map.md` without replacing it.
 
-Each overlay is a small agent definition (`agents/architect/audit-overlay-<name>.md`) following the same shape as the reviewer panel agents (e.g., `agents/architect/divergent.md`). Adding a new overlay = one new agent file + one entry in the synth's prompt template.
+Each overlay is a small agent definition (`agents/audit-overlay-<name>.md`) following the same shape as the reviewer panel agents (e.g., `agents/divergent.md`). Adding a new overlay = one new agent file + one entry in the synth's prompt template.
 
 ## 8. Integration with architect-mentor
 
@@ -245,7 +245,7 @@ The architect-mentor pipeline (`map → review → synthesize → design → pla
 
 Concretely:
 
-- The audit suite lives at `commands/architect/audit*.md`, `agents/architect/slice-tracer.md`, `agents/architect/audit-synth.md`.
+- The audit suite lives at `commands/audit*.md`, `agents/slice-tracer.md`, `agents/audit-synth.md`.
 - The skill `architecture-first-dev/SKILL.md` gains a short "Audit workflow" section pointing at `docs/workflows/architect/audit/00-quickstart.md` (new file, parallel to the existing `00-quickstart.md`). The skill stays one document; the audit subtree is internally self-contained.
 - The state-table in the skill gets two new rows: "user wants to characterise an existing module" → `/audit <name>`; "audit slices done, want the cross-cutting picture" → `/audit-synthesize <name>`.
 - No changes to `/map`, `/review`, `/synthesize`, `/design`, `/plan`, `/implement`, `/verify`, or any meta-* command. Co-tenancy is purely additive.
@@ -265,7 +265,7 @@ The cleanest signal that this is sibling and not stage: an audit can output a P0
 
 - Page-Jones, *What Every Programmer Should Know About Object-Oriented Design* (Dorset House, 1995) — connascence taxonomy (Name, Type, Convention, Algorithm, Position, Execution-order, Timing, Value, Identity), strength ordering, locality budget rule.
 - Yourdon & Constantine, *Structured Design* (Yourdon Press, 1979) — cohesion ladder used in §2.
-- `commands/architect/review.md` — parallel-dispatch idiom borrowed for `--batch`, two-regimes distinction borrowed for sequential-default/parallel-override.
-- `commands/architect/synthesize.md` and `agents/architect/synth.md` — synthesis output structure (Headline / Convergent / Divergent / P0/P1/P2) borrowed wholesale.
+- `skills/architecture-first-dev/references/review.md` — parallel-dispatch idiom borrowed for `--batch`, two-regimes distinction borrowed for sequential-default/parallel-override.
+- `commands/synthesize.md` and `agents/synth.md` — synthesis output structure (Headline / Convergent / Divergent / P0/P1/P2) borrowed wholesale.
 - `docs/workflows/architect/00-quickstart.md` — navigation cadence and "tips after stage" pattern to be replicated in `audit/00-quickstart.md`.
 - `docs/workflows/architect/proposals/2026-04-22-iterative-review-MADR.md` — `.history/` archive idiom for round-based artifacts; the audit suite reuses the same archive shape if `/audit-synthesize` is re-run after new slices land.

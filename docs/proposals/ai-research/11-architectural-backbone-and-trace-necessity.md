@@ -3,6 +3,10 @@
 
 # 11 — Architectural backbone and trace-recording necessity
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 Third grilling pass. Two halves: (a) what shape do real community Pi extensions converge on, and (b) does sciagent actually need a JSONL trace recorder right now? The user's two standing preferences — harness-agnostic where engineering cost allows, and minimal-but-no-less — are applied as constraints, not decoration.
 
 ---

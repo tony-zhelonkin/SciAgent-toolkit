@@ -9,6 +9,10 @@ motivation: During a `leiden-stability` review the user organically invented a p
 
 # MADR-H5 — Iterative review (`--iterate`) with `.history/` archive and cross-informed regime
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../../architecture.md).
+> Retained as a dated decision record; the original body below is unchanged.
+
 **Status.** ACCEPTED 2026-04-22.
 
 **Context.** `commands/review.md` today writes `docs/{feature}/review/<reviewer>.md` once per reviewer. Re-running `/review` overwrites those files — the round-1 positions are lost. In practice users iterate: after reading `/synthesize` output, they lock a design direction, re-map to see the blast radius, and want another reviewer pass that reconciles the round-1 divergences in light of the locked direction.

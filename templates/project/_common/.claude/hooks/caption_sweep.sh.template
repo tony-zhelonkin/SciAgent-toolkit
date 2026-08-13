@@ -1,0 +1,130 @@
+#!/usr/bin/env bash
+# .claude/hooks/caption_sweep.sh — Stop hook guardrail (P14).
+#
+# Convention (C): every figure artifact must have a path-qualified caption
+# heading in the sibling stage README.md.
+#
+# On Stop: scan 03_results/ for uncaptioned figures and surface a reminder.
+# Degrades gracefully when sciagent is absent (self-contained fallback scan).
+#
+# Strict toggle: SCIAGENT_STRICT=1 (or =true) → exit 2 (force continuation);
+#                default                       → exit 0 (advisory on stderr).
+#
+# Sanctioned zones: _scratch/ and $TMPDIR are always exempt.
+
+set -u
+
+# Consume stdin (Stop hook payload — we don't need its content).
+payload=$(cat) || true
+: "${payload}"   # suppress unused-variable warnings
+
+# ---------------------------------------------------------------------------
+# Resolve project directory.
+# Claude Code sets CLAUDE_PROJECT_DIR; fall back to cwd.
+# ---------------------------------------------------------------------------
+if [[ -n "${CLAUDE_PROJECT_DIR:-}" && -d "${CLAUDE_PROJECT_DIR}" ]]; then
+    proj_dir="${CLAUDE_PROJECT_DIR}"
+else
+    proj_dir="$(pwd)"
+fi
+
+results_dir="${proj_dir}/03_results"
+
+# No 03_results/ → nothing to check.
+[[ -d "$results_dir" ]] || exit 0
+
+# ---------------------------------------------------------------------------
+# Check whether 03_results/ has any figure artifacts at all.
+# ---------------------------------------------------------------------------
+any_figures=$(find "$results_dir" -type f \( -name '*.png' -o -name '*.pdf' \) \
+    -path '*/figures/*' 2>/dev/null | grep -v '/_scratch/' | head -1)
+[[ -n "$any_figures" ]] || exit 0
+
+# ---------------------------------------------------------------------------
+# Self-contained caption check: scan for figure files lacking a heading in
+# the sibling README.md. Mirrors _validate_check_captions logic.
+# Returns 0 if all clean, 1 if findings found (after printing them).
+# ---------------------------------------------------------------------------
+_self_contained_check() {
+    local uncaptioned=()
+    local f rel stage rest readme heading
+
+    while IFS= read -r f; do
+        [[ -f "$f" ]] || continue
+        rel="${f#${results_dir}/}"
+        # Skip sanctioned zones.
+        case "$rel" in
+            objects/*|master/*|interactive/*|_scratch/*) continue ;;
+            */_scratch/*) continue ;;
+        esac
+        # Only skip TMPDIR paths that are NOT under the project dir (i.e. scratch files
+        # written directly to $TMPDIR, not projects that happen to live under $TMPDIR).
+        if [[ -n "${TMPDIR:-}" ]]; then
+            case "$f" in
+                "${TMPDIR%/}/"*)
+                    # Exempt only if outside the project dir.
+                    case "$f" in "${proj_dir%/}/"*) ;; *) continue ;; esac
+                    ;;
+            esac
+        fi
+
+        stage="${rel%%/*}"
+        rest="${rel#*/}"
+        # Only figures/ artifacts carry captions.
+        case "$rest" in figures/*) ;; *) continue ;; esac
+
+        readme="${results_dir}/${stage}/README.md"
+        heading="## ${rest}"
+
+        if [[ ! -f "$readme" ]]; then
+            uncaptioned+=("${rel} (no README.md in 03_results/${stage}/)")
+            continue
+        fi
+        if ! grep -qxF "$heading" "$readme" 2>/dev/null; then
+            uncaptioned+=("${rel}")
+        fi
+    done < <(find "$results_dir" -type f \( -name '*.png' -o -name '*.pdf' \) 2>/dev/null \
+             | grep '/figures/' | grep -v '/_scratch/')
+
+    if [[ ${#uncaptioned[@]} -gt 0 ]]; then
+        printf '\n[sciagent/caption-sweep] Uncaptioned figures detected:\n' >&2
+        local item
+        for item in "${uncaptioned[@]}"; do
+            printf '  WARN captions: no caption for %s\n' "$item" >&2
+        done
+        printf '\nAdd a "## <relative/path>" section to the stage README.md for each figure.\n' >&2
+        return 1  # findings found
+    fi
+    return 0      # all clean
+}
+
+# ---------------------------------------------------------------------------
+# Run self-contained check first (always authoritative for findings_found).
+# ---------------------------------------------------------------------------
+findings_found=false
+_self_contained_check || findings_found=true
+
+# ---------------------------------------------------------------------------
+# If sciagent is available, also run its check to get richer diagnostics.
+# Only run when self-contained already found issues OR as a supplemental pass.
+# Best-effort: never hard-error if sciagent fails.
+# ---------------------------------------------------------------------------
+if [[ "$findings_found" == "true" ]] && command -v sciagent >/dev/null 2>&1; then
+    sciagent lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
+elif [[ "$findings_found" == "true" ]] \
+     && [[ -x "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" ]]; then
+    "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" \
+        validate --check captions --project-dir "$proj_dir" 2>/dev/null || true
+fi
+
+# ---------------------------------------------------------------------------
+# Strict mode: if findings, exit 2 to force continuation.
+# ---------------------------------------------------------------------------
+if [[ "$findings_found" == "true" ]]; then
+    if [[ "${SCIAGENT_STRICT:-0}" == "1" || "${SCIAGENT_STRICT:-}" == "true" ]]; then
+        printf '[sciagent/caption-sweep] SCIAGENT_STRICT: caption pass required before stopping.\n' >&2
+        exit 2
+    fi
+fi
+
+exit 0

@@ -1,0 +1,15 @@
+#!/bin/bash
+# .claude/statusline.sh — SciAgent-toolkit shipped status line.
+# Reads the status JSON on stdin and prints: [model] [context bar] tokens (% free).
+# Uses only fields that exist in the Claude Code statusline payload. Requires jq.
+input=$(cat)
+model=$(echo "$input" | jq -r '.model.display_name')
+used=$(echo "$input" | jq -r '.context_window.total_input_tokens // 0')
+free=$(echo "$input" | jq -r '.context_window.remaining_percentage // 100' | cut -d. -f1)
+
+bar_size=10
+filled=$(( (100 - free) * bar_size / 100 ))
+empty=$(( bar_size - filled ))
+bar=$(printf "%${filled}s" | tr ' ' '#')$(printf "%${empty}s" | tr ' ' '.')
+
+echo "[$model] [$bar] ${used} tokens (${free}% free)"

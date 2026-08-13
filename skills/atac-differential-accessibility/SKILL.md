@@ -1,26 +1,7 @@
 ---
 name: atac-differential-accessibility
-description: Differential accessibility (DA) testing for scATAC-seq — marker peaks via scanpy / SnapATAC2 and pseudobulk DA via pyDESeq2. Use when you have clusters / conditions on an ATAC AnnData and need per-peak statistics. For RNA differential expression on the matched modality, use scanpy.rank_genes_groups directly; for motif-level differential analysis, hand off to chromvar-motif-accessibility.
+description: "Differential accessibility testing for scATAC-seq — marker peaks via scanpy / SnapATAC2, pseudobulk DA via pyDESeq2. Use when you have clusters or conditions on an ATAC AnnData and need per-peak statistics. For RNA differential expression use scanpy.rank_genes_groups; for motif-level analysis use chromvar-motif-accessibility."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-21
-  version: 0.1.0
-  upstream-docs: https://kzhang.org/SnapATAC2/api/index.html
-  category: atac-analysis
-  tier: simple
-  tags:
-  - chromatin
-  - de
-  complementary-skills:
-  - snapatac2-atac-preprocessing
-  - chromvar-motif-accessibility
-  - muon-multimodal-analysis
-  contraindications:
-  - Do not use for RNA differential expression; use scanpy.rank_genes_groups.
-  - Do not use for motif-level differential signal; use chromvar-motif-accessibility.
 ---
 
 # scATAC-seq Differential Accessibility
@@ -188,3 +169,20 @@ pydeseq2.DeseqStats            # contrast extraction
 - pyDESeq2: https://pydeseq2.readthedocs.io/
 - SnapATAC2 DA docs: https://kzhang.org/SnapATAC2/
 - DESeq2 pseudobulk patterns: Squair et al., Nature Comms 2021.
+
+---
+
+## When not to use
+
+- Do not use for RNA differential expression; use scanpy.rank_genes_groups.
+- Do not use for motif-level differential signal; use chromvar-motif-accessibility.
+
+---
+
+## See also
+
+- `snapatac2-atac-preprocessing`
+- `chromvar-motif-accessibility`
+- `muon-multimodal-analysis`
+
+Upstream docs: https://kzhang.org/SnapATAC2/api/index.html

@@ -1,0 +1,29 @@
+# interactive-config-snippet.yaml — append under a top-level `interactive:` key in
+# 02_analysis/config/analysis_config.yaml. Read by lib/interactive-style/interactive_helpers.py
+# and by the project's export_explorers.py. All lists are EMPTY by default — fill them per
+# project; the helper lib never hardcodes project-specific columns.
+
+interactive:
+
+  # ---- exporter: which checkpoints to materialize + which embedding to read ----------------
+  export_stages: []          # stage ids to build <stage>_explore.parquet for, e.g. [01_qc, 02_annotation]
+  load_coords_obsm: ""       # obsm key the exporter reads as x,y, e.g. "X_umap" (empty -> exporter default)
+
+  # ---- exporter: overlays to add as explorer columns ---------------------------------------
+  marker_genes: []           # marker genes added per cell, e.g. [FOXP3, CD8A, CTLA4]
+  signatures: {}             # named gene sets scored per cell, e.g. {score_stress: [HSPA1A, DNAJB1, ...]}
+
+  # ---- notebook grid: panel layout + coloring ----------------------------------------------
+  categorical_obs: []        # obs columns grid() ALWAYS treats categorical (e.g. [leiden, batch, tissue])
+  grid_rows: 2               # rows in the composed panel layout
+  grid_height: 340           # per-panel pixel height
+  cmap: magma                # continuous colormap for grid() + snapshot()
+
+  # ---- save_selection: what to persist + how to summarize a selection ----------------------
+  save_selection_cols: [x, y]   # columns written per selection CSV (extend with obs/gene cols; do not shrink)
+  summary_stats: []          # composition stats in selections_index.csv. Each entry:
+                             #   {name: <col_name>, column: <df_col>, value: <level>}  -> fraction where column == value
+                             #   {name: <col_name>, column: <df_col>}                  -> modal level + its fraction
+                             # e.g.
+                             #   - {name: pct_SF, column: tissue, value: synovial_fluid}
+                             #   - {name: top_batch, column: batch}

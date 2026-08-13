@@ -1,24 +1,7 @@
 ---
 name: bulk-rnaseq-pathway-explorer
-description: pathway-explorer — generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy / TE master tables, embedding pathways on a UMAP-of-gene-sets scatter with Jaccard/Overlap neighbor edges, per-pathway running-sum plots, and database/entity filters. Use when turning master_unified.csv (or legacy master_gsea_table.csv + master_tf_activities.csv + master_progeny_activities.csv) into a shareable .html for pathway exploration, or when a user asks for an interactive pathway explorer, pathway scatter, or cross-database dashboard. A contrast switcher (collapsible toggle, single HTML across all contrasts) is planned — today the tool ships per-contrast HTMLs plus an index.html. For running GSEA itself, building the master tables this skill consumes, or static publication figures (dotplot, barplot, running-sum PDFs), use bulk-rnaseq-gsea (the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization).
+description: "Generate standalone interactive HTML dashboards from unified GSEA / TF / PROGENy master tables: pathways embedded on a UMAP-of-gene-sets with Jaccard neighbour edges, per-pathway running-sum plots, and database filters. Use when turning master_unified.csv into a shareable .html. For running GSEA itself use bulk-rnaseq-gsea."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 0.1.0
-  upstream-docs: https://github.com/tony-zhelonkin/pathway-explorer
-  category: workflow
-  tier: standard
-  tags:
-  - pathway
-  - viz
-  complementary-skills:
-  - bulk-rnaseq-gsea
-  contraindications:
-  - Do not use for running GSEA itself, assembling the master tables this skill consumes, or static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea instead — the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization.
-  - Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea.
 ---
 
 # Pathway Explorer — Interactive Cross-Entity Pathway Dashboards
@@ -64,6 +47,13 @@ Need an interactive pathway view?
 └─ Custom data path or output location?
     → `--data <csv> --output <html>`
 ```
+
+---
+
+## Prerequisites
+
+Install the `pathway-explorer` Python module at v2.0.0. Run from a project with
+`03_results/tables/master_unified.csv`; dashboards are written under `03_results/interactive/`.
 
 ---
 
@@ -245,18 +235,23 @@ After running this skill, confirm:
 
 ---
 
-## Complementary Skills
-
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Running GSEA (MSigDB H/C2/C3/C5), running GSEA with custom gene sets (MitoCarta, TransportDB, GATOM), assembling / appending `master_*.csv` tables, or static publication figures (dotplot, barplot, running-sum PDFs) | `bulk-rnaseq-gsea` | Prerequisite for inputs / alternative for static rendering — the consolidated router covers all four legs |
-| Metabolic network (atom-transition) visualization | `gatom-metabolomic-predictions` | Alternative — different entity model |
-
----
-
 ## Resources
 
 - **Module source:** `01_modules/pathway-explorer/pathway_explorer/` (this project).
 - **Upstream repo:** https://github.com/tony-zhelonkin/pathway-explorer
 - **RNAseq-toolkit workflow docs:** `01_modules/RNAseq-toolkit/docs/WORKFLOWS.md`, `docs/GSEA-workflow/04-output-artifacts-and-visualization.md`.
 - **Sibling visualization skill (R/ggplot2 track) and master-table schema:** `bulk-rnaseq-gsea`.
+
+---
+
+## When not to use
+
+- Do not use for running GSEA itself, assembling the master tables this skill consumes, or static publication figures (PDF/PNG dotplots, barplots, running-sum plots). Use bulk-rnaseq-gsea instead — the consolidated router covers MSigDB / custom-db execution, master-table assembly, and static visualization.
+- Do not use on raw gseaResult RDS checkpoints directly. The tool reads CSVs, not R objects — normalize first via bulk-rnaseq-gsea.
+
+---
+
+## See also
+
+- `bulk-rnaseq-gsea` — Prerequisite for inputs / alternative for static rendering; the consolidated router covers running GSEA, custom gene sets, master-table assembly, and static publication figures
+- `gatom-metabolomic-predictions` — Alternative; metabolic network (atom-transition) visualization, a different entity model

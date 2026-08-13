@@ -213,14 +213,24 @@ class TraceWriter:
         models: list[str] | None = None,
         sources: dict[str, str] | None = None,
         extra: dict[str, Any] | None = None,
+        consensus_model: str | None = None,
     ) -> Path:
-        """Persist run metadata (timestamp, lens, models, git HEAD, source files)."""
+        """Persist run metadata (timestamp, lens, models, arbiter, git HEAD, source files).
+
+        `consensus_model` is the arbiter every non-unanimous cluster is resolved by, and it is a
+        fourth model whose answers ship in the delivered labels. Left unset by the caller,
+        `mllmcelltype` resolves it to the provider default and answers anyway, so a meta.json
+        without this key describes a panel smaller than the one that ran and the run cannot be
+        reproduced from its own provenance. `"unset (library default resolved at call time)"`
+        records that state as a fact rather than as an absence.
+        """
         path = self.dir / "meta.json"
         payload: dict[str, Any] = {
             "lens": self.lens,
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
             "git_head": git_head(self._git_cwd),
             "models": models or "unavailable",
+            "consensus_model": consensus_model or "unset (library default resolved at call time)",
             "sources": sources or "unavailable",
         }
         if extra:

@@ -10,14 +10,14 @@
 # A loose bump can silently no-op a wrapper. See references/monkeypatch-internals.md.
 [project]
 name = "mllmct"
-version = "0.2.0"
+version = "0.4.0"
 description = "Version-locked CLI for mLLMCelltype multi-LLM consensus cell-type / cell-state annotation with token capture, forced determinism, Python-recomputed consensus metrics, and a full reproducibility trace."
 readme = "README.md"
 requires-python = "==3.11.*"
 license = { text = "MIT" }
 dependencies = [
     # --- the library whose internals we monkeypatch (pin EXACT) ---
-    "mllmcelltype==2.0.5",
+    "mllmcelltype==2.0.7",
     # --- monkeypatch-sensitive transitive deps, pinned EXACT ---
     "google-genai==2.6.0",   # GeminiTokenCapture binds GenerateContentResponse.usage_metadata + GenerateContentConfig.seed/temperature
     "pydantic==2.13.3",      # _force_deterministic_config uses pydantic-v2 model_copy(update=...)

@@ -3,12 +3,10 @@
 # Two invariants in one test:
 #   (a) intra-namespace uniqueness — no two .md files under commands/ or
 #       agents/ (recursively) share a basename, and no two skill directories
-#       share a name. The recursive resolver in lib/sciagent/symlinks.sh
-#       (resolve_canonical) depends on this; duplicate basenames make role
-#       bindings ambiguous.
+#       share a name. Flat mount-source identity depends on this.
 #   (b) cross-namespace non-collision (with allowlist) — a basename appearing
-#       in >=2 of skills/agents/commands/roles is the runtime soft-warn
-#       surface of `sciagent validate`. The merge-time mirror is here:
+#       in >=2 of skills/agents/commands is the runtime soft-warn surface of
+#       `sciagent lint --check toolkit`. The merge-time mirror is here:
 #       hard-fail unless the overlap is documented in
 #       tests/collision-allowlist.txt with a rationale.
 
@@ -55,12 +53,10 @@ check_unique_skill_dirs() {
     # subfolders.
     local nested
     nested=$(find "$TOOLKIT/skills" -mindepth 2 -type d -name '*' \
-        | grep -v -E '/(_TEMPLATE|[^/]+/[^/]+)$' || true)
+        | grep -v -E '/[^/]+/[^/]+$' || true)
     # Simpler: assert no SKILL.md exists deeper than skills/<name>/SKILL.md.
     local deep
-    # Exclude hidden directories (e.g. .deprecated/) and underscore-prefixed
-    # scaffolding dirs (_TEMPLATE, _archive backups, _internal scratch) — they are
-    # off the resolver's path and may legitimately hold archived skill trees.
+    # Exclude hidden and reserved working directories inside packaged skills.
     deep=$(find "$TOOLKIT/skills" -mindepth 3 -name 'SKILL.md' \
         -not -path '*/.*' -not -path '*/_*/*' 2>/dev/null || true)
     if [[ -n "$deep" ]]; then
@@ -76,12 +72,11 @@ check_unique_skill_dirs
 
 # ---------------------------------------------------------------------------
 # Cross-namespace collision check, gated by tests/collision-allowlist.txt.
-# Reuses lib/sciagent/collisions.sh so the CI test and the runtime check
-# (validate.sh check 5) cannot drift.
+# Reuse the catalog helper so the CI test and runtime check share enumeration.
 # ---------------------------------------------------------------------------
 
 check_cross_namespace_collisions() {
-    local helper="$TOOLKIT_ROOT/lib/sciagent/collisions.sh"
+    local helper="$TOOLKIT_ROOT/lib/sciagent/catalog.sh"
     if [[ ! -f "$helper" ]]; then
         echo "FAIL [$_TEST_NAME] missing helper: $helper" >&2
         exit 1
@@ -131,7 +126,7 @@ check_cross_namespace_collisions() {
             echo "error: name '$col_name' collides across $col_kinds but allowlist records '${allowed[$col_name]}'. update tests/collision-allowlist.txt to reflect the new kinds, or rename one." >&2
             fail=1
         fi
-    done < <(collisions_enumerate)
+    done < <(_catalog_collisions)
 
     # Restore the outer SCIAGENT_TOOLKIT (if any).
     if [[ -n "$_saved_tk" ]]; then

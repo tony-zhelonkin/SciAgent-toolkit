@@ -2,7 +2,7 @@
 # Symlink-safe launcher for the mllmct CLI.
 #
 # Resolves THIS script's REAL location even when it has been symlinked into
-# .claude/skills/ by `sciagent activate`, then runs the console-script inside the skill's own uv-locked sandbox (.venv created by `uv sync`). Any human or agent can call this without activating a venv:
+# .claude/skills/ by `sciagent link`, then runs the console-script inside the skill's own uv-locked sandbox (.venv created by `uv sync`). Any human or agent can call this without activating a venv:
 #     /path/to/skill/bin/mllmct annotate --profile ...
 #
 set -euo pipefail
@@ -28,4 +28,17 @@ if [ ! -f "$SKILL_DIR/uv.lock" ]; then
 fi
 
 # Drop any inherited VIRTUAL_ENV so uv targets THIS skill's sandbox cleanly (no warning).
-exec env -u VIRTUAL_ENV uv run --project "$SKILL_DIR" mllmct "$@"
+#
+# --locked asserts uv.lock will not change. WITHOUT it, `uv run` silently
+# re-resolves and REWRITES uv.lock whenever pyproject.toml has drifted ahead of
+# it — so a plain `mllmct annotate` (which reads like a read-only analysis
+# command) can mutate the pin file inside a consumer checkout, leaving it
+# differing from its recorded commit with nothing in the output saying so. For a
+# tier whose entire claim is a version-locked, reproducible sandbox, that
+# rewrite must be a visible refusal, not a silent repair.
+#
+# It deliberately does NOT suppress the ENVIRONMENT sync: uv still brings .venv
+# up to the lock before executing, which is the desired self-heal (a stale .venv
+# is a local artifact; the lock is the contract). Only lock-vs-pyproject drift
+# is escalated to an error.
+exec env -u VIRTUAL_ENV uv run --locked --project "$SKILL_DIR" mllmct "$@"

@@ -1,142 +1,65 @@
 #!/usr/bin/env bash
-# sciagent — per-project AI-harness context manager.
-# Resolves library path relative to this script's real location.
+# sciagent — project bindings, CRAFT rendering, and guardrail checks.
 
 set -u
 
-# Resolve real path (follow symlinks).
 _self="${BASH_SOURCE[0]}"
 while [[ -L "$_self" ]]; do
-    _link=$(readlink "$_self")
-    [[ "$_link" == /* ]] && _self="$_link" || _self="$(dirname "$_self")/$_link"
+    _target=$(readlink "$_self")
+    [[ "$_target" == /* ]] && _self="$_target" || _self="$(dirname "$_self")/$_target"
 done
 SCIAGENT_BIN="$(cd "$(dirname "$_self")" && pwd)"
-if [[ -z "${SCIAGENT_TOOLKIT:-}" ]]; then
-    SCIAGENT_TOOLKIT="$(cd "$SCIAGENT_BIN/.." && pwd)"
+SCIAGENT_TOOLKIT="${SCIAGENT_TOOLKIT:-$(cd "$SCIAGENT_BIN/.." && pwd)}"
+if [[ ! -d "$SCIAGENT_TOOLKIT" ]]; then
+    echo "sciagent: toolkit directory does not exist: $SCIAGENT_TOOLKIT" >&2
+    exit 1
 fi
+SCIAGENT_TOOLKIT="$(cd "$SCIAGENT_TOOLKIT" && pwd -P)"
 export SCIAGENT_TOOLKIT
 
 LIB="$SCIAGENT_TOOLKIT/lib/sciagent"
 
 usage() {
     cat <<EOF
-sciagent — per-project AI-harness context manager
+sciagent — project bindings, CRAFT rendering, and guardrail checks
 
 Usage:
-  sciagent activate <base> [overlay]   Activate role(s) (max stack depth 2)
-  sciagent deactivate [<role>]         Tear down the stack (or one role)
-  sciagent validate [--quiet]          Check requires graph + tag-vocab compliance
-  sciagent inject <name>               Add one skill/agent/command (auto-detect)
-  sciagent inject --skill|--agent|--command <name>
-                                       Force resolution to one kind
-  sciagent inject --tag <name>         Add all skills tagged <name>
-  sciagent eject <name>                Remove one previously-injected entry
-  sciagent eject --skill|--agent|--command <name>
-                                       Disambiguate when same name spans kinds
-  sciagent eject --tag <name>          Remove all skills injected via tag
-  sciagent status [--json|--effective|--source <name>]
-                                       Report active stack and effective tables
-  sciagent list [roles|skills|agents|commands]
-                                       List available content
-  sciagent list deps <skill>           Transitive requires closure (leaves first)
-  sciagent list dependents <skill>     Direct dependents (skills that require <skill>)
-  sciagent new project|role|skill|agent [args]
-                                       Scaffold from templates
-  sciagent gitignore [<path>]          Add/update SCIAGENT:GITIGNORE block in .gitignore
+  sciagent craft [--project-dir D] [--force] [--quiet]
+                                       Render the SCIAGENT:CRAFT block
+  sciagent link [--project-dir D]      Link catalog trees and ensure hooks
+  sciagent lint [--project-dir D] [--check <name>...] [--strict] [--quiet]
+                                       Run project guardrail checks
   sciagent --help                      This message
 
 Toolkit: $SCIAGENT_TOOLKIT
 EOF
 }
 
-if [[ $# -eq 0 ]]; then
-    usage
-    exit 1
-fi
-
-verb="$1"; shift
+[[ $# -gt 0 ]] || { usage; exit 1; }
+verb="$1"
+shift
 
 case "$verb" in
     -h|--help|help)
-        usage; exit 0 ;;
-    activate)
-        # shellcheck source=/dev/null
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/claude_settings.sh"
-        . "$LIB/activate.sh"
-        cmd_activate "$@"
-        ;;
-    deactivate)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/claude_settings.sh"
-        . "$LIB/activate.sh"      # deactivate may re-activate solo-base
-        . "$LIB/deactivate.sh"
-        cmd_deactivate "$@"
-        ;;
-    inject)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/inject.sh"
-        cmd_inject "$@"
-        ;;
-    eject)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/inject.sh"
-        . "$LIB/eject.sh"
-        cmd_eject "$@"
-        ;;
-    status)
-        . "$LIB/block.sh"
-        . "$LIB/symlinks.sh"
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/stack.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/status.sh"
-        cmd_status "$@"
-        ;;
-    list)
-        . "$LIB/roles.sh"
-        . "$LIB/skill_deps.sh"
-        . "$LIB/status.sh"
-        cmd_list "$@"
-        ;;
-    validate)
-        . "$LIB/skill_deps.sh"
-        . "$LIB/collisions.sh"
-        . "$LIB/validate.sh"
-        cmd_validate "$@"
-        ;;
-    new)
-        . "$LIB/new.sh"
-        cmd_new "$@"
-        ;;
-    gitignore)
-        . "$LIB/gitignore.sh"
-        cmd_gitignore "$@"
-        ;;
+        usage
+        exit 0 ;;
+    craft)
+        modules="block.sh craft.sh craft_verb.sh"
+        entry=cmd_craft ;;
+    link)
+        modules="block.sh ownership.sh claude_settings.sh link.sh"
+        entry=cmd_link ;;
+    lint)
+        modules="block.sh craft.sh catalog.sh lint.sh"
+        entry=cmd_lint ;;
     *)
         echo "sciagent: unknown verb '$verb'" >&2
-        usage
-        exit 1
-        ;;
+        usage >&2
+        exit 1 ;;
 esac
+
+for module in $modules; do
+    # shellcheck source=/dev/null
+    . "$LIB/$module"
+done
+"$entry" "$@"

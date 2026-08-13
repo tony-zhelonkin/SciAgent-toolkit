@@ -1,0 +1,76 @@
+"""
+02_analysis/helpers/interactive_style.py — per-project interactive-explorer shim.
+=================================================================================
+ONE import per explorer notebook. Delegates to the SciAgent-toolkit contract
+lib (02_analysis/helpers/interactive-style/interactive_helpers.py, symlinked by
+`sciagent activate`). Sibling of figure_style.py: the mount directory is
+hyphenated (`interactive-style`, not a legal Python package name), this
+underscored module is what projects import.
+
+Usage in any explorer notebook (.qmd driven by a live Jupyter kernel):
+    from helpers.interactive_style import (
+        load_interactive_config, load_explorer, grid, close_panels,
+        first_selection, save_selection, snapshot)
+    config = load_interactive_config()
+    df = load_explorer("01_qc", config=config)
+    PANELS = grid(df, ["FOXP3", "pct_counts_mt", "leiden", "tissue"])
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+# ---------------------------------------------------------------------------
+# 1. Resolve the symlinked contract lib and import it (FAIL LOUDLY if absent).
+# ---------------------------------------------------------------------------
+# DELIBERATE DIVERGENCE from figure_style.py, which falls back to no-op stubs.
+# There, a missing toolkit lib costs you the house theme: the figure still
+# renders and is still *readable*, just off-style — degraded output beats no
+# output. Here every function IS the deliverable: load_explorer returns the
+# data, grid() builds the widgets you brush, first_selection() reads what you
+# brushed, save_selection() persists the barcodes that are the durable record
+# of the call. A stubbed save_selection would silently drop the human's
+# evidence; a stubbed grid() would hand back None and blow up cells later with
+# an AttributeError that names nothing about the real cause. There is no
+# "slightly wrong but useful" interactive artifact, so this raises at import
+# time, before a notebook does any work it cannot persist.
+_HERE = Path(__file__).parent
+_LIB_DIR = _HERE / "interactive-style"
+_LIB_FILE = _LIB_DIR / "interactive_helpers.py"
+
+if not _LIB_FILE.exists():
+    raise ImportError(
+        f"[interactive_style] toolkit lib not found at: {_LIB_FILE}\n"
+        "Run `sciagent activate` in this repo to link lib/interactive-style/.\n"
+        "No fallback: an explorer with stubbed helpers cannot brush, select, or "
+        "persist barcodes, so it would produce a silently empty record."
+    )
+
+# Inject the lib dir into sys.path so `import interactive_helpers` resolves.
+_lib_dir_str = str(_LIB_DIR)
+if _lib_dir_str not in sys.path:
+    sys.path.insert(0, _lib_dir_str)
+
+from interactive_helpers import (  # noqa: E402,F401 — re-exported for callers
+    find_root,
+    load_interactive_config,
+    load_explorer,
+    color_key,
+    grid,
+    close_panels,
+    live_panels,
+    first_selection,
+    save_selection,
+    snapshot,
+)
+
+_INTERACTIVE_STYLE_LOADED = True
+
+# ---------------------------------------------------------------------------
+# 2. No module-level config handle (no INT_CFG twin of figure_style's FIG_CFG).
+# ---------------------------------------------------------------------------
+# interactive_helpers is explicitly free of import-time side effects and threads
+# `config=` through every call instead of holding global state — loading the
+# YAML here would reintroduce exactly that, and would make `import` fail inside
+# any tree whose analysis_config.yaml is not yet written. Call
+# `load_interactive_config()` once in the notebook's setup cell instead.

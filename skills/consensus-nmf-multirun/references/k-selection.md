@@ -1,6 +1,6 @@
 # K-selection — how to read `<variant>.k_selection.png` and pick K
 
-K selection is manual on purpose ([ADR-005](../../../../docs/ai-generated/workflow-architecture/03-decisions.md#adr-005)). Automated elbow-detection on the stability curve picks the right K maybe 60–70% of the time on real-world cell-state landscapes; the 30% miss case produces silently wrong programs that downstream stages amplify. Domain knowledge — "T cells in this experiment should produce ~8 transcriptional states because there are 8 known polarisations" — beats any heuristic.
+K selection is manual on purpose. Automated elbow-detection on the stability curve picks the right K maybe 60–70% of the time on real-world cell-state landscapes; the 30% miss case produces silently wrong programs that downstream stages amplify. Domain knowledge — "T cells in this experiment should produce ~8 transcriptional states because there are 8 known polarisations" — beats any heuristic.
 
 ## What the plot shows
 
@@ -49,7 +49,7 @@ Three failure modes of this heuristic:
 
 ## Predict-before-view
 
-Per the architect-mentor style, before the user opens the plot they state their expected K. Reasoning examples:
+Per the `mentor-mode` skill, before the user opens the plot they state their expected K. Reasoning examples:
 
 - "T cells should have ~5 polarisations (Th1, Th2, Th17, Treg, Tfh) plus a cycling program plus a stress program → I expect K ≈ 7 ± 1"
 - "Spleen has lots of cell types but the cell-type signal is in `obs['celltype']`; here I'm looking for *within-celltype* states, so K should be modest, maybe K ≈ 5 ± 1 per subset"

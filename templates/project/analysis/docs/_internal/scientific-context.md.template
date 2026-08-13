@@ -1,0 +1,52 @@
+# Scientific Context — {{PROJECT_TITLE}}
+
+**Created:** {{DATE}} · **Species / system:** {{SPECIES}}
+
+This is the canonical scientific framing for the project. It changes rarely. Running notes,
+handoffs, and decision logs belong under `docs/_internal/sessions/` and
+`docs/_internal/reasoning/`, not here.
+
+---
+
+## Scientific Question
+
+[What biological question are you investigating?]
+
+---
+
+## Datasets
+
+[What data do you have? Sample sizes, conditions, modalities.]
+
+| Group | Description | N |
+|-------|-------------|---|
+| Control | | |
+| Treatment | | |
+
+---
+
+## Hypotheses
+
+[What do you expect to find, and why?]
+
+1.
+2.
+3.
+
+---
+
+## Analysis Goals
+
+[What outputs do you need? DE lists, pathway analysis, figures?]
+
+- [ ] Quality control
+- [ ] Differential expression analysis
+- [ ] Pathway enrichment (GSEA)
+- [ ] Publication-ready figures
+
+---
+
+## References
+
+1.
+2.

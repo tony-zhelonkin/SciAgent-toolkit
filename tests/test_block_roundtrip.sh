@@ -11,13 +11,13 @@ cat > AGENTS.md <<'EOF'
 Some user-owned content above.
 EOF
 
-body=$'# Active roles\nstack: base\n'
-block_write AGENTS.md "$body"
+body=$'# Craft standards\nstack: base\n'
+block_write AGENTS.md "$body" CRAFT
 
-read_back=$(block_read AGENTS.md)
+read_back=$(block_read AGENTS.md CRAFT)
 assert_eq "$read_back" "${body%$'\n'}" "block_read returned body"
 
-assert_exit 0 block_hash_check AGENTS.md
+assert_exit 0 block_hash_check AGENTS.md CRAFT
 
 # Surrounding content preserved.
 assert_grep '^# Project AGENTS.md' AGENTS.md "header preserved"

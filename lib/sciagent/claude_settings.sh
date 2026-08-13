@@ -1,175 +1,127 @@
-# lib/sciagent/claude_settings.sh — Claude Code settings.local.json mgmt.
-#
-# Claude Code reads `outputStyle` from .claude/settings.local.json (and
-# .claude/settings.json) to decide which output-style file under
-# .claude/output-styles/ to load as its system prompt. Symlinking the
-# style file into .claude/output-styles/ makes the file visible to
-# Claude but does NOT make it the active style — that requires the
-# `outputStyle` key to point at the symlink's basename.
-#
-# The toolkit therefore owns the `outputStyle` key in
-# .claude/settings.local.json while a role is active. Other keys
-# (permissions, enabledMcpjsonServers, …) are user-owned and untouched.
-#
-# Ownership tracking: a one-line state tag is written to
-# .sciagent/claude_settings.state on apply, so revert knows whether to
-# delete the file (we created it), strip the key (we added the key to a
-# pre-existing file), or warn (we overwrote a pre-existing
-# user-set value).
-#
-# Tag values:
-#   created             — file did not exist; toolkit created it
-#   existed-no-style    — file existed, no outputStyle key; toolkit added one
-#   existed-with-style  — file existed with outputStyle; toolkit overwrote it
-#                         (prior value is lost in v1 — overwrite warning emitted
-#                          on apply so the user can record it themselves)
-#
-# JSON mutation: jq when available; sed/awk fallback for the canonical
-# flat schema (one `"outputStyle": "value"` key, two-space indent).
-# Non-canonical formats: install jq.
+# lib/sciagent/claude_settings.sh — Claude Code project guardrail hooks.
 
 # shellcheck shell=bash
 
-_CLAUDE_SETTINGS_LOCAL=".claude/settings.local.json"
-_CLAUDE_SETTINGS_STATE=".sciagent/claude_settings.state"
+_CLAUDE_PROJECT_SETTINGS=".claude/settings.json"
+_CLAUDE_HOOKS_DIR=".claude/hooks"
+_CLAUDE_HOOKS_STATE_DIR=".sciagent/hook_state"
+_CLAUDE_HOOK_SETTINGS_STATE=".sciagent/hook_settings.state"
 
-# claude_settings_apply <output_style>
-# Make `<output_style>` the active style by writing it into
-# .claude/settings.local.json. Writes the tracking tag to the state
-# file. Emits the tag on stdout as well so callers can echo a summary.
-claude_settings_apply() {
-    local name="$1"
-    local f="$_CLAUDE_SETTINGS_LOCAL"
-    mkdir -p "$(dirname "$f")" .sciagent
+# Register the shipped hooks while preserving every unrelated project setting.
+_claude_settings_ensure_hook_registration() {
+    local dst="$_CLAUDE_PROJECT_SETTINGS"
+    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/settings.json.template"
+    local state="$_CLAUDE_HOOK_SETTINGS_STATE"
+    [[ -f "$src" ]] || return 0
 
-    local tag prior=""
-    if [[ ! -f "$f" ]]; then
-        printf '{\n  "outputStyle": "%s"\n}\n' "$name" > "$f"
-        tag="created"
-    else
-        prior=$(claude_settings_get_output_style)
-        if [[ -n "$prior" ]]; then
-            _claude_settings_replace_value "$name" "$f"
-            tag="existed-with-style"
+    mkdir -p "$(dirname "$dst")" "$(dirname "$state")"
+
+    if [[ ! -f "$dst" ]]; then
+        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        if command -v jq >/dev/null 2>&1; then
+            jq -n \
+                --arg h "$(sciagent_sha1_file "$dst")" \
+                --slurpfile template "$src" \
+                '{tag:"created", hash:$h, added:$template[0].hooks}' > "$state"
         else
-            _claude_settings_insert_key "$name" "$f"
-            tag="existed-no-style"
+            printf '{"tag":"created","hash":"%s"}\n' "$(sciagent_sha1_file "$dst")" > "$state"
         fi
+        echo "wrote: $dst"
+        return 0
     fi
 
-    printf '%s' "$tag" > "$_CLAUDE_SETTINGS_STATE"
-
-    if [[ "$tag" == "existed-with-style" && "$prior" != "$name" ]]; then
-        echo "sciagent: warning — overwrote prior outputStyle '$prior' with '$name'" >&2
-        echo "  (deactivate will not restore it; v1 limitation)" >&2
+    if ! command -v jq >/dev/null 2>&1; then
+        echo "sciagent: warning — jq not found; cannot register hooks in $dst" >&2
+        return 0
     fi
 
-    printf '%s\n' "$tag"
-}
+    local added merged
+    added=$(mktemp)
+    merged=$(mktemp)
 
-# claude_settings_teardown
-# Reverse claude_settings_apply using the saved state tag. Silent no-op
-# if no state file exists.
-claude_settings_teardown() {
-    [[ -f "$_CLAUDE_SETTINGS_STATE" ]] || return 0
-    local tag
-    tag=$(cat "$_CLAUDE_SETTINGS_STATE")
-    local f="$_CLAUDE_SETTINGS_LOCAL"
-    case "$tag" in
-        created)
-            rm -f "$f"
-            ;;
-        existed-no-style|existed-with-style)
-            [[ -f "$f" ]] && _claude_settings_remove_key "$f"
-            ;;
-        *)
-            # Unknown tag — best-effort remove the key.
-            [[ -f "$f" ]] && _claude_settings_remove_key "$f"
-            ;;
-    esac
-    rm -f "$_CLAUDE_SETTINGS_STATE"
-}
+    if ! jq -n --slurpfile wanted "$src" --slurpfile current "$dst" '
+        reduce (($wanted[0].hooks // {}) | to_entries[]) as $event ({};
+          ($event.value | map(
+            . as $entry
+            | select(((($current[0].hooks[$event.key] // [])
+              | any(. == $entry)) | not))
+          )) as $missing
+          | if ($missing | length) > 0
+            then .[$event.key] = $missing
+            else .
+            end
+        )
+    ' > "$added" 2>/dev/null; then
+        rm -f "$added" "$merged"
+        echo "sciagent: warning — could not read hook settings from $dst (invalid JSON?)" >&2
+        return 0
+    fi
 
-# claude_settings_get_output_style
-# Print the current value of outputStyle from settings.local.json.
-# Empty if file missing or key absent.
-claude_settings_get_output_style() {
-    local f="$_CLAUDE_SETTINGS_LOCAL"
-    [[ -f "$f" ]] || return 1
-    if command -v jq >/dev/null 2>&1; then
-        jq -r '.outputStyle // empty' "$f" 2>/dev/null
+    if jq -e 'length == 0' "$added" >/dev/null 2>&1; then
+        rm -f "$added" "$merged"
+        return 0
+    fi
+
+    if ! jq -s '
+        .[0].hooks as $wanted | .[1]
+        | .hooks = reduce ($wanted | to_entries[]) as $event (.hooks // {};
+            .[$event.key] = reduce $event.value[] as $entry (.[$event.key] // [];
+              if any(.[]; . == $entry) then . else . + [$entry] end
+            )
+          )
+    ' "$src" "$dst" > "$merged" 2>/dev/null || [[ ! -s "$merged" ]]; then
+        rm -f "$added" "$merged"
+        echo "sciagent: warning — could not register hooks in $dst (invalid JSON?)" >&2
+        return 0
+    fi
+
+    if [[ ! -f "$state" ]]; then
+        cp "$dst" "${state}.orig" || { rm -f "$added" "$merged"; return 1; }
+        cp "$merged" "$dst" || { rm -f "$added" "$merged"; return 1; }
+        jq -n \
+            --arg h "$(sciagent_sha1_file "$dst")" \
+            --slurpfile added "$added" \
+            '{tag:"existed-registered", written_hash:$h, added:$added[0]}' > "$state"
     else
-        sed -n 's/^[[:space:]]*"outputStyle"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$f" | head -1
-    fi
-}
-
-# ----- Internal mutators -----------------------------------------------------
-
-_claude_settings_replace_value() {
-    local name="$1" f="$2"
-    if command -v jq >/dev/null 2>&1; then
-        local tmp; tmp=$(mktemp)
-        jq --arg s "$name" '.outputStyle = $s' "$f" > "$tmp" && mv "$tmp" "$f"
-    else
-        local esc
-        esc=$(printf '%s' "$name" | sed 's/[\&|]/\\&/g')
-        sed -i 's|\("outputStyle"[[:space:]]*:[[:space:]]*\)"[^"]*"|\1"'"$esc"'"|' "$f"
-    fi
-}
-
-_claude_settings_insert_key() {
-    local name="$1" f="$2"
-    if command -v jq >/dev/null 2>&1; then
-        local tmp; tmp=$(mktemp)
-        jq --arg s "$name" '. + {outputStyle: $s}' "$f" > "$tmp" && mv "$tmp" "$f"
-    else
-        # Insert `  "outputStyle": "name",` on the line after the first `{`.
-        # Handles the empty-object case `{}` by rewriting the file.
-        if grep -qE '^[[:space:]]*\{[[:space:]]*\}[[:space:]]*$' "$f"; then
-            printf '{\n  "outputStyle": "%s"\n}\n' "$name" > "$f"
-            return 0
+        cp "$merged" "$dst" || { rm -f "$added" "$merged"; return 1; }
+        local next_state
+        next_state=$(mktemp)
+        if jq --slurpfile extra "$added" '
+            .added = reduce (($extra[0] // {}) | to_entries[]) as $event (.added // {};
+              .[$event.key] = reduce $event.value[] as $entry (.[$event.key] // [];
+                if any(.[]; . == $entry) then . else . + [$entry] end
+              )
+            )
+        ' "$state" > "$next_state" 2>/dev/null; then
+            cp "$next_state" "$state"
         fi
-        local tmp; tmp=$(mktemp)
-        awk -v style="$name" '
-            !done && /\{/ {
-                print
-                print "  \"outputStyle\": \"" style "\","
-                done = 1
-                next
-            }
-            { print }
-        ' "$f" > "$tmp" && mv "$tmp" "$f"
+        rm -f "$next_state"
     fi
+
+    rm -f "$added" "$merged"
+    echo "updated: $dst (registered project guardrail hooks)"
 }
 
-_claude_settings_remove_key() {
-    local f="$1"
-    if command -v jq >/dev/null 2>&1; then
-        local tmp; tmp=$(mktemp)
-        jq 'del(.outputStyle)' "$f" > "$tmp" && mv "$tmp" "$f"
-        # If the result is `{}` and the file was previously non-trivial,
-        # leave it — user owns the file; toolkit only owns the key.
-    else
-        local tmp; tmp=$(mktemp)
-        # Drop the outputStyle line.
-        sed '/^[[:space:]]*"outputStyle"[[:space:]]*:[[:space:]]*"[^"]*"[[:space:]]*,\?[[:space:]]*$/d' "$f" > "$tmp"
-        # If the last remaining content line before the closing `}` ends
-        # with a trailing comma, strip it.
-        awk '
-            { lines[++n] = $0 }
-            END {
-                for (i = 1; i <= n; i++) {
-                    line = lines[i]
-                    if (line ~ /,[[:space:]]*$/) {
-                        j = i + 1
-                        while (j <= n && lines[j] ~ /^[[:space:]]*$/) j++
-                        if (j <= n && lines[j] ~ /^[[:space:]]*\}/) {
-                            sub(/,[[:space:]]*$/, "", line)
-                        }
-                    }
-                    print line
-                }
-            }
-        ' "$tmp" > "$tmp.2" && mv "$tmp.2" "$f" && rm -f "$tmp"
-    fi
+# Materialize both project guardrail bodies and register them in settings.json.
+claude_settings_ensure_hooks() {
+    local tpl_dir="$SCIAGENT_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
+    [[ -d "$tpl_dir" ]] || return 0
+
+    local src dst base found=false
+    for src in "$tpl_dir"/*.sh.template; do
+        [[ -f "$src" ]] || continue
+        found=true
+        base="$(basename "${src%.template}")"
+        dst="$_CLAUDE_HOOKS_DIR/$base"
+        mkdir -p "$_CLAUDE_HOOKS_DIR"
+        ownership_ensure_body \
+            "$src" "$dst" \
+            "project/_common/$_CLAUDE_HOOKS_DIR/$base.template" \
+            "$_CLAUDE_HOOKS_STATE_DIR/$base.sha1" \
+            "$_CLAUDE_HOOKS_STATE_DIR/$base.ceded" \
+            exec || return 1
+    done
+    [[ "$found" == true ]] || return 0
+
+    _claude_settings_ensure_hook_registration
 }

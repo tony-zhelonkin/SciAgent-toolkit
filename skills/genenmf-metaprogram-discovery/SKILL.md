@@ -1,24 +1,7 @@
 ---
 name: genenmf-metaprogram-discovery
-description: Runs PER-SAMPLE non-negative matrix factorization then consensus-clusters the resulting programs into recurrent meta-programs across donors/patients/tumors, using R's GeneNMF plus UCell for signature scoring. Use when identifying reproducible transcriptional states shared across MULTIPLE samples without performing batch correction — canonical for tumor cell heterogeneity (Gavish-style meta-programs), donor-shared stem-cell programs, or cross-patient signatures. Requires multiple samples (single-sample input is not supported). Unlike scvi-lda and scvi-linearscvi, which fit ONE joint model across all cells, this skill fits NMF independently per sample and then finds consensus — a different statistical object. Unlike scvi-framework, it bypasses batch correction instead of modeling it. For batch-integrated latent spaces use scvi-framework; for a single joint topic/factor model on one dataset use scvi-lda or scvi-linearscvi.
+description: "Runs PER-SAMPLE NMF then consensus-clusters the programs into recurrent meta-programs across donors or tumors, via R GeneNMF plus UCell scoring. Use to find transcriptional states shared across MULTIPLE samples without batch correction (Gavish-style meta-programs). For one joint model on one dataset use scvi-lda."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://github.com/carmonalab/GeneNMF
-  category: analysis
-  tier: standard
-  tags:
-  - metaprogram
-  complementary-skills:
-  - scvi-framework
-  - anndatar-seurat-scanpy-conversion
-  contraindications:
-  - Do not use for batch correction of integrated embeddings. Use scvi-framework or scvi-scanvi for that.
-  - Do not use on single samples — the method needs multiple donors/samples for meta-program consensus.
 ---
 
 # GeneNMF Skill
@@ -385,3 +368,17 @@ seu <- AddModuleScore_UCell(seu, features=mps$metaprograms.genes)
 Wounding triggers invasive progression in human basal cell carcinoma.
 Yerly, Andreatta et al. bioRxiv 2024. doi:10.1101/2024.05.31.596823
 ```
+
+---
+
+## When not to use
+
+- Do not use for batch correction of integrated embeddings. Use scvi-framework or scvi-scanvi for that.
+- Do not use on single samples — the method needs multiple donors/samples for meta-program consensus.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `anndatar-seurat-scanpy-conversion`

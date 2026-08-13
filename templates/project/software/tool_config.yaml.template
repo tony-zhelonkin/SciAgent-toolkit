@@ -1,0 +1,31 @@
+# tool_config.yaml — software project configuration
+# Language-agnostic identity + build/quality commands for this package.
+# (R loaders for this file live in RNAseq-toolkit; SciAgent ships only the YAML.)
+
+tool:
+  id: "{{PROJECT_ID}}"
+  title: "{{PROJECT_TITLE}}"
+  type: "{{PROJECT_TYPE}}"
+  created: "{{DATE}}"
+  version: "0.1.0"
+
+package:
+  # Importable / installable package name (may differ from the repo id).
+  name: "{{PROJECT_ID}}"
+  # Implementation language: "python" or "r".
+  language: "python"
+  # Source root and manifest for this language.
+  src: "src/"
+  manifest: "pyproject.toml"      # or "DESCRIPTION" for R
+
+# Quality commands — fill in for your toolchain. Agents run these, not guess them.
+commands:
+  install: "pip install -e ."     # or: R CMD INSTALL .
+  lint: "ruff check src tests"    # or: lintr::lint_package()
+  format: "ruff format src tests" # or: styler::style_pkg()
+  test: "pytest -q"               # or: testthat::test_local()
+
+# Public entry points (fill in as the API stabilizes).
+api: []
+  # - name: "do_thing"
+  #   summary: "one-line description"

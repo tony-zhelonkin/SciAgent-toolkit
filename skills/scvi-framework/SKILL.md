@@ -1,33 +1,7 @@
 ---
 name: scvi-framework
-description: scvi-tools framework foundation and router — installation, model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract across all scvi-tools models. Use first when choosing between scVI variants (scVI, scANVI, MrVI, MultiVI, PeakVI, LinearSCVI, AmortizedLDA, contrastiveVI) or when a cross-cutting concern (raw counts, batch keys, scArches flags, hub loading, count distributions, GPU) applies to any scvi-* child skill. For the specific model implementation, route to the corresponding scvi-* skill.
+description: "scvi-tools framework foundation and router — installation, a model-selection decision tree, and the shared setup_anndata / train / get_latent_representation contract. Use first when choosing among the scVI variants, or when a cross-cutting concern applies to any scvi-* child (raw counts, batch keys, scArches flags, hub loading, GPU)."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-20
-  category: foundation
-  tier: rich
-  tags:
-  - integration
-  complementary-skills:
-  - scvi-basic
-  - scvi-scanvi
-  - scvi-mrvi
-  - scvi-lda
-  - scvi-linearscvi
-  - scvi-contrastivevi
-  - scvi-multivi
-  - scvi-peakvi
-  - scvi-scarches-reference-mapping
-  - scvi-hub-models
-  - anndata
-  contraindications:
-  - Do not use this skill alone to run a model. Pair with the specific scvi-* skill for implementation details.
-  - Do not use for non-probabilistic workflows (plain PCA + Harmony). Use scanpy.
-  version: 2.0.0
-  upstream-docs: https://docs.scvi-tools.org/
 ---
 
 # scvi-tools Framework and Router
@@ -126,7 +100,7 @@ Child skills link directly into these — do not copy-paste their content into a
 - `scripts/validate_scvi_adata.py` — pre-flight check that any AnnData is ready for `setup_anndata`.
 - `checks/pre-train-checklist.md` — 8-item checklist the agent should walk before calling `.train()`.
 - `references/troubleshooting.md` — append-only log. Record new failure modes here instead of carving a new skill on first encounter.
-- `references/cross-refs.yaml` — single source of truth for each child's `complementary-skills:` list. Extend the validator alongside this file.
+- `references/cross-refs.yaml` — curated design record of the intended routing graph for this cluster, kept for reference when writing or auditing each child's `## See also` prose. There is no `metadata.complementary-skills` frontmatter anymore and no validator checks this file against the SKILL.md bodies — it is not enforced, so it can drift from the prose. Treat it as a curated starting point, not ground truth.
 
 ---
 
@@ -137,3 +111,26 @@ Child skills link directly into these — do not copy-paste their content into a
 - API: https://docs.scvi-tools.org/en/stable/api/
 - Hub: https://huggingface.co/scvi-tools
 - GitHub: https://github.com/scverse/scvi-tools
+
+---
+
+## When not to use
+
+- Do not use this skill alone to run a model. Pair with the specific scvi-* skill for implementation details.
+- Do not use for non-probabilistic workflows (plain PCA + Harmony). Use scanpy.
+
+---
+
+## See also
+
+- `scvi-basic`
+- `scvi-scanvi`
+- `scvi-mrvi`
+- `scvi-lda`
+- `scvi-linearscvi`
+- `scvi-contrastivevi`
+- `scvi-multivi`
+- `scvi-peakvi`
+- `scvi-scarches-reference-mapping`
+- `scvi-hub-models`
+- `anndata`

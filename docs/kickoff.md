@@ -1,5 +1,15 @@
 # kickoff — sciagent extension grilling
 
+> **Outcome note (superseded).** The decisions recorded here (§9) fed
+> [`docs/implementation-kickoff.md`](implementation-kickoff.md), which planned
+> an `inject --tag`/`eject`/`metadata.requires:`/`tags.yaml` extension. That
+> plan did not ship as designed — a later "demolish the role layer" refactor
+> went the opposite direction and removed `inject`/`eject`, the `metadata:`
+> frontmatter block, and all `requires:`/tag mechanisms (see
+> `docs/architecture.md`). This file's grilling record and the §7
+> session-resume prompt are kept as audit trail; do not treat them as a
+> description of the current system or as work to resume.
+
 A working document for resuming the sciagent extension design review. Serves two purposes simultaneously:
 
 1. **A guide for the human** (Anton) — what to read, in what order, what to decide, when to step back, what to hand-edit.
@@ -325,7 +335,7 @@ Resolution: under the new `concept`/`implementation` split, `tests/test_skill_sc
 - **Folder-relief pattern blessed for both scopes**: a skill folder MAY contain reference files (scripts, snippets, data, templates) beyond `SKILL.md`, referenced by basename from the SKILL.md body. Not a new convention — codifies the existing one (12/62 skills already use it).
 - Default `scope` when frontmatter field is missing: **`implementation`** (was: `atomic`). Tracks the migration mapping.
 - Legacy WARN-vs-FAIL CUTOFF bumped 2026-05-21 → **2026-05-24** (the migration decision date) so newly-relabeled skills are held to the new policy strictly while pre-migration WARNs remain warnings.
-- **New regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any non-`_TEMPLATE` skill is a FAIL — prevents accidental re-introduction of the old vocabulary.
+- **New regression-block lint rule**: presence of `scope: atomic|orchestrator|foundation` in any active skill is a FAIL — prevents accidental re-introduction of the old vocabulary.
 - `architecture-treemap` (currently missing the `scope:` field) gets `implementation` assigned during the codemod, per Anton's confirmation.
 
 **Why**: empirical scan (Opus agent, 2026-05-24) of all 62 skills:

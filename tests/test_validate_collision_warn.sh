@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # tests/test_validate_collision_warn.sh
-# A name appears as both a skill and a command. `sciagent validate` must:
+# A name appears as both a skill and a command. The toolkit lint check must:
 #   - exit 0 (cross-namespace collisions are soft-warn only)
 #   - emit one warning to STDERR naming both the name and the two kinds
-#   - keep STDOUT clean (only the success summary on stdout)
+#   - keep STDOUT clean
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -20,7 +20,7 @@ export SCIAGENT_TOOLKIT="$FAKE"
 SCIAGENT="$FAKE/bin/sciagent"
 
 set +e
-stdout_out=$("$SCIAGENT" validate 2>/tmp/_validate_err_$$)
+stdout_out=$("$SCIAGENT" lint --check toolkit 2>/tmp/_validate_err_$$)
 rc=$?
 stderr_out=$(cat /tmp/_validate_err_$$)
 rm -f /tmp/_validate_err_$$
@@ -28,7 +28,7 @@ set -e
 
 # Exit code must be 0 — soft-warn only.
 if [[ "$rc" -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] validate exited $rc on cross-namespace collision (expected 0)" >&2
+    echo "FAIL [$_TEST_NAME] toolkit lint exited $rc on cross-namespace collision (expected 0)" >&2
     echo "--- stderr ---" >&2
     printf '%s\n' "$stderr_out" >&2
     exit 1
@@ -46,14 +46,9 @@ if ! printf '%s\n' "$stderr_out" | grep -Eq 'both skill and command'; then
     exit 1
 fi
 
-# STDOUT must remain clean: only the success summary line on stdout.
-if ! printf '%s\n' "$stdout_out" | grep -q 'all checks passed'; then
-    echo "FAIL [$_TEST_NAME] STDOUT missing 'all checks passed' summary" >&2
-    printf '%s\n' "$stdout_out" >&2
-    exit 1
-fi
-if printf '%s\n' "$stdout_out" | grep -q 'warning'; then
-    echo "FAIL [$_TEST_NAME] STDOUT leaked a warning line (must be STDERR-only)" >&2
+# STDOUT remains empty; warnings use stderr.
+if [[ -n "$stdout_out" ]]; then
+    echo "FAIL [$_TEST_NAME] toolkit lint produced stdout" >&2
     printf '%s\n' "$stdout_out" >&2
     exit 1
 fi

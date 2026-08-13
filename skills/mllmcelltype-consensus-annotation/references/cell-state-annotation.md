@@ -133,8 +133,7 @@ Optional `aux_path` program-map columns: `program`, `category`, `top_genes` (`;`
   recomputed in Python (`core.consensus`) directly from the per-model label multiset.
 - `llm_reported_proportion` / `llm_reported_entropy` — the library's own emitted numbers,
   **preserved but never trusted**: they describe agreement AFTER the discussion round and are a
-  stochastic model's self-reported arithmetic. See `api-reference.md` and
-  `monkeypatch-internals.md` for why.
+  stochastic model's self-reported arithmetic. See `api-reference.md` for why.
 
 Always read the `py_*` columns. `backfill-metrics` can recompute them offline from
 `model_annotations` if you ever need to.

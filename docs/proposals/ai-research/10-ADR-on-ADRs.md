@@ -4,6 +4,10 @@
 
 # 10 — ADR-on-ADRs: a grilling matrix
 
+> **Outcome note (superseded).** Superseded by the three-verb toolkit
+> architecture documented in [`docs/architecture.md`](../../architecture.md).
+> Retained as a dated research record; the original body below is unchanged.
+
 For each of the 10 ADRs in `sciagent-extension-design-spec.md`, four sub-headers — decisional crispness, findings that change the picture, open questions for grilling, sequencing & risk. Then: recommended decision queue, cross-cutting observations.
 
 ---

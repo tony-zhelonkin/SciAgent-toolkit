@@ -1,29 +1,7 @@
 ---
 name: factor-analysis-framework
-description: "Factor-analysis super-family router — chooses between probabilistic (MOFA-class) and geometric (FAMD/Benzécri-class) factor-analysis families based on grain (cell vs pseudo-bulk), modality (single-omic vs multi-omic), and the question (good MODEL of the data-generating process vs good MAP of the data table). Use first when starting any latent-decomposition / biplot / multi-block analysis. Implemented children today: mofa-framework (multi-view family router) and scired (sciRED single-codebase implementation). Future *-framework children: factomineR-framework, mixomics-framework, scitd-framework, diablo-framework."
+description: "Factor-analysis super-family router — chooses between probabilistic (MOFA-class) and geometric (FAMD/Benzecri-class) families by grain (cell vs pseudo-bulk), modality, and question (a MODEL of the data-generating process vs a MAP of the data table). Use first when starting any latent-decomposition analysis. Children: mofa-framework, scired."
 license: MIT
-metadata:
-  scope: concept
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-05-28
-  category: analysis
-  tier: standard
-  tags:
-  - factor-analysis
-  - integration
-  complementary-skills:
-  - mofa-framework
-  - scired
-  - scvi-framework
-  - scanpy
-  - anndata
-  - muon-multimodal-analysis
-  contraindications:
-  - Do not use this skill alone to run an analysis. Pair with one of the implemented children (mofa-framework for the MOFA family, scired for sciRED) or a planned family-framework once it lands.
-  - Do not use as a substitute for UMAP/t-SNE-style nonlinear viz. Use scanpy + UMAP/t-SNE instead. Factor analysis assumes a linear (or near-linear) bilinear decomposition.
-  version: 0.1.0
-  upstream-docs: https://factominer.free.fr/index.html
 ---
 
 # Factor-Analysis Super-Family Router
@@ -166,3 +144,23 @@ Child framework skills (`mofa-framework`, future `factomineR-framework`, …) li
 - DIABLO / mixOmics multi-block: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0030153
 - Whitepaper (internal): `docs/vision/research/The Geometry We Left Behind.md`
 - Synthesis (internal): `docs/vision/latent/synthesis.md`
+
+---
+
+## When not to use
+
+- Do not use this skill alone to run an analysis. Pair with one of the implemented children (mofa-framework for the MOFA family, scired for sciRED) or a planned family-framework once it lands.
+- Do not use as a substitute for UMAP/t-SNE-style nonlinear viz. Use scanpy + UMAP/t-SNE instead. Factor analysis assumes a linear (or near-linear) bilinear decomposition.
+
+---
+
+## See also
+
+- `mofa-framework`
+- `scired`
+- `scvi-framework`
+- `scanpy`
+- `anndata`
+- `muon-multimodal-analysis`
+
+Upstream docs: https://factominer.free.fr/index.html

@@ -1,27 +1,7 @@
 ---
 name: scvi-mrvi
-description: MrVI from scvi-tools — multi-resolution variational inference for multi-donor / multi-sample scRNA-seq studies, modeling sample identity as biological (not nuisance) variation. Use for cohort studies (COVID severity, aging, treatment response) where you need cell-type-specific sample-to-sample distances, covariate-linked differential expression, and single-cell-resolution alternatives to pseudobulk. Uses sample_key (biological) distinct from batch_key (technical). For pure batch correction use scvi-basic; for label transfer use scvi-scanvi.
+description: "MrVI from scvi-tools — multi-resolution variational inference for multi-donor scRNA-seq, modeling sample identity as biological rather than nuisance variation. Use for cohort studies needing cell-type-specific sample-to-sample distances and covariate-linked DE at single-cell resolution. sample_key is distinct from batch_key."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  category: integration
-  tier: simple
-  tags: []
-  complementary-skills:
-  - scvi-framework
-  - scvi-basic
-  - scvi-scanvi
-  - anndata
-  - scanpy
-  contraindications:
-  - Do not use on normalized / log-transformed data. Raw counts required.
-  - Do not confuse sample_key with batch_key. Sample is the biological variable; batch is technical nuisance.
-  - Do not use for single-sample or small-cohort datasets. MrVI shines with many samples.
-  version: 1.0.0
-  upstream-docs: https://docs.scvi-tools.org/en/stable/user_guide/models/mrvi.html
 ---
 
 # MrVI: Multi-Sample Analysis
@@ -187,3 +167,21 @@ model.train(
 - **Docs:** https://docs.scvi-tools.org/en/stable/user_guide/models/mrvi.html
 - **Tutorial:** https://docs.scvi-tools.org/en/stable/tutorials/notebooks/scrna/MrVI_tutorial.html
 - **Paper:** https://www.biorxiv.org/content/10.1101/2022.10.04.510898
+
+---
+
+## When not to use
+
+- Do not use on normalized / log-transformed data. Raw counts required.
+- Do not confuse sample_key with batch_key. Sample is the biological variable; batch is technical nuisance.
+- Do not use for single-sample or small-cohort datasets. MrVI shines with many samples.
+
+---
+
+## See also
+
+- `scvi-framework`
+- `scvi-basic`
+- `scvi-scanvi`
+- `anndata`
+- `scanpy`

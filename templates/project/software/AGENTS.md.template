@@ -1,0 +1,66 @@
+# AGENTS.md — {{PROJECT_ID}}
+
+**Created:** {{DATE}} · **Type:** {{PROJECT_TYPE}}
+
+This file is the single source of truth for AI agent behavior in this project.
+`CLAUDE.md` imports it via `@AGENTS.md`. Edit here, not there.
+
+---
+
+## Project context
+
+This is a **software** repository: a reusable package, not an analysis. Package
+identity, language, and lint/test commands live in `tool_config.yaml`. The design intent
+and scope live in `docs/_internal/design/`; handoffs are written there as
+`docs/_internal/design/YYYY-MM-DD_<slug>.md` (software projects have no `sessions/`).
+
+---
+
+## Active role
+
+_No role activated yet. Run `sciagent activate architect` to populate this section._
+
+Run `sciagent status` to see the current stack, effective skills, agents, and commands.
+
+---
+
+## Engineering rules
+
+1. **Code lives in `src/`, tests in `tests/`.** Every public function has a test.
+2. **Public API is the contract.** Keep it small, documented, and stable.
+3. **No analysis idioms.** This is a library — no checkpoint objects, no `00_data/` tree,
+   no figure generation. Examples go in `examples/`.
+4. **Benchmarks are reproducible.** Performance claims are backed by `docs/_internal/benchmarks/`.
+
+---
+
+## Directory structure
+
+```
+{{PROJECT_ID}}/
+├── src/                # package source
+├── tests/              # unit + integration tests
+├── examples/           # runnable usage examples
+├── docs/               # public-facing API docs, usage guides
+├── tool_config.yaml    # package name, language, lint/test commands
+└── README.md           # Features / Installation / Usage / Development / License
+```
+
+---
+
+## Documentation namespace
+
+`docs/_internal/` is agent-facing (not the published deliverable). Route writing here:
+
+| Path | Holds |
+|------|-------|
+| `docs/_internal/design/` | design intent, API decisions, scope |
+| `docs/_internal/reasoning/` | decision traces, why-not logs |
+| `docs/_internal/benchmarks/` | performance results backing any claims |
+| session handoff | `docs/_internal/design/` |
+
+---
+
+## Notes
+
+[Caveats, known issues, or interpretation notes relevant to all agents on this project]

@@ -1,26 +1,7 @@
 ---
 name: bulk-rnaseq-activity-inference
-description: 'DecoupleR activity inference pipeline -- infers transcription factor activities (ULM + CollecTRI regulatory network) and signaling pathway activities (MLM + PROGENy consensus signatures, 14 canonical pathways: JAK-STAT, MAPK, NFkB, PI3K, TGFb, TNFa, EGFR, WNT, p53, Hypoxia, Androgen, Estrogen, Trail, VEGF) from bulk RNA-seq DE results, plus publication-quality visualization. Use when computing TF or pathway activity scores from limma/edgeR DE output, identifying differentially active transcription factors, building master_tf_activities.csv or master_progeny_activities.csv, or generating barplots/volcanos/target-gene scatter plots. Routes to: references/tf-activity.md (DecoupleR ULM + CollecTRI), references/progeny.md (PROGENy MLM), references/visualization.md (barplots, volcanos, scatter). For gene-set enrichment against MSigDB or custom databases use bulk-rnaseq-gsea. For interactive UMAP pathway explorer use bulk-rnaseq-pathway-explorer.'
+description: "DecoupleR activity inference from bulk RNA-seq DE results — transcription-factor activities (ULM + CollecTRI) and pathway activities (MLM + PROGENy, 14 canonical pathways), plus barplots, volcanos, and target-gene scatters. Use when scoring TF or pathway activity from limma/edgeR output. For MSigDB gene-set enrichment use bulk-rnaseq-gsea."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://saezlab.github.io/decoupleR/
-  category: analysis
-  tier: standard
-  tags:
-  - pathway
-  complementary-skills:
-  - bulk-rnaseq-gsea
-  - bulk-rnaseq-pathway-explorer
-  - gatom-metabolomic-predictions
-  contraindications:
-  - Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead.
-  - Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead.
-  - Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
 ---
 
 # Bulk RNA-seq Activity Inference (DecoupleR)
@@ -199,18 +180,29 @@ limma-voom DE results (gene symbols as rownames, t-statistic)
 | padj = pvalue for TFs | TF | No BH correction applied | `p.adjust(tf_acts$p_value, method = "BH")` |
 | Volcano points missing | Viz | `color = NA` on shape 21 (ggplot2 4.0+) | Use `stroke = 0` or `color = "transparent"` |
 | Network download timeout | Both | OmniPath unreachable | Cache network on first download with `saveRDS()` |
+| `get_collectri`/`get_progeny` error: `argument is of length zero` | Both | OmnipathR static-table loader bug (decoupleR↔OmnipathR version skew), **not** necessarily an outage | Build networks locally (`progeny::getModel`, `dorothea::dorothea_mm`, Zenodo CollecTRI + babelgene) → **`references/known-issues.md`** |
 
 For full pitfall walkthroughs → see the relevant reference document.
 
----
+### Gotcha: report the FULL regulon as TF membership, never a top-N slice
 
-## Complementary Skills
+The TF gene-set membership (`genes_full_set`) handed downstream to the **pathway-explorer**
+(or any similarity/embedding layer) must be the **FULL CollecTRI regulon for that TF,
+intersected with the shared gene universe** — *not* a top-N (e.g. top-50) slice of targets.
 
-| When you need... | Use skill | Relationship |
-|---|---|---|
-| Gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) | `bulk-rnaseq-gsea` | Parallel analysis (different question) |
-| Interactive UMAP pathway/TF/PROGENy explorer HTML | `bulk-rnaseq-pathway-explorer` | Next step (consumes master CSVs) |
-| Topology-aware metabolic module discovery | `gatom-metabolomic-predictions` | Extension |
+- A `slice_head(n = 50)` cap on the reported targets understates TF↔pathway gene overlap.
+  Similarity-based UMAP embeddings compute distances from `genes_full_set` overlap, so a
+  truncated regulon makes every TF look artificially dissimilar from the pathways it actually
+  drives, pushing all TFs into a **spurious distant cluster** in the embedding.
+- The fix is to report the complete atlas-intersected regulon as membership. This does **not**
+  touch the activity score: ULM/`run_ulm` (and MLM/`run_mlm` for PROGENy) already infer the
+  score from the full network — the slice only ever affected which targets were *reported*,
+  never the `nes`/`score`/`padj` statistic.
+- Keep a top-N list only for **display/tooltips** if a UI needs a short preview — never for
+  overlap, similarity, or embedding computation.
+
+The same principle holds for PROGENy footprints and GATOM modules: the reported membership
+fed to the geometry layer is the full set ∩ universe, decoupled from the per-contrast score.
 
 ---
 
@@ -229,3 +221,20 @@ For full pitfall walkthroughs → see the relevant reference document.
 - `references/tf-activity.md` — DecoupleR ULM + CollecTRI: input matrix prep, network loading and caching, multi-contrast matrices, DoRothEA alternative, master table schema, BH correction
 - `references/progeny.md` — PROGENy MLM: 14 pathway table, .mor="weight" pitfall, concordance analysis, comparison to GSEA, species support, master table schema
 - `references/visualization.md` — barplot/volcano/direction-summary/distribution patterns, PROGENy significance stars, target-gene scatter with concordance coloring, README generation, output organization
+- `references/known-issues.md` — OmniPath/decoupleR fetch failures (`get_collectri`/`get_progeny` "argument is of length zero") and the local-network fallback (`progeny::getModel`, `dorothea_mm`, Zenodo CollecTRI + babelgene)
+
+---
+
+## When not to use
+
+- Do not use for gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO). Use bulk-rnaseq-gsea instead.
+- Do not use for interactive UMAP pathway explorer. Use bulk-rnaseq-pathway-explorer instead.
+- Do not use for topology-aware metabolic module discovery. Use gatom-metabolomic-predictions instead.
+
+---
+
+## See also
+
+- `bulk-rnaseq-gsea` — Parallel analysis; gene-set enrichment (MSigDB, MitoCarta, TransportDB, GO) is a different question
+- `bulk-rnaseq-pathway-explorer` — Next step; interactive UMAP pathway/TF/PROGENy explorer HTML (consumes master CSVs)
+- `gatom-metabolomic-predictions` — Extension; topology-aware metabolic module discovery

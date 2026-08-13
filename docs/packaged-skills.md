@@ -39,13 +39,13 @@ A packaged skill MUST satisfy all of the following. The reference column points 
 |---|---|---|
 | 1 | **Self-contained `uv` project** inside the skill dir: `pyproject.toml` + a **committed `uv.lock`**. `[tool.uv]` keeps the sandbox from inheriting system / base site-packages. | `pyproject.toml` |
 | 2 | **EXACT `==` pins for the fragile deps** (the ones whose internals you reach into / monkeypatch), **`>=` floors for the rest** (deps you use through a stable public API). Pin only what you reach into. | `pyproject.toml` |
-| 3 | **Console script** (`[project.scripts]`) + a **symlink-safe `bin/<tool>` launcher** that dereferences its own `BASH_SOURCE` before resolving the skill dir, so it survives being symlinked into `.claude/skills/` by `sciagent activate`. Fails loudly when `uv`/lock are absent. | `bin/mllmct` |
+| 3 | **Console script** (`[project.scripts]`) + a **symlink-safe `bin/<tool>` launcher** that dereferences its own `BASH_SOURCE` before resolving the skill dir, so it survives discovery through `.claude/skills` after `sciagent link`. Fails loudly when `uv`/lock are absent. | `bin/mllmct` |
 | 4 | **A smoke-check that GATES lock regeneration**: offline, asserts the exact pins AND that every structural seam the code binds to still exists. Rule: never `uv lock` without re-running it. Surface it via a `check-env` subcommand too. | `checks/smoke_check_versions.py` |
 | 5 | **Offline tests + synthetic de-identified fixtures + a `selftest` subcommand.** Tests run inside the locked sandbox (so version-sensitive imports resolve against the pins). Fixtures carry zero real biology/identities. `selftest` is dependency-free (works right after `uv sync`, no `test` extra). | `tests/`, `tests/fixtures/`, `selftest` cmd |
 | 6 | **Thin SKILL.md (interface only)**; internals live in `src/` + `references/`. SKILL.md is agent-facing (what/args/how-to-call); README is the human bootstrap doc; deep internals are `references/*.md`, read only by a maintainer. | `SKILL.md`, `src/`, `references/` |
 | 7 | **STRICTLY self-contained**: no imports from other skills or from the host toolkit/project (no `config.py`). Project-specific bits go behind an interface (the reference uses an `EvidenceProvider` ABC + a plugin) parameterized by config you pass in. This keeps the package **extractable**. | `src/mllmct/` |
 | 8 | **`tests/run_skill_tests.sh`** that skips gracefully (exit 0) when uv/lock are absent; the toolkit's `tests/run-all.sh` discovers it automatically via its `skills/*/tests/run_skill_tests.sh` sweep. | `tests/run_skill_tests.sh` |
-| 9 | **The `packaged: true` frontmatter marker** in SKILL.md. This is the tier marker — orthogonal to the existing `scope:` / `tier:` taxonomy, which describe the *SKILL.md doc*, not the packaging. | `SKILL.md` frontmatter |
+| 9 | **A one-line tier note at the top of the SKILL.md body** — "Packaged skill: execution is outsourced to the pinned CLI below." There is no frontmatter marker; the presence of `pyproject.toml` + a lockfile + `src/` is the actual, checkable signal. | `SKILL.md` body |
 
 ## 4. Distribution stance
 
@@ -61,7 +61,7 @@ Opinionated, in order:
 - **NEVER nested git submodules.** The toolkit is *already* a submodule of analysis projects; nesting a
   packaged skill as a sub-submodule means a three-level pointer-bump every change — don't.
 - **Separate interface from implementation.** When a skill is promoted, the **SKILL.md interface
-  contract stays discoverable** in the toolkit (so activation + routing still see it); the
+  contract stays discoverable** in the toolkit (so catalog binding + routing still see it); the
   **implementation package can live anywhere** (PyPI, its own repo). The launcher resolves the tool;
   the toolkit need not vendor the code.
 
@@ -81,8 +81,27 @@ The reference skill IS the template. To stamp out a new one:
    it (`uv run … checks/smoke_check_versions.py` must exit 0). Lock + smoke-check is one ritual.
 6. **Write your tests + synthetic fixtures + `fixtures/README.md`**; an end-to-end test that patches
    the external entry point *as imported by your module*. Wire a `selftest` + `check-env` subcommand.
-7. **Write a thin SKILL.md** (interface) with `packaged: true` in frontmatter, a README (human
-   bootstrap), and `references/*.md` for internals. Validate with
+7. **Write a thin SKILL.md** (interface) opening with the packaged-skill tier note, a README
+   (human bootstrap), and `references/*.md` for internals. Validate with
    `python skills/skill-creator/scripts/quick_validate.py skills/<name>/`.
 
 The reference skill's files are the spec for each step above — when in doubt, diff against them.
+
+---
+
+## 6. State external requirements in the skill body
+
+A packaged skill records every runtime requirement where a reader encounters it. Use these body
+sections consistently:
+
+- `## Prerequisites` — required modules, companion skills, version constraints, and project paths
+- `## When not to use` — cases that should route to another workflow
+- `## See also` — related or downstream skills
+
+Keep the statement concrete. For example: “Install `pathway-explorer` v2.0.0 and run from a project
+whose input is `03_results/tables/master_unified.csv`.” Git-tracked prose keeps the requirement next
+to the setup and examples that depend on it.
+
+The retired taxonomy key `metadata.requires:` remains unsupported;
+`skills/skill-creator/scripts/add_requires_field.py` is an inert tombstone that refuses to run. See
+`docs/skills.md`.

@@ -1,26 +1,7 @@
 ---
 name: scglue-unpaired-multiomics-integration
-description: Integrates unpaired single-cell multi-omics (scRNA-seq + scATAC-seq, with no shared barcodes) using a prior-knowledge guidance graph linking genes to regulatory regions. Use when aligning separately-assayed RNA and ATAC experiments, inferring cis-regulatory links, or constructing TF-target networks across modalities. For paired 10x Multiome data use scvi-multivi or muon-multimodal-analysis; for reference-mapped annotation use treearches-hierarchy-learning.
+description: "Integrates unpaired single-cell multi-omics (scRNA + scATAC, no shared barcodes) using a prior-knowledge guidance graph linking genes to regulatory regions. Use when aligning separately-assayed RNA and ATAC experiments, inferring cis-regulatory links, or building cross-modality TF-target networks. For paired multiome use scvi-multivi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://scglue.readthedocs.io/
-  category: integration
-  tier: standard
-  tags:
-  - integration
-  - multimodal
-  complementary-skills:
-  - scvi-multivi
-  - muon-multimodal-analysis
-  - scenic-grn-inference
-  contraindications:
-  - Do not use for paired 10x Multiome (shared barcodes). Use scvi-multivi or muon-multimodal-analysis instead.
-  - Do not install via conda — use a dedicated venv to avoid dependency conflicts.
 ---
 
 # scGLUE (Graph Linked Unified Embedding) Skill
@@ -731,11 +712,11 @@ There is **no established workflow** for using scGLUE output as SCENIC+ input. A
 
 Instead, run both tools independently and intersect results.
 
-See [SCENIC+ skill](scenic-grn-inference.md) for GRN-specific workflows.
+See [SCENIC+ skill](../scenic-grn-inference/SKILL.md) for GRN-specific workflows.
 
 ### Input Data Preparation
 
-For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata.md](multimodal-anndata-mudata.md) Part 4.1.
+For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata.md](../multimodal-anndata-mudata/SKILL.md) Part 4.1.
 
 ---
 
@@ -747,3 +728,18 @@ For converting Seurat objects to h5ad for scGLUE, see [multimodal-anndata-mudata
 - **TF Motifs (mm10):** http://download.gao-lab.org/GLUE/cisreg/JASPAR2022-mm10.bed.gz
 - **TF Motifs (hg38):** http://download.gao-lab.org/GLUE/cisreg/JASPAR2022-hg38.bed.gz
 - **ENCODE ChIP-seq:** http://download.gao-lab.org/GLUE/cisreg/ENCODE-TF-ChIP-mm10.bed.gz
+
+---
+
+## When not to use
+
+- Do not use for paired 10x Multiome (shared barcodes). Use scvi-multivi or muon-multimodal-analysis instead.
+- Do not install via conda — use a dedicated venv to avoid dependency conflicts.
+
+---
+
+## See also
+
+- `scvi-multivi`
+- `muon-multimodal-analysis`
+- `scenic-grn-inference`

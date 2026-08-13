@@ -1,27 +1,7 @@
 ---
 name: treearches-hierarchy-learning
-description: Learns unified hierarchical cell-type trees across multiple scRNA-seq reference atlases using scArches + scHPL on scVI/scANVI latent spaces. Use when harmonizing conflicting cell-type nomenclatures across references, extending a hierarchy with new labeled datasets, or detecting novel cell types absent from existing references. For single-reference label transfer only, use scvi-scanvi or cellxgene-census-annotation.
+description: "Learns unified hierarchical cell-type trees across multiple scRNA-seq reference atlases using scArches + scHPL on scVI/scANVI latent spaces. Use when harmonizing conflicting cell-type nomenclatures across references, extending a hierarchy with new labeled data, or detecting novel cell types. For single-reference transfer use scvi-scanvi."
 license: MIT
-metadata:
-  scope: implementation
-  requires: []
-  skill-author: SciAgent-toolkit
-  last-reviewed: 2026-04-14
-  version: 1.0.0
-  upstream-docs: https://docs.scarches.org/
-  category: annotation
-  tier: standard
-  tags:
-  - annotation
-  - reference-mapping
-  complementary-skills:
-  - scvi-scarches-reference-mapping
-  - scvi-scanvi
-  - scvi-framework
-  - cellxgene-census-annotation
-  contraindications:
-  - Do not use for single-reference label transfer. Use scvi-scanvi or cellxgene-census-annotation.
-  - Do not use without a pre-trained scVI/scANVI reference model — train one first via scvi-scarches-reference-mapping.
 ---
 
 # treeArches Hierarchical Cell Type Learning Skill
@@ -47,18 +27,20 @@ metadata:
 
 ## Installation
 
-**See `scvi-scarches-reference-mapping.md`** for full installation instructions.
+treeArches = scArches surgical mapping + scHPL open-set classification.
 
-treeArches requires the **scarches package** (not available in scvi-tools native):
+**Surgery half** — native in scvi-tools (no `scarches` package needed for scVI/scANVI):
+SCANVI.load_query_data implements ArchesMixin (the surgery).
 
+**Classification half** — install scHPL standalone:
 ```bash
-# Install scarches (includes scHPL)
-pip install -U scarches
-
-# Verify installation
-python -c "import scarches as sca; print(sca.__version__)"
-python -c "from scarches.classifiers import scHPL; print('scHPL available')"
+pip install --no-deps scHPL newick==1.0.0
+# --no-deps: a plain install pulls a pandas downgrade
+# newick==1.0.0: scHPL 1.0.5 breaks with newick >= 1.1
+#   ('list' object has no attribute 'startswith'), silent until learn_tree()
 ```
+The `scarches` package is optional — install it only for models NOT in scvi-tools
+(trVAE, scGen, scPoli). For scVI/scANVI-based treeArches it is not required.
 
 **Optional: FAISS for faster KNN** (recommended for large atlases >100k cells):
 
@@ -141,6 +123,22 @@ Rejected cells are candidates for:
 - Transition/intermediate states
 - Batch-specific artifacts
 
+### Two flavors of "does not fit any reference type"
+
+| outcome string | meaning | threshold sensitivity |
+|---|---|---|
+| "Rejection (dist)" / "Rejected (RE)" | geometrically far from all reference neighbours | THRESHOLD-INVARIANT (pure geometry) |
+| "root" | ambiguous between all types; failed the coarsest tree split | GROWS WITH THRESHOLD |
+
+Both mean "flagged / undefined". "root" is the scHPL "couldn't descend the tree" outcome —
+NOT a cell type label; never ship it as one.
+
+```python
+is_rej     = labels.str.contains("eject", case=False)   # Rejection(dist) / Rejected(RE)
+is_root    = labels.eq("root")                           # top-split ambiguity
+is_flagged = is_rej | is_root                            # the undefined population
+```
+
 ### Critical Requirement: Unique Cell Type Labels
 
 **WARNING:** Cell type labels MUST be unique across datasets before hierarchy learning.
@@ -197,10 +195,11 @@ sc.pp.highly_variable_genes(
 )
 source_adata.X = source_adata.raw[:, source_adata.var_names].X
 
-# Train scVI (scArches-compatible parameters)
-sca.models.SCVI.setup_anndata(source_adata, batch_key="batch")
+# Train scVI (scArches-compatible parameters) — native scvi-tools, no scarches package needed
+import scvi
+scvi.model.SCVI.setup_anndata(source_adata, batch_key="batch")
 
-vae = sca.models.SCVI(
+vae = scvi.model.SCVI(
     source_adata,
     n_layers=2,
     encode_covariates=True,
@@ -230,6 +229,8 @@ reference_latent.write("ref_model/ref_latent.h5ad")
 ### Step 2: Learn Cell Type Hierarchy with scHPL
 
 ```python
+from scHPL import learn, predict
+
 # CRITICAL: Create unique cell type labels per study
 reference_latent.obs["celltype_batch"] = (
     reference_latent.obs["cell_type"].astype(str) + "-" +
@@ -241,7 +242,7 @@ reference_latent.obs["celltype_batch"] = (
 # classifier: 'knn' (recommended for low-dim), 'svm', or 'svm_occ'
 # dynamic_neighbors: adapt k based on cell type size
 
-tree_ref, mp_ref = sca.classifiers.scHPL.learn_tree(
+tree_ref, mp_ref = learn.learn_tree(
     data=reference_latent,
     batch_key="study",
     batch_order=["Freytag", "Oetjen", "Sun"],  # Your study names
@@ -251,6 +252,7 @@ tree_ref, mp_ref = sca.classifiers.scHPL.learn_tree(
     dimred=False,           # Already in latent space
     print_conf=False        # Set True to see confusion matrices
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 
 # tree_ref: networkx DiGraph representing hierarchy
 # mp_ref: dictionary of trained classifiers per node
@@ -272,15 +274,14 @@ tree_ref, mp_ref = sca.classifiers.scHPL.learn_tree(
 # Filter query to same genes as reference
 target_adata = target_adata[:, source_adata.var_names].copy()
 
-# Load query model from reference
-model = sca.models.SCVI.load_query_data(
-    target_adata,
-    "ref_model/",
-    freeze_dropout=True,
-)
-
-# Surgery training
-model.train(max_epochs=50)
+# Preferred: scvi-tools native (no scarches package required for scVI/scANVI).
+# Step 1 trained an SCVI reference into ref_model/, so load the query onto it natively:
+import scvi
+scvi.model.SCVI.prepare_query_anndata(target_adata, "ref_model/")
+model = scvi.model.SCVI.load_query_data(target_adata, "ref_model/")
+model.train(max_epochs=50, plan_kwargs={"weight_decay": 0.0})   # weight_decay=0 freezes the reference
+# Alternative (scarches package, for trVAE/other scarches-only models):
+# model = sca.models.SCVI.load_query_data(target_adata, "ref_model/", freeze_dropout=True)
 model.save("surgery_model/", overwrite=True)
 
 # Get query latent representation
@@ -322,7 +323,7 @@ tree_rq = cp.deepcopy(tree_ref)
 # batch_added: studies already in tree (DO NOT re-add)
 # batch_order: new studies to add
 
-tree_rq, mp_rq = sca.classifiers.scHPL.learn_tree(
+tree_rq, mp_rq = learn.learn_tree(
     data=full_latent,
     batch_key="study",
     batch_order=["10X"],                    # Query study to add
@@ -333,6 +334,7 @@ tree_rq, mp_rq = sca.classifiers.scHPL.learn_tree(
     classifier="knn",
     dimred=False
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 
 # New cell types in query will appear as unmatched nodes
 # Matched cell types will be grouped with reference types
@@ -343,25 +345,26 @@ tree_rq, mp_rq = sca.classifiers.scHPL.learn_tree(
 If your query dataset is unlabeled:
 
 ```python
-# Predict using reference tree
-query_pred = sca.classifiers.scHPL.predict_labels(
+# scHPL 1.0.5: predict_labels returns (labels_array, posterior_prob_array) — must unpack
+y_pred, y_prob = predict.predict_labels(
     query_latent.X,
     tree=tree_ref,
     threshold=0.5  # Rejection threshold (higher = more conservative)
 )
-
-# Add predictions to query object
-query_latent.obs["predicted"] = query_pred
+query_latent.obs["predicted"]       = np.asarray(y_pred).astype(str)
+query_latent.obs["pred_confidence"] = np.asarray(y_prob).reshape(-1)
+# Alternative if scarches installed: sca.classifiers.scHPL.predict_labels(...)
 
 # Evaluate against ground truth (if available)
-sca.classifiers.scHPL.evaluate.heatmap(
+evaluate.heatmap(
     query_latent.obs["cell_type"],
-    query_pred,
+    y_pred,
     shape=[8, 5]  # Figure size
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.evaluate.heatmap(...)
 
 # Analyze rejection patterns
-rejection_rate = (query_pred == "Rejection").mean()
+rejection_rate = (np.asarray(y_pred) == "Rejection").mean()
 print(f"Rejection rate: {rejection_rate:.1%}")
 ```
 
@@ -376,7 +379,7 @@ This tutorial shows how to detect disease-specific cell types (e.g., IPF macroph
 ```python
 import scanpy as sc
 import scarches as sca
-import scHPL  # Can also use sca.classifiers.scHPL
+from scHPL import learn, predict  # standalone scHPL; sca.classifiers.scHPL is an alternative
 import numpy as np
 import pickle
 import copy as cp
@@ -427,7 +430,7 @@ LCA_IPF = LCA_IPF[~LCA_IPF.obs["ct-batch"].isin(to_remove)]
 
 # Update hierarchy
 # This can take ~1 hour for >600k cells
-HLCA_tree_updated = scHPL.learn.learn_tree(
+HLCA_tree_updated = learn.learn_tree(
     LCA_IPF,
     batch_key="batch",
     batch_order=["Query"],
@@ -449,13 +452,14 @@ HLCA_tree_updated = scHPL.learn.learn_tree(
 Sometimes a query cell type matches the reference but contains a novel subtype. Detect via rejection:
 
 ```python
-# Predict with reference tree
-y_pred = scHPL.predict.predict_labels(
+# scHPL 1.0.5: predict_labels returns (labels_array, posterior_prob_array) — must unpack
+y_pred, y_prob = predict.predict_labels(
     emb_ipf.X,
     tree=HLCA_tree,
     threshold=0.5
 )
-emb_ipf.obs["scHPL_pred"] = y_pred
+emb_ipf.obs["scHPL_pred"]      = np.asarray(y_pred).astype(str)
+emb_ipf.obs["pred_confidence"] = np.asarray(y_prob).reshape(-1)
 
 # Consolidate rejection types
 emb_ipf.obs["scHPL_pred"] = emb_ipf.obs["scHPL_pred"].replace({
@@ -568,8 +572,10 @@ sc.pl.dotplot(
 ### Classifier Selection
 
 ```python
+from scHPL import learn, predict
+
 # KNN (default, recommended)
-tree, mp = sca.classifiers.scHPL.learn_tree(
+tree, mp = learn.learn_tree(
     data=latent,
     classifier="knn",
     dynamic_neighbors=True,  # Adapt k to cell type size
@@ -577,42 +583,49 @@ tree, mp = sca.classifiers.scHPL.learn_tree(
 )
 
 # Linear SVM (for high-dimensional data)
-tree, mp = sca.classifiers.scHPL.learn_tree(
+tree, mp = learn.learn_tree(
     data=adata,              # Can use full expression
     classifier="svm",
     dimred=True              # Apply PCA first
 )
 
 # One-class SVM (emphasis on novelty detection)
-tree, mp = sca.classifiers.scHPL.learn_tree(
+tree, mp = learn.learn_tree(
     data=latent,
     classifier="svm_occ"
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 ```
 
 ### Rejection Thresholds
 
+**Threshold controls ONLY the posterior/"root" component — distance/RE is threshold-invariant.**
+
+| threshold | total flagged | dist/RE ("Rejected") | posterior ("root") |
+|---|---|---|---|
+| 0.5 | ~2.8% | ~2,070 (constant) | ~411 |
+| 0.7 | ~5.2% | ~2,070 (constant) | ~2,640 |
+| 0.9 | ~9.3% | ~2,070 (constant) | ~6,325 |
+
+- dist/RE: fires when a cell is far from ALL known types — the robust out-of-distribution signal.
+- posterior/"root": fires when a cell is hard to call BETWEEN known types — the tunable knob.
+Report both components separately; sweep {0.5, 0.7, 0.9} for sensitivity.
+
 ```python
-# Predict with custom threshold
-predictions = sca.classifiers.scHPL.predict_labels(
+# scHPL 1.0.5: predict_labels returns (labels_array, posterior_prob_array) — must unpack
+y_pred, y_prob = predict.predict_labels(
     query_latent.X,
     tree=tree,
-    threshold=0.5  # Default: 0.5
+    threshold=0.5  # Default: 0.5; controls posterior/"root" component only
 )
-
-# Lower threshold = more permissive (fewer rejections)
-# Higher threshold = more conservative (more rejections)
-
-# Tune based on use case:
-# - Atlas annotation: threshold=0.3-0.5 (permissive)
-# - Novel cell detection: threshold=0.6-0.8 (conservative)
+# Alternative if scarches installed: sca.classifiers.scHPL.predict_labels(...)
 ```
 
 ### Using Reconstruction Error
 
 ```python
 # Enable RE-based rejection (requires trained scVI model)
-tree, mp = sca.classifiers.scHPL.learn_tree(
+tree, mp = learn.learn_tree(
     data=latent,
     batch_key="study",
     batch_order=["Study1", "Study2"],
@@ -620,6 +633,10 @@ tree, mp = sca.classifiers.scHPL.learn_tree(
     classifier="knn",
     useRE=True  # Add reconstruction error rejection
 )
+# useRE=True: flags cells whose embedding cannot be reconstructed from their kNN neighbours in
+# the latent space (high residual = out-of-distribution). This does NOT call the scVI decoder —
+# it operates entirely on the embedding matrix, so prediction needs only the latents, not the model.
+# Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 ```
 
 ---
@@ -654,13 +671,15 @@ plt.savefig("cell_type_hierarchy.pdf")
 
 ```python
 # Compare predictions to ground truth
-sca.classifiers.scHPL.evaluate.heatmap(
+from scHPL import evaluate
+evaluate.heatmap(
     y_true=query_latent.obs["cell_type"],
     y_pred=query_latent.obs["predicted"],
     shape=[10, 8],           # Figure size
     normalize="true",        # Normalize by true labels
     cmap="Blues"
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.evaluate.heatmap(...)
 ```
 
 ### Per-Class Metrics
@@ -692,6 +711,8 @@ print(f"Rejection rate: {(~mask).mean():.1%}")
 | FAISS errors | Install correct version: `faiss-gpu` (Linux+GPU) or `faiss-cpu` |
 | Slow hierarchy learning | Subsample data, use FAISS, reduce n_neighbors |
 | Inconsistent predictions | Use same classifier settings for tree and prediction |
+| AttributeError: 'list' object has no attribute 'startswith' in learn_tree() | newick >= 1.1 breaks scHPL 1.0.5 tree parsing | pip install newick==1.0.0 |
+| pandas downgraded / version conflicts after installing scHPL | scHPL/scarches pull an old pandas transitively | pip install --no-deps scHPL |
 
 ---
 
@@ -700,7 +721,8 @@ print(f"Rejection rate: {(~mask).mean():.1%}")
 ### Hierarchy Learning
 
 ```python
-sca.classifiers.scHPL.learn_tree(
+# from scHPL import learn, predict
+learn.learn_tree(
     data,                    # AnnData with latent representation
     batch_key,               # Column with study/batch IDs
     batch_order,             # List of studies to add (in order)
@@ -715,26 +737,31 @@ sca.classifiers.scHPL.learn_tree(
     useRE=False,             # Use reconstruction error rejection
     print_conf=False         # Print confusion matrices
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.learn_tree(...)
 ```
 
 ### Label Prediction
 
 ```python
-sca.classifiers.scHPL.predict_labels(
+# scHPL 1.0.5: returns (labels_array, posterior_prob_array) — must unpack
+y_pred, y_prob = predict.predict_labels(
     data,                    # Query latent representation (numpy array)
-    tree,                    # Learned tree from learn_tree()
-    threshold=0.5            # Rejection threshold
+    tree=tree,               # Learned tree from learn_tree()
+    threshold=0.5            # Rejection threshold (controls posterior/"root" only)
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.predict_labels(...)
 ```
 
 ### Evaluation
 
 ```python
-sca.classifiers.scHPL.evaluate.heatmap(
+# from scHPL import evaluate
+evaluate.heatmap(
     y_true,                  # Ground truth labels
     y_pred,                  # Predicted labels
     shape=[8, 5]             # Figure size
 )
+# Alternative if scarches installed: sca.classifiers.scHPL.evaluate.heatmap(...)
 ```
 
 ---
@@ -762,3 +789,19 @@ treeArches fits into the broader scArches pipeline:
 - **scArches GitHub:** https://github.com/theislab/scarches
 - **scHPL GitHub:** https://github.com/lcmmichielsen/scHPL
 - **Foundation Skill:** `scvi-scarches-reference-mapping.md`
+
+---
+
+## When not to use
+
+- Do not use for single-reference label transfer. Use scvi-scanvi or cellxgene-census-annotation.
+- Do not use without a pre-trained scVI/scANVI reference model — train one first via scvi-scarches-reference-mapping.
+
+---
+
+## See also
+
+- `scvi-scarches-reference-mapping`
+- `scvi-scanvi`
+- `scvi-framework`
+- `cellxgene-census-annotation`
