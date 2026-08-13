@@ -1,4 +1,4 @@
-## figure_helpers.R — the SciAgent-toolkit cross-language FIGURE-STYLE CONTRACT (R side).
+## figure_helpers.R — the Scio toolkit cross-language FIGURE-STYLE CONTRACT (R side).
 ## =====================================================================================
 ## ONE place that owns the project's figure format so phase viz stages never reinvent it. This
 ## is the R half of a two-language contract; the Python half (`figure_helpers.py`, same dir) has

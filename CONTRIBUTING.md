@@ -10,7 +10,7 @@ Read `AGENTS.md` — it covers the critical rules (idempotency, bash-only, link 
 bash tests/run-all.sh
 ```
 
-All tests must pass (`bash tests/run-all.sh`). Tests cover link convergence and ownership, block hash drift detection, linting, and catalog validation. Run `bin/sciagent lint --check toolkit --strict --quiet` for the catalog gate alone.
+All tests must pass (`bash tests/run-all.sh`). Tests cover link convergence and ownership, block hash drift detection, linting, and catalog validation. Run `bin/scio lint --check toolkit --strict --quiet` for the catalog gate alone.
 
 ## Name collisions
 
@@ -35,9 +35,9 @@ Fix: update the allowlist row to include the new kind.
 Skills move from active use to `_attic` by judgment. The directory location is
 the lifecycle state. See `docs/skill-lifecycle.md`.
 
-## Error handling (lib/sciagent)
+## Error handling (lib/scio)
 
-Library functions in `lib/sciagent/*.sh` only ever `return <code>` — never `exit` (only `bin/sciagent`, at the top dispatch level, may exit; awk/subshell `exit` is fine since it tears down the awk/subshell, not the caller's shell). Every side-effecting call (`block_write`, `ln -sfn`, `mkdir -p`, …) is checked: `cmd || { echo "sciagent <verb>: <message>" >&2; return 1; }`. User-facing errors use the prefix `sciagent <verb>: <message>` on stderr. Reserve `|| true` for genuinely best-effort, non-state operations and annotate each with a `# best-effort: <reason>` comment. `set -e`/`set -o pipefail` are deliberately off — the codebase relies on explicit return-code dispatch.
+Library functions in `lib/scio/*.sh` only ever `return <code>` — never `exit` (only `bin/scio`, at the top dispatch level, may exit; awk/subshell `exit` is fine since it tears down the awk/subshell, not the caller's shell). Every side-effecting call (`block_write`, `ln -sfn`, `mkdir -p`, …) is checked: `cmd || { echo "scio <verb>: <message>" >&2; return 1; }`. User-facing errors use the prefix `scio <verb>: <message>` on stderr. Reserve `|| true` for genuinely best-effort, non-state operations and annotate each with a `# best-effort: <reason>` comment. `set -e`/`set -o pipefail` are deliberately off — the codebase relies on explicit return-code dispatch.
 
 ## Commit messages
 

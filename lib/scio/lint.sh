@@ -1,4 +1,4 @@
-# lib/sciagent/lint.sh — sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
+# lib/scio/lint.sh — scio lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
 #
 # The (c) GUARDRAIL layer: project checks plus an explicit toolkit catalog
 # check used by maintainers and the release gate.
@@ -155,13 +155,13 @@ _vcheck_stage_files() {
 }
 
 # _vcheck_toolkit_root
-# Echo the toolkit checkout this lint run belongs to: $SCIAGENT_TOOLKIT when the
-# dispatcher exported one (always, in practice — bin/sciagent sets it before any
+# Echo the toolkit checkout this lint run belongs to: $SCIO_TOOLKIT when the
+# dispatcher exported one (always, in practice — bin/scio sets it before any
 # module loads), else the checkout this very file lives in. The freshness check
 # compares a project against it.
 _vcheck_toolkit_root() {
-    if [[ -n "${SCIAGENT_TOOLKIT:-}" ]]; then
-        printf '%s' "$SCIAGENT_TOOLKIT"
+    if [[ -n "${SCIO_TOOLKIT:-}" ]]; then
+        printf '%s' "$SCIO_TOOLKIT"
         return 0
     fi
     local self_dir
@@ -538,13 +538,13 @@ _lint_check_freshness() {
         local stored_hash expected_body expected_hash
         stored_hash=$(block_stored_hash "$agents" CRAFT 2>/dev/null)
         if [[ -n "$stored_hash" ]]; then
-            expected_body=$(SCIAGENT_TOOLKIT="$tk_root" _craft_render_body 2>/dev/null)
+            expected_body=$(SCIO_TOOLKIT="$tk_root" _craft_render_body 2>/dev/null)
             # Match block_write's trailing-newline canonicalisation before hashing.
             [[ "${expected_body: -1}" == $'\n' ]] || expected_body="${expected_body}"$'\n'
             expected_hash=$(printf '%s' "$expected_body" | _sha1)
             if [[ -n "$expected_hash" && "$stored_hash" != "$expected_hash" ]]; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "CRAFT block is stale vs toolkit craft.yaml — run: sciagent craft" || rc=1
+                    "CRAFT block is stale vs toolkit craft.yaml — run: scio craft" || rc=1
             fi
         fi
     fi
@@ -559,7 +559,7 @@ _lint_check_freshness() {
             # Only warn when the submodule is an ANCESTOR of (behind) HEAD.
             if git -C "$tk_root" merge-base --is-ancestor "$sub_head" "$tk_head" 2>/dev/null; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: sciagent link && sciagent craft" || rc=1
+                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: scio link && scio craft" || rc=1
             fi
         fi
     fi
@@ -600,7 +600,7 @@ _lint_check_docs_layout() {
     # docs/_internal/ does not exist (docs/ itself does, so the project has
     # opted into the convention but hasn't finished scaffolding it).
     [[ -d "$projdir/docs/_internal" ]] || \
-        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: sciagent link" || rc=1; }
+        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: scio link" || rc=1; }
 
     # docs/_internal/ exists but is NOT gitignored (in a git repo).
     if [[ -d "$projdir/docs/_internal" ]]; then
@@ -704,7 +704,7 @@ _lint_check_hooks() {
 
         if [[ ! -f "$projdir/$path" ]]; then
             _vcheck_emit "$strict" "$quiet" hooks \
-                "$path is registered in .claude/settings.json but does not exist — run: sciagent link" || rc=1
+                "$path is registered in .claude/settings.json but does not exist — run: scio link" || rc=1
         elif [[ ! -x "$projdir/$path" ]] && ! [[ "$cmd" =~ (^|[[:space:]/])(bash|sh|zsh|python3?|uv)([[:space:]]|$) ]]; then
             # The exec bit only matters when the hook is invoked DIRECTLY. The
             # shipped templates register `bash "<path>"`, where mode 0644 runs
@@ -740,7 +740,7 @@ _lint_run_checks() {
             figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|toolkit) run+=("$n") ;;
             "") ;;
             *)
-                echo "sciagent lint: unknown --check name '$n'" >&2
+                echo "scio lint: unknown --check name '$n'" >&2
                 echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout toolkit all" >&2
                 return 1 ;;
         esac
@@ -775,7 +775,7 @@ cmd_lint() {
         case "$1" in
             -h|--help)
                 cat <<'USAGE'
-sciagent lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
+scio lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
   Run guardrail checks against --project-dir. Use --check toolkit for the
   toolkit-wide skill-frontmatter and namespace-collision check.
 
@@ -808,8 +808,8 @@ USAGE
                 if [[ "$1" != -* ]]; then
                     _projdir="$1"; shift
                 else
-                    echo "sciagent lint: unknown option '$1'" >&2
-                    echo "usage: sciagent lint [--project-dir <dir>] [--check <name>] [--strict] [--quiet]" >&2
+                    echo "scio lint: unknown option '$1'" >&2
+                    echo "usage: scio lint [--project-dir <dir>] [--check <name>] [--strict] [--quiet]" >&2
                     return 1
                 fi ;;
         esac

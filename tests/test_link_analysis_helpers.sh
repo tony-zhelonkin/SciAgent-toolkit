@@ -5,12 +5,12 @@ set -u
 . "$(dirname "$0")/_lib.sh"
 
 setup_tmpdir
-SCIAGENT="$TOOLKIT_ROOT/bin/sciagent"
+SCIO="$TOOLKIT_ROOT/bin/scio"
 SHIM_TEMPLATES="$TOOLKIT_ROOT/templates/project/analysis/02_analysis/helpers"
-STATE_DIR=".sciagent/helper_shim_state"
+STATE_DIR=".scio/helper_shim_state"
 
 mkdir -p analysis/02_analysis
-first=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
+first=$("$SCIO" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
     echo "FAIL [$_TEST_NAME] analysis link failed" >&2
     printf '%s\n' "$first" >&2
     exit 1
@@ -37,7 +37,7 @@ for template in "$SHIM_TEMPLATES"/*.template; do
 done
 assert_eq "$n_shims" 3 "expected three helper shims"
 
-second=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
+second=$("$SCIO" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
     echo "FAIL [$_TEST_NAME] idempotent analysis link failed" >&2
     printf '%s\n' "$second" >&2
     exit 1
@@ -47,7 +47,7 @@ assert_eq "$second" "" "second analysis link is a silent no-op"
 shim="$TMPDIR_TEST/analysis/02_analysis/helpers/figure_style.py"
 printf '\n# project theme extension\n' >> "$shim"
 edited_hash=$(sha1sum "$shim" | cut -d' ' -f1)
-ceded=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
+ceded=$("$SCIO" link --project-dir "$TMPDIR_TEST/analysis" 2>&1) || {
     echo "FAIL [$_TEST_NAME] link failed while ceding a user shim" >&2
     printf '%s\n' "$ceded" >&2
     exit 1
@@ -64,7 +64,7 @@ assert_file_exists "$TMPDIR_TEST/analysis/$STATE_DIR/figure_style.py.ceded" "ced
 }
 
 mkdir coordination
-"$SCIAGENT" link --project-dir "$TMPDIR_TEST/coordination" >/dev/null 2>&1 || {
+"$SCIO" link --project-dir "$TMPDIR_TEST/coordination" >/dev/null 2>&1 || {
     echo "FAIL [$_TEST_NAME] non-analysis link failed" >&2
     exit 1
 }
@@ -81,7 +81,7 @@ mkdir -p legacy/02_analysis/helpers
 ln -s "$TOOLKIT_ROOT/lib/figure-style" legacy/02_analysis/helpers/figure-style
 ln -s /workspaces/demo/01_modules/SciAgent-toolkit/lib/interactive-style \
     legacy/02_analysis/helpers/interactive-style
-"$SCIAGENT" link --project-dir "$TMPDIR_TEST/legacy" >/dev/null 2>&1 || {
+"$SCIO" link --project-dir "$TMPDIR_TEST/legacy" >/dev/null 2>&1 || {
     echo "FAIL [$_TEST_NAME] legacy-link convergence failed" >&2
     exit 1
 }

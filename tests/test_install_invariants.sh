@@ -14,7 +14,7 @@
 #   2. Behavioural — installing writes strictly inside --prefix, links only the
 #      executable, and creates no harness or project artifact anywhere.
 #   3. Behavioural — a project directory next to the install is byte-identical
-#      before and after. `install.sh` puts a program on the machine; `sciagent`
+#      before and after. `install.sh` puts a program on the machine; `scio`
 #      decides what a project gets (00_INDEX.md §2).
 set -u
 . "$(dirname "$0")/_lib.sh"
@@ -83,7 +83,7 @@ assert_eq "$(tree_snapshot "$HOME")" "$home_before" "install.sh must not write i
 paths=$(cd "$P" && find . \( -type f -o -type l \) | LC_ALL=C sort)
 while IFS= read -r p; do
     case "$p" in
-        ./bin/sciagent) ;;
+        ./bin/scio) ;;
         ./share/scio/versions/"$SHA"/*) ;;
         ./share/scio/receipts/"$SHA".json) ;;
         *) echo "FAIL [$_TEST_NAME] unexpected path written by install.sh: $p" >&2; exit 1 ;;
@@ -91,9 +91,9 @@ while IFS= read -r p; do
 done <<< "$paths"
 
 # The executable is a symlink INTO the version dir — not a copy, not a wrapper
-# script that could pin \$SCIAGENT_TOOLKIT globally and subvert fleet precedence.
-assert_symlink "$P/bin/sciagent"
-assert_eq "$(readlink "$P/bin/sciagent")" "../share/scio/versions/$SHA/bin/sciagent" \
+# script that could pin \$SCIO_TOOLKIT globally and subvert fleet precedence.
+assert_symlink "$P/bin/scio"
+assert_eq "$(readlink "$P/bin/scio")" "../share/scio/versions/$SHA/bin/scio" \
     "the linked executable must resolve into the content-addressed version dir"
 
 pass

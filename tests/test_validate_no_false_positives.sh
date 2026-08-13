@@ -12,11 +12,11 @@ FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
 # build_fake_toolkit ships disjoint names; no further setup is needed.
 
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 set +e
-stderr_out=$("$SCIAGENT" lint --check toolkit 2>&1 >/dev/null)
+stderr_out=$("$SCIO" lint --check toolkit 2>&1 >/dev/null)
 rc=$?
 set -e
 

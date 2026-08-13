@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test_lint_stage_thinness.sh — `sciagent lint --check stage-thinness`.
+# tests/test_lint_stage_thinness.sh — `scio lint --check stage-thinness`.
 #
 # Covers docs 09 §3.1: def-count (>2), summed function-body lines (>60), total
 # stage LOC (>500), the `# stage-detail: <reason>` escape hatch (and its
@@ -12,8 +12,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 fail() {
     echo "FAIL [$_TEST_NAME] $1" >&2
@@ -25,7 +25,7 @@ fail() {
 run_check() {
     # run_check <projdir> [extra args...]
     local projdir="$1"; shift
-    "$SCIAGENT" lint --check stage-thinness --project-dir "$projdir" "$@" 2>&1
+    "$SCIO" lint --check stage-thinness --project-dir "$projdir" "$@" 2>&1
 }
 
 # ---------------------------------------------------------------------------

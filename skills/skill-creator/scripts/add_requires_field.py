@@ -8,7 +8,7 @@ The `metadata.requires` / `metadata.scope` frontmatter fields this script
 injects were part of the role/taxonomy layer that has since been demolished
 (see `docs/architecture.md` and `docs/skills.md` "taxonomy removed" note).
 `metadata:` is no longer populated on any SKILL.md, there is no resolver
-that reads `requires:` or `scope:`, and `sciagent activate` mounts the whole
+that reads `requires:` or `scope:`, and `scio link` mounts the whole
 catalog unconditionally regardless of these keys.
 
 Running this script today would resurrect exactly the frontmatter block a
@@ -21,7 +21,7 @@ Original docstring (historical, describes what the script DID when it was
 a live migration step; no longer applicable):
 
 Migration helper (M1, per ADR-0002 §5): ensure every SKILL.md under
-SciAgent-toolkit/skills/ carries `metadata.requires: []` and
+The Scio toolkit's skills carry `metadata.requires: []` and
 `metadata.scope: atomic`.
 
 Rules:
@@ -167,7 +167,7 @@ def main() -> int:
     print(
         "This script is INERT and must not be run: it injects "
         "`metadata.requires` / `metadata.scope` frontmatter for a "
-        "role/taxonomy layer that has been removed from SciAgent-toolkit. "
+        "role/taxonomy layer that has been removed from the Scio toolkit. "
         "Running it would resurrect frontmatter a later refactor "
         "deliberately deleted from every SKILL.md. See the module "
         "docstring at the top of this file for details. Exiting without "

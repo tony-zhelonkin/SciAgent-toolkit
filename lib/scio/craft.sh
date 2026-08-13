@@ -1,9 +1,9 @@
-# lib/sciagent/craft.sh — SCIAGENT:CRAFT managed-block renderer.
+# lib/scio/craft.sh — SCIO:CRAFT managed-block renderer.
 #
 # The CRAFT block carries the owner's standing craft conventions (figure
 # legibility, results placement, README adjacency, planning decomposition,
 # reproducibility). Its single source of truth is <toolkit>/craft.yaml.
-# Rendered into AGENTS.md by `sciagent craft` (see craft_verb.sh). SHA1
+# Rendered into AGENTS.md by `scio craft` (see craft_verb.sh). SHA1
 # drift-detected and idempotently re-rendered via block.sh (id=CRAFT).
 #
 # Depends on block.sh (block_write/block_remove with id=CRAFT). All managed-
@@ -16,7 +16,7 @@ CRAFT_BLOCK_ID="CRAFT"
 
 # _craft_yaml_path — absolute path to the craft SSOT.
 _craft_yaml_path() {
-    printf '%s/craft.yaml' "${SCIAGENT_TOOLKIT:-.}"
+    printf '%s/craft.yaml' "${SCIO_TOOLKIT:-.}"
 }
 
 # craft_version — emit the integer `version:` from craft.yaml (default 1).
@@ -97,7 +97,7 @@ craft_render_and_write() {
     body=$(_craft_render_body) || return 0     # absent craft.yaml -> skip
     [[ -n "$body" ]] || return 0
     block_write "$file" "$body" "$CRAFT_BLOCK_ID" || {
-        echo "sciagent: failed to write CRAFT block to $file" >&2
+        echo "scio: failed to write CRAFT block to $file" >&2
         return 1
     }
 }

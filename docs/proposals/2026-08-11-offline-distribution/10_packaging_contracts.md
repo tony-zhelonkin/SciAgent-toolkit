@@ -9,7 +9,7 @@ The division of labour is absolute and is the whole point of the design:
 |---|---|---|
 | `scripts/build-release.sh` | producing bytes from a Git ref | fetch, publish, install, touch a project |
 | `install.sh` | placing bytes on this machine | resolve URLs, fetch, choose a harness, touch a project |
-| `sciagent` itself | project binding, managed context, and linting | install itself |
+| `scio` itself | project binding, managed context, and linting | install itself |
 
 ---
 
@@ -28,7 +28,7 @@ The division of labour is absolute and is the whole point of the design:
   scio-<version>-<short-sha>.tar.gz.sha256
   scio-<version>-<short-sha>.metadata.json recording the complete Git SHA
   ```
-- **Runs `./bin/sciagent lint --check toolkit` and `bash tests/run-all.sh` before producing the artifact.** A
+- **Runs `./bin/scio lint --check toolkit` and `bash tests/run-all.sh` before producing the artifact.** A
   release that fails its own suite must not exist as a file.
 - **Deterministic:** a test builds the same ref twice and asserts identical checksums.
 - **No network operations whatsoever.**
@@ -101,23 +101,23 @@ A local checkout is equally acceptable as input. Nothing else is.
 ### What is deliberately absent
 
 No harness detection. No `settings.json`. No `AGENTS.md`. No skill mounting. `install.sh` puts a
-program on the machine; `sciagent` decides what a project gets. Merging those is exactly the mistake
+program on the machine; `scio` decides what a project gets. Merging those is exactly the mistake
 §2 of `00_INDEX.md` names.
 
 ---
 
-## 3. Project binding stays in `sciagent link`
+## 3. Project binding stays in `scio link`
 
 Project binding is one convergent operation:
 
 ```bash
-sciagent link --project-dir .
+scio link --project-dir .
 ```
 
 `link` creates six whole-tree category links under `.agents/` and `.claude/`,
 materializes the two Claude guardrail hooks, merges their settings
 registrations, and refreshes the managed gitignore block. `craft` separately
-renders the `SCIAGENT:CRAFT` block into `AGENTS.md`. The local installer still
+renders the `SCIO:CRAFT` block into `AGENTS.md`. The local installer still
 performs neither operation, preserving the packaging/project boundary from
 ADR-D3.
 

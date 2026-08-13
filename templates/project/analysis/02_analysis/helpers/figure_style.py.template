@@ -1,9 +1,9 @@
 """
 02_analysis/helpers/figure_style.py — per-project figure-style shim.
 =====================================================================
-ONE import per viz stage. Delegates to the SciAgent-toolkit contract
+ONE import per viz stage. Delegates to the Scio toolkit contract
 lib (02_analysis/helpers/figure-style/figure_helpers.py, symlinked by
-`sciagent activate`) and loads the project analysis_config.yaml.
+`scio link`) and loads the project analysis_config.yaml.
 
 Usage in any viz stage:
     from helpers.figure_style import set_paper_style, save_overview, FIG_CFG
@@ -51,7 +51,7 @@ if _LIB_FILE.exists():
 else:
     warnings.warn(
         f"[figure_style] toolkit lib not found at: {_LIB_FILE}\n"
-        "Run `sciagent activate` in this repo to link lib/figure-style/. "
+        "Run `scio link` in this repo to bind lib/figure-style/. "
         "Falling back to minimal stubs.",
         stacklevel=2,
     )

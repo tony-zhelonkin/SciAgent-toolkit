@@ -5,7 +5,7 @@ set -u
 . "$(dirname "$0")/_lib.sh"
 
 setup_tmpdir
-SCIAGENT="$TOOLKIT_ROOT/bin/sciagent"
+SCIO="$TOOLKIT_ROOT/bin/scio"
 
 assert_absent() {
     [[ ! -e "$1" && ! -L "$1" ]] || {
@@ -38,7 +38,7 @@ ln -s /workspaces/demo/01_modules/SciAgent-toolkit/lib/interactive-style project
 ln -s "$TOOLKIT_ROOT/lib/figure-style" project/02_analysis/helpers/retired-helper
 printf 'user shim\n' > project/02_analysis/helpers/user_helper.py
 
-out=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/project" 2>&1) || {
+out=$("$SCIO" link --project-dir "$TMPDIR_TEST/project" 2>&1) || {
     echo "FAIL [$_TEST_NAME] link failed" >&2
     printf '%s\n' "$out" >&2
     exit 1

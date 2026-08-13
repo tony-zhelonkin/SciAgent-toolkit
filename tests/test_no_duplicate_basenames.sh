@@ -6,7 +6,7 @@
 #       share a name. Flat mount-source identity depends on this.
 #   (b) cross-namespace non-collision (with allowlist) — a basename appearing
 #       in >=2 of skills/agents/commands is the runtime soft-warn surface of
-#       `sciagent lint --check toolkit`. The merge-time mirror is here:
+#       `scio lint --check toolkit`. The merge-time mirror is here:
 #       hard-fail unless the overlap is documented in
 #       tests/collision-allowlist.txt with a rationale.
 
@@ -76,18 +76,18 @@ check_unique_skill_dirs
 # ---------------------------------------------------------------------------
 
 check_cross_namespace_collisions() {
-    local helper="$TOOLKIT_ROOT/lib/sciagent/catalog.sh"
+    local helper="$TOOLKIT_ROOT/lib/scio/catalog.sh"
     if [[ ! -f "$helper" ]]; then
         echo "FAIL [$_TEST_NAME] missing helper: $helper" >&2
         exit 1
     fi
     # shellcheck source=/dev/null
     . "$helper"
-    # The helper reads SCIAGENT_TOOLKIT at call time (not source time), so
+    # The helper reads SCIO_TOOLKIT at call time (not source time), so
     # we point it at the target toolkit for the duration of this function.
     # Saving + restoring keeps the rest of the test untouched.
-    local _saved_tk="${SCIAGENT_TOOLKIT:-}"
-    export SCIAGENT_TOOLKIT="$TOOLKIT"
+    local _saved_tk="${SCIO_TOOLKIT:-}"
+    export SCIO_TOOLKIT="$TOOLKIT"
 
     # Build allowed set: "name<TAB>kind1,kind2,..." lines from the allowlist,
     # comments and blanks dropped, first two whitespace-separated fields kept.
@@ -128,11 +128,11 @@ check_cross_namespace_collisions() {
         fi
     done < <(_catalog_collisions)
 
-    # Restore the outer SCIAGENT_TOOLKIT (if any).
+    # Restore the outer SCIO_TOOLKIT (if any).
     if [[ -n "$_saved_tk" ]]; then
-        export SCIAGENT_TOOLKIT="$_saved_tk"
+        export SCIO_TOOLKIT="$_saved_tk"
     else
-        unset SCIAGENT_TOOLKIT
+        unset SCIO_TOOLKIT
     fi
 
     if [[ "$fail" -ne 0 ]]; then

@@ -11,7 +11,7 @@
 #       <content on continuation lines>
 # that first line is literally the 2-char style indicator `>-`, so the
 # measured length was 2 regardless of how long the folded value actually was
-# — the former validator exited 0 no matter how far over SCIAGENT_DESC_MAX the
+# — the former validator exited 0 no matter how far over SCIO_DESC_MAX the
 # real description ran. Five in-repo skills were over cap and undetected
 # before the fix (see docs/changelog.md or the commit that added this test).
 #
@@ -43,7 +43,7 @@ _plant() {
 # _run <toolkit-root> — run the catalog check and capture output and status.
 _run() {
     set +e
-    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" lint --check toolkit 2>&1)
+    out=$(SCIO_TOOLKIT="$1" "$1/bin/scio" lint --check toolkit 2>&1)
     rc=$?
     set -e
 }

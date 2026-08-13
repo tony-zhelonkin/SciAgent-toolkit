@@ -9,8 +9,8 @@
 # (12dafe8a3e39) and none had received de5719e's fix. A guardrail that cannot
 # be updated in the field is only as good as the day it was installed.
 #
-# The fix cannot key off the .sciagent ownership records, which is what makes
-# this subtle: NOT ONE consumer has a .sciagent/hook_state directory. Those
+# The original propagation fix could not key off the .sciagent ownership
+# records: not one consumer had a .sciagent/hook_state directory. Those
 # records were introduced long after those projects were provisioned, so
 # "refresh iff the record matches" is inert in exactly the population that
 # needs repairing. Provenance is therefore established from CONTENT — the
@@ -48,26 +48,26 @@ $V2  $REL
 $V1  $REL
 EOF
 
-export SCIAGENT_TOOLKIT="$FAKE_TK"
+export SCIO_TOOLKIT="$FAKE_TK"
 # shellcheck source=/dev/null
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 # ownership.sh is where the discipline under test lives (it moved out of
 # claude_settings.sh once the 02_analysis/helpers shims became its second
 # consumer — an R helper is not a Claude artifact). claude_settings.sh is still
 # sourced because the hook paths and their state-file layout are
 # its half of the contract.
 # shellcheck source=/dev/null
-. "$TOOLKIT_ROOT/lib/sciagent/ownership.sh"
+. "$TOOLKIT_ROOT/lib/scio/ownership.sh"
 # shellcheck source=/dev/null
-. "$TOOLKIT_ROOT/lib/sciagent/claude_settings.sh"
+. "$TOOLKIT_ROOT/lib/scio/claude_settings.sh"
 
 WORK="$TMPDIR_TEST/work"; mkdir -p "$WORK"; cd "$WORK"
 SRC="$FAKE_TK/templates/$REL"
 DST=".claude/hooks/probe.sh"
-STATE=".sciagent/hook_state/probe.sh.sha1"
-CEDED=".sciagent/hook_state/probe.sh.ceded"
+STATE=".scio/hook_state/probe.sh.sha1"
+CEDED=".scio/hook_state/probe.sh.ceded"
 
-_reset() { rm -rf .claude .sciagent; }
+_reset() { rm -rf .claude .scio; }
 _hash()  { sha1sum "$1" | cut -d' ' -f1; }
 
 # ---------------------------------------------------------------------------
@@ -173,10 +173,10 @@ else
         mkdir -p e2e/.claude/hooks && cd e2e
         printf '# Project AGENTS.md\n\nUser-owned content.\n' > AGENTS.md
         cp "$TMPDIR_TEST/old_hook.body" .claude/hooks/no_ephemeral.sh
-        # No .sciagent/hook_state — exactly the fleet's state.
-        [[ -e .sciagent/hook_state ]] && { echo "FAIL [$_TEST_NAME] (7) fixture seeded a record" >&2; exit 1; }
+        # No .scio/hook_state — exactly the fleet's state.
+        [[ -e .scio/hook_state ]] && { echo "FAIL [$_TEST_NAME] (7) fixture seeded a record" >&2; exit 1; }
 
-        SCIAGENT_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/sciagent" link >/dev/null 2>&1
+        SCIO_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/scio" link >/dev/null 2>&1
 
         assert_eq "$(_hash .claude/hooks/no_ephemeral.sh)" "$CUR_HASH" \
             "(7) real link refreshed the stale hook to the current template"
@@ -191,5 +191,47 @@ else
         cd ..
     fi
 fi
+
+# ===========================================================================
+# (8) REBRAND MIGRATION. An existing .sciagent state directory moves as bytes
+# before ownership is evaluated. A hook edited after its recorded toolkit
+# version is ceded, while unrelated state proves the directory was carried
+# rather than regenerated.
+# ===========================================================================
+cd "$TMPDIR_TEST"
+mkdir -p migrate/.claude/hooks migrate/.sciagent/hook_state
+cp "$REAL_TPL" migrate/.claude/hooks/no_ephemeral.sh
+REAL_ORIGINAL_HASH=$(_hash migrate/.claude/hooks/no_ephemeral.sh)
+printf '%s\n' "$REAL_ORIGINAL_HASH" > migrate/.sciagent/hook_state/no_ephemeral.sh.sha1
+printf '%s\n' 'ownership-sentinel' > migrate/.sciagent/hook_state/preserved.sha1
+printf '\n# project-owned edit\n' >> migrate/.claude/hooks/no_ephemeral.sh
+REAL_EDITED_HASH=$(_hash migrate/.claude/hooks/no_ephemeral.sh)
+
+migrate_out=$(SCIO_TOOLKIT="$TOOLKIT_ROOT" "$TOOLKIT_ROOT/bin/scio" \
+    link --project-dir "$TMPDIR_TEST/migrate" 2>&1) || {
+    echo "FAIL [$_TEST_NAME] (8) state migration link failed" >&2
+    printf '%s\n' "$migrate_out" >&2
+    exit 1
+}
+assert_eq "$(_hash migrate/.claude/hooks/no_ephemeral.sh)" "$REAL_EDITED_HASH" \
+    "(8) user-edited hook survives state migration"
+[[ ! -e migrate/.sciagent ]] || {
+    echo "FAIL [$_TEST_NAME] (8) legacy state directory survived migration" >&2
+    exit 1
+}
+assert_eq "$(cat migrate/.scio/hook_state/preserved.sha1)" "ownership-sentinel" \
+    "(8) unrelated ownership state moved byte-for-byte"
+assert_eq "$(cat migrate/.scio/hook_state/no_ephemeral.sh.ceded)" "$REAL_EDITED_HASH" \
+    "(8) edited hook is ceded under the new state path"
+[[ ! -f migrate/.scio/hook_state/no_ephemeral.sh.sha1 ]] || {
+    echo "FAIL [$_TEST_NAME] (8) ceded hook retained an ownership hash" >&2
+    exit 1
+}
+case "$migrate_out" in
+    *"migrated state: .sciagent -> .scio"*"leaving it as yours"*) : ;;
+    *) echo "FAIL [$_TEST_NAME] (8) migration/cede was not reported" >&2
+       printf '%s\n' "$migrate_out" >&2
+       exit 1 ;;
+esac
 
 pass

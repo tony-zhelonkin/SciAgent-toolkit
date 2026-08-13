@@ -36,7 +36,7 @@ done | LC_ALL=C sort > "$expected_commands"
 
 mkdir project
 cd project
-"$TOOLKIT_ROOT/bin/sciagent" link >/dev/null
+"$TOOLKIT_ROOT/bin/scio" link >/dev/null
 
 for harness in .claude .agents; do
     assert_symlink "$harness/skills"

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://sciagent.dev/schemas/components.schema.json",
+  "$id": "https://scio.dev/schemas/components.schema.json",
   "title": "Architecture audit components manifest",
   "description": "Wire-format for an architecture-audit snapshot. The DETERMINISTIC substrate (physical_components, static direct-call edges, per-component metrics, git_sha) is produced by /components-extract; the JUDGMENT layer (classifications, smells, background-knowledge edges, prune verdicts, core_boundary) is produced by /audit-slice + /synthesize-audit. The treemap renderer is a pure function of this file.",
   "type": "object",

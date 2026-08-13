@@ -13,11 +13,10 @@ The canonical scientific framing — question, datasets, hypotheses, goals — l
 `docs/_internal/scientific-context.md`. Read it before acting. Session handoffs are written
 to `docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
 
-## Active role
+## Toolkit context
 
-_No role activated yet. Run `sciagent activate <role>` to populate this section._
-
-Run `sciagent status` to see the current stack, effective skills, agents, and commands.
+Run `scio link` to bind the toolkit catalog and project guardrails. Run
+`scio craft` to render the managed craft conventions below.
 
 ## Critical rules
 
@@ -78,8 +77,8 @@ toolkit-symlinked `figure-style` lib) and save figures via `save_overview()` or
 
 ## Craft conventions
 
-Standing craft conventions for this repo are toolkit-managed in the `<!-- SCIAGENT:CRAFT -->`
-block rendered by `sciagent activate`. That block is authoritative — do not hand-edit it.
+Standing craft conventions for this repo are toolkit-managed in the `<!-- SCIO:CRAFT -->`
+block rendered by `scio craft`. That block is authoritative — do not hand-edit it.
 
 ---
 

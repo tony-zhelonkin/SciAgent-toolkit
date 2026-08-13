@@ -2,7 +2,7 @@
 # Symlink-safe launcher for the mllmct CLI.
 #
 # Resolves THIS script's REAL location even when it has been symlinked into
-# .claude/skills/ by `sciagent link`, then runs the console-script inside the skill's own uv-locked sandbox (.venv created by `uv sync`). Any human or agent can call this without activating a venv:
+# .claude/skills/ by `scio link`, then runs the console-script inside the skill's own uv-locked sandbox (.venv created by `uv sync`). Any human or agent can call this without activating a venv:
 #     /path/to/skill/bin/mllmct annotate --profile ...
 #
 set -euo pipefail

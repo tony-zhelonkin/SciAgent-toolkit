@@ -5,9 +5,9 @@
 # heading in the sibling stage README.md.
 #
 # On Stop: scan 03_results/ for uncaptioned figures and surface a reminder.
-# Degrades gracefully when sciagent is absent (self-contained fallback scan).
+# Degrades gracefully when scio is absent (self-contained fallback scan).
 #
-# Strict toggle: SCIAGENT_STRICT=1 (or =true) → exit 2 (force continuation);
+# Strict toggle: SCIO_STRICT=1 (or =true) → exit 2 (force continuation);
 #                default                       → exit 0 (advisory on stderr).
 #
 # Sanctioned zones: _scratch/ and $TMPDIR are always exempt.
@@ -87,7 +87,7 @@ _self_contained_check() {
              | grep '/figures/' | grep -v '/_scratch/')
 
     if [[ ${#uncaptioned[@]} -gt 0 ]]; then
-        printf '\n[sciagent/caption-sweep] Uncaptioned figures detected:\n' >&2
+        printf '\n[scio/caption-sweep] Uncaptioned figures detected:\n' >&2
         local item
         for item in "${uncaptioned[@]}"; do
             printf '  WARN captions: no caption for %s\n' "$item" >&2
@@ -105,15 +105,15 @@ findings_found=false
 _self_contained_check || findings_found=true
 
 # ---------------------------------------------------------------------------
-# If sciagent is available, also run its check to get richer diagnostics.
+# If scio is available, also run its check to get richer diagnostics.
 # Only run when self-contained already found issues OR as a supplemental pass.
-# Best-effort: never hard-error if sciagent fails.
+# Best-effort: never hard-error if scio fails.
 # ---------------------------------------------------------------------------
-if [[ "$findings_found" == "true" ]] && command -v sciagent >/dev/null 2>&1; then
-    sciagent lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
+if [[ "$findings_found" == "true" ]] && command -v scio >/dev/null 2>&1; then
+    scio lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
 elif [[ "$findings_found" == "true" ]] \
-     && [[ -x "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" ]]; then
-    "${proj_dir}/01_modules/SciAgent-toolkit/bin/sciagent" \
+     && [[ -x "${proj_dir}/01_modules/SciAgent-toolkit/bin/scio" ]]; then
+    "${proj_dir}/01_modules/SciAgent-toolkit/bin/scio" \
         validate --check captions --project-dir "$proj_dir" 2>/dev/null || true
 fi
 
@@ -121,8 +121,8 @@ fi
 # Strict mode: if findings, exit 2 to force continuation.
 # ---------------------------------------------------------------------------
 if [[ "$findings_found" == "true" ]]; then
-    if [[ "${SCIAGENT_STRICT:-0}" == "1" || "${SCIAGENT_STRICT:-}" == "true" ]]; then
-        printf '[sciagent/caption-sweep] SCIAGENT_STRICT: caption pass required before stopping.\n' >&2
+    if [[ "${SCIO_STRICT:-0}" == "1" || "${SCIO_STRICT:-}" == "true" ]]; then
+        printf '[scio/caption-sweep] SCIO_STRICT: caption pass required before stopping.\n' >&2
         exit 2
     fi
 fi

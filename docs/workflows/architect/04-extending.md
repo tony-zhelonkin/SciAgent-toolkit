@@ -53,12 +53,12 @@ Example: add a `security` reviewer.
 5. Run the toolkit catalog check and full suite:
 
    ```bash
-   ./bin/sciagent lint --check toolkit
+   ./bin/scio lint --check toolkit
    bash tests/run-all.sh
    ```
 
 An already-correct whole-tree link exposes the new agent immediately. A newly
-bound project receives it through `sciagent link`.
+bound project receives it through `scio link`.
 
 ## Add a workflow stage
 
@@ -116,7 +116,7 @@ Update:
 
 ### 6. Verify
 
-Run `./bin/sciagent lint --check toolkit` and `bash tests/run-all.sh`. Exercise
+Run `./bin/scio lint --check toolkit` and `bash tests/run-all.sh`. Exercise
 the route against a scratch project when its file or dispatch behavior is new.
 
 ## Extend the portfolio routes
@@ -148,7 +148,7 @@ examples.
 5. Add tests for argument parsing, mutations, refusals, and idempotency as the
    command requires.
 
-The complete `commands/` directory is already mounted by `sciagent link`.
+The complete `commands/` directory is already mounted by `scio link`.
 
 ## Domain specialization
 
@@ -165,7 +165,7 @@ agent frontmatter, explicit skill invocation, and parallel-dispatch mechanics.
 Keep provider-specific mechanics at those boundaries while preserving route
 arguments, artifact paths, gates, and stop conditions.
 
-`sciagent link` exposes the same catalog through `.claude/` and `.agents/`.
+`scio link` exposes the same catalog through `.claude/` and `.agents/`.
 Provider support beyond those discovery paths belongs in that provider's own
 adapter or extension.
 

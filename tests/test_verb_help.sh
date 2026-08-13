@@ -7,8 +7,13 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
+
+[[ ! -e "$TOOLKIT_ROOT/bin/sciagent" ]] || {
+    echo "FAIL [$_TEST_NAME] legacy command still exists; the rebrand has no compatibility shim" >&2
+    exit 1
+}
 
 fail() {
     echo "FAIL [$_TEST_NAME] $1" >&2
@@ -23,12 +28,12 @@ mkdir -p "$WORK"
 for verb in craft link lint; do
     for flag in -h --help; do
         set +e
-        out=$(cd "$WORK" && "$SCIAGENT" "$verb" "$flag" 2>&1)
+        out=$(cd "$WORK" && "$SCIO" "$verb" "$flag" 2>&1)
         rc=$?
         set -e
-        [[ "$rc" -eq 0 ]] || fail "sciagent $verb $flag exited $rc" "$out"
-        printf '%s\n' "$out" | grep -q "sciagent $verb" \
-            || fail "sciagent $verb $flag does not name the verb" "$out"
+        [[ "$rc" -eq 0 ]] || fail "scio $verb $flag exited $rc" "$out"
+        printf '%s\n' "$out" | grep -q "scio $verb" \
+            || fail "scio $verb $flag does not name the verb" "$out"
     done
 done
 
@@ -37,7 +42,7 @@ done
 
 for retired in activate deactivate status list new update validate gitignore; do
     set +e
-    out=$("$SCIAGENT" "$retired" --help 2>&1)
+    out=$("$SCIO" "$retired" --help 2>&1)
     rc=$?
     set -e
     [[ "$rc" -ne 0 ]] || fail "retired verb '$retired' is still dispatched" "$out"
@@ -45,15 +50,15 @@ for retired in activate deactivate status list new update validate gitignore; do
         || fail "retired verb '$retired' lacks an unknown-verb error" "$out"
 done
 
-top=$("$SCIAGENT" --help 2>&1) || fail "top-level help failed"
+top=$("$SCIO" --help 2>&1) || fail "top-level help failed"
 printf '%s\n' "$top" | grep -q 'project bindings, CRAFT rendering' \
     || fail "top-level help has the old dispatcher description" "$top"
 
 set +e
-"$SCIAGENT" help >/dev/null 2>&1; help_rc=$?
-"$SCIAGENT" >/dev/null 2>&1; bare_rc=$?
+"$SCIO" help >/dev/null 2>&1; help_rc=$?
+"$SCIO" >/dev/null 2>&1; bare_rc=$?
 set -e
-[[ "$help_rc" -eq 0 ]] || fail "sciagent help exited $help_rc"
-[[ "$bare_rc" -eq 1 ]] || fail "bare sciagent exited $bare_rc"
+[[ "$help_rc" -eq 0 ]] || fail "scio help exited $help_rc"
+[[ "$bare_rc" -eq 1 ]] || fail "bare scio exited $bare_rc"
 
 pass

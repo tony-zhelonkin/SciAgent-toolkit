@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
-sciagent="$root/01_modules/SciAgent-toolkit/bin/sciagent"
-if [[ -x "$sciagent" ]]; then
-    "$sciagent" validate --project-dir "$root"
+scio="$root/01_modules/SciAgent-toolkit/bin/scio"
+if [[ -x "$scio" ]]; then
+    "$scio" lint --project-dir "$root"
 fi

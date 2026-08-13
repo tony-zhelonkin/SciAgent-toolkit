@@ -42,7 +42,7 @@ os.chdir(d)
 sys.path.insert(0, str(d / "02_analysis"))
 
 # Imports go through the per-project shim 02_analysis/helpers/interactive_style.py (scaffolded
-# by `sciagent new project`); it re-exports the contract lib symlinked at
+# in the project); it re-exports the contract lib symlinked at
 # 02_analysis/helpers/interactive-style/ — a hyphenated dir is not an importable package.
 from helpers.interactive_style import (
     load_interactive_config, load_explorer, grid, close_panels,

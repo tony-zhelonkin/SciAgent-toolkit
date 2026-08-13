@@ -1,4 +1,4 @@
-# SciAgent Skills Library
+# Scio Skills Library
 
 This directory contains modular skills for single-cell and multi-omics analysis. Each skill provides structured guidance for a specific tool or workflow.
 
@@ -15,7 +15,7 @@ skills/<skill-name>/
 └── assets/               # Templates, configs, example data
 ```
 
-`sciagent link` binds the complete `skills/` directory into both harness trees.
+`scio link` binds the complete `skills/` directory into both harness trees.
 Every direct child is therefore a mountable skill directory in the canonical
 format above.
 
@@ -28,7 +28,7 @@ See `templates/skill/` for a canonical starter and `skills/skill-creator/` for a
 Skills informally fall into three shapes, distinguished by scope and depth. There
 is no frontmatter field for this — no `metadata:` block exists in the canonical
 schema (see "Fill the SKILL.md frontmatter" below) — it's a naming/authoring
-convention enforced by review. `sciagent link` exposes the whole catalog
+convention enforced by review. `scio link` exposes the whole catalog
 regardless of shape (see `docs/architecture.md`).
 
 | Scope class | Line cap (target) | Role | Example |
@@ -396,7 +396,7 @@ The template ships with `name: SKILL_IDENTIFIER` as a placeholder. That value in
 
 The **canonical Claude Code skill schema** allows these top-level keys:
 `name`, `description`, `license`, `allowed-tools` (plus
-`metadata`, per the upstream schema — but SciAgent-toolkit does not populate
+`metadata`, per the upstream schema — but the Scio toolkit does not populate
 it; there is no taxonomy nested under it here). Anything outside that set
 causes canonical validators (e.g. `skill-creator/scripts/quick_validate.py`,
 Claude Desktop plugin loader) to fail.
@@ -405,7 +405,7 @@ An earlier "v3 taxonomy" nested `category`, `tier`, `tags`,
 `complementary-skills`, `contraindications`, `requires`, and provenance
 fields under `metadata:`, with a resolver that auto-mounted a skill's
 `requires:` closure. That taxonomy and its resolver have been removed —
-`sciagent link` binds the whole catalog unconditionally (see
+`scio link` binds the whole catalog unconditionally (see
 `docs/architecture.md`). Put cross-references, contraindications, and
 provenance notes in the body instead (`## See also`, `## When not to use`,
 a one-line "Use for X; for Y use other-skill" in the description).
@@ -481,7 +481,7 @@ SKILL.md should stay under ~400 lines. If a section grows beyond ~300 lines, mov
 ### 7. Link and test
 
 ```bash
-sciagent link
+scio link
 ls -la /path/to/project/.claude/skills/<your-skill-name>
 # The path resolves through .claude/skills -> <toolkit>/skills.
 ```

@@ -8,7 +8,7 @@
 # that built THIS repo would therefore re-enter the suite (and, inside that
 # nested suite, re-enter it again). Rather than add a `--skip-checks` escape
 # hatch to the release gate — a flag that would eventually be used for a real
-# release — every release test builds a throwaway git repo whose `bin/sciagent`
+# release — every release test builds a throwaway git repo whose `bin/scio`
 # and `tests/run-all.sh` are one-line stubs with a committed exit code. The gate
 # path is then exercised in BOTH directions (passing and failing) in
 # milliseconds, and recursion is impossible by construction.
@@ -54,7 +54,7 @@ fixture_commit() {
 
 # fixture_repo <dir> [catalog_rc] [tests_rc]
 #
-# Build a minimal releasable "toolkit": an executable bin/sciagent, a
+# Build a minimal releasable "toolkit": an executable bin/scio, a
 # tests/run-all.sh, a copy of the real scripts/build-release.sh, a little
 # tracked content, and — deliberately — a fat GITIGNORED .venv that must never
 # reach an artifact (mirroring the 171 MB skill virtualenv in the real repo,
@@ -68,16 +68,16 @@ fixture_repo() {
 
     mkdir -p "$dir"/{bin,tests,scripts,lib,docs,.venv/lib}
 
-    cat > "$dir/bin/sciagent" <<EOF
+    cat > "$dir/bin/scio" <<EOF
 #!/usr/bin/env bash
 # fixture CLI stub — enough surface for the release gate and for install tests.
 case "\${1:-}" in
     lint) echo "fixture: toolkit lint"; exit $catalog_rc ;;
-    --help|help) echo "fixture sciagent"; exit 0 ;;
-    *) echo "fixture sciagent: \$*"; exit 0 ;;
+    --help|help) echo "fixture scio"; exit 0 ;;
+    *) echo "fixture scio: \$*"; exit 0 ;;
 esac
 EOF
-    chmod +x "$dir/bin/sciagent"
+    chmod +x "$dir/bin/scio"
 
     cat > "$dir/tests/run-all.sh" <<EOF
 #!/usr/bin/env bash

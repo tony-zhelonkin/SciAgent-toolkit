@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/test_no_exit_in_libs.sh — structural guard for the 5.5 rule:
-# library functions (lib/sciagent/*.sh) only ever `return`, never `exit`.
-# Only bin/sciagent may exit. `exit` inside an awk program / subshell passed as
+# library functions (lib/scio/*.sh) only ever `return`, never `exit`.
+# Only bin/scio may exit. `exit` inside an awk program / subshell passed as
 # a single-quoted string is allowed (it tears down the awk/subshell, not the
 # caller's shell). We therefore ignore any `exit` that sits inside a
 # single-quoted region, and flag only shell-level `exit` statements.
@@ -16,7 +16,7 @@
 set -u
 . "$(dirname "$0")/_lib.sh"
 
-LIB="$TOOLKIT_ROOT/lib/sciagent"
+LIB="$TOOLKIT_ROOT/lib/scio"
 
 # scan_shell_exits <file>
 # Emits "<lineno>: <line>" for each top-level shell `exit`, tracking single-quote

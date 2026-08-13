@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_frontmatter_shape.sh — the toolkit-wide walk in
-# `sciagent lint --check toolkit` hard-fails on malformed skill frontmatter.
+# `scio lint --check toolkit` hard-fails on malformed skill frontmatter.
 #
 # This is the check that replaced the requires-graph and tag-vocab walks when
 # the metadata: block was retired. `name` and `description` are the entire
@@ -33,7 +33,7 @@ _plant() {
 # _run <toolkit-root> — run the catalog check and capture output and status.
 _run() {
     set +e
-    out=$(SCIAGENT_TOOLKIT="$1" "$1/bin/sciagent" lint --check toolkit 2>&1)
+    out=$(SCIO_TOOLKIT="$1" "$1/bin/scio" lint --check toolkit 2>&1)
     rc=$?
     set -e
 }

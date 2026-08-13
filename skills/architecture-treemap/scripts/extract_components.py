@@ -161,7 +161,7 @@ ROOT_TOOLING_NAMES = {
 TOOLING_DIR_NAMES = {
     ".claude",
     ".agents",
-    ".sciagent",
+    ".scio",
     ".github",
     ".gitlab",
     ".vscode",

@@ -17,7 +17,7 @@ set -u
 . "$(dirname "$0")/_lib.sh"
 
 setup_tmpdir
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 # ---------------------------------------------------------------------------
 # 1. block_write, append path (no existing block) — preserves mode.
@@ -56,7 +56,7 @@ assert_eq "$(stat -c '%a' a.md)" "664" "rewrite path preserves group write"
 chmod 644 a.md
 block_remove a.md CRAFT
 assert_eq "$(stat -c '%a' a.md)" "644" "remove path preserves 0644"
-grep -q 'BEGIN SCIAGENT:CRAFT' a.md \
+grep -q 'BEGIN SCIO:CRAFT' a.md \
     && { echo "FAIL [$_TEST_NAME] block_remove did not remove the block" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------

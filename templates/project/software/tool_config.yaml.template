@@ -1,6 +1,6 @@
 # tool_config.yaml — software project configuration
 # Language-agnostic identity + build/quality commands for this package.
-# (R loaders for this file live in RNAseq-toolkit; SciAgent ships only the YAML.)
+# (R loaders for this file live in RNAseq-toolkit; Scio ships only the YAML.)
 
 tool:
   id: "{{PROJECT_ID}}"

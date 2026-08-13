@@ -21,11 +21,11 @@ EOF
 echo "agent tri"   > "$FAKE/agents/tri.md"
 echo "command tri" > "$FAKE/commands/tri.md"
 
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 set +e
-stdout_out=$("$SCIAGENT" lint --check toolkit 2>/tmp/_validate_err_$$)
+stdout_out=$("$SCIO" lint --check toolkit 2>/tmp/_validate_err_$$)
 rc=$?
 stderr_out=$(cat /tmp/_validate_err_$$)
 rm -f /tmp/_validate_err_$$

@@ -3,7 +3,7 @@
 #
 # Implements `docs/proposals/2026-08-11-offline-distribution/10_packaging_contracts.md` §2
 # and ADR-D3. It puts a program on the machine. It does not decide what any
-# project gets — that is `sciagent`'s job, and merging the two is the exact
+# project gets — that is `scio`'s job, and merging the two is the exact
 # mistake `00_INDEX.md` §2 names.
 #
 # ---------------------------------------------------------------------------
@@ -33,26 +33,25 @@
 # ---------------------------------------------------------------------------
 #   <prefix>/share/scio/versions/<full-git-sha>/     the extracted release
 #   <prefix>/share/scio/receipts/<full-git-sha>.json the installation receipt
-#   <prefix>/bin/sciagent -> ../share/scio/versions/<full-git-sha>/bin/sciagent
+#   <prefix>/bin/scio -> ../share/scio/versions/<full-git-sha>/bin/scio
 #
 # Content-addressed on the FULL 40-char commit SHA (ADR-D1, and §1's "why the
 # full SHA in metadata"): two releases coexist by construction because their
 # directories cannot collide. The SHA is read from `.scio-release.json` inside
 # the archive, never from the filename's abbreviation.
 #
-# The linked executable keeps the name `sciagent`. ADR-D7 renamed the release
-# ARTIFACT to `scio`; renaming the CLI is explicitly NOT approved there (it
-# would touch ~22 consumer checkouts, `$SCIAGENT_TOOLKIT`, the `si` alias, hook
-# paths, and the project-locality contract).
+# Owner ruling 7 aligns the installed command with the `scio` artifact name.
+# ADR-D7's original artifact-only decision remains in the decision record with
+# a dated rebrand note.
 #
 # ---------------------------------------------------------------------------
 # Fleet precedence is preserved, and that is why this links rather than wraps
 # ---------------------------------------------------------------------------
-# `bin/sciagent` resolves its own real path to derive `$SCIAGENT_TOOLKIT`, so a
+# `bin/scio` resolves its own real path to derive `$SCIO_TOOLKIT`, so a
 # symlink here resolves to the version directory and nothing else. This script
 # writes no shell profile, exports no variable, and installs no wrapper that
-# could pin `$SCIAGENT_TOOLKIT` globally. A project that ships its own
-# `01_modules/SciAgent-toolkit` therefore still wins: `sciagent link` refuses
+# could pin `$SCIO_TOOLKIT` globally. A project that ships its own
+# `01_modules/SciAgent-toolkit` therefore still wins: `scio link` refuses
 # to bind such a project from this global copy. Exact-commit
 # reproducibility for the fleet depends on that refusal, so nothing installed
 # here may weaken it.
@@ -73,7 +72,7 @@ set -uo pipefail
 
 ARTIFACT_NAME="scio"
 EMBEDDED_METADATA=".scio-release.json"
-EXECUTABLE="sciagent"          # the CLI name — deliberately NOT `scio`; see above
+EXECUTABLE="scio"
 RECEIPT_SCHEMA=1
 
 _prog="${0##*/}"
@@ -385,7 +384,7 @@ say "  release : $rel_name $version"
 say "  commit  : $commit"
 say "  prefix  : $prefix"
 
-# --- 3. refuse to clobber a bin/sciagent we do not own ---------------------
+# --- 3. refuse to clobber a bin/scio we do not own -------------------------
 # Checked before any write so the refusal cannot leave a half-install behind.
 if [[ -e "$bin_link" || -L "$bin_link" ]]; then
     if [[ -L "$bin_link" ]]; then

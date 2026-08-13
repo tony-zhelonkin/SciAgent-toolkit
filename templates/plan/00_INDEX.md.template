@@ -5,8 +5,8 @@
       docs/_internal/plans/{{DATE}}-<plan-slug>/
 
   Fill every <angle-bracket> placeholder with your plan-specific text.
-  The only auto-substituted token is {{DATE}} (injected by `sciagent new plan` /
-  `_subst`). All other structural placeholders are filled by the planner.
+  Replace the {{DATE}} token when instantiating this template. All other
+  structural placeholders are filled by the planner.
 
   Companion file: NN_slug.md.template — copy + fill one per phase.
 -->

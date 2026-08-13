@@ -3,7 +3,7 @@
 # block_remove later restores exact original bytes.
 set -u
 . "$(dirname "$0")/_lib.sh"
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 setup_tmpdir
 cat > AGENTS.md <<'EOF'

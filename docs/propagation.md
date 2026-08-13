@@ -20,16 +20,16 @@ Consumer projects hold this toolkit as a Git submodule pinned to a commit.
 Re-pinning changes the bytes available in that project's own toolkit checkout.
 The project runs the CLI at its pin.
 
-When `$SCIAGENT_TOOLKIT` points directly at the checkout being edited, each
+When `$SCIO_TOOLKIT` points directly at the checkout being edited, each
 save has already completed hop 1 for that working tree.
 
 ## Hop 2: binding
 
 Two commands materialize project state from the pinned checkout:
 
-- `sciagent link` creates the six category links and refreshes guardrail hook
-  bodies, registrations, and the `SCIAGENT:GITIGNORE` block.
-- `sciagent craft` renders `SCIAGENT:CRAFT` into `AGENTS.md`.
+- `scio link` creates the six category links and refreshes guardrail hook
+  bodies, registrations, and the `SCIO:GITIGNORE` block.
+- `scio craft` renders `SCIO:CRAFT` into `AGENTS.md`.
 
 Both commands accept `--project-dir D` and are idempotent.
 
@@ -55,17 +55,17 @@ The project owns copies or rendered text:
 
 | Project path | Producer |
 |---|---|
-| `.claude/hooks/*.sh` | `sciagent link` |
-| `.claude/settings.json` hook registrations | `sciagent link` |
-| `AGENTS.md` `SCIAGENT:CRAFT` block | `sciagent craft` |
-| `.gitignore` `SCIAGENT:GITIGNORE` block | `sciagent link` |
+| `.claude/hooks/*.sh` | `scio link` |
+| `.claude/settings.json` hook registrations | `scio link` |
+| `AGENTS.md` `SCIO:CRAFT` block | `scio craft` |
+| `.gitignore` `SCIO:GITIGNORE` block | `scio link` |
 
 These require hop 1 followed by the producing command. A hook-template change
 needs `link`; a `craft.yaml` change needs `craft`.
 
 ### Toolkit code
 
-`bin/sciagent` and `lib/sciagent/*.sh` execute from the pinned checkout. Their
+`bin/scio` and `lib/scio/*.sh` execute from the pinned checkout. Their
 behavior changes on hop 1 and takes effect at the next invocation.
 
 ## Performing propagation
@@ -74,22 +74,23 @@ For a vendored project:
 
 ```bash
 git submodule update --init 01_modules/SciAgent-toolkit
-./01_modules/SciAgent-toolkit/bin/sciagent link
-./01_modules/SciAgent-toolkit/bin/sciagent craft
+./01_modules/SciAgent-toolkit/bin/scio link
+./01_modules/SciAgent-toolkit/bin/scio craft
 ```
 
 The project owner chooses the new submodule commit before these commands. The
 toolkit has no command that re-pins a consumer automatically.
 
 For a release install, `install.sh` places an immutable toolkit version on the
-machine. Running that version's `sciagent link` performs the project binding.
+machine. Running that version's `scio link` performs the project binding.
 A project that vendors its own toolkit must use its in-repo binary; `link`
 refuses a global copy in that situation.
 
 ## Hook ownership
 
 Hook bodies are copied byte-for-byte from templates. Each managed body carries
-a content-hash record under `.sciagent/hook_state/`.
+a content-hash record under `.scio/hook_state/`. A legacy `.sciagent/` state
+directory is moved to `.scio/` before `link` evaluates those records.
 
 | Evidence | `link` action |
 |---|---|
@@ -121,7 +122,7 @@ Project teardown is explicit:
 
 ```bash
 rm .claude/{skills,agents,commands} .agents/{skills,agents,commands}
-# Remove complete SCIAGENT managed blocks from AGENTS.md.
+# Remove complete SCIO or legacy SCIAGENT managed blocks from AGENTS.md.
 ```
 
 Hook bodies and registrations are materialized guardrails. Retiring those is a

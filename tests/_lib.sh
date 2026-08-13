@@ -7,7 +7,7 @@
 set -u
 
 TOOLKIT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-export SCIAGENT_TOOLKIT="$TOOLKIT_ROOT"
+export SCIO_TOOLKIT="$TOOLKIT_ROOT"
 
 _TEST_NAME="${0##*/}"
 
@@ -91,7 +91,7 @@ build_fake_toolkit() {
     local root="$1"
     mkdir -p "$root"/{skills/s_a,skills/s_b,skills/s_c,agents,commands,lib,bin}
 
-    # Skills carry the two fields checked by `sciagent lint --check toolkit`.
+    # Skills carry the two fields checked by `scio lint --check toolkit`.
     local _s
     for _s in s_a s_b s_c; do
         cat > "$root/skills/$_s/SKILL.md" <<EOF
@@ -113,6 +113,6 @@ EOF
     echo "cmd c_b"   > "$root/commands/c_b.md"
 
     # Symlink lib/ and bin/ from the real toolkit so the dispatcher works.
-    ln -sfn "$TOOLKIT_ROOT/lib/sciagent" "$root/lib/sciagent"
-    ln -sfn "$TOOLKIT_ROOT/bin/sciagent" "$root/bin/sciagent"
+    ln -sfn "$TOOLKIT_ROOT/lib/scio" "$root/lib/scio"
+    ln -sfn "$TOOLKIT_ROOT/bin/scio" "$root/bin/scio"
 }
