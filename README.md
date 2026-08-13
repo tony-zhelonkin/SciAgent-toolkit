@@ -9,9 +9,10 @@ binds each category with one directory symlink.
 
 ## Install
 
-Most analysis projects vendor this repository at
-`01_modules/SciAgent-toolkit/`. Use a relative alias so each project invokes its
-own pinned copy:
+Most analysis of my projects started out vendoring this repository at
+`01_modules/SciAgent-toolkit/`. 
+
+Use a relative alias so each project invokes its own pinned copy:
 
 ```bash
 alias si='./01_modules/SciAgent-toolkit/bin/sciagent'
