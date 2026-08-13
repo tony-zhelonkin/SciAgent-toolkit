@@ -1,7 +1,7 @@
-# craft.yaml — single source of truth for the SCIAGENT:CRAFT managed block.
+# craft.yaml — single source of truth for the SCIO:CRAFT managed block.
 #
-# Rendered into each repo's AGENTS.md by `sciagent craft` as the
-# <!-- BEGIN SCIAGENT:CRAFT --> block. Edit here once; run `sciagent craft` in
+# Rendered into each repo's AGENTS.md by `scio craft` as the
+# <!-- BEGIN SCIO:CRAFT --> block. Edit here once; run `scio craft` in
 # each repo to propagate. The block states the standing conventions; numeric
 # values an analysis reads live in analysis_config.yaml (figures:). Keep the
 # rendered block terse (<=25 lines) — depth belongs in skills, not always-on text.

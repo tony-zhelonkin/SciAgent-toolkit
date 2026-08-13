@@ -51,21 +51,21 @@ V="$P/share/scio/versions"
 R="$P/share/scio/receipts"
 
 # --- coexistence -----------------------------------------------------------
-assert_file_exists "$V/$SHA1/bin/sciagent" "version 1 tree missing after installing version 2"
-assert_file_exists "$V/$SHA2/bin/sciagent" "version 2 tree missing"
+assert_file_exists "$V/$SHA1/bin/scio" "version 1 tree missing after installing version 2"
+assert_file_exists "$V/$SHA2/bin/scio" "version 2 tree missing"
 assert_file_exists "$R/$SHA1.json" "version 1 receipt missing"
 assert_file_exists "$R/$SHA2.json" "version 2 receipt missing"
 # Content-addressing is real: the two trees differ.
 [[ -e "$V/$SHA2/docs/second.md" && ! -e "$V/$SHA1/docs/second.md" ]] \
     || { echo "FAIL [$_TEST_NAME] the two version trees are not distinct" >&2; exit 1; }
 
-assert_symlink "$P/bin/sciagent"
-assert_eq "$(readlink "$P/bin/sciagent")" "../share/scio/versions/$SHA2/bin/sciagent" \
+assert_symlink "$P/bin/scio"
+assert_eq "$(readlink "$P/bin/scio")" "../share/scio/versions/$SHA2/bin/scio" \
     "the executable must point at the version installed last"
 
 # Only the executable escapes the version directory.
 binlist=$(ls -A "$P/bin")
-assert_eq "$binlist" "sciagent" "nothing but the executable may be linked into <prefix>/bin"
+assert_eq "$binlist" "scio" "nothing but the executable may be linked into <prefix>/bin"
 
 list_out=$("$INSTALL" --list --prefix "$P" 2>&1)
 printf '%s\n' "$list_out" | grep -q "$SHA1" || { echo "FAIL [$_TEST_NAME] --list omits version 1" >&2; printf '%s\n' "$list_out" >&2; exit 1; }
@@ -79,7 +79,7 @@ rc=$?
 assert_eq "$rc" "0" "uninstall of the linked version should succeed cleanly"
 [[ -e "$V/$SHA2" ]]      && { echo "FAIL [$_TEST_NAME] version 2 tree survived uninstall" >&2; exit 1; }
 [[ -e "$R/$SHA2.json" ]] && { echo "FAIL [$_TEST_NAME] version 2 receipt survived uninstall" >&2; exit 1; }
-[[ -L "$P/bin/sciagent" ]] && { echo "FAIL [$_TEST_NAME] the link this version owned survived uninstall" >&2; exit 1; }
+[[ -L "$P/bin/scio" ]] && { echo "FAIL [$_TEST_NAME] the link this version owned survived uninstall" >&2; exit 1; }
 
 snap1_after=$(tree_snapshot "$V/$SHA1")
 assert_eq "$snap1_after" "$snap1_before" "uninstalling one version must not touch the other"
@@ -95,16 +95,16 @@ printf '%s\n' "$out" | grep -qi "no receipt" \
 # --- a re-pointed link is left alone (cannot prove ownership) -------------
 # Reinstate version 1's link, then repoint it at something else by hand.
 "$INSTALL" --archive "$A1" --checksum "$A1.sha256" --prefix "$P" >/dev/null 2>&1
-ln -sfn "/somewhere/else/sciagent" "$P/bin/sciagent"
+ln -sfn "/somewhere/else/scio" "$P/bin/scio"
 out=$("$INSTALL" --uninstall "$SHA1" --prefix "$P" 2>&1)
 rc=$?
 assert_eq "$rc" "3" "a link that no longer matches the receipt must exit 3, not silently delete"
-assert_symlink "$P/bin/sciagent" "a hand-repointed link must be left alone"
-assert_eq "$(readlink "$P/bin/sciagent")" "/somewhere/else/sciagent" "the foreign link target was altered"
+assert_symlink "$P/bin/scio" "a hand-repointed link must be left alone"
+assert_eq "$(readlink "$P/bin/scio")" "/somewhere/else/scio" "the foreign link target was altered"
 [[ -e "$V/$SHA1" ]] && { echo "FAIL [$_TEST_NAME] the version tree should still be removed" >&2; exit 1; }
 
 # --- nothing of ours remains ----------------------------------------------
-rm -f "$P/bin/sciagent"          # the foreign link we planted, not ours
+rm -f "$P/bin/scio"          # the foreign link we planted, not ours
 ours=$(find "$V" "$R" \( -type f -o -type l \) 2>/dev/null)
 if [[ -n "$ours" ]]; then
     echo "FAIL [$_TEST_NAME] uninstall was not exact; residue:" >&2

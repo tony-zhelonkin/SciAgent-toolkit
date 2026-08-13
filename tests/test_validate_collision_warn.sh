@@ -16,11 +16,11 @@ build_fake_toolkit "$FAKE"
 # commands/s_a.md is sufficient to trigger the collision check.
 echo "cmd s_a (deliberate collision)" > "$FAKE/commands/s_a.md"
 
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 set +e
-stdout_out=$("$SCIAGENT" lint --check toolkit 2>/tmp/_validate_err_$$)
+stdout_out=$("$SCIO" lint --check toolkit 2>/tmp/_validate_err_$$)
 rc=$?
 stderr_out=$(cat /tmp/_validate_err_$$)
 rm -f /tmp/_validate_err_$$

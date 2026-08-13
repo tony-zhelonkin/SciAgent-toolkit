@@ -157,7 +157,7 @@ All project-specific lists are config-driven — never hardcoded in the helper l
 
 ## Prerequisites
 
-Run from an analysis project where SciAgent has materialized
+Run from an analysis project where Scio has materialized
 `02_analysis/helpers/interactive_style.py`, mounted the `interactive-style` contract library, and
 provided `02_analysis/config/analysis_config.yaml`. Exporters write compact inputs under
 `03_results/interactive/` from objects prepared by a committed stage.

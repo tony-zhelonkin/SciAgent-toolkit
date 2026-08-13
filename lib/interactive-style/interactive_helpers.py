@@ -1,5 +1,5 @@
 """
-interactive_helpers.py — the SciAgent-toolkit INTERACTIVE-EXPLORER contract (live-kernel side).
+interactive_helpers.py — the Scio toolkit INTERACTIVE-EXPLORER contract (live-kernel side).
 ================================================================================================
 ONE place that owns the "interactive breakpoint explorer" pattern: at a pipeline inflection
 point, a Python `.qmd` drives jscatter (jupyter-scatter) linked panels to brush/lasso cells,

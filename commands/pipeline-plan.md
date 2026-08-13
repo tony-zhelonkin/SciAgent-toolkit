@@ -47,7 +47,7 @@ Dispatch `--n-planners` Opus planner(s). Each planner:
 
 1. **Reads** (do not re-explore beyond these):
    - the resolved `--scope-doc` (the verified-vs-inferred synthesis is the source of truth for *what* to build),
-   - the repo's `AGENTS.md` — **including the `SCIAGENT:CRAFT` managed block** (the five standing conventions: figures, results placement, README adjacency, planning decomposition, reproducibility),
+   - the repo's `AGENTS.md` — **including the `SCIO:CRAFT` managed block** (the five standing conventions: figures, results placement, README adjacency, planning decomposition, reproducibility),
    - the **figure-style contract** (`skills/figure-style/SKILL.md` + `lib/figure-style/figure_helpers.{R,py}`) — so each phase declares COMPUTE-ONLY / VIZ-ONLY / MIXED correctly,
    - `02_analysis/config/analysis_config.yaml` (`stages:`, `figures:`) — to ground stage-ids and floors.
 

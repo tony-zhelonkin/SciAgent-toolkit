@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_collision_quiet.sh
-# `sciagent lint --check toolkit --quiet` suppresses collision warnings.
+# `scio lint --check toolkit --quiet` suppresses collision warnings.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -11,11 +11,11 @@ build_fake_toolkit "$FAKE"
 # Same fixture shape as test_validate_collision_warn.sh.
 echo "cmd s_a (deliberate collision)" > "$FAKE/commands/s_a.md"
 
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 set +e
-out=$("$SCIAGENT" lint --check toolkit --quiet 2>&1)
+out=$("$SCIO" lint --check toolkit --quiet 2>&1)
 rc=$?
 set -e
 

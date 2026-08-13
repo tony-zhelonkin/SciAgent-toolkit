@@ -64,7 +64,7 @@ if [[ -e "$P/share/scio/receipts/$SHA.json" ]]; then
     echo "FAIL [$_TEST_NAME] a receipt was written for an install that never completed" >&2
     exit 1
 fi
-if [[ -e "$P/bin/sciagent" || -L "$P/bin/sciagent" ]]; then
+if [[ -e "$P/bin/scio" || -L "$P/bin/scio" ]]; then
     echo "FAIL [$_TEST_NAME] the executable was linked despite a failed extraction" >&2
     exit 1
 fi
@@ -86,7 +86,7 @@ fi
 # The prefix is not poisoned: a normal install now works.
 "$INSTALL" --archive "$ART" --checksum "$SUM" --prefix "$P" >/dev/null 2>&1 \
     || { echo "FAIL [$_TEST_NAME] a normal install after the failed one did not succeed" >&2; exit 1; }
-assert_file_exists "$P/share/scio/versions/$SHA/bin/sciagent" "retry did not install the tree"
-assert_symlink "$P/bin/sciagent" "retry did not link the executable"
+assert_file_exists "$P/share/scio/versions/$SHA/bin/scio" "retry did not install the tree"
+assert_symlink "$P/bin/scio" "retry did not link the executable"
 
 pass

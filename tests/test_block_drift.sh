@@ -2,7 +2,7 @@
 # Edit the body in place; hash_check must return 3.
 set -u
 . "$(dirname "$0")/_lib.sh"
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 setup_tmpdir
 printf '# AGENTS\n' > AGENTS.md

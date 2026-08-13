@@ -23,8 +23,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 fail() {
     echo "FAIL [$_TEST_NAME] $1" >&2
@@ -58,14 +58,14 @@ EOF
 
 run_check() {   # run_check <projdir> [--strict] -> sets OUT / RC
     set +e
-    OUT=$("$SCIAGENT" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
+    OUT=$("$SCIO" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
     RC=$?
     set -e
 }
 
 run_lint_check() {   # run_lint_check <projdir> [--strict] -> sets OUT / RC (the `lint` verb)
     set +e
-    OUT=$("$SCIAGENT" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
+    OUT=$("$SCIO" lint --check hooks --project-dir "$1" ${2:-} 2>&1)
     RC=$?
     set -e
 }
@@ -90,7 +90,7 @@ grep -q 'caption_sweep.sh is registered' <<<"$OUT" \
 run_check "$P2" --strict
 [[ "$RC" -eq 1 ]] || fail "absent-hook project exited $RC under --strict (expected 1)" "$OUT"
 
-# --- 2b. the new `sciagent lint --check` surface covers the same ground -----
+# --- 2b. the new `scio lint --check` surface covers the same ground -----
 run_lint_check "$P2"
 [[ "$RC" -eq 0 ]] || fail "lint: absent-hook project exited $RC by default (expected soft 0)" "$OUT"
 grep -q 'caption_sweep.sh is registered' <<<"$OUT" \
@@ -131,7 +131,7 @@ grep -q 'WARN hooks' <<<"$OUT" && fail "warned on settings.json carrying no hook
 REAL_TK="$TOOLKIT_ROOT"
 if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
     P7="$TMPDIR_TEST/p_materialize"; mkdir -p "$P7"
-    first=$(SCIAGENT_TOOLKIT="$REAL_TK" "$REAL_TK/bin/sciagent" link --project-dir "$P7" 2>&1)
+    first=$(SCIO_TOOLKIT="$REAL_TK" "$REAL_TK/bin/scio" link --project-dir "$P7" 2>&1)
     grep -q 'wrote: .claude/hooks/' <<<"$first" \
         || fail "ensure_hooks wrote no hook bodies" "$first"
     if command -v jq >/dev/null 2>&1; then
@@ -140,11 +140,11 @@ if [[ -d "$REAL_TK/templates/project/_common/.claude/hooks" ]]; then
     fi
 
     # Every hook the shipped settings template registers must now exist.
-    SCIAGENT_TOOLKIT="$REAL_TK" run_check "$P7"
+    SCIO_TOOLKIT="$REAL_TK" run_check "$P7"
     grep -q 'WARN hooks' <<<"$OUT" \
         && fail "hooks still missing after ensure_hooks materialized them" "$OUT"
 
-    second=$(SCIAGENT_TOOLKIT="$REAL_TK" "$REAL_TK/bin/sciagent" link --project-dir "$P7" 2>&1)
+    second=$(SCIO_TOOLKIT="$REAL_TK" "$REAL_TK/bin/scio" link --project-dir "$P7" 2>&1)
     grep -q 'wrote:' <<<"$second" \
         && fail "ensure_hooks re-wrote existing hooks (not idempotent)" "$second"
 fi

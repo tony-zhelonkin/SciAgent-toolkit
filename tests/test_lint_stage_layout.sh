@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/test_lint_stage_layout.sh — opt-in `--check stage-layout` guardrail.
 # Doc 09 §3.3: cheap structural companion to the stage/viz-twin/decade-number
-# contract. Six rules; see lib/sciagent/lint.sh::_lint_check_stage_layout.
+# contract. Six rules; see lib/scio/lint.sh::_lint_check_stage_layout.
 #
 # Tests:
 #   1. Clean layout (paired stage/viz, two-digit numbers, no strays) -> exit 0
@@ -22,8 +22,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 # ---------------------------------------------------------------------------
 # Test 1: clean layout, both stage-dir spellings, exit 0 under --strict.
@@ -41,7 +41,7 @@ ggsave("plot.png")
 R
     touch "$P/README.md"
 
-    out=$("$SCIAGENT" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
+    out=$("$SCIO" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
     [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1 ($SPELLING): expected exit 0, got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 done
 
@@ -58,11 +58,11 @@ library(ggplot2)
 ggsave("plot.png")
 write.csv(data.frame(x=1), "sneaky_table.csv")
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2: default (non-strict) must exit 0"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN stage-layout:.*10_qc_viz.R.*writes tables' \
     || { echo "FAIL [$_TEST_NAME] test2: expected WARN for viz-writes-tables"; printf '%s\n' "$out" >&2; exit 1; }
-out=$("$SCIAGENT" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test2: --strict must exit 1"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'ERROR stage-layout:.*10_qc_viz.R.*writes tables' \
     || { echo "FAIL [$_TEST_NAME] test2: expected ERROR under --strict"; printf '%s\n' "$out" >&2; exit 1; }
@@ -81,11 +81,11 @@ cat > "$P/02_analysis/stages/10_qc_viz.R" <<'R'
 library(ggplot2)
 ggsave("plot.png")
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test3: default exit 0"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN stage-layout:.*10_qc\.R.*writes figures' \
     || { echo "FAIL [$_TEST_NAME] test3: expected WARN for compute-writes-figures"; printf '%s\n' "$out" >&2; exit 1; }
-out=$("$SCIAGENT" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test3: --strict exit 1"; printf '%s\n' "$out" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ cat > "$P/02_analysis/stages/10_other_viz.R" <<'R'
 library(ggplot2)
 ggsave("plot.png")
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1)
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1)
 printf '%s\n' "$out" | grep -q 'WARN stage-layout:.*10_other_viz.R.*orphan viz' \
     || { echo "FAIL [$_TEST_NAME] test4: expected orphan-viz WARN (same number, different stem)"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -115,7 +115,7 @@ cat > "$P/02_analysis/stages/10_qc_viz.R" <<'R'
 library(ggplot2)
 ggsave("plot.png")
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1)
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1)
 printf '%s\n' "$out" | grep -q 'WARN stage-layout:.*10_qc_viz.R.*orphan viz' \
     || { echo "FAIL [$_TEST_NAME] test5: expected orphan-viz WARN (same stem, different number)"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -129,7 +129,7 @@ cat > "$P/02_analysis/stages/10_qc_viz.R" <<'R'
 library(ggplot2)
 ggsave("plot.png")
 R
-out=$("$SCIAGENT" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test6: real pair must not warn"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'orphan viz' \
     && { echo "FAIL [$_TEST_NAME] test6: real pair falsely flagged as orphan"; printf '%s\n' "$out" >&2; exit 1; }
@@ -143,7 +143,7 @@ mkdir -p "$P/02_analysis/stages"
 echo "x = 1" > "$P/02_analysis/config.py"
 echo "#!/bin/sh" > "$P/02_analysis/run_all.sh"
 echo "# analysis" > "$P/02_analysis/README.md"
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1)
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1)
 printf '%s\n' "$out" | grep -q 'WARN stage-layout:.*config\.py.*stray file' \
     || { echo "FAIL [$_TEST_NAME] test7: expected stray-file WARN for config.py"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'stray file.*run_all\.sh\|run_all\.sh.*stray file' \
@@ -160,7 +160,7 @@ mkdir -p "$P/02_analysis/stages"
 cat > "$P/02_analysis/stages/03d_interim.R" <<'R'
 x <- 1
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1)
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1)
 printf '%s\n' "$out" | grep -q "WARN stage-layout:.*03d_interim.R.*letter suffix" \
     || { echo "FAIL [$_TEST_NAME] test8: expected letter-suffix WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -172,7 +172,7 @@ mkdir -p "$P/02_analysis/stages"
 cat > "$P/02_analysis/stages/4_gsea_set_prep.R" <<'R'
 x <- 1
 R
-out=$("$SCIAGENT" lint --check stage-layout --project-dir "$P" 2>&1)
+out=$("$SCIO" lint --check stage-layout --project-dir "$P" 2>&1)
 printf '%s\n' "$out" | grep -q "WARN stage-layout:.*4_gsea_set_prep.R.*single-digit" \
     || { echo "FAIL [$_TEST_NAME] test9: expected single-digit WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -186,7 +186,7 @@ library(ggplot2)
 ggsave("plot.png")
 write.csv(data.frame(x=1), "sneaky.csv")
 R
-out=$("$SCIAGENT" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
+out=$("$SCIO" lint --check stage-layout --strict --project-dir "$P" 2>&1); rc=$?
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test10: _scratch/ must be exempt"; printf '%s\n' "$out" >&2; exit 1; }
 
 pass

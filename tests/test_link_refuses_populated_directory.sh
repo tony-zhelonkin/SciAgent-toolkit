@@ -5,7 +5,7 @@ set -u
 . "$(dirname "$0")/_lib.sh"
 
 setup_tmpdir
-SCIAGENT="$TOOLKIT_ROOT/bin/sciagent"
+SCIO="$TOOLKIT_ROOT/bin/scio"
 
 mkdir -p project/.claude/skills project/private-target
 printf 'private skill\n' > project/.claude/skills/private.md
@@ -13,7 +13,7 @@ ln -s "$TMPDIR_TEST/project/private-target" project/.claude/skills/outside-link
 ln -s "$TOOLKIT_ROOT/skills/figure-style" project/.claude/skills/old-toolkit-mount
 
 set +e
-out=$("$SCIAGENT" link --project-dir "$TMPDIR_TEST/project" 2>&1)
+out=$("$SCIO" link --project-dir "$TMPDIR_TEST/project" 2>&1)
 rc=$?
 set -e
 

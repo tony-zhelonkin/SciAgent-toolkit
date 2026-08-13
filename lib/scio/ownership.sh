@@ -1,13 +1,13 @@
-# lib/sciagent/ownership.sh — hash-and-cede discipline for materialized bodies.
+# lib/scio/ownership.sh — hash-and-cede discipline for materialized bodies.
 
 # shellcheck shell=bash
 
-_SCIAGENT_TEMPLATE_PROVENANCE="templates/PROVENANCE.sha1"
+_SCIO_TEMPLATE_PROVENANCE="templates/PROVENANCE.sha1"
 
 # True when the body matches a version the toolkit has shipped.
 ownership_template_hash_known() {
     local hash="$1" rel="$2"
-    local manifest="$SCIAGENT_TOOLKIT/$_SCIAGENT_TEMPLATE_PROVENANCE"
+    local manifest="$SCIO_TOOLKIT/$_SCIO_TEMPLATE_PROVENANCE"
     [[ -n "$hash" && -f "$manifest" ]] || return 1
     local known_hash known_path
     while read -r known_hash known_path; do
@@ -25,11 +25,11 @@ ownership_ensure_body() {
     mkdir -p "$(dirname "$dst")"
 
     if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        cp "$src" "$dst" || { echo "scio: failed to write $dst" >&2; return 1; }
         [[ "$mode" == exec ]] && chmod +x "$dst"
         echo "wrote: $dst"
         mkdir -p "$(dirname "$state")"
-        sciagent_sha1_file "$dst" > "$state"
+        scio_sha1_file "$dst" > "$state"
         rm -f "$ceded"
         return 0
     fi
@@ -37,8 +37,8 @@ ownership_ensure_body() {
     [[ "$mode" == exec ]] && { chmod +x "$dst" 2>/dev/null || true; }
 
     local current template
-    current=$(sciagent_sha1_file "$dst")
-    template=$(sciagent_sha1_file "$src")
+    current=$(scio_sha1_file "$dst")
+    template=$(scio_sha1_file "$src")
 
     if [[ "$current" == "$template" ]]; then
         if [[ ! -f "$state" && ! -f "$ceded" ]]; then
@@ -60,7 +60,7 @@ ownership_ensure_body() {
     fi
 
     if [[ "$ours" == true ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to refresh $dst" >&2; return 1; }
+        cp "$src" "$dst" || { echo "scio: failed to refresh $dst" >&2; return 1; }
         [[ "$mode" == exec ]] && chmod +x "$dst"
         echo "refreshed: $dst (was an older toolkit version)"
         mkdir -p "$(dirname "$state")"
@@ -69,8 +69,8 @@ ownership_ensure_body() {
         return 0
     fi
 
-    echo "sciagent: $dst differs from the toolkit's version and was not written by sciagent" >&2
-    echo "  leaving it as yours; sciagent will not manage it from now on" >&2
+    echo "scio: $dst differs from the toolkit's version and was not written by scio" >&2
+    echo "  leaving it as yours; scio will not manage it from now on" >&2
     rm -f "$state"
     mkdir -p "$(dirname "$ceded")"
     printf '%s\n' "$current" > "$ceded"

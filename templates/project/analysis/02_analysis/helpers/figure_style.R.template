@@ -1,8 +1,8 @@
 ## 02_analysis/helpers/figure_style.R — per-project figure-style shim.
 ## =====================================================================
-## ONE import per viz stage. Delegates to the SciAgent-toolkit contract
+## ONE import per viz stage. Delegates to the Scio toolkit contract
 ## lib (02_analysis/helpers/figure-style/figure_helpers.R, symlinked by
-## `sciagent activate`) and loads the project analysis_config.yaml.
+## `scio link`) and loads the project analysis_config.yaml.
 ##
 ## Usage in any viz stage:
 ##   source("02_analysis/helpers/figure_style.R")
@@ -28,7 +28,7 @@ if (file.exists(.HELPERS_LIB)) {
 } else {
     warning(
         "[figure_style] toolkit lib not found at: ", .HELPERS_LIB,
-        "\nRun `sciagent activate` in this repo to link lib/figure-style/. ",
+        "\nRun `scio link` in this repo to bind lib/figure-style/. ",
         "Falling back to minimal stubs.", call. = FALSE
     )
     # --- MINIMAL FALLBACK stubs (keep scripts from hard-crashing) -----------

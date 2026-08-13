@@ -2,7 +2,7 @@
 # Write a block to a file with surrounding content, read it back, hash-check.
 set -u
 . "$(dirname "$0")/_lib.sh"
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 setup_tmpdir
 cat > AGENTS.md <<'EOF'

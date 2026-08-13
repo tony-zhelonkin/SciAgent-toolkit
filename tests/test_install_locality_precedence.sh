@@ -7,13 +7,13 @@
 # projects rests on that, so an installed layout that could subvert it would be
 # a silent correctness bug, not a packaging nit.
 #
-# This is the end-to-end check, not a code reading: a REAL `bin/sciagent` plus a
-# real `lib/sciagent/` are packaged into a release, installed into a scratch
+# This is the end-to-end check, not a code reading: a REAL `bin/scio` plus a
+# real `lib/scio/` are packaged into a release, installed into a scratch
 # prefix, and then invoked from a project.
 #
 #   - In a project that ships its own toolkit, the globally installed
-#     `sciagent link` REFUSES, because the
-#     symlinked executable resolves $SCIAGENT_TOOLKIT to the version directory,
+#     `scio link` REFUSES, because the
+#     symlinked executable resolves $SCIO_TOOLKIT to the version directory,
 #     which is not the project's in-repo toolkit.
 #   - In a project that ships none, the same global binary works. Without this
 #     control the refusal above could be caused by a broken install rather than
@@ -30,10 +30,10 @@ release_git_env
 # --- a fixture release carrying the REAL dispatcher and libs ---------------
 SRC="$TMPDIR_TEST/src"
 build_fake_toolkit "$SRC"                       # fixture skills/agents/commands
-rm -f "$SRC/lib/sciagent" "$SRC/bin/sciagent"   # build_fake_toolkit symlinks these
-cp -R "$TOOLKIT_ROOT/lib/sciagent" "$SRC/lib/sciagent"
-cp    "$TOOLKIT_ROOT/bin/sciagent" "$SRC/bin/sciagent"
-chmod +x "$SRC/bin/sciagent"
+rm -f "$SRC/lib/scio" "$SRC/bin/scio"   # build_fake_toolkit symlinks these
+cp -R "$TOOLKIT_ROOT/lib/scio" "$SRC/lib/scio"
+cp    "$TOOLKIT_ROOT/bin/scio" "$SRC/bin/scio"
+chmod +x "$SRC/bin/scio"
 
 mkdir -p "$SRC/tests" "$SRC/scripts"
 printf '#!/usr/bin/env bash\necho "fixture: test suite"\nexit 0\n' > "$SRC/tests/run-all.sh"
@@ -54,16 +54,16 @@ ART=$(artifact_in "$TMPDIR_TEST/out")
 P="$TMPDIR_TEST/prefix"
 "$INSTALL" --archive "$ART" --checksum "$ART.sha256" --prefix "$P" >/dev/null 2>&1 \
     || { echo "FAIL [$_TEST_NAME] install failed" >&2; exit 1; }
-GLOBAL="$P/bin/sciagent"
+GLOBAL="$P/bin/scio"
 assert_symlink "$GLOBAL"
 
 # --- control: no in-repo toolkit → the global install is usable ------------
 PLAIN="$TMPDIR_TEST/plain-project"
 mkdir -p "$PLAIN"
-out=$( cd "$PLAIN" && env -u SCIAGENT_TOOLKIT "$GLOBAL" link 2>&1 )
+out=$( cd "$PLAIN" && env -u SCIO_TOOLKIT "$GLOBAL" link 2>&1 )
 rc=$?
 if [[ $rc -ne 0 ]]; then
-    echo "FAIL [$_TEST_NAME] the globally installed sciagent could not link a plain project" >&2
+    echo "FAIL [$_TEST_NAME] the globally installed scio could not link a plain project" >&2
     printf '%s\n' "$out" >&2
     exit 1
 fi
@@ -75,7 +75,7 @@ mkdir -p "$FLEET/01_modules"
 cp -R "$SRC" "$FLEET/01_modules/SciAgent-toolkit"
 rm -rf "$FLEET/01_modules/SciAgent-toolkit/.git"
 
-out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT "$GLOBAL" link 2>&1 )
+out=$( cd "$FLEET" && env -u SCIO_TOOLKIT "$GLOBAL" link 2>&1 )
 rc=$?
 if [[ $rc -eq 0 ]]; then
     echo "FAIL [$_TEST_NAME] the global install mutated a project that ships its own toolkit" >&2
@@ -89,7 +89,7 @@ printf '%s\n' "$out" | grep -q "refusing to link against an external toolkit" \
     && { echo "FAIL [$_TEST_NAME] the refused run still created bindings" >&2; exit 1; }
 
 # The project's OWN toolkit can of course do it.
-out=$( cd "$FLEET" && env -u SCIAGENT_TOOLKIT ./01_modules/SciAgent-toolkit/bin/sciagent link 2>&1 )
+out=$( cd "$FLEET" && env -u SCIO_TOOLKIT ./01_modules/SciAgent-toolkit/bin/scio link 2>&1 )
 rc=$?
 if [[ $rc -ne 0 ]]; then
     echo "FAIL [$_TEST_NAME] the project's in-repo toolkit could not link it" >&2

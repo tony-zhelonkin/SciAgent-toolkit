@@ -82,7 +82,7 @@ decision (Open questions, item c).
 - `skills/architecture-treemap/references/example/components.json` — the golden
   render fixture (a hand-authored manifest, not extracted from a source tree).
 - The toolkit's `tests/run-all.sh` suite (`tests/test_*.sh`) covers the bash
-  `sciagent` CLI only — no extractor coverage.
+  `scio` CLI only — no extractor coverage.
 
 ### Configs / data files
 

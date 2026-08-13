@@ -27,15 +27,15 @@ cannot be reproduced from the committed codebase.
 On every Stop event, scans `03_results/` for figure files that lack a
 `## <relative/path>` heading in the sibling stage README.md.
 
-- Prefers `sciagent lint --check captions` when `sciagent` is on
+- Prefers `scio lint --check captions` when `scio` is on
   PATH or resolvable; falls back to a self-contained scan otherwise.
-- Degrades gracefully when `sciagent` is absent — never hard-errors on
+- Degrades gracefully when `scio` is absent — never hard-errors on
   a missing binary.
 - `_scratch/` and `$TMPDIR` artifacts are exempt.
 
-## SCIAGENT_STRICT toggle
+## SCIO_STRICT toggle
 
-Set `SCIAGENT_STRICT=1` (or `=true`) in the shell environment to
+Set `SCIO_STRICT=1` (or `=true`) in the shell environment to
 upgrade both hooks from advisory to enforcing:
 
 | Hook | Default (warn) | Strict (enforce) |
@@ -49,6 +49,6 @@ These hooks are **project-scoped** (`.claude/settings.json`, not
 global settings).  On harnesses other than Claude Code they are
 simply ignored — no side-effects on CI or other editors.
 
-`sciagent lint --check captions` and `sciagent lint --check
+`scio lint --check captions` and `scio lint --check
 provenance` are the harness-agnostic CI mirrors of these guardrails
 and are safe to add to any CI pipeline regardless of editor.

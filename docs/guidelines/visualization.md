@@ -18,6 +18,6 @@ Consult these three sources — they are the only authoritative references:
 | Per-project geometry + font floors | `02_analysis/config/analysis_config.yaml` under `figures:` (`base_size` floor 14 pt — one legible tier) |
 
 The per-project shim (`02_analysis/helpers/figure_style.{R,py}`) is the import entry point
-for every viz script. Bind the toolkit catalog with `sciagent link`.
+for every viz script. Bind the toolkit catalog with `scio link`.
 
 This file is kept as a stub so that old links resolve; its previous content has been removed.

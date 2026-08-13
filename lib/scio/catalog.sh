@@ -1,12 +1,12 @@
-# lib/sciagent/catalog.sh — toolkit catalog checks used by `sciagent lint`.
+# lib/scio/catalog.sh — toolkit catalog checks used by `scio lint`.
 
 # shellcheck shell=bash
 
-: "${SCIAGENT_DESC_MAX:=350}"
+: "${SCIO_DESC_MAX:=350}"
 
 _catalog_root() {
-    if [[ -n "${SCIAGENT_TOOLKIT:-}" ]]; then
-        printf '%s\n' "$SCIAGENT_TOOLKIT"
+    if [[ -n "${SCIO_TOOLKIT:-}" ]]; then
+        printf '%s\n' "$SCIO_TOOLKIT"
         return
     fi
     local self_dir
@@ -198,8 +198,8 @@ _catalog_check() {
         description="$(_catalog_description "$skill_file"; printf X)"
         description="${description%X}"
         desc_len=${#description}
-        if (( desc_len > SCIAGENT_DESC_MAX )); then
-            echo "ERROR toolkit: $skill_name: description is $desc_len chars (max $SCIAGENT_DESC_MAX)" >&2
+        if (( desc_len > SCIO_DESC_MAX )); then
+            echo "ERROR toolkit: $skill_name: description is $desc_len chars (max $SCIO_DESC_MAX)" >&2
             fail=1
         fi
     done
@@ -209,7 +209,7 @@ _catalog_check() {
         while IFS=$'\t' read -r name kinds; do
             [[ -n "$name" ]] || continue
             phrase=$(_catalog_join_kinds "$kinds")
-            echo "sciagent lint: warning — name '$name' appears as $phrase" >&2
+            echo "scio lint: warning — name '$name' appears as $phrase" >&2
         done < <(_catalog_collisions)
     fi
 

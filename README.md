@@ -1,6 +1,6 @@
-# sciagent
+# scio
 
-SciAgent is a per-project catalog of computational-biology skills, sub-agents,
+Scio is a per-project catalog of computational-biology skills, sub-agents,
 commands, CRAFT conventions, and executable guardrails for AI coding harnesses.
 
 The toolkit keeps its mount sources in the same shape the harnesses consume:
@@ -15,24 +15,24 @@ Most analysis of my projects started out vendoring this repository at
 Use a relative alias so each project invokes its own pinned copy:
 
 ```bash
-alias si='./01_modules/SciAgent-toolkit/bin/sciagent'
+alias si='./01_modules/SciAgent-toolkit/bin/scio'
 ```
 
-`sciagent link` refuses an external toolkit when the project contains its own
+`scio link` refuses an external toolkit when the project contains its own
 `SciAgent-toolkit` checkout. This keeps the binding aligned with the project's
 submodule pin.
 
 For one checkout, a PATH symlink is convenient:
 
 ```bash
-ln -sf /absolute/path/to/SciAgent-toolkit/bin/sciagent ~/.local/bin/sciagent
-sciagent --help
+ln -sf /absolute/path/to/SciAgent-toolkit/bin/scio ~/.local/bin/scio
+scio --help
 ```
 
 ### From a release tarball
 
 The offline installer accepts a local release artifact and checksum. The
-release artifact is named `scio`; the installed command is `sciagent`.
+release artifact is named `scio`; the installed command is `scio`.
 
 ```bash
 ./install.sh --archive  scio-0.1.0-<short-sha>.tar.gz \
@@ -42,7 +42,7 @@ release artifact is named `scio`; the installed command is `sciagent`.
 
 It installs a content-addressed version under
 `~/.local/share/scio/versions/<full-git-sha>/`, links
-`~/.local/bin/sciagent`, and writes a receipt. The installer has no network
+`~/.local/bin/scio`, and writes a receipt. The installer has no network
 path. Maintainers build an artifact with
 `scripts/build-release.sh <ref>` from a clean tree.
 
@@ -50,21 +50,21 @@ path. Maintainers build an artifact with
 
 ```bash
 # Bind the catalog and materialize the project guardrail hooks.
-sciagent link
+scio link
 
 # Render the shared computational-biology conventions into AGENTS.md.
-sciagent craft
+scio craft
 
 # Run project checks.
-sciagent lint
+scio lint
 ```
 
 Every verb accepting a project path defaults to the current directory:
 
 ```bash
-sciagent link --project-dir /path/to/project
-sciagent craft --project-dir /path/to/project
-sciagent lint --project-dir /path/to/project
+scio link --project-dir /path/to/project
+scio craft --project-dir /path/to/project
+scio lint --project-dir /path/to/project
 ```
 
 ## Verbs
@@ -72,10 +72,10 @@ sciagent lint --project-dir /path/to/project
 | Verb | Description |
 |---|---|
 | `link [--project-dir D]` | Bind the six catalog trees and ensure guardrail hooks |
-| `craft [--project-dir D] [--force] [--quiet]` | Render or refresh `SCIAGENT:CRAFT` in `AGENTS.md` |
+| `craft [--project-dir D] [--force] [--quiet]` | Render or refresh `SCIO:CRAFT` in `AGENTS.md` |
 | `lint [--project-dir D] [--check <name>...] [--strict] [--quiet]` | Run project guardrail checks |
 
-Run `sciagent --help` for the terse reference.
+Run `scio --help` for the terse reference.
 
 ## What `link` writes
 
@@ -95,7 +95,7 @@ project/
     └── commands -> <toolkit>/commands
 ```
 
-`link` also refreshes the `SCIAGENT:GITIGNORE` block in `.gitignore`.
+`link` also refreshes the `SCIO:GITIGNORE` block in `.gitignore`.
 
 `link` is convergent. A missing category link is created, a correct link is a
 silent no-op, and a link pointing elsewhere is replaced with a message. It
@@ -110,9 +110,11 @@ Hook bodies use a hash-and-cede ownership discipline. An unchanged body from
 any shipped toolkit version can be refreshed. A user-edited body is preserved,
 reported once, and ceded from future management. Hook registrations are merged
 into `.claude/settings.json` while unrelated project settings remain intact.
+On the first rebranded run, `link` moves `.sciagent/` to `.scio/` with its
+ownership hashes intact before inspecting any hook body.
 
 Claude Code treats project settings as replacements for user settings except
-for permission rules. SciAgent writes only the two project guardrail hook
+for permission rules. Scio writes only the two project guardrail hook
 registrations; editor, model, memory, attribution, thinking, and statusline
 preferences remain user-owned.
 
@@ -123,7 +125,7 @@ The catalog and managed context come out in two operations:
 
 ```bash
 rm .claude/{skills,agents,commands} .agents/{skills,agents,commands}
-# Edit AGENTS.md and remove the complete SCIAGENT:CRAFT block.
+# Edit AGENTS.md and remove the complete SCIO:CRAFT block.
 ```
 
 One link per category makes the filesystem portion a single explicit `rm`
@@ -132,22 +134,23 @@ guardrails; remove those files and registrations separately when retiring the
 enforcement layer too.
 
 Historical consumer repositories may still carry `SCIAGENT:ROLES`. The
-shipped block library retains the removal path:
+shipped block library reads and removes both `SCIAGENT` and `SCIO` marker
+prefixes:
 
 ```bash
 TOOLKIT_PATH=/path/to/SciAgent-toolkit
-bash -c '. "$1/lib/sciagent/block.sh"; block_remove "$2" ROLES' \
+bash -c '. "$1/lib/scio/block.sh"; block_remove "$2" ROLES' \
   _ "$TOOLKIT_PATH" /path/to/project/AGENTS.md
 ```
 
 ## Validation and linting
 
-`sciagent lint --check toolkit` checks every skill's `name` and `description`
+`scio lint --check toolkit` checks every skill's `name` and `description`
 frontmatter. The name must match the directory and the description must fit
 the configured length cap. Cross-namespace collisions among skills, agents,
 and commands are warnings.
 
-`sciagent lint` runs project checks for figure style, results layout, captions,
+`scio lint` runs project checks for figure style, results layout, captions,
 provenance, freshness, stage structure, comment intent, documentation layout,
 and registered hook existence. Findings warn by default and become failures
 under `--strict`.

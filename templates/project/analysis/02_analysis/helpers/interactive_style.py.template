@@ -1,9 +1,9 @@
 """
 02_analysis/helpers/interactive_style.py — per-project interactive-explorer shim.
 =================================================================================
-ONE import per explorer notebook. Delegates to the SciAgent-toolkit contract
+ONE import per explorer notebook. Delegates to the Scio toolkit contract
 lib (02_analysis/helpers/interactive-style/interactive_helpers.py, symlinked by
-`sciagent activate`). Sibling of figure_style.py: the mount directory is
+`scio link`). Sibling of figure_style.py: the mount directory is
 hyphenated (`interactive-style`, not a legal Python package name), this
 underscored module is what projects import.
 
@@ -41,7 +41,7 @@ _LIB_FILE = _LIB_DIR / "interactive_helpers.py"
 if not _LIB_FILE.exists():
     raise ImportError(
         f"[interactive_style] toolkit lib not found at: {_LIB_FILE}\n"
-        "Run `sciagent activate` in this repo to link lib/interactive-style/.\n"
+        "Run `scio link` in this repo to bind lib/interactive-style/.\n"
         "No fallback: an explorer with stubbed helpers cannot brush, select, or "
         "persist barcodes, so it would produce a silently empty record."
     )

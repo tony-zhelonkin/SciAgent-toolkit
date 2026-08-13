@@ -29,7 +29,7 @@ Treat this as a **future ADR placeholder**, not an ADR-005 reformulation. When i
 **Revisit triggers**
 - A second consumer of conversation traces materialises. Specifically: (a) the ERA optimizer overlay (ADR-004) ships and needs replay capability, *or* (b) the benchmark harness (ADR-006) needs trace artefacts as input, *or* (c) a multi-user setup needs trace sharing for collaboration.
 - The docs/code → skill generator proves insufficient and the pain points specifically point at "I wish I had a recording of that session."
-- A regulatory or audit obligation makes trace recording table stakes (unlikely in solo research; possible if sciagent is adopted in a regulated org).
+- A regulatory or audit obligation makes trace recording table stakes (unlikely in solo research; possible if scio is adopted in a regulated org).
 
 **Cross-references**
 - Background research: `ai-research/01-trace-recording-claude-code.md`, `ai-research/02-trace-recording-pi-coding-agent.md`, `ai-research/03-cross-harness-trace-standards.md`, `ai-research/04-anthropic-skills-and-workflow-skill-creator.md`, `ai-research/11-architectural-backbone-and-trace-necessity.md` §3.
@@ -48,7 +48,7 @@ ADR-004: a `scorable` overlay carrying mutator/scorer/selector sub-agents implem
 Both ADRs deferred together. They form a single dependency chain — ADR-006 exists only to feed ADR-004; deferring 004 without 006 leaves a benchmark with no consumer, and deferring 006 without 004 leaves an optimizer with no signal. The two only cohere as a pair, so they leave or stay as a pair.
 
 **What replaces it (in scope now)**
-Nothing. Sciagent ships as a fully opinionated personal context manager. Role and skill quality is judged by the felt friction of daily work on real projects (DC_hum_verse, pathway-explorer, coresh-shared-cache). The fitness signal is "does Anton ship faster," delivered every working day at zero marginal cost.
+Nothing. Scio ships as a fully opinionated personal context manager. Role and skill quality is judged by the felt friction of daily work on real projects (DC_hum_verse, pathway-explorer, coresh-shared-cache). The fitness signal is "does Anton ship faster," delivered every working day at zero marginal cost.
 
 **Why deferred**
 - **No second consumer for an optimizer.** Solo researcher, single primary harness. The "shareable value" of objective scoring is hypothetical; the cost (benchmark authoring, grader maintenance, CI wiring) is real today.
@@ -59,9 +59,9 @@ Nothing. Sciagent ships as a fully opinionated personal context manager. Role an
 - **The MVP-minimal benchmark middle path is the worst of three options.** It pays setup cost (5–10 tasks authored + graded by Anton) with no optimizer to consume the signal and no second voice to disagree. Pure overhead.
 
 **Revisit triggers** (any one of):
-- A second human user adopts sciagent and requests configurable optimisation.
+- A second human user adopts scio and requests configurable optimisation.
 - Pi-harness and Claude-Code-harness produce divergent role rankings Anton cannot reconcile by inspection (concrete A/B disagreement, not abstract concern).
-- Sciagent grows ≥3 role overlays whose pairwise differences are too subtle to eyeball-rank.
+- Scio grows ≥3 role overlays whose pairwise differences are too subtle to eyeball-rank.
 - A funded collaboration or paper submission requires objective metric reporting on toolkit choices.
 
 **Reactivation surface (when triggered)**
@@ -107,7 +107,7 @@ A toolkit-level decision on whether skills should declare Python dependencies vi
 
 **Status**: deferred. Not killed — venv management is a real concern in non-containerized workflows.
 
-**What replaces it (in scope now)**: nothing. Skills currently in the toolkit declare deps in whatever ad-hoc form their author chose; sciagent does not enforce or normalize.
+**What replaces it (in scope now)**: nothing. Skills currently in the toolkit declare deps in whatever ad-hoc form their author chose; scio does not enforce or normalize.
 
 **Why deferred** (Anton verbatim)
 *"UV seems to be optional at the moment. I personally work mostly within Docker containers. I have everything pre-installed there and I'm not that concerned with managing virtual environments."*
@@ -115,7 +115,7 @@ A toolkit-level decision on whether skills should declare Python dependencies vi
 Workflow assumption baked into the deferral: Anton's current setup is Docker-container-with-pre-installed-envs. Skills run in that container; deps are managed by the container build, not by per-skill venv management. `uv` would add ceremony without solving a current pain.
 
 **Revisit triggers**
-- Sciagent adopted by a workflow that isn't containerized (a collaborator with bare-metal Python, a CI environment without the project's container).
+- Scio adopted by a workflow that isn't containerized (a collaborator with bare-metal Python, a CI environment without the project's container).
 - A skill needs a Python dep that isn't in the container and adding it to the container is more friction than per-skill pinning would be.
 - Reproducibility-for-publication requirements force per-skill pin manifests.
 

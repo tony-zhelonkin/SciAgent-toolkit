@@ -7,15 +7,15 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 mkdir project
 cd project
 
 run_verb() {
     local out
-    out=$("$SCIAGENT" "$@" 2>&1 || true)
+    out=$("$SCIO" "$@" 2>&1 || true)
     if printf '%s\n' "$out" | grep -qi 'command not found'; then
         echo "FAIL [$_TEST_NAME] verb '$*' hit a missing command:" >&2
         printf '%s\n' "$out" >&2

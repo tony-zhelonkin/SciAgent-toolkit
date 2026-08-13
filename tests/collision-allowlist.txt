@@ -8,7 +8,7 @@
 #
 # New entries require PR review and a written rationale. Adding to this file
 # is the only way to make tests/test_no_duplicate_basenames.sh tolerate a
-# cross-namespace overlap; `sciagent lint --check toolkit` is the runtime
+# cross-namespace overlap; `scio lint --check toolkit` is the runtime
 # soft-warn mirror.
 #
 # Mutation rule: this file shrinks when an overlap is removed and grows only

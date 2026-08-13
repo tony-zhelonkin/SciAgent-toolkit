@@ -10,11 +10,11 @@
 
 ## 1. The decision in one paragraph
 
-SciAgent distributes itself **offline-first, in Bash, with Git commits and tags as the version
+Scio distributes itself **offline-first, in Bash, with Git commits and tags as the version
 model**. There is no npm package, no registry, no marketplace as package authority, and no installer
 that reaches the network. Claude Code marketplaces and `npx skills add` remain *optional
 compatibility paths* — things a stranger may use if they already live in those ecosystems — never
-SciAgent's architecture. For the analysis fleet the project-local submodule stays canonical and
+Scio's architecture. For the analysis fleet the project-local submodule stays canonical and
 overrides any global installation, because that is what preserves exact-commit reproducibility.
 
 ## 2. The three layers, kept separate
@@ -24,7 +24,7 @@ and went wrong later by mixing three concerns that must stay apart: transport, p
 harness configuration.
 
 ```
-SciAgent source
+Scio source
   skills/ + agents/ + commands/ + craft.yaml + hooks + helpers
                     │
                     ▼
@@ -33,8 +33,8 @@ Offline transport                     ← owns bytes, never projects
                     │
                     ▼
 Project binder                        ← owns projects, never transport
-  sciagent link: six whole-tree catalog links + hooks/settings + gitignore
-  sciagent craft: SHA1-guarded SCIAGENT:CRAFT block in AGENTS.md
+  scio link: six whole-tree catalog links + hooks/settings + gitignore
+  scio craft: SHA1-guarded SCIO:CRAFT block in AGENTS.md
 ```
 
 Two rules follow, and they are the load-bearing ones:
@@ -47,7 +47,7 @@ Two rules follow, and they are the load-bearing ones:
 ## 3. Why whole-tree catalog links are the portable basis
 
 Codex reads project `.agents/skills` directly and follows a linked skill tree;
-Claude Code supports project-local `.claude/skills` the same way. `sciagent
+Claude Code supports project-local `.claude/skills` the same way. `scio
 link` binds each complete catalog category into both discovery namespaces:
 one link each for skills, agents, and commands under `.agents/` and `.claude/`.
 The link target identifies the owning toolkit checkout, so a separate project
@@ -68,11 +68,11 @@ changes:
 | Packaging/provisioning may detect and seed harnesses | Packaging must not select or configure harnesses (ADR-D3) |
 | Tier 2 adapters, whole-toolkit scope | Project binding is one fixed, convergent `link` operation (ADR-D5 note) |
 
-**What exists in code today.** `sciagent link` exposes the same complete
+**What exists in code today.** `scio link` exposes the same complete
 catalog through `.claude/` and `.agents/`, materializes the two Claude
 guardrail hooks, merges their registrations, refreshes the project gitignore
 block, and refuses an external toolkit when the project carries a pinned local
-checkout. `sciagent craft` owns the managed `AGENTS.md` context separately.
+checkout. `scio craft` owns the managed `AGENTS.md` context separately.
 
 ## 5. Verified findings that motivated this (with evidence)
 
@@ -96,13 +96,13 @@ transmits CLI version, detected agent, and install parameters (`:151-167`). Opt-
 "do not depend on a corporate installer that attempts outbound traffic," an opt-out flag is a weaker
 guarantee than an installer that has no network code path at all.
 
-**`npx` is not network-neutral.** No SciAgent npm publication is needed, but `npx skills add` still
+**`npx` is not network-neutral.** No Scio npm publication is needed, but `npx skills add` still
 downloads and executes the installer package through npm on every invocation.
 
 **Version pinning is possible in the distribution channel, so that is not the reason to reject it.**
 `_ref/skills/src/source-parser.ts` handles `owner/repo#ref` and `tree/<ref>/<path>`; the lock entry
 carries `ref` explicitly for ref-aware updates. The real reason the submodule stays canonical is
-different and narrower: only it pins **the whole toolkit as one unit** — `bin/sciagent`, `lib/`,
+different and narrower: only it pins **the whole toolkit as one unit** — `bin/scio`, `lib/`,
 hooks, `craft.yaml`, and the skills together — against the exact commit an analysis ran. **Earlier
 claim that the plugin channel "cannot pin a version": wrong.**
 
@@ -148,7 +148,7 @@ coupling at all: `packaged-skills.md` contract #3 *requires* the launcher to der
 >    submodule under `01_modules/`. `symlink_create_helper_lib` mounts exactly two directories —
 >    `lib/figure-style` and `lib/interactive-style` (`symlinks.sh:596-604`; the earlier
 >    `symlinks.sh:547-570` citation in the table is also stale) — and `RNAseq-toolkit` is neither.
->    Filing it under toolkit coupling asserts a dependency on code SciAgent does not ship.
+>    Filing it under toolkit coupling asserts a dependency on code Scio does not ship.
 > 2. **`anndatar-seurat-scanpy-conversion` is not coupled at all.** It is one of six audited false
 >    positives, with `mllmcelltype-consensus-annotation` (already suspected just above),
 >    `peak-atlas-framework`, `peak-atlas-unpaired`, `coresh-signature-search`, and

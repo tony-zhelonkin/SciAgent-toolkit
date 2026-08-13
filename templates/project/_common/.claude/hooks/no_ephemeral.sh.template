@@ -5,7 +5,7 @@
 # 02_analysis/stages/NN_* stage. Ephemeral inline code, or scripts
 # living outside that tree, must not write directly under 03_results/.
 #
-# Strict toggle: SCIAGENT_STRICT=1 (or =true) → exit 2 (BLOCK);
+# Strict toggle: SCIO_STRICT=1 (or =true) → exit 2 (BLOCK);
 #                default                      → exit 0 (advisory warn).
 #
 # Sanctioned zones: _scratch/ anywhere under the project, and $TMPDIR.
@@ -106,11 +106,11 @@ _writes_to_results() {
 }
 
 if _writes_to_results "$cmd" && ! _is_sanctioned "$cmd" && _is_inline_or_outside_stages "$cmd"; then
-    msg="[sciagent/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/stages/NN_* stage.
+    msg="[scio/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/stages/NN_* stage.
 Capture throwaway probes in _scratch/ or a reasoning trace (docs/_internal/).
 If this is a real analysis step, save the code as 02_analysis/stages/NN_*.{R,py} first."
 
-    if [[ "${SCIAGENT_STRICT:-0}" == "1" || "${SCIAGENT_STRICT:-}" == "true" ]]; then
+    if [[ "${SCIO_STRICT:-0}" == "1" || "${SCIO_STRICT:-}" == "true" ]]; then
         printf '%s\n' "$msg" >&2
         exit 2   # BLOCK
     else
@@ -123,12 +123,12 @@ fi
 # Check 2: Lightweight figure-save nudge (always advisory, never blocking).
 # If ggsave( or plt.savefig( is called directly (not from a helper), nudge
 # the author to route through save_figure / save_overview.
-# This is PURELY advisory (exit 0) regardless of SCIAGENT_STRICT.
+# This is PURELY advisory (exit 0) regardless of SCIO_STRICT.
 # ---------------------------------------------------------------------------
 if printf '%s' "$cmd" | grep -qE '(ggsave\(|plt\.savefig\()'; then
     # Allow calls that already go through the helpers.
     if ! printf '%s' "$cmd" | grep -qE '(save_figure\(|save_overview\()'; then
-        printf '[sciagent/figure-save] Route figure saves through save_figure() or save_overview() (defined in 02_analysis/helpers/figure_style.*) to honour the project theme and consistent geometry.\n' >&2
+        printf '[scio/figure-save] Route figure saves through save_figure() or save_overview() (defined in 02_analysis/helpers/figure_style.*) to honour the project theme and consistent geometry.\n' >&2
     fi
 fi
 

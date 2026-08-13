@@ -1,5 +1,5 @@
 """
-figure_helpers.py — the SciAgent-toolkit cross-language FIGURE-STYLE CONTRACT (Python side).
+figure_helpers.py — the Scio toolkit cross-language FIGURE-STYLE CONTRACT (Python side).
 ============================================================================================
 ONE place that owns the project's figure format so phase viz stages never reinvent it. This
 is the Python half of a two-language contract; the R half (`figure_helpers.R`, same directory)

@@ -238,6 +238,11 @@ The locality check cited above now lives in `lib/sciagent/link.sh`, and the
 retired activation and teardown modules no longer contribute paths to a future
 CLI rename.
 
+**Rebrand note, 2026-08-13.** Owner ruling 7 supersedes the CLI half of this
+decision. The artifact and installed command are both `scio`; the executable
+is `bin/scio`, internal modules live under `lib/scio/`, and runtime variables
+use the `SCIO_` prefix. The old command has no compatibility shim.
+
 ---
 
 ## ADR-D8 — Fleet operations belong to `module-vendor`, not to this toolkit [Arch]

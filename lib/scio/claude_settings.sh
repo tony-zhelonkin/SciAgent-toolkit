@@ -1,37 +1,37 @@
-# lib/sciagent/claude_settings.sh — Claude Code project guardrail hooks.
+# lib/scio/claude_settings.sh — Claude Code project guardrail hooks.
 
 # shellcheck shell=bash
 
 _CLAUDE_PROJECT_SETTINGS=".claude/settings.json"
 _CLAUDE_HOOKS_DIR=".claude/hooks"
-_CLAUDE_HOOKS_STATE_DIR=".sciagent/hook_state"
-_CLAUDE_HOOK_SETTINGS_STATE=".sciagent/hook_settings.state"
+_CLAUDE_HOOKS_STATE_DIR=".scio/hook_state"
+_CLAUDE_HOOK_SETTINGS_STATE=".scio/hook_settings.state"
 
 # Register the shipped hooks while preserving every unrelated project setting.
 _claude_settings_ensure_hook_registration() {
     local dst="$_CLAUDE_PROJECT_SETTINGS"
-    local src="$SCIAGENT_TOOLKIT/templates/project/_common/.claude/settings.json.template"
+    local src="$SCIO_TOOLKIT/templates/project/_common/.claude/settings.json.template"
     local state="$_CLAUDE_HOOK_SETTINGS_STATE"
     [[ -f "$src" ]] || return 0
 
     mkdir -p "$(dirname "$dst")" "$(dirname "$state")"
 
     if [[ ! -f "$dst" ]]; then
-        cp "$src" "$dst" || { echo "sciagent: failed to write $dst" >&2; return 1; }
+        cp "$src" "$dst" || { echo "scio: failed to write $dst" >&2; return 1; }
         if command -v jq >/dev/null 2>&1; then
             jq -n \
-                --arg h "$(sciagent_sha1_file "$dst")" \
+                --arg h "$(scio_sha1_file "$dst")" \
                 --slurpfile template "$src" \
                 '{tag:"created", hash:$h, added:$template[0].hooks}' > "$state"
         else
-            printf '{"tag":"created","hash":"%s"}\n' "$(sciagent_sha1_file "$dst")" > "$state"
+            printf '{"tag":"created","hash":"%s"}\n' "$(scio_sha1_file "$dst")" > "$state"
         fi
         echo "wrote: $dst"
         return 0
     fi
 
     if ! command -v jq >/dev/null 2>&1; then
-        echo "sciagent: warning — jq not found; cannot register hooks in $dst" >&2
+        echo "scio: warning — jq not found; cannot register hooks in $dst" >&2
         return 0
     fi
 
@@ -53,7 +53,7 @@ _claude_settings_ensure_hook_registration() {
         )
     ' > "$added" 2>/dev/null; then
         rm -f "$added" "$merged"
-        echo "sciagent: warning — could not read hook settings from $dst (invalid JSON?)" >&2
+        echo "scio: warning — could not read hook settings from $dst (invalid JSON?)" >&2
         return 0
     fi
 
@@ -71,7 +71,7 @@ _claude_settings_ensure_hook_registration() {
           )
     ' "$src" "$dst" > "$merged" 2>/dev/null || [[ ! -s "$merged" ]]; then
         rm -f "$added" "$merged"
-        echo "sciagent: warning — could not register hooks in $dst (invalid JSON?)" >&2
+        echo "scio: warning — could not register hooks in $dst (invalid JSON?)" >&2
         return 0
     fi
 
@@ -79,7 +79,7 @@ _claude_settings_ensure_hook_registration() {
         cp "$dst" "${state}.orig" || { rm -f "$added" "$merged"; return 1; }
         cp "$merged" "$dst" || { rm -f "$added" "$merged"; return 1; }
         jq -n \
-            --arg h "$(sciagent_sha1_file "$dst")" \
+            --arg h "$(scio_sha1_file "$dst")" \
             --slurpfile added "$added" \
             '{tag:"existed-registered", written_hash:$h, added:$added[0]}' > "$state"
     else
@@ -104,7 +104,7 @@ _claude_settings_ensure_hook_registration() {
 
 # Materialize both project guardrail bodies and register them in settings.json.
 claude_settings_ensure_hooks() {
-    local tpl_dir="$SCIAGENT_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
+    local tpl_dir="$SCIO_TOOLKIT/templates/project/_common/$_CLAUDE_HOOKS_DIR"
     [[ -d "$tpl_dir" ]] || return 0
 
     local src dst base found=false

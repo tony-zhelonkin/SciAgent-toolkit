@@ -4,8 +4,8 @@
 #
 # The create branch (file does not exist yet) used to `return 0`
 # unconditionally, so a failed redirect printed bash's own "Permission denied"
-# to stderr and then reported success: `sciagent craft --project-dir <read-only
-# dir>` said "added SCIAGENT:CRAFT block to: <path>" and exited 0 with no file
+# to stderr and then reported success: `scio craft --project-dir <read-only
+# dir>` said "added SCIO:CRAFT block to: <path>" and exited 0 with no file
 # at that path. The append branch in the same function propagated its failure
 # all along — only because its printf happens to be the last command — so the
 # two write paths disagreed about whether an I/O error is an error.
@@ -19,7 +19,7 @@
 #   1. happy path still returns 0 and writes a complete block
 #   2. unwritable directory  -> block_write returns 1
 #   3. a directory where the file should be -> block_write returns 1
-#   4. the same two conditions through `sciagent craft` -> exit 1, no false
+#   4. the same two conditions through `scio craft` -> exit 1, no false
 #      "added ... block" line
 #   5. an existing but unwritable FILE (the append branch) still returns 1
 set -u
@@ -27,7 +27,7 @@ set -u
 
 setup_tmpdir
 # shellcheck source=/dev/null
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 fail() { echo "FAIL [$_TEST_NAME] $1" >&2; exit 1; }
 
@@ -63,15 +63,15 @@ set -e
 [[ "$rc" -ne 0 ]] || fail "block_write returned 0 with a directory in the target's place"
 
 # --- 4. through the craft verb --------------------------------------------
-SCIAGENT="$TOOLKIT_ROOT/bin/sciagent"
+SCIO="$TOOLKIT_ROOT/bin/scio"
 mkdir ro2 && chmod 555 ro2
 set +e
-out=$("$SCIAGENT" craft --project-dir "$PWD/ro2" 2>&1); rc=$?
+out=$("$SCIO" craft --project-dir "$PWD/ro2" 2>&1); rc=$?
 set -e
 chmod 755 ro2
-[[ "$rc" -eq 1 ]] || fail "sciagent craft exited $rc against an unwritable dir (expected 1); output: $out"
-printf '%s\n' "$out" | grep -q 'added SCIAGENT:CRAFT block' \
-    && fail "sciagent craft reported success after a failed write: $out"
+[[ "$rc" -eq 1 ]] || fail "scio craft exited $rc against an unwritable dir (expected 1); output: $out"
+printf '%s\n' "$out" | grep -q 'added SCIO:CRAFT block' \
+    && fail "scio craft reported success after a failed write: $out"
 [[ -e ro2/AGENTS.md ]] && fail "craft created a file in an unwritable directory"
 
 # --- 5. append branch: existing, unwritable file ---------------------------

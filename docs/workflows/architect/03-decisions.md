@@ -162,7 +162,7 @@ the project's pinned toolkit checkout.
 ### Decision
 Use `skills/architecture-first-dev/SKILL.md` as the workflow manifest: its
 decision tree and route tables bind intents to references, agents, and the two
-external commands. `sciagent link` mounts the complete `skills/`, `agents/`,
+external commands. `scio link` mounts the complete `skills/`, `agents/`,
 and `commands/` trees into `.claude/` and `.agents/`.
 
 ### Trade-offs
@@ -172,7 +172,7 @@ and `commands/` trees into `.claude/` and `.agents/`.
   router table must remain precise.
 
 ### Binding
-Correct whole-tree links expose source edits immediately. `sciagent link`
+Correct whole-tree links expose source edits immediately. `scio link`
 creates or repairs the six category links and preserves populated user-owned
 directories.
 

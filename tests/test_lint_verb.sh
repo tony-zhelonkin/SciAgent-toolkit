@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test_lint_verb.sh — `sciagent lint` dispatch and hardness behavior.
+# tests/test_lint_verb.sh — `scio lint` dispatch and hardness behavior.
 #
 # Tests:
 #   1. `lint --help` exits 0.
@@ -12,8 +12,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 fail() {
     echo "FAIL [$_TEST_NAME] $1" >&2
@@ -26,7 +26,7 @@ fail() {
 # Test 1: `lint --help` exits 0 and documents the checks.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --help 2>&1); rc=$?
+out=$("$SCIO" lint --help 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || fail "lint --help exited $rc (expected 0)" "$out"
 printf '%s\n' "$out" | grep -q 'hooks' \
@@ -38,7 +38,7 @@ printf '%s\n' "$out" | grep -q 'toolkit' \
 # Test 2: unknown --check name exits 1 and names the valid set.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --check bogus-name 2>&1); rc=$?
+out=$("$SCIO" lint --check bogus-name 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || fail "lint --check bogus-name exited $rc (expected 1)" "$out"
 printf '%s\n' "$out" | grep -q 'valid:.*figure-style.*results-layout.*captions.*provenance.*freshness.*hooks' \
@@ -60,7 +60,7 @@ R
 # Test 3: no --check given → default is `all` (planted finding surfaces).
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --project-dir "$PROJ" 2>&1); rc=$?
+out=$("$SCIO" lint --project-dir "$PROJ" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || fail "lint with no --check exited $rc by default (expected soft 0)" "$out"
 printf '%s\n' "$out" | grep -q 'WARN figure-style:.*raw hex color literal' \
@@ -70,12 +70,12 @@ printf '%s\n' "$out" | grep -q 'WARN figure-style:.*raw hex color literal' \
 # Test 4: --strict promotes the planted finding to exit 1; default is 0.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --check figure-style --project-dir "$PROJ" 2>&1); rc=$?
+out=$("$SCIO" lint --check figure-style --project-dir "$PROJ" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || fail "lint --check figure-style (default) exited $rc (expected 0)" "$out"
 
 set +e
-out=$("$SCIAGENT" lint --check figure-style --strict --project-dir "$PROJ" 2>&1); rc=$?
+out=$("$SCIO" lint --check figure-style --strict --project-dir "$PROJ" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || fail "lint --check figure-style --strict exited $rc (expected 1)" "$out"
 printf '%s\n' "$out" | grep -q 'ERROR figure-style:.*raw hex color literal' \

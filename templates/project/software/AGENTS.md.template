@@ -16,11 +16,10 @@ and scope live in `docs/_internal/design/`; handoffs are written there as
 
 ---
 
-## Active role
+## Toolkit context
 
-_No role activated yet. Run `sciagent activate architect` to populate this section._
-
-Run `sciagent status` to see the current stack, effective skills, agents, and commands.
+Run `scio link` to bind the toolkit catalog and project guardrails. Run
+`scio craft` to render the managed craft conventions.
 
 ---
 

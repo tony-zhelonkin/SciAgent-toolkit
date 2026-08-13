@@ -424,7 +424,7 @@ context here):
 
 ## Project opt-in
 
-Git automation remains project-owned configuration. After `sciagent link`, a
+Git automation remains project-owned configuration. After `scio link`, a
 project enables this proposal explicitly:
 
 ```bash
@@ -433,7 +433,7 @@ cp /path/to/SciAgent-toolkit/templates/architect.git.template \
   .claude/architect.git
 ```
 
-An existing `.claude/architect.git` stays project-owned. `sciagent link`
+An existing `.claude/architect.git` stays project-owned. `scio link`
 manages catalog links and guardrail hooks, so this opt-in file remains outside
 its write set.
 

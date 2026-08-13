@@ -20,8 +20,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 # The fake toolkit has no craft.yaml; give it one (version 1) so freshness has
 # a toolkit baseline to compare against.
@@ -74,8 +74,8 @@ MD
 # Render a REAL CRAFT block from the fake craft.yaml so its stored hash matches
 # what freshness recomputes — the conformant case is up to date.
 printf '# CONF project\n' > "$CONF/AGENTS.md"
-( . "$FAKE/lib/sciagent/block.sh"; . "$FAKE/lib/sciagent/craft.sh"
-  SCIAGENT_TOOLKIT="$FAKE" craft_render_and_write "$CONF/AGENTS.md" )
+( . "$FAKE/lib/scio/block.sh"; . "$FAKE/lib/scio/craft.sh"
+  SCIO_TOOLKIT="$FAKE" craft_render_and_write "$CONF/AGENTS.md" )
 git -C "$CONF" init -q
 git -C "$CONF" config user.email t@e.com
 git -C "$CONF" config user.name T
@@ -87,11 +87,11 @@ git -C "$CONF" commit -qm init
 # ---------------------------------------------------------------------------
 for chk in provenance captions; do
     set +e
-    out=$("$SCIAGENT" lint --check "$chk" --project-dir "$CONF" 2>&1); rc=$?
+    out=$("$SCIO" lint --check "$chk" --project-dir "$CONF" 2>&1); rc=$?
     set -e
     [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1: conformant $chk default exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
     set +e
-    out=$("$SCIAGENT" lint --check "$chk" --strict --project-dir "$CONF" 2>&1); rc=$?
+    out=$("$SCIO" lint --check "$chk" --strict --project-dir "$CONF" 2>&1); rc=$?
     set -e
     [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test1: conformant $chk strict exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 done
@@ -133,14 +133,14 @@ T.
 MD
 
 set +e
-out=$("$SCIAGENT" lint --check provenance --project-dir "$PV" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --project-dir "$PV" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2: provenance default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN provenance:.*missing script: 02_analysis/scripts/does_not_exist.py' \
     || { echo "FAIL [$_TEST_NAME] test2: expected missing-script WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" lint --check provenance --strict --project-dir "$PV" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --strict --project-dir "$PV" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test2: provenance strict expected 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -186,7 +186,7 @@ git -C "$PVG" config user.email t@e.com
 git -C "$PVG" config user.name T
 # Intentionally DO NOT commit the script (it stays untracked).
 set +e
-out=$("$SCIAGENT" lint --check provenance --project-dir "$PVG" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --project-dir "$PVG" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2b: untracked default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN provenance:.*untracked script' \
@@ -195,7 +195,7 @@ printf '%s\n' "$out" | grep -q 'WARN provenance:.*untracked script' \
 git -C "$PVG" add -A
 git -C "$PVG" commit -qm init
 set +e
-out=$("$SCIAGENT" lint --check provenance --strict --project-dir "$PVG" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --strict --project-dir "$PVG" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test2b: committed strict expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -220,14 +220,14 @@ Wrong heading — does not match the artifact.
 MD
 
 set +e
-out=$("$SCIAGENT" lint --check captions --project-dir "$CV" 2>&1); rc=$?
+out=$("$SCIO" lint --check captions --project-dir "$CV" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test3: captions default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN captions:.*no caption section.*uncaptioned' \
     || { echo "FAIL [$_TEST_NAME] test3: expected uncaptioned WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" lint --check captions --strict --project-dir "$CV" 2>&1); rc=$?
+out=$("$SCIO" lint --check captions --strict --project-dir "$CV" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test3: captions strict expected 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -238,21 +238,21 @@ set -e
 # block hash no longer matches what a fresh render would produce.
 printf 'version: 1\nfloors: {}\nbody: |\n  craft CHANGED\n' > "$FAKE/craft.yaml"
 set +e
-out=$("$SCIAGENT" lint --check freshness --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIO" lint --check freshness --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: freshness default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
-printf '%s\n' "$out" | grep -q 'WARN freshness:.*CRAFT block is stale.*sciagent craft' \
+printf '%s\n' "$out" | grep -q 'WARN freshness:.*CRAFT block is stale.*scio craft' \
     || { echo "FAIL [$_TEST_NAME] test4: expected stale-CRAFT WARN with craft hint"; printf '%s\n' "$out" >&2; exit 1; }
 
 set +e
-out=$("$SCIAGENT" lint --check freshness --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIO" lint --check freshness --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 1 ]] || { echo "FAIL [$_TEST_NAME] test4: freshness strict expected 1 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
 # Restore craft.yaml body → conformant block hash matches again → clean.
 printf 'version: 1\nfloors: {}\nbody: |\n  craft\n' > "$FAKE/craft.yaml"
 set +e
-out=$("$SCIAGENT" lint --check freshness --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIO" lint --check freshness --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test4: up-to-date freshness strict expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -260,11 +260,11 @@ set -e
 # Test 5: no-false-positive — `--check all` on conformant exits 0.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --check all --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIO" lint --check all --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: --check all conformant default exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 set +e
-out=$("$SCIAGENT" lint --check all --strict --project-dir "$CONF" 2>&1); rc=$?
+out=$("$SCIO" lint --check all --strict --project-dir "$CONF" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test5: --check all conformant strict exit $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -311,7 +311,7 @@ T.
 MD
 
 set +e
-out=$("$SCIAGENT" lint --check provenance --strict --project-dir "$ST" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --strict --project-dir "$ST" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test6: stages/ provenance strict expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 
@@ -319,17 +319,17 @@ set -e
 sed -i 's#02_analysis/stages/10_qc_viz.R#02_analysis/helpers/plot_utils.R#g' \
     "$ST/03_results/01_qc/README.md"
 set +e
-out=$("$SCIAGENT" lint --check provenance --project-dir "$ST" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --project-dir "$ST" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test6: off-stage default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN provenance:.*not under 02_analysis/stages/' \
     || { echo "FAIL [$_TEST_NAME] test6: expected stages/-worded off-stage WARN"; printf '%s\n' "$out" >&2; exit 1; }
 
 # ---------------------------------------------------------------------------
-# Test 7: the new `sciagent lint --check` surface covers the same ground.
+# Test 7: the new `scio lint --check` surface covers the same ground.
 # ---------------------------------------------------------------------------
 set +e
-out=$("$SCIAGENT" lint --check provenance --project-dir "$ST" 2>&1); rc=$?
+out=$("$SCIO" lint --check provenance --project-dir "$ST" 2>&1); rc=$?
 set -e
 [[ "$rc" -eq 0 ]] || { echo "FAIL [$_TEST_NAME] test7: lint --check provenance default expected 0 got $rc"; printf '%s\n' "$out" >&2; exit 1; }
 printf '%s\n' "$out" | grep -q 'WARN provenance:.*not under 02_analysis/stages/' \

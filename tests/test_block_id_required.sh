@@ -11,7 +11,7 @@
 # argument — and asserts the two return codes differ.
 set -u
 . "$(dirname "$0")/_lib.sh"
-. "$TOOLKIT_ROOT/lib/sciagent/block.sh"
+. "$TOOLKIT_ROOT/lib/scio/block.sh"
 
 setup_tmpdir
 printf '# AGENTS\n\nno block here\n' > AGENTS.md

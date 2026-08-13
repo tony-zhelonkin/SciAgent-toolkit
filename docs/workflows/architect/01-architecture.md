@@ -20,7 +20,7 @@ graph TD
         AGENTS[agents/*.md]
         COMMANDS[commands/implement.md<br/>commands/decompose.md]
         DOCS[docs/workflows/architect/*.md]
-        LINK[bin/sciagent link]
+        LINK[bin/scio link]
     end
 
     subgraph "Project harness discovery paths"
@@ -43,7 +43,7 @@ graph TD
     REFS --> META
 ```
 
-`sciagent link` binds each complete catalog tree with one directory symlink per
+`scio link` binds each complete catalog tree with one directory symlink per
 harness namespace. The router and every on-demand reference therefore resolve
 from the same pinned toolkit checkout.
 
@@ -159,7 +159,7 @@ target-project/
 ```
 
 Correct directory links need no refresh after a source edit because they expose
-the pinned checkout directly. Re-run `sciagent link` when binding a project,
+the pinned checkout directly. Re-run `scio link` when binding a project,
 repairing a missing category link, or refreshing managed hooks and settings.
 
 ## Extension boundary

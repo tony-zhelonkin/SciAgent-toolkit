@@ -1,12 +1,12 @@
-# lib/sciagent/block.sh — AGENTS.md managed-block primitives.
+# lib/scio/block.sh — AGENTS.md managed-block primitives.
 #
 # Markers (parametric; id is MANDATORY on every public call — there is no
 # default):
-#   <!-- BEGIN SCIAGENT:<ID> v1 hash=<sha1> -->
-#   <!-- END SCIAGENT:<ID> -->
+#   <!-- BEGIN SCIO:<ID> v1 hash=<sha1> -->
+#   <!-- END SCIO:<ID> -->
 #
-# CRAFT is writable. ROLES remains readable and removable so owners can retire
-# historical blocks from consumer repositories.
+# Readers also accept the legacy SCIAGENT prefix. CRAFT rewrites that prefix
+# in place; ROLES remains readable and removable under either prefix.
 #
 # Exit conventions:
 #   block_read         0=ok, 1=no markers, 2=one marker only
@@ -30,27 +30,35 @@
 # is maintained. Callers outside block.sh always go through the public API.
 # Readers locate every v<digits> marker version. The writer emits and rewrites
 # v1. block_write returns 1 for any other existing version and leaves the file
-# untouched.
+# untouched. Remove SCIAGENT-prefix support once all 9 consumer checkouts have
+# re-pinned past the rebrand.
 _block_begin_prefix() {
     # Emit the complete ERE prefix used to locate any numeric version.
-    # Format: ^<!-- BEGIN SCIAGENT:<id> v[[:digit:]]+ hash=
+    # Format: ^<!-- BEGIN (SCIAGENT|SCIO):<id> v[[:digit:]]+ hash=
     local id="$1"
     id=$(printf '%s' "$id" | sed 's/[][\\.^$*+?{}|()]/\\&/g')
-    printf '^<!-- BEGIN SCIAGENT:%s v[[:digit:]]+ hash=' "$id"
+    printf '^<!-- BEGIN (SCIAGENT|SCIO):%s v[[:digit:]]+ hash=' "$id"
 }
 
 _block_begin_prefix_v1() {
     # Emit the byte-stable prefix used for new and rewritten blocks.
-    # Format: <!-- BEGIN SCIAGENT:<id> v1 hash=
+    # Format: <!-- BEGIN SCIO:<id> v1 hash=
     local id="$1"
-    printf '<!-- BEGIN SCIAGENT:%s v1 hash=' "$id"
+    printf '<!-- BEGIN SCIO:%s v1 hash=' "$id"
 }
 
 _block_end_marker() {
     # Emit the full END marker for a given block id.
-    # Format: <!-- END SCIAGENT:<id> -->
+    # Format: <!-- END SCIO:<id> -->
     local id="$1"
-    printf '<!-- END SCIAGENT:%s -->' "$id"
+    printf '<!-- END SCIO:%s -->' "$id"
+}
+
+_block_end_pattern() {
+    # Emit the complete ERE used to locate either accepted END prefix.
+    local id="$1"
+    id=$(printf '%s' "$id" | sed 's/[][\\.^$*+?{}|()]/\\&/g')
+    printf '^<!-- END (SCIAGENT|SCIO):%s -->$' "$id"
 }
 
 _sha1() {
@@ -58,7 +66,7 @@ _sha1() {
 }
 
 # ---------------------------------------------------------------------------
-# Public hashing helpers — sciagent_sha1_file / sciagent_sha1_stream
+# Public hashing helpers — scio_sha1_file / scio_sha1_stream
 #
 # block.sh is the single home for `sha1sum` in lib/ (enforced by
 # tests/test_block_marker_boundary.sh, the 5.3 invariant). These two wrappers
@@ -71,12 +79,12 @@ _sha1() {
 # Prints the empty string if the path is unreadable — callers treat an empty
 # hash as "cannot verify", which fails safe (leave the artifact alone).
 # ---------------------------------------------------------------------------
-sciagent_sha1_file() {
+scio_sha1_file() {
     [[ -f "$1" ]] || return 0
     _sha1 < "$1"
 }
 
-sciagent_sha1_stream() {
+scio_sha1_stream() {
     _sha1
 }
 
@@ -153,20 +161,20 @@ block_read() {
     local id="${2:-}"
     _block_require_id "$id" "block_read" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_pattern end_marker has_begin has_end
+    local beg_pattern end_pattern has_begin has_end
     beg_pattern=$(_block_begin_prefix "$id")
-    end_marker=$(_block_end_marker "$id")
+    end_pattern=$(_block_end_pattern "$id")
     has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
-    has_end=$(_count_lines "$end_marker" "$file")
+    has_end=$(_count_pattern_lines "$end_pattern" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
     fi
     if (( has_begin == 0 || has_end == 0 )); then
         return 2
     fi
-    awk -v BEG="$beg_pattern" -v END_MARK="$end_marker" '
+    awk -v BEG="$beg_pattern" -v END_PATTERN="$end_pattern" '
         $0 ~ BEG          { inblock=1; next }
-        $0 == END_MARK     { inblock=0; next }
+        $0 ~ END_PATTERN   { inblock=0; next }
         inblock { print }
     ' "$file"
     return 0
@@ -201,13 +209,13 @@ block_line_range() {
     local id="${2:-}"
     _block_require_id "$id" "block_line_range" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_pattern end_marker
+    local beg_pattern end_pattern
     beg_pattern=$(_block_begin_prefix "$id")
-    end_marker=$(_block_end_marker "$id")
+    end_pattern=$(_block_end_pattern "$id")
     grep -qE -- "$beg_pattern" "$file" 2>/dev/null || return 1
     local lb le
     lb=$(grep -nE -- "$beg_pattern" "$file" | head -n1 | cut -d: -f1)
-    le=$(grep -nF -- "$end_marker" "$file" | head -n1 | cut -d: -f1)
+    le=$(grep -nE -- "$end_pattern" "$file" | head -n1 | cut -d: -f1)
     [[ -n "$lb" && -n "$le" ]] || return 1
     printf '%s %s\n' "$lb" "$le"
 }
@@ -217,11 +225,11 @@ block_hash_check() {
     local id="${2:-}"
     _block_require_id "$id" "block_hash_check" || return 4
     [[ -f "$file" ]] || return 1
-    local beg_pattern end_marker has_begin has_end
+    local beg_pattern end_pattern has_begin has_end
     beg_pattern=$(_block_begin_prefix "$id")
-    end_marker=$(_block_end_marker "$id")
+    end_pattern=$(_block_end_pattern "$id")
     has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
-    has_end=$(_count_lines "$end_marker" "$file")
+    has_end=$(_count_pattern_lines "$end_pattern" "$file")
     if (( has_begin == 0 && has_end == 0 )); then
         return 1
     fi
@@ -246,7 +254,7 @@ block_write() {
     local id="${3:-}"
     _block_require_id "$id" "block_write" || return 4
     if [[ "$id" != CRAFT ]]; then
-        echo "block_write: only SCIAGENT:CRAFT is writable" >&2
+        echo "block_write: only SCIO:CRAFT is writable" >&2
         return 4
     fi
     # INVARIANT: body must be hashed AFTER trailing-newline canonicalisation,
@@ -255,8 +263,9 @@ block_write() {
     [[ "${body: -1}" == $'\n' ]] || body="${body}"$'\n'
     local hash
     hash=$(printf '%s' "$body" | _sha1)
-    local beg_pattern write_beg_prefix end_marker
+    local beg_pattern end_pattern write_beg_prefix end_marker
     beg_pattern=$(_block_begin_prefix "$id")
+    end_pattern=$(_block_end_pattern "$id")
     write_beg_prefix=$(_block_begin_prefix_v1 "$id")
     end_marker=$(_block_end_marker "$id")
     local begin="${write_beg_prefix}${hash} -->"
@@ -265,8 +274,8 @@ block_write() {
         # `|| return 1` is load-bearing. This branch used to `return 0`
         # unconditionally, so a failed redirect (read-only directory, a
         # directory sitting where AGENTS.md should be, ENOSPC) printed bash's
-        # "Permission denied" to stderr and then reported success: `sciagent
-        # craft` said "added SCIAGENT:CRAFT block to: <path>" and exited 0 with
+        # "Permission denied" to stderr and then reported success: `scio
+        # craft` said "added SCIO:CRAFT block to: <path>" and exited 0 with
         # no file at that path at all. The append branch below already
         # propagates its failure — only because its printf is the function's
         # last command — so the two write paths in this one function disagreed
@@ -277,27 +286,28 @@ block_write() {
 
     local has_begin has_end
     has_begin=$(_count_pattern_lines "$beg_pattern" "$file")
-    has_end=$(_count_lines "$end_marker" "$file")
+    has_end=$(_count_pattern_lines "$end_pattern" "$file")
     if (( has_begin > 0 && has_end > 0 )); then
         local version
         version=$(_block_begin_version "$id" "$file")
         if [[ "$version" != "1" ]]; then
-            echo "block_write: unsupported SCIAGENT:$id marker version v$version" >&2
+            echo "block_write: unsupported SCIO:$id marker version v$version" >&2
             return 1
         fi
         local tmp
         tmp=$(mktemp)
-        awk -v BEG="$write_beg_prefix" -v END_MARK="$end_marker" \
+        awk -v BEG="$beg_pattern" -v END_PATTERN="$end_pattern" \
+            -v END_MARK="$end_marker" \
             -v NEWBEG="$begin" -v BODY="$body" '
             BEGIN { state=0 }
-            state==0 && index($0, BEG) == 1 {
+            state==0 && $0 ~ BEG {
                 print NEWBEG
                 printf "%s", BODY    # BODY already ends with \n (canonicalised)
                 print END_MARK
                 state=1
                 next
             }
-            state==1 && $0 == END_MARK { state=2; next }
+            state==1 && $0 ~ END_PATTERN { state=2; next }
             state==1 { next }
             { print }
         ' "$file" > "$tmp"
@@ -324,20 +334,20 @@ block_remove() {
     local id="${2:-}"
     _block_require_id "$id" "block_remove" || return 4
     [[ -f "$file" ]] || return 0
-    local beg_pattern end_marker
+    local beg_pattern end_pattern
     beg_pattern=$(_block_begin_prefix "$id")
-    end_marker=$(_block_end_marker "$id")
+    end_pattern=$(_block_end_pattern "$id")
     grep -qE -- "$beg_pattern" "$file" || return 0
     local tmp
     tmp=$(mktemp)
-    awk -v BEG="$beg_pattern" -v END_MARK="$end_marker" '
+    awk -v BEG="$beg_pattern" -v END_PATTERN="$end_pattern" '
         {
             lines[NR] = $0
         }
         END {
             for (i=1; i<=NR; i++) {
                 if (lines[i] ~ BEG) begin_n=i
-                if (lines[i] == END_MARK)      { end_n=i; break }
+                if (lines[i] ~ END_PATTERN) { end_n=i; break }
             }
             if (!begin_n || !end_n) {
                 for (i=1; i<=NR; i++) print lines[i]

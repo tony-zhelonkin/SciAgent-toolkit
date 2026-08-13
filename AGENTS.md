@@ -1,4 +1,4 @@
-# AGENTS.md — SciAgent-toolkit codebase instructions
+# AGENTS.md — Scio toolkit codebase instructions
 
 For AI agents working on this toolkit's own source. Not for project-level analysis methodology.
 
@@ -8,12 +8,12 @@ For AI agents working on this toolkit's own source. Not for project-level analys
 
 ```
 SciAgent-toolkit/
-├── bin/sciagent              # CLI dispatcher (bash, resolves symlinks)
-├── lib/sciagent/             # Internal modules sourced by bin/sciagent
+├── bin/scio                  # CLI dispatcher (bash, resolves symlinks)
+├── lib/scio/                 # Internal modules sourced by bin/scio
 │   ├── block.sh              # AGENTS.md managed-block read/write/hash
 │   ├── catalog.sh            # toolkit frontmatter and collision checks
 │   ├── claude_settings.sh    # guardrail hook materialization/registration
-│   ├── craft.sh              # SCIAGENT:CRAFT block renderer (craft.yaml is the SSOT)
+│   ├── craft.sh              # SCIO:CRAFT block renderer (craft.yaml is the SSOT)
 │   ├── craft_verb.sh         # `craft` verb: render the block, mount nothing
 │   ├── link.sh               # six category links + legacy-link sweep
 │   ├── lint.sh               # project guardrail checks
@@ -53,8 +53,8 @@ SciAgent-toolkit/
 ```bash
 cp -R templates/skill skills/<name>/
 # edit skills/<name>/SKILL.md
-bin/sciagent lint --check toolkit --strict --quiet
-bin/sciagent link --project-dir <scratch-project>
+bin/scio lint --check toolkit --strict --quiet
+bin/scio link --project-dir <scratch-project>
 ```
 
 ## Adding a new agent
@@ -62,7 +62,7 @@ bin/sciagent link --project-dir <scratch-project>
 ```bash
 cp agents/code-reviewer.md agents/<name>.md
 # edit agents/<name>.md (frontmatter: name, description, model, color)
-bin/sciagent lint --check toolkit --strict --quiet
+bin/scio lint --check toolkit --strict --quiet
 ```
 
 ---

@@ -206,7 +206,7 @@ paths:
 
   # Toolkits
   rnaseq_toolkit: "01_modules/RNAseq-toolkit/"
-  sciagent_toolkit: "01_modules/SciAgent-toolkit/"
+  scio_toolkit: "01_modules/SciAgent-toolkit/"
 
 # =============================================================================
 # SCHEMA DEFINITIONS (for validation)

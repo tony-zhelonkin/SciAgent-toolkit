@@ -1,6 +1,6 @@
-# lib/sciagent/craft_verb.sh — sciagent craft [--project-dir D] [--force] [--quiet]
+# lib/scio/craft_verb.sh — scio craft [--project-dir D] [--force] [--quiet]
 #
-# Renders or refreshes the SCIAGENT:CRAFT block in D/AGENTS.md. CRAFT
+# Renders or refreshes the SCIO:CRAFT block in D/AGENTS.md. CRAFT
 # conventions travel independently of catalog linking and project hooks.
 #
 # Drift guard: a hand-edit inside the markers leaves the body disagreeing with
@@ -15,9 +15,9 @@
 
 _craft_usage() {
     cat <<'EOF'
-Usage: sciagent craft [--project-dir D] [--force] [--quiet]
+Usage: scio craft [--project-dir D] [--force] [--quiet]
 
-Render or refresh the SCIAGENT:CRAFT block in D/AGENTS.md (default: cwd).
+Render or refresh the SCIO:CRAFT block in D/AGENTS.md (default: cwd).
 Mounts nothing. Re-running against an up-to-date block is a no-op.
 
   --project-dir D   Project root holding AGENTS.md (default: current directory)
@@ -32,19 +32,19 @@ cmd_craft() {
         case "$1" in
             --project-dir)
                 projdir="${2:-}"
-                [[ -n "$projdir" ]] || { echo "sciagent craft: --project-dir needs a path" >&2; return 1; }
+                [[ -n "$projdir" ]] || { echo "scio craft: --project-dir needs a path" >&2; return 1; }
                 shift 2 ;;
             --project-dir=*) projdir="${1#*=}"; shift ;;
             --force)  force=1; shift ;;
             --quiet)  quiet=1; shift ;;
             -h|--help) _craft_usage; return 0 ;;
-            *) echo "sciagent craft: unknown argument '$1'" >&2; _craft_usage >&2; return 1 ;;
+            *) echo "scio craft: unknown argument '$1'" >&2; _craft_usage >&2; return 1 ;;
         esac
     done
 
     projdir="${projdir:-$(pwd)}"
     if [[ ! -d "$projdir" ]]; then
-        echo "sciagent craft: not a directory: $projdir" >&2
+        echo "scio craft: not a directory: $projdir" >&2
         return 1
     fi
 
@@ -53,7 +53,7 @@ cmd_craft() {
     local yaml
     yaml=$(_craft_yaml_path)
     if [[ ! -f "$yaml" ]]; then
-        echo "sciagent craft: no craft.yaml in this toolkit ($yaml)" >&2
+        echo "scio craft: no craft.yaml in this toolkit ($yaml)" >&2
         return 1
     fi
 
@@ -63,17 +63,17 @@ cmd_craft() {
     local state=$?
     case "$state" in
         2)
-            echo "sciagent craft: $target has one CRAFT marker but not the other" >&2
+            echo "scio craft: $target has one CRAFT marker but not the other" >&2
             echo "  repair the markers by hand, then re-run." >&2
             return 1 ;;
         3)
             if (( force == 0 )); then
-                echo "sciagent craft: CRAFT block in $target has drifted (hand-edited)" >&2
+                echo "scio craft: CRAFT block in $target has drifted (hand-edited)" >&2
                 echo "  the block is toolkit-managed; edit craft.yaml in the toolkit instead." >&2
                 echo "  re-run with --force to discard the local edit." >&2
                 return 1
             fi
-            (( quiet )) || echo "sciagent craft: discarding drifted block (--force)" ;;
+            (( quiet )) || echo "scio craft: discarding drifted block (--force)" ;;
     esac
 
     local before after
@@ -83,10 +83,10 @@ cmd_craft() {
 
     (( quiet )) && return 0
     if [[ -z "$before" ]]; then
-        echo "added SCIAGENT:CRAFT block to: $target"
+        echo "added SCIO:CRAFT block to: $target"
     elif [[ "$before" == "$after" ]]; then
-        echo "SCIAGENT:CRAFT block already current: $target"
+        echo "SCIO:CRAFT block already current: $target"
     else
-        echo "updated SCIAGENT:CRAFT block in: $target"
+        echo "updated SCIO:CRAFT block in: $target"
     fi
 }

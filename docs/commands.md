@@ -1,6 +1,6 @@
 # Commands
 
-Canonical slash-command definitions live as flat files. `sciagent link`
+Canonical slash-command definitions live as flat files. `scio link`
 exposes the directory at `.claude/commands` and `.agents/commands`. Source
 filenames match their consumer-visible names. Basename uniqueness is enforced
 by `tests/test_no_duplicate_basenames.sh`.

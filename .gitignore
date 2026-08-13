@@ -12,9 +12,9 @@ _internal/
 
 # Auto-generated files
 .claude/settings.local.json
-# Runtime activation state (created by sciagent activate; not repo content)
+# Runtime binding state (created by scio link; not repo content)
 .agents/
-.sciagent/
+.scio/
 .claude/commands/
 .claude/skills/
 scripts/tooluniverse-env/

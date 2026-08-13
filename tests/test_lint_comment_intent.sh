@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/test_lint_comment_intent.sh — `sciagent lint --check comment-intent`
+# tests/test_lint_comment_intent.sh — `scio lint --check comment-intent`
 # (docs 09 §3.2). Two rules only: banner/separator comments, and mid-file
 # comment runs >= 6 lines starting after line 25.
 #
@@ -20,7 +20,7 @@ setup_tmpdir
 PROJ="$TMPDIR_TEST/proj"
 mkdir -p "$PROJ/02_analysis/stages" "$PROJ/02_analysis/scripts"
 
-SCIAGENT="$TOOLKIT_ROOT/bin/sciagent"
+SCIO="$TOOLKIT_ROOT/bin/scio"
 
 fail() {
     echo "FAIL [$_TEST_NAME] $1" >&2
@@ -32,7 +32,7 @@ fail() {
 run_lint() {
     local dir="$1"; shift
     set +e
-    _LINT_OUT=$("$SCIAGENT" lint --check comment-intent --project-dir "$dir" "$@" 2>&1)
+    _LINT_OUT=$("$SCIO" lint --check comment-intent --project-dir "$dir" "$@" 2>&1)
     _LINT_RC=$?
     set -e
 }

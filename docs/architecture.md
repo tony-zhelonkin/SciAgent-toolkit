@@ -1,8 +1,8 @@
-# SciAgent toolkit architecture
+# Scio toolkit architecture
 
 ## Purpose
 
-SciAgent supplies project-local computational-biology context and guardrails
+Scio supplies project-local computational-biology context and guardrails
 to AI coding harnesses. Git is the version authority. A consumer normally pins
 the toolkit as a submodule and binds that exact checkout into its harness
 discovery paths.
@@ -11,8 +11,8 @@ discovery paths.
 
 ```text
 SciAgent-toolkit/
-├── bin/sciagent
-├── lib/sciagent/
+├── bin/scio
+├── lib/scio/
 ├── skills/<name>/SKILL.md
 ├── agents/<name>.md
 ├── commands/<name>.md
@@ -34,20 +34,20 @@ The CLI has three verbs:
 - `craft` renders the managed CRAFT block.
 - `lint` runs project checks and the explicit toolkit catalog check.
 
-The dispatcher resolves its own real path, derives `$SCIAGENT_TOOLKIT`, sources
+The dispatcher resolves its own real path, derives `$SCIO_TOOLKIT`, sources
 the dependency closure for one verb, and calls that verb's `cmd_*` entrypoint.
 
 ## Link topology
 
-`sciagent link [--project-dir D]` creates six directory symlinks:
+`scio link [--project-dir D]` creates six directory symlinks:
 
 ```text
-D/.claude/skills   -> $SCIAGENT_TOOLKIT/skills
-D/.claude/agents   -> $SCIAGENT_TOOLKIT/agents
-D/.claude/commands -> $SCIAGENT_TOOLKIT/commands
-D/.agents/skills   -> $SCIAGENT_TOOLKIT/skills
-D/.agents/agents   -> $SCIAGENT_TOOLKIT/agents
-D/.agents/commands -> $SCIAGENT_TOOLKIT/commands
+D/.claude/skills   -> $SCIO_TOOLKIT/skills
+D/.claude/agents   -> $SCIO_TOOLKIT/agents
+D/.claude/commands -> $SCIO_TOOLKIT/commands
+D/.agents/skills   -> $SCIO_TOOLKIT/skills
+D/.agents/agents   -> $SCIO_TOOLKIT/agents
+D/.agents/commands -> $SCIO_TOOLKIT/commands
 ```
 
 The operation is convergent. It sweeps legacy toolkit-owned child links,
@@ -55,7 +55,7 @@ preserves populated directories and user-owned links, and silently keeps
 correct bindings. A locality check protects submodule pins.
 
 Analysis projects also receive shared helper-library links and import shims.
-`link` refreshes the `SCIAGENT:GITIGNORE` block because those bindings and the
+`link` refreshes the `SCIO:GITIGNORE` block because those bindings and the
 harness/state paths are project-local artifacts.
 
 ## Guardrail hooks
@@ -72,11 +72,13 @@ shallow clones.
 ## Managed blocks
 
 `block.sh` owns marker-framed updates in shared text files. `craft` writes the
-`SCIAGENT:CRAFT` block in `AGENTS.md`; a hand-edited body requires `--force`.
+`SCIO:CRAFT` block in `AGENTS.md`; a hand-edited body requires `--force`.
 Text outside the markers and file permissions are preserved.
 
-Historical `SCIAGENT:ROLES` blocks remain readable and removable through
-`block_read` and `block_remove`. The writer accepts CRAFT alone.
+Historical `SCIAGENT:CRAFT` blocks are drift-checked and rewritten in place
+with the `SCIO` prefix. `SCIAGENT:ROLES` and `SCIO:ROLES` blocks remain
+readable and removable through `block_read` and `block_remove`. The writer
+accepts CRAFT alone.
 
 ## Lint
 
@@ -85,18 +87,19 @@ captions, provenance, freshness, stage structure, comment intent,
 documentation layout, and registered hook existence. Findings warn by default
 and become failures under `--strict`.
 
-`sciagent lint --check toolkit` checks skill frontmatter shape and reports
+`scio lint --check toolkit` checks skill frontmatter shape and reports
 basename collisions across skills, agents, and commands. The release builder
 uses this check as its catalog gate.
 
 ## State and removal
 
-Catalog links have no state file. `.sciagent/hook_state/` and
-`.sciagent/hook_settings.state` are ownership records for materialized hook
-artifacts.
+Catalog links have no state file. `.scio/hook_state/` and
+`.scio/hook_settings.state` are ownership records for materialized hook
+artifacts. On the first rebranded `link`, `.sciagent/` is moved to `.scio/`
+before hook ownership is evaluated.
 
 Project removal is manual: unlink the six category paths, remove complete
-SCIAGENT managed blocks from `AGENTS.md`, and edit materialized hook settings
-when the project retires enforcement.
+`SCIO` or legacy `SCIAGENT` managed blocks from `AGENTS.md`, and edit
+materialized hook settings when the project retires enforcement.
 
 See [propagation.md](propagation.md) for the two-hop delivery model.

@@ -30,26 +30,11 @@
 # in metadata" rule exists to avoid.
 #
 # ---------------------------------------------------------------------------
-# Naming — the one place this file departs from a literal reading of the docs
+# Naming
 # ---------------------------------------------------------------------------
-# `10_packaging_contracts.md` §1 writes the filename as
-# `sciagent-<tag>-<short-sha>.tar.gz`; ADR-D7 writes `scio-0.1.0.tar.gz`. The two
-# disagree in two independent ways, and both are resolved here deliberately:
-#
-#   stem      — `scio` wins. ADR-D7 is the later and explicitly DECIDED record,
-#               and it decided the stem for a hard reason (`sciagent` is taken).
-#   short sha — KEPT, against ADR-D7's example. §1's rationale is the sound one:
-#               the abbreviation is for humans reading a filename, the full SHA
-#               in the metadata is the identity. Dropping it makes two builds of
-#               different commits at the same version indistinguishable on disk,
-#               which is precisely the failure mode a paper supplement cannot
-#               afford. ADR-D7's `scio-0.1.0.tar.gz` is an illustration of the
-#               NAME question it was deciding, not a decision about the SHA.
-#
-# SCOPE LIMIT, load-bearing: ADR-D7 renames the release ARTIFACT only. The CLI
-# stays `sciagent` — the installed executable, `$SCIAGENT_TOOLKIT`, the `si`
-# alias and project-locality contract are all untouched by this script. Only the
-# tarball and its metadata carry the `scio` name.
+# ADR-D7 supplies the `scio` artifact stem. Owner ruling 7 aligns the CLI with
+# it. The contract's short SHA stays in the human-facing filename while the
+# full SHA in metadata remains the release identity.
 #
 # ---------------------------------------------------------------------------
 # Determinism
@@ -79,7 +64,7 @@
 # ---------------------------------------------------------------------------
 # The pre-flight gate, and why it runs against the EXPORT
 # ---------------------------------------------------------------------------
-# `./bin/sciagent lint --check toolkit` and `bash tests/run-all.sh` run against a clean
+# `./bin/scio lint --check toolkit` and `bash tests/run-all.sh` run against a clean
 # export of <ref>, not against the working tree. The working tree may sit at a
 # different commit than <ref>, and it carries untracked residue the artifact
 # will not; testing it would certify bytes nobody ships. The export is exactly
@@ -89,7 +74,7 @@
 # THIS repo would re-enter the suite. There is deliberately no `--skip-checks`
 # escape hatch — an escape hatch on a release gate is a footgun that eventually
 # gets used for a real release. Instead `tests/test_build_release_*.sh` build
-# from throwaway fixture repos (`tests/_release_lib.sh`) whose `bin/sciagent`
+# from throwaway fixture repos (`tests/_release_lib.sh`) whose `bin/scio`
 # and `tests/run-all.sh` are instant stubs. The gate code path is therefore
 # exercised in both directions (pass and fail) in milliseconds, and recursion is
 # impossible by construction rather than by flag.
@@ -99,7 +84,7 @@
 set -euo pipefail
 
 # --- constants -------------------------------------------------------------
-ARTIFACT_NAME="scio"          # ADR-D7 (release artifact only; CLI stays `sciagent`)
+ARTIFACT_NAME="scio"
 DEFAULT_VERSION="0.1.0"       # ADR-D7 starting version
 SHORT_LEN=12                  # abbreviation length in the human-facing filename
 EMBEDDED_METADATA=".scio-release.json"
@@ -276,23 +261,23 @@ export_dir="$work/export"
 mkdir -p "$export_dir"
 git -C "$repo_root" archive --format=tar "$full_sha" | tar -x -C "$export_dir"
 
-[[ -x "$export_dir/bin/sciagent" ]] \
-    || die "exported tree has no executable bin/sciagent — not a releasable toolkit commit"
+[[ -x "$export_dir/bin/scio" ]] \
+    || die "exported tree has no executable bin/scio — not a releasable toolkit commit"
 [[ -f "$export_dir/tests/run-all.sh" ]] \
     || die "exported tree has no tests/run-all.sh — refusing to release an ungated commit"
 
 say ""
 say "$_prog: gate 1/2 — toolkit catalog lint (against the exported tree)"
-# `env -u SCIAGENT_TOOLKIT` matters: bin/sciagent honours an inherited
-# SCIAGENT_TOOLKIT, so without this the gate could inspect the BUILDER's
+# `env -u SCIO_TOOLKIT` matters: bin/scio honours an inherited
+# SCIO_TOOLKIT, so without this the gate could inspect the BUILDER's
 # toolkit instead of the exported one.
-if ! ( cd "$export_dir" && env -u SCIAGENT_TOOLKIT ./bin/sciagent lint --check toolkit --strict --quiet ); then
+if ! ( cd "$export_dir" && env -u SCIO_TOOLKIT ./bin/scio lint --check toolkit --strict --quiet ); then
     die "toolkit catalog lint failed for $short_sha — no artifact produced"
 fi
 
 say ""
 say "$_prog: gate 2/2 — tests/run-all.sh (against the exported tree)"
-if ! ( cd "$export_dir" && env -u SCIAGENT_TOOLKIT bash tests/run-all.sh ); then
+if ! ( cd "$export_dir" && env -u SCIO_TOOLKIT bash tests/run-all.sh ); then
     die "test suite failed for $short_sha — no artifact produced"
 fi
 
@@ -316,9 +301,9 @@ mkdir -p "$work/meta"
     printf '  "artifact": "%s",\n'        "$(_json_escape "$tarball_name")"
     printf '  "archive_prefix": "%s",\n'  "$(_json_escape "$stem/")"
     printf '  "install_subdir": "share/%s/versions/%s",\n' "$ARTIFACT_NAME" "$full_sha"
-    printf '  "executable": "bin/sciagent",\n'
+    printf '  "executable": "bin/scio",\n'
     printf '  "build_method": "git archive --format=tar <commit> | gzip -n",\n'
-    printf '  "gates": ["sciagent lint --check toolkit", "tests/run-all.sh"]\n'
+    printf '  "gates": ["scio lint --check toolkit", "tests/run-all.sh"]\n'
     printf '}\n'
 } > "$core_meta"
 

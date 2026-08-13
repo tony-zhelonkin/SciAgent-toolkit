@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/test_validate_docs_layout.sh — docs-layout project check, now
-# `sciagent lint --check docs-layout --project-dir <dir>` (moved out of
+# `scio lint --check docs-layout --project-dir <dir>` (moved out of
 # the toolkit-subject catalog path.
 #
 # Tests:
@@ -32,8 +32,8 @@ set -u
 setup_tmpdir
 FAKE="$TMPDIR_TEST/fake-toolkit"
 build_fake_toolkit "$FAKE"
-export SCIAGENT_TOOLKIT="$FAKE"
-SCIAGENT="$FAKE/bin/sciagent"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
 
 # ---------------------------------------------------------------------------
 # Test 1: project dir with no docs/ directory at all → CLEAN no-op.
@@ -42,7 +42,7 @@ PROJ1="$TMPDIR_TEST/proj1"
 mkdir -p "$PROJ1"
 
 set +e
-out1=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ1" 2>&1)
+out1=$("$SCIO" lint --check docs-layout --project-dir "$PROJ1" 2>&1)
 rc1=$?
 set -e
 
@@ -59,7 +59,7 @@ fi
 
 # Even --strict must stay clean — an absent subject is not a finding.
 set +e
-out1s=$("$SCIAGENT" lint --check docs-layout --strict --project-dir "$PROJ1" 2>&1)
+out1s=$("$SCIO" lint --check docs-layout --strict --project-dir "$PROJ1" 2>&1)
 rc1s=$?
 set -e
 if [[ "$rc1s" -ne 0 || -n "$out1s" ]]; then
@@ -78,7 +78,7 @@ PROJ1B="$TMPDIR_TEST/proj1b"
 mkdir -p "$PROJ1B/02_analysis" "$PROJ1B/03_results"
 
 set +e
-out1b=$("$SCIAGENT" lint --check all --strict --project-dir "$PROJ1B" 2>&1)
+out1b=$("$SCIO" lint --check all --strict --project-dir "$PROJ1B" 2>&1)
 rc1b=$?
 set -e
 if [[ "$rc1b" -ne 0 ]]; then
@@ -104,7 +104,7 @@ git -C "$PROJ2" config user.name "Test"
 # No .gitignore at all — docs/_internal is not ignored.
 
 set +e
-out2=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ2" 2>&1)
+out2=$("$SCIO" lint --check docs-layout --project-dir "$PROJ2" 2>&1)
 rc2=$?
 set -e
 
@@ -120,7 +120,7 @@ if ! printf '%s\n' "$out2" | grep -q 'WARN docs-layout: docs/_internal/ is NOT g
 fi
 
 set +e
-out2b=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ2" --strict 2>&1)
+out2b=$("$SCIO" lint --check docs-layout --project-dir "$PROJ2" --strict 2>&1)
 rc2b=$?
 set -e
 
@@ -147,7 +147,7 @@ git -C "$PROJ3" config user.name "Test"
 printf 'docs/_internal/\n' > "$PROJ3/.gitignore"
 
 set +e
-out3=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ3" --strict 2>&1)
+out3=$("$SCIO" lint --check docs-layout --project-dir "$PROJ3" --strict 2>&1)
 rc3=$?
 set -e
 
@@ -173,7 +173,7 @@ mkdir -p "$PROJ4/03_results" "$PROJ4/docs"
 touch "$PROJ4/03_results/summary_report.md"
 
 set +e
-out4=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ4" 2>&1)
+out4=$("$SCIO" lint --check docs-layout --project-dir "$PROJ4" 2>&1)
 rc4=$?
 set -e
 
@@ -199,7 +199,7 @@ touch "$PROJ5/handoff_notes.md"
 touch "$PROJ5/handoff_20260101_120000.md"  # This one is valid — should NOT warn.
 
 set +e
-out5=$("$SCIAGENT" lint --check docs-layout --project-dir "$PROJ5" 2>&1)
+out5=$("$SCIO" lint --check docs-layout --project-dir "$PROJ5" 2>&1)
 rc5=$?
 set -e
 
@@ -226,7 +226,7 @@ fi
 # Test 6: the toolkit-subject check is silent about project docs layout.
 # ---------------------------------------------------------------------------
 set +e
-out6=$("$SCIAGENT" lint --check toolkit --project-dir "$PROJ2" 2>&1)
+out6=$("$SCIO" lint --check toolkit --project-dir "$PROJ2" 2>&1)
 rc6=$?
 set -e
 
