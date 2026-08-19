@@ -71,6 +71,28 @@ list_out=$("$INSTALL" --list --prefix "$P" 2>&1)
 printf '%s\n' "$list_out" | grep -q "$SHA1" || { echo "FAIL [$_TEST_NAME] --list omits version 1" >&2; printf '%s\n' "$list_out" >&2; exit 1; }
 printf '%s\n' "$list_out" | grep -q "$SHA2" || { echo "FAIL [$_TEST_NAME] --list omits version 2" >&2; printf '%s\n' "$list_out" >&2; exit 1; }
 
+# --- pruning the version that does NOT own the link -----------------------
+# The ordinary housekeeping case: two versions installed, remove the one not in
+# use. The link belongs to the other version's receipt, so it stays and the exit
+# status stays clean — a warning here would break `--uninstall <old> && ...` and
+# would read as damage where there is none.
+out=$("$INSTALL" --uninstall "$SHA1" --prefix "$P" 2>&1)
+rc=$?
+assert_eq "$rc" "0" "pruning a non-current version must exit 0, not report an anomaly"
+[[ -e "$V/$SHA1" ]]      && { echo "FAIL [$_TEST_NAME] the pruned version's tree survived" >&2; exit 1; }
+[[ -e "$R/$SHA1.json" ]] && { echo "FAIL [$_TEST_NAME] the pruned version's receipt survived" >&2; exit 1; }
+assert_eq "$(readlink "$P/bin/scio")" "../share/scio/versions/$SHA2/bin/scio" \
+    "pruning one version must not disturb the link the other owns"
+assert_file_exists "$V/$SHA2/bin/scio" "the in-use version was collateral damage"
+
+# Restore both, in the original order, so the link points at SHA2 again.
+"$INSTALL" --archive "$A1" --checksum "$A1.sha256" --prefix "$P" >/dev/null 2>&1 \
+    || { echo "FAIL [$_TEST_NAME] reinstall of version 1 failed" >&2; exit 1; }
+"$INSTALL" --archive "$A2" --checksum "$A2.sha256" --prefix "$P" >/dev/null 2>&1 \
+    || { echo "FAIL [$_TEST_NAME] reinstall of version 2 failed" >&2; exit 1; }
+assert_eq "$(readlink "$P/bin/scio")" "../share/scio/versions/$SHA2/bin/scio" \
+    "the restored fixture must match the state the next section assumes"
+
 # --- receipt-driven exact uninstall ---------------------------------------
 snap1_before=$(tree_snapshot "$V/$SHA1")
 

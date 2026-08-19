@@ -65,9 +65,11 @@
 # failed install leaves no half-tree — the staging directory is removed by an
 # EXIT/INT/TERM trap. Every artifact is recorded in a receipt, and `--uninstall`
 # removes only what the receipt proves this script wrote: a symlink is removed
-# only if it still points where the receipt says it was pointed. Anything else
-# is left alone and reported (exit 3), the same "cannot verify → do not touch"
-# discipline the toolkit's teardown uses.
+# only if it still points where the receipt says it was pointed. A link that now
+# serves another version installed under this prefix is ordinary coexistence —
+# that version's receipt owns it, so it stays and the status stays clean. Only an
+# unprovable link is left alone and reported (exit 3), the same "cannot verify →
+# do not touch" discipline the toolkit's teardown uses.
 set -uo pipefail
 
 ARTIFACT_NAME="scio"
@@ -283,12 +285,27 @@ if [[ "$mode" == "uninstall" ]]; then
     if [[ -n "$link_path" ]]; then
         if [[ -L "$link_path" ]]; then
             actual="$(readlink "$link_path")"
+            other=""
+            if [[ "$actual" != "$link_target" ]]; then
+                # A link serving another version installed under this prefix is
+                # ordinary housekeeping, not an anomaly: that version's receipt
+                # owns it, so it stays and the exit status stays clean. Proven by
+                # the receipt rather than by the path's shape, so a half-torn-down
+                # tree still reads as unprovable.
+                candidate="${actual#../share/$ARTIFACT_NAME/versions/}"
+                candidate="${candidate%/bin/$EXECUTABLE}"
+                if [[ "$candidate" =~ ^[0-9a-f]{40}$ && -f "$receipts_dir/$candidate.json" ]]; then
+                    other="$candidate"
+                fi
+            fi
             if [[ "$actual" == "$link_target" ]]; then
                 act "remove symlink $link_path"
                 [[ -n "$DRY_RUN" ]] || rm -f "$link_path"
+            elif [[ -n "$other" ]]; then
+                say "  ($link_path serves ${other:0:12}, still installed here — left in place)"
             else
                 echo "$_prog: $link_path points at '$actual', not the recorded" >&2
-                echo "  '$link_target' — another install owns it now; left alone." >&2
+                echo "  '$link_target' — this installer cannot prove it owns it; left alone." >&2
                 rc=3
             fi
         elif [[ -e "$link_path" ]]; then
