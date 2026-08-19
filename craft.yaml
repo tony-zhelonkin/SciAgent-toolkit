@@ -3,13 +3,15 @@
 # Rendered into each repo's AGENTS.md by `scio craft` as the
 # <!-- BEGIN SCIO:CRAFT --> block. Edit here once; run `scio craft` in
 # each repo to propagate. The block states the standing conventions; numeric
-# values an analysis reads live in analysis_config.yaml (figures:). Keep the
-# rendered block terse (<=25 lines) — depth belongs in skills, not always-on text.
+# values an analysis reads live in analysis_config.yaml (figures:).
 #
+# `max_lines:` is the budget for the rendered body — depth belongs in skills,
+# not always-on text. `scio lint --check toolkit` enforces it.
 # `floors:` are display values substituted into {{tokens}} in body below.
 # `body:` MUST be the last top-level key (block.sh reads it as a block scalar).
 
 version: 1
+max_lines: 25
 
 floors:
   figure_base_size: 14          # one legible tier — base font floor (pt)

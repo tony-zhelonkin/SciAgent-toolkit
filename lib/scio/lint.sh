@@ -35,7 +35,8 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
-#   toolkit         skill frontmatter shape and cross-namespace collisions.
+#   toolkit         skill frontmatter shape, cross-namespace collisions, and
+#                   the rendered CRAFT body against craft.yaml `max_lines:`.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
 # `all` is the default) is given. They are SOFT warnings (exit 0) by default
 # and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are always

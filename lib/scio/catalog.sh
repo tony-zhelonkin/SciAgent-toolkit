@@ -204,6 +204,19 @@ _catalog_check() {
         fi
     done
 
+    # The CRAFT body is always-on text in every consumer's AGENTS.md, so its
+    # declared budget binds here. Silent without a craft.yaml, matching
+    # craft_render_and_write, so a toolkit with no craft SSOT is unaffected.
+    local craft_body craft_lines craft_max
+    if craft_body=$(_craft_render_body); then
+        craft_max=$(craft_max_lines)
+        craft_lines=$(printf '%s\n' "$craft_body" | awk 'END { print NR }')
+        if (( craft_lines > craft_max )); then
+            echo "ERROR toolkit: craft.yaml: rendered CRAFT body is $craft_lines lines (max $craft_max) — move depth into a skill" >&2
+            fail=1
+        fi
+    fi
+
     if [[ "$quiet" -eq 0 ]]; then
         local name kinds phrase
         while IFS=$'\t' read -r name kinds; do

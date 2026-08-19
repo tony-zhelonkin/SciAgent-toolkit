@@ -86,6 +86,13 @@ machine. Running that version's `scio link` performs the project binding.
 A project that vendors its own toolkit must use its in-repo binary; `link`
 refuses a global copy in that situation.
 
+A project bound this way holds category links into
+`<prefix>/share/scio/versions/<sha>/`, which is what pins it to that version.
+Uninstalling the version leaves those six links dangling, and the receipt
+records installed files rather than the projects bound from them, so
+`install.sh --uninstall` cannot report the projects it affects. Re-running
+`scio link` in the project from a version that remains replaces each link.
+
 ## Hook ownership
 
 Hook bodies are copied byte-for-byte from templates. Each managed body carries
