@@ -253,6 +253,7 @@ Fate probabilities & terminal states? → CellRank
 
 | Skill | Purpose |
 |-------|---------|
+| `analysis-code-conventions` | Router for narrative stages, cohesive helper APIs, restartable data flow, and package-promotion decisions |
 | `genenmf-metaprogram-discovery.md` | Meta-program discovery via NMF (per-sample → cross-donor consensus) |
 | `consensus-nmf-multirun` | Multi-run consensus cNMF on a single dataset (full ± QC × subset ± QC, merge at r > 0.7, g:Profiler annotation, per-celltype ANOVA) |
 | `gatom-metabolomic-predictions.md` | Metabolomics pathway analysis |
@@ -261,16 +262,20 @@ Fate probabilities & terminal states? → CellRank
 
 ### scRNA-seq Workflow (project-shared scaffolding)
 
-These three skills share the house style documented by `scrna-pipeline-conventions`. They were authored together as the canonical pipeline shape for scRNA-seq projects matching the user's `scbio-docker` template.
+These assay skills share the object and deliverable conventions documented by
+`scrna-pipeline-conventions`. Generic stage and helper structure comes from
+`analysis-code-conventions` and the rendered CRAFT block.
 
 | Skill | Tier | Purpose |
 |-------|------|---------|
-| `scrna-pipeline-conventions` | simple | House style: numbered scripts (00_build, 01_qc, …), multi-checkpoint, central `config.py` (PATHS / PARAMS), `03_results/{checkpoints,tables,plots,interactive,objects,annotation}/` |
+| `scrna-pipeline-conventions` | orchestrator | AnnData checkpoints and canonical objects, gene-identifier packaging, dual embeddings, metadata cleanup, and annotation abstention |
 | `cellranger-multi-to-anndata` | standard | Build pooled AnnData from `cellranger multi` outputs |
 | `scrna-cxg-host` | rich | Two-phase CellxGene hosting: schema prep + Docker Compose deploy (nginx + htpasswd) |
 | `consensus-nmf-multirun` | rich | Multi-run consensus cNMF (run × N variants → K-selection → merge → annotate → ANOVA) |
 
-All four embody the **Decision Pause Contract** (documented per-skill in each SKILL.md's "Decision Pauses" section): each judgment moment surfaces as a `### DECISION PAUSE — <topic>` block that the agent stops at, with named defaults a user can clear with one word ("default"). Recorded choices land in `analysis_config.yaml::decisions::<skill>::<key>` for replay on re-run.
+Workflow skills expose their scientific and deployment judgment points through
+their own **Decision Pause Contract** sections. Recorded choices land in
+`analysis_config.yaml::decisions::<skill>::<key>` for replay on re-run.
 
 ---
 

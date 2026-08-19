@@ -141,7 +141,8 @@ out.parent.mkdir(parents=True, exist_ok=True)
 adata.write_h5ad(out, compression="gzip")
 ```
 
-The path follows `scrna-pipeline-conventions` (numbered checkpoint, `03_results/checkpoints/`).
+The path follows
+`scrna-pipeline-conventions/references/checkpoints-and-objects.md`.
 
 ---
 
@@ -282,6 +283,7 @@ After running this skill, confirm:
 - `anndata` — Adjacent / prerequisite-adjacent; operate on the produced `.h5ad` (subset, save, copy)
 - `single-cell-rna-qc` — Next step (Stage 1); run MAD-based QC on the produced `.h5ad`
 - `scvi-basic` — Downstream (Stage 2); integrate batches and learn a latent space
-- `scrna-pipeline-conventions` — Convention; house style for the project this lands in, references the `03_results/checkpoints/` layout
+- `scrna-pipeline-conventions` — Assay convention; checkpoint validation and milestone packaging
+- `analysis-code-conventions` — Structural convention; stage placement and restartable data flow
 - `muon-multimodal-analysis` — Alternative (different modality); multiome RNA + ATAC paired ingestion
 - `starsolo-spliced-unspliced` — Alternative (different counting strategy); spliced/unspliced or intronic counting

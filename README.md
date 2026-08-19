@@ -4,7 +4,7 @@ Scio is a per-project catalog of computational-biology skills, sub-agents,
 commands, CRAFT conventions, and executable guardrails for AI coding harnesses.
 
 The toolkit keeps its mount sources in the same shape the harnesses consume:
-84 skill directories, 21 flat agent files, and 7 flat command files. A project
+85 skill directories, 21 flat agent files, and 7 flat command files. A project
 binds each category with one directory symlink.
 
 ## Where this came from

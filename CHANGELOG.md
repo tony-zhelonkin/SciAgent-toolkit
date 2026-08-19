@@ -72,7 +72,7 @@ from the in-project Wave-0 prototype that proved it across a full results tree.
 - **`validate --check figure-style`** base-font floor lowered 16 → 14 to match the unified single tier (the new template default no longer trips the toolkit's own guardrail).
 - **`skills/figure-style/SKILL.md`** rewritten for the unified single-variant, dual-format style (removed `.print`/`.screen` language).
 - **`craft.yaml` (`SCIO:CRAFT` single source)** — the always-on Figures craft standard rendered into every repo's `AGENTS.md` now states ONE legible tier: `figure_base_size` floor 16 → 14, the `figure_print_base_size` floor removed, and the body line reworded to "one legible tier, base >= 14pt; emit a vector PDF + raster PNG from one plot object" (no print/screen split). Propagated via `sciagent update`.
-- **Craft / contract prose swept to the unified model** — the `figure-audit` and `captions` agents, the `add-figure-variant` and `interpret-storm` commands, the plan + project `AGENTS.md` templates, `docs/guidelines/visualization.md`, and the `base` role comment now reference `<stem>.pdf` + `<stem>.png` (no `.print`/`.screen`), a single 14 pt tier, and `save_figure()`/`save_overview()` (dropped `save_figure(variant="both")`, `base_size_column`, dual-variant language).
+- **Craft / contract prose swept to the unified model** — the `figure-audit` and `captions` agents, the `add-figure-variant` and `interpret-storm` commands, the plan + project `AGENTS.md` templates, `_attic/guidelines/visualization.md`, and the `base` role comment now reference `<stem>.pdf` + `<stem>.png` (no `.print`/`.screen`), a single 14 pt tier, and `save_figure()`/`save_overview()` (dropped `save_figure(variant="both")`, `base_size_column`, dual-variant language).
 - **`tests/test_validate_figure_style.sh`** conformant fixture uses the unified `<name>.png` naming.
 
 ### Added
@@ -123,7 +123,7 @@ capability (skill/helper/agent/command), guardrail (validate check + hook).
 - `sciagent new project --type software` no longer creates an `analysis`-only `research/` namespace.
 
 ### Removed
-- `docs/guidelines/visualization.md` `base_size=12`/`theme_publication` dead-end superseded by the figure-style contract (file kept as a redirect stub).
+- `_attic/guidelines/visualization.md` `base_size=12`/`theme_publication` dead-end superseded by the figure-style contract (redirect retired with the mechanical guidelines).
 
 ## [3.1.0] - 2026-06-02
 

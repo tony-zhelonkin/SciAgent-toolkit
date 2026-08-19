@@ -303,5 +303,5 @@ After authoring an explorer, confirm:
 
 - `decision-gate-notebook` — Static sibling; the static (R) sign-off surface that records the APPROVED gate (this skill feeds it)
 - `figure-style` — Prerequisite; the styling/saving contract the labelled matplotlib snapshot goes through before it's written to `03_results/`
-- `scrna-pipeline-conventions` — Sibling convention; the numbered-stage house style for `export_explorers.py` and the reviewed stages
+- `analysis-code-conventions` — Sibling convention; narrative stages and authoritative data flow
 - `bulk-rnaseq-pathway-explorer` — Static alternative; a static, self-contained HTML explorer (plotly, no live kernel)

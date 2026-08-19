@@ -27,7 +27,7 @@ gate; the numbered script is the hands.
 
 **When NOT to use this skill:**
 - Throwaway exploration with nothing downstream waiting → just use the console.
-- A stage that writes authoritative state → use `scrna-pipeline-conventions` (the notebook must stay read-only).
+- A stage that writes authoritative state → use `analysis-code-conventions` (the notebook must stay read-only).
 - A plain results/methods write-up with no decision to gate → a normal `.qmd` report, no `decisions.[stage]` block.
 
 ---
@@ -260,7 +260,7 @@ After authoring a decision-gate notebook, confirm:
 ## When not to use
 
 - Do not use for throwaway scratch exploration. A decision-gate notebook is a committed, rendered artifact tied to a config gate; if nothing downstream waits on the call, just hack in the console.
-- Do not let the notebook COMPUTE anything a later stage depends on. It reads 03_results/ and config and re-plots; the authoritative outputs stay in the numbered scripts. Use scrna-pipeline-conventions for stages that write state.
+- Do not let the notebook COMPUTE anything a later stage depends on. It reads 03_results/ and config and re-plots; authoritative outputs stay in the stages. Use `analysis-code-conventions` for stages that write state.
 - Do not use as a general reporting/methods document. This is a decision surface with an APPROVED gate, not a results write-up.
 - Do not use for software architecture or design review. Use architecture-first-dev.
 - Do not use solely to interpret pathway or TF results. Use bulk-rnaseq-gsea or bulk-rnaseq-activity-inference unless a downstream stage awaits a recorded decision.
@@ -270,6 +270,6 @@ After authoring a decision-gate notebook, confirm:
 ## See also
 
 - `figure-style` — Prerequisite; the styling/saving contract the notebook re-plots through
-- `scrna-pipeline-conventions` — Sibling convention; the numbered-script house style for the stages being reviewed
+- `analysis-code-conventions` — Sibling convention; narrative stages and authoritative data flow
 - `interactive-breakpoint-explorer` — Live-kernel variant; brushes a live embedding (jscatter) instead of re-plotting a static snapshot
 - `bulk-rnaseq-pathway-explorer` — Alternative; a heavier static, shareable HTML dashboard (UMAP-of-gene-sets, no live kernel) when the review needs to leave the notebook

@@ -85,11 +85,12 @@ The subset is now a fresh AnnData with its own embedding; run `prepare()` (the s
 
 ## Naming and write paths
 
-Per `scrna-pipeline-conventions`:
+Write the prepared subset as a CXG object:
 
 ```python
 adata_sub.uns["title"] = f"<project> • {celltype_name} Subset — {adata_sub.n_obs} cells"
 adata_sub.write_h5ad(f"03_results/objects/09_explore_{celltype_name}.h5ad", compression="gzip")
 ```
 
-The 09_ prefix matches the reference; `cellranger-multi-to-anndata` writes 00_, QC writes 01–04_, integration writes 05–07_, full CXG-prep writes 08_, subset-CXG writes 09_.
+The filename distinguishes the subset from the full prepared object and sorts
+predictably beside it.

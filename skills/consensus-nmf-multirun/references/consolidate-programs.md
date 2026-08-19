@@ -91,4 +91,5 @@ Verify with: `adata.obs_names[:5]` vs the `usage.index[:5]` from any pkl — the
     └── all_programs_correlation.csv   # program × program Pearson correlation
 ```
 
-The `13_` prefix follows `scrna-pipeline-conventions`; expect downstream stages to read from these paths.
+The checkpoint is the declared handoff to downstream stages; apply the current
+CRAFT numbering contract to the stage that writes it.

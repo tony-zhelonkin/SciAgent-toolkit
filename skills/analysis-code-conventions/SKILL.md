@@ -1,0 +1,71 @@
+---
+name: analysis-code-conventions
+description: >
+  Owner's conventions for readable analysis code. Use when creating, reviewing,
+  or refactoring 02_analysis; deciding what belongs in stages, helpers, config,
+  or notebooks; grouping helper families behind provisional APIs; designing
+  restartable data flow; or assessing package-readiness.
+---
+
+# Analysis Code Conventions Router
+
+Use this skill for structural decisions inside analysis code. Apply the CRAFT
+Code shape contract first; this router selects the qualitative guide needed for
+the decision at hand. Exact file matching, thresholds, exemptions, and finding
+behavior remain owned by `lib/scio/lint.sh`.
+
+## Routing decision tree
+
+```text
+What decision is being made?
+│
+├─ Should this code remain visible in the stage?
+│     → stage-narrative.md
+│
+├─ Does this machinery need one helper or a cohesive helper family?
+│     → helper-family-apis.md
+│
+├─ Where should state, checkpoints, and cross-stage contracts live?
+│     → restartability-and-dataflow.md
+│
+└─ Has a project helper become an independent library candidate?
+      → promotion-readiness.md
+```
+
+## Routing contract
+
+1. Read the repository's rendered CRAFT block and preserve its Code shape
+   contract. Treat it as authoritative for standing layout and stage mechanics.
+2. Identify the structural decision being made and load the corresponding
+   reference completely before editing code or proposing a layout.
+3. Load multiple references when a change crosses boundaries, such as extracting
+   stage machinery into a family that may also need a durable checkpoint.
+4. Use the reference for judgment and review methods. Use `scio lint` for the
+   executable checks and respond to its current diagnostics as written.
+5. Defer assay formats, scientific thresholds, figure design, notebook behavior,
+   teaching stance, and deployment to the skills or project context that own them.
+
+## References (load on demand)
+
+| Decision | Load | Outcome |
+|---|---|---|
+| What a reviewer must see in the stage | [`references/stage-narrative.md`](references/stage-narrative.md) | A readable story-order stage |
+| Flat helper or cohesive family; public boundary | [`references/helper-family-apis.md`](references/helper-family-apis.md) | A small named API with reviewable internals |
+| Restart boundaries and cross-stage data flow | [`references/restartability-and-dataflow.md`](references/restartability-and-dataflow.md) | Explicit state and resumable execution |
+| Independent repository candidacy | [`references/promotion-readiness.md`](references/promotion-readiness.md) | A keep-local or promote decision |
+
+## Boundary routes
+
+- Use `figure-style` for figure design, saving, and caption contracts.
+- Use the relevant assay skill for data objects, scientific methodology, and
+  domain-specific deliverables.
+- Use `decision-gate-notebook` and `interactive-breakpoint-explorer` for their
+  respective notebook contracts.
+- Use `architecture-first-dev` for software architecture campaigns, ADRs, and
+  multi-stage implementation planning.
+
+## When not to use
+
+- A one-off exploratory notebook with no durable analysis-code boundary.
+- A purely scientific choice whose code placement is already settled.
+- A request to add or change lint predicates; lint design needs separate evidence.
