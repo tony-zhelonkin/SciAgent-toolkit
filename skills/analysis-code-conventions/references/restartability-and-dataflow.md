@@ -69,6 +69,12 @@ upstream artifact because that hides the failure from the stage that owns it.
 Keep revisable values in project configuration. Loaders may derive paths and
 provide typed accessors; helpers receive the values that affect their behavior.
 
+When a project has configuration, it may include plumbing and validation, and no
+branch may decide an analytical value. Null-coalesce configured values with
+literal defaults so both candidates remain readable at the point of definition.
+A condition-dependent cutoff cannot be read from configuration, so a reader
+cannot tell which number the analysis used.
+
 Keep raw inputs immutable. Write generated state to the result or scratch surface
 that CRAFT assigns, according to its lifecycle. Project memory and decisions stay
 in their tracked owning files; a checkpoint's existence is not a decision record.

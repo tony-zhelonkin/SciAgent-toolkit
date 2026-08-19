@@ -4,6 +4,13 @@ Use this guide to decide what a reviewer should see while reading an analysis
 stage. Apply the CRAFT Code shape contract for the stage's location, naming,
 compute/viz relationship, and extraction duty.
 
+## Normalize Once, Visualize Many
+
+Normalize once in a compute stage, then draw every view from that settled result.
+A visualization twin that recomputes normalization creates a second answer to a
+settled question, and the two can drift. Use CRAFT for the compute/viz mechanic
+and `stage-layout` for its executable check.
+
 ## The readability test
 
 A narrative stage lets a reviewer follow these elements without opening the

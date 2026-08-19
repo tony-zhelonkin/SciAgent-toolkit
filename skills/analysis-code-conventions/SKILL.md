@@ -14,6 +14,18 @@ Code shape contract first; this router selects the qualitative guide needed for
 the decision at hand. Exact file matching, thresholds, exemptions, and finding
 behavior remain owned by `lib/scio/lint.sh`.
 
+## Before writing code
+
+Use these questions as a pre-flight checklist:
+
+1. Does durable state for this computation already exist?
+2. Is this a compute stage or its visualization twin?
+3. Does one place already own this parameter, colour, or threshold?
+4. Can an existing helper or toolkit function do this?
+5. Will the output be consumed across languages, and does that set its format?
+
+The routing tree and its references carry the answers.
+
 ## Routing decision tree
 
 ```text
