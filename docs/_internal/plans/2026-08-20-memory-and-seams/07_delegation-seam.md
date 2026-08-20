@@ -30,6 +30,36 @@ was invisible where the failure was being rediscovered. This is the same
 delivery gap as everything else in this plan, in its most expensive form: an
 agent spent a session re-deriving a written answer.
 
+## Second change — the retention contract (added 2026-08-20 after consult)
+
+`CONSULT_delegation.report.md` settled where delegation artifacts live, and it
+**overturned** the intuition that worker prompts belong in-tree. Verified
+against 14782-DM: the durable record already exists at
+`docs/_internal/plans/2026-08-14_consensus-migration/00_STATE.md` — worker/path
+table, the venv-from-venv `.pth` finding, the dot-directory glob trap, test
+counts, the GitHub-only tag, open owner decisions. Archiving three prompts full
+of absolute container paths and a pinned model version would duplicate it and
+add another Markdown accumulation channel to trees already measured at 568 MB.
+
+**So: keep the three `/tmp` examples in the skill.** A prompt is an execution
+projection of a plan, not the plan. What was missing is not a path but a
+contract. Add to `delegate-cli`, in the owner's register:
+
+> Runtime prompt renderings, logs, final messages and byte counts stay in
+> temporary storage. Before launch, put the stable decisions, the worker
+> ownership partition and the acceptance baseline in the repository's declared
+> durable-memory record; after review, add the material deviations and
+> outcomes. Keep a raw prompt or transcript only when it is itself the
+> authoritative specification, research evidence, or a required audit record.
+
+Also promote into the skill: **`probe.sh` and `launch.sh` as
+`skills/delegate-cli/assets/`** — reusable capability machinery, reachable
+through the existing category link with no new delivery mechanism. Parameterize
+working directory and model; keep the grounded file-read check that proves tool
+use rather than recall. From `launch.sh`, keep the PID-safe waiter, unique
+output paths, exit-status and byte-count reporting, and failure when an expected
+output is absent; the worker/path table stays per-run input.
+
 ## Change (small)
 
 `skills/delegate-cli/SKILL.md` restates scbio-docker's *cause* as well as the
