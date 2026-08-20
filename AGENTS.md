@@ -70,3 +70,9 @@ bin/scio lint --check toolkit --strict --quiet
 ## Architecture spec
 
 `docs/architecture.md` — authoritative design document. Read before changing CLI surface or block format.
+
+## Picking up mid-stream
+
+`docs/_internal/handoff/session-state.md` — where the work stopped, what is
+waiting on the owner, and the traps that cost time to rediscover. Living file;
+re-derive its numbers with the commands it carries before acting on them.
