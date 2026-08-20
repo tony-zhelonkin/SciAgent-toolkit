@@ -1,52 +1,48 @@
 # Session state — cold-start handoff
 
-Living file, overwritten rather than accumulated. Read it first in a cold
-session, then **re-derive the numbers** with the commands in §2 before acting on
-them: every figure here was measured, and every figure here decays.
+Living file, overwritten rather than accumulated. Read it first, then
+**re-derive the numbers** with §2 before acting on them: every figure here was
+measured, and every figure here decays.
 
-Authoritative design lives in `docs/architecture.md` and
-`docs/propagation.md`; decisions in
+Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 `docs/proposals/2026-08-11-offline-distribution/50_ADRs.md`. This file carries
-only what those cannot: where the work stopped, what is waiting on the owner,
-and the facts that cost time to rediscover.
+only what those cannot — where the work stopped, what waits on the owner, and
+the facts that cost time to rediscover.
 
-Last verified: **2026-08-20**, toolkit at `287e8e4`.
+Last verified: **2026-08-20**, toolkit at `1c7599f`.
 
 ---
 
 ## 1. The shape of the thing
 
-Four layers, and the split between them is the design:
-
 - **THE ASSET** — `skills/` 85, `agents/` 21, `commands/` 7, `craft.yaml`.
   Non-regenerable: it encodes traps (the CORESH Entrez-integer trap,
-  species-mismatch silent failures, iterative-peak-merging) that took real
+  species-mismatch silent failures, iterative peak merging) that took real
   analyses to learn.
 - **THE MECHANISM** — `lib/scio/` 2,619 LOC + `bin/scio` 65. Three verbs, one
   concern each: `link` = availability (convergent), `craft` = standing text
   (idempotent), `lint` = enforcement (read-only).
-- **THE AUTHORITY** — Git. The submodule pin **is** the lock (ADR-D1). There is
-  no `scio.lock` and there should not be one.
-- **THE RECORD** — `docs/` + 9 ADRs (D1–D9).
+- **THE AUTHORITY** — Git. The submodule pin **is** the lock (ADR-D1). No
+  lockfile, and there should not be one.
+- **THE RECORD** — `docs/` + 9 ADRs (D1–D9; D10 planned).
 
-Two structural facts that constrain every future change:
+Three facts that constrain every future change:
 
 - **Six directory links, not 579 file mounts.** Ownership tracking *dissolved*
-  rather than being solved — no manifest, no `symlinks.sh`. The price: a
-  directory symlink can neither filter nor flatten, so **source shape must equal
-  mount shape**. That is why `templates/skill/` exists, why `_attic/` is
-  top-level, and why `agents/` is flat. Any change that puts non-mountable
-  content inside `skills/`, `agents/`, or `commands/` breaks a consumer.
+  rather than being solved. The price: a directory symlink can neither filter
+  nor flatten, so **source shape must equal mount shape**. That is why
+  `templates/skill/` exists, why `_attic/` is top-level, why `agents/` is flat.
+  Putting non-mountable content in `skills/`, `agents/` or `commands/` breaks
+  every consumer.
 - **`lint.sh` owns every convention it can measure.** A claim stated twice
   drifts, so CRAFT names the standing boundary, a router skill selects the
-  guide, `references/` owns qualitative doctrine, and `lint` owns the
-  predicates. If you find a convention asserted in prose with no predicate
-  behind it, that is a gap, not a style choice — `287e8e4` closed the last known
-  one (the CRAFT line budget).
+  guide, `references/` carries qualitative doctrine, `lint` owns the predicates.
+- **The defect class this project keeps producing** (see §5): an instruction
+  naming something the mechanism does not guarantee.
 
 ---
 
-## 2. Re-derive the state before trusting it
+## 2. Re-derive the state
 
 ```bash
 cd <toolkit>                       # scbio-docker/toolkits/SciAgent-toolkit
@@ -54,9 +50,9 @@ git log --oneline -1 && git rev-list --count hub/dev..dev
 bash tests/run-all.sh | tail -3
 bin/scio lint --check toolkit --strict && echo clean
 
-# Fleet census. Requires each directory to BE its own repo root: `git -C` on an
-# empty submodule directory silently walks up to the superproject and reports
-# ITS HEAD, which reads as a diverged toolkit copy that does not exist.
+# Fleet census. Each directory must BE its own repo root: `git -C` on an empty
+# submodule dir silently walks up to the superproject and reports ITS head,
+# which reads as a diverged copy that does not exist.
 TK=$PWD
 find /data1/users/antonz /scratch/current/antonz /data2/users/JCRLab \
      -maxdepth 6 -type d -name SciAgent-toolkit 2>/dev/null | grep -v "/\.git/" |
@@ -70,166 +66,254 @@ done | sort
 cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 ```
 
-### What those commands showed on 2026-08-20
+### What that showed on 2026-08-20
 
-| | Value |
-|---|---|
-| `dev` | `287e8e4`, **4 ahead** of `hub/dev` = `origin/dev` = `106f59f` |
-| `main` | `c83dfe2` on both remotes |
-| Tests | 62 passing, 0 failing |
-| `toolkit` lint | clean |
-| Tree | clean |
+`dev` = `1c7599f`, **8 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`main` = `c83dfe2` both remotes. 62 tests passing, 0 failing. `toolkit` lint
+clean. Tree clean.
 
-Unpushed, oldest first: `7e9e72a` (route analysis code through convention
-guides), `6cfe500` (anchor analysis code in durable conventions), `42ae8a1`
-(prune an unused release without reporting damage), `287e8e4` (bind the CRAFT
-block to its declared line budget).
+Unpushed, oldest first:
+
+```
+7e9e72a  Route analysis code through convention guides
+6cfe500  Anchor analysis code in durable conventions
+42ae8a1  Prune an unused release without reporting damage
+287e8e4  Bind the CRAFT block to its declared line budget
+c7e8c2e  Record where the work stopped for a cold session
+f234b2c  Survey how agent memory actually lands in 24 projects
+e315de2  Plan the run that makes the toolkit's claims true
+1c7599f  Keep delegation prompts disposable; contract, not a path
+```
 
 Fleet — **24 real copies**:
 
 | Count | Commit | Behind `dev` | What |
 |---|---|---|---|
-| 1 | `287e8e4` | 0 | scbio-docker — the canonical dev checkout |
-| 1 | `106f59f` | 4 | 14616-DM — the swept pilot |
-| 20 | `5e5347e` | 52 | unswept (15 fleet-managed + 5 frozen) |
-| 1 | `cf19c6d` | 118 | PanSci — PINNED, deliberately |
+| 1 | `1c7599f` | 0 | scbio-docker — the canonical dev checkout |
+| 1 | `106f59f` | 8 | 14616-DM — the swept pilot |
+| 20 | `5e5347e` | **56** | unswept (15 fleet-managed + 5 frozen by decision) |
+| 1 | `cf19c6d` | 122 | PanSci — PINNED, deliberately |
 | 1 | `fb6012a` | not in canonical history | Gama_Vivian — excluded by config |
 
-`scbio-docker` pin drift: records `3ab3768`, checked out `287e8e4` (`^4 PIN`).
+`scbio-docker` pin drift: records `3ab3768`, checked out `1c7599f`.
 
 ---
 
-## 3. Traps — the expensive-to-rediscover facts
+## 3. The pain points this design is answering
 
-**The `module-vendor` state column says nothing about currency.** Of the 15
-fleet-managed unswept copies, 5 report `BEHIND v48` and 10 report `OK clean`,
-yet all 20 sit at the identical commit. The 10 look clean because they track an
-`origin/dev` whose ref is an *ancestor* of their own HEAD. Always verify by SHA.
+Not abstractions — each was measured on 2026-08-20.
 
-**`v48` and `52` are both correct.** The behind-count is measured against the
-copy's upstream (`origin/dev` at `106f59f`); the true distance to `dev` is 52.
-The difference is exactly the four unpublished commits.
+**Memory dies with the container.** `craft.yaml` tells every agent durable
+memory lives in tracked files under `docs/_internal/`; `link.sh:278` writes that
+path into `SCIO:GITIGNORE`; `docs-layout` warns when it is *not* ignored. Across
+five sampled projects: 8,317 files, 2 tracked. Two projects independently made
+`docs/_internal/` a nested git repo (126 and 210 commits) — with **no remote**,
+so it dies with the disk instead of the session.
 
-**Six copies are missing from `module-vendor status` on purpose.** `config.sh`
-`MODULE_VENDOR_EXCLUDE` names five copies **frozen by owner decision
-2026-08-18** (finished single-project analyses keeping the pre-demolition
-11-verb toolkit: 12868-EH, Dakota_Black_NPC_DRP1, 13403-YD_Christina,
-JBader_scHFD, 13036-DM) plus `Gama_Vivian_DRP1_bulkRNAseq`. Exclusion rather
-than branch-pinning is what holds them, because `sync align` advances any copy
-it can see that is on a shared branch. **Do not "fix" their absence.**
+**Availability failed silently.** 14761-DM: **86 skills in its own pinned
+checkout, 60 reachable, 26 invisible** — `delegate-cli` among them. The
+Meta-Aging umbrella is worse: `.claude/skills` does not exist, so **86 of 86**
+are unreachable. An in-container agent burned a session rediscovering a
+container-sandbox finding that `delegate-cli` had recorded on 2026-07-28, and
+the umbrella `AGENTS.md` grew a hand-written copy of that skill because nothing
+was mounted. This class is already deleted by design — membership *is* directory
+membership under `link` — so it needs **delivery, not repair**. That is the
+sweep.
 
-**`AdaW-eWAT-WL-bulkRNAseq` is benign.** It records a gitlink at pin `108da7a`
-with an empty `01_modules/SciAgent-toolkit` — an uninitialized submodule. No
-mounts, no `AGENTS.md`, nothing dangling. Invisible to `module-vendor` by
-construction, since there is no repo to discover.
+**Structure spreads by example, not instruction.** `handoffs/` ships containing
+only `.gitkeep`; agents ignored it in **every** project and wrote handoffs to
+`sessions/`. Ten spellings of "handoff" exist across the fleet. Meanwhile
+`03_results/<stage>/{figures,tables}/` — the part that always holds content — is
+followed nearly everywhere. An empty directory is not an example, it is an
+unsupported claim.
 
-**Never run `link` between `align` and `rename` during the sweep.** Align
-dangles 8 agent and 2 command mounts per repo; linking in that window
-materializes the damage instead of converging it.
+**`docs/_internal/` became a dumping ground.** DC-nexus 568 MB, 91.5% of it a
+Python `.venv`. 14782-DM 231 MB around a 196 MB model checkpoint plus 210 cache
+JSONs. Retention is not a later refinement.
 
-**`docs/_internal/` is gitignored** (`.gitignore:11`). The files tracked there
-were force-added, so this handoff and its siblings need `git add -f`. A plain
-`git add -A` silently skips them.
-
-**Adding a key to `craft.yaml` must not perturb the rendered body.** Every
-consumer stores a SHA1 of the CRAFT block; a changed body shows up as drift in
-all of them on re-pin. Verify byte-identity against `HEAD:craft.yaml` before
-committing a `craft.yaml` change. Also: `body:` **must** stay the last top-level
-key — `block.sh` reads it as a trailing block scalar.
-
-**Release tests build throwaway fixture repos, never this one.** The builder
-runs the suite, so a test that built this repo would re-enter it. This is also
-why there is deliberately **no `--skip-checks` flag**: an escape hatch on a
-release gate eventually gets used for a real release.
-
-**`lint` has 11 selectable names but `all` runs 10.** `toolkit` is opt-in, for
-maintainers and the release gate; it validates this repo's own assets, so it
-must never gain a finding that fires in a consumer.
-
-**Bash only on the core path** — no `yq`, `jq`, or `python3`. Non-negotiable
-(`AGENTS.md` rule 1).
+**Scratch escapes the project.** `craft.yaml` calls root `_scratch/` "the only
+sanctioned throwaway zone"; **no project has one**. Agents write to
+`/tmp/claude-<pid>/<hashed-workspace>/<uuid>/scratchpad/` — and
+`delegate-cli` itself prescribes `/tmp` three times. Prescribed behaviour, not
+drift.
 
 ---
 
-## 4. Blocked on the owner
+## 4. Blocked on the owner — five decisions
 
-1. **Review `106f59f..dev`** (4 commits). The last two are independent of the
-   craft/skill work. `nvim -c 'DiffviewOpen 106f59f..dev'`. The one line to read
-   closely is the config invariant in `restartability-and-dataflow.md:72–76`.
-2. **Commit 14761-DM.** Was blocked on a live `codex exec` writing
-   `02_analysis/helpers/grn_viz/` — re-check whether it is still running. It
-   stays out of the sweep until committed, and it is the first real instance of
-   the earned-by-cohesion helper family, worth citing in the reference once
-   settled.
-3. **ADR-D9 rename**, owner's call whether it runs before the sweep. GitHub repo
-   → `scio`, vendor path → `01_modules/scio/`. Four vendor-dir spellings exist
-   live and each must be resolved individually: `01_modules`, `01_scripts`,
-   `01_Modules`, `01_Scripts`.
-4. **Task #36** — whether the CRAFT block gets a token-weight budget. The cap
-   now binds shape (17 lines of 25) but not cost: those 17 lines are 4,658
-   characters and the longest bullet is 693. A per-bullet cap would fail today.
-   Picking the number means editing the owner's standing text.
+1. **Review `106f59f..dev`** (8 commits). The owner intends to tweak wording
+   during review. Use `nvim -c 'DiffviewOpen origin/dev'` — **not** `A..dev`: a
+   commit-to-commit range makes both panes read-only because neither side is a
+   file on disk. One revision diffs against the working tree, so the right pane
+   is editable. From any diffview entry, `gf` opens the real file
+   (`goto_file_edit`), `<C-w><C-f>` in a split, `<C-w>gf` in a tab — verified
+   against the local install. `devenv/autoreload.lua` calls `DiffviewRefresh`
+   automatically after saves.
+2. **Plan as a third durable form** — `06_adr-d10.md` marks this OPEN. The
+   skeleton says two forms (`reasoning/` + `session.md`), which contradicts the
+   fleet's best-working record (14782-DM's
+   `plans/2026-08-14_consensus-migration/00_STATE.md`, 93 lines, plus six phase
+   files) *and* this toolkit's own shipped `templates/plan/`. Proposed:
+   `_project/plans/<date-slug>/`, `00_STATE.md` **is** that plan's `session.md`
+   so pick one spelling, created with content and never scaffolded.
+3. **ADR-D9 rename** — repo → `scio`, vendor path → `01_modules/scio/`. Four
+   vendor-dir spellings are live and each resolves individually: `01_modules`,
+   `01_scripts`, `01_Modules`, `01_Scripts`. Decide before the sweep; it makes
+   phase 05's wording wrong twice otherwise.
+4. **Task #36** — CRAFT token-weight budget. The cap binds shape (17 of 25
+   lines) but not cost (4,658 chars; longest bullet 693). A per-bullet cap fails
+   today.
+5. **The `seccomp=unconfined` posture** (`07_delegation-seam.md`).
+   scbio-docker's compose template already ships the line, commented, on both
+   services. Leaving it off means codex delegation runs unsandboxed and safety
+   rests on prompt prohibitions plus a post-hoc grep — the exact defect shape
+   §5 describes. Recommendation: enable it. It is a real loosening on a shared
+   machine, so it is the owner's call.
 
-Nothing below is worth starting before item 3 is decided: the sweep touches
-vendor paths in 15 repos, and `scbio-docker/AGENTS.md` would need fixing twice.
+Also carried: commit 14761-DM (was blocked on a live `codex exec` writing
+`02_analysis/helpers/grn_viz/`; re-check).
 
 ---
 
-## 4b. The next implementation run is planned and ready to fan out
+## 5. The organizing finding
+
+Every defect surfaced on 2026-08-20 was the same defect: **an instruction naming
+something the mechanism does not guarantee.**
+
+| The toolkit says | The mechanism does |
+|---|---|
+| durable memory lives in tracked files, in `docs/_internal/` | `link` gitignores that path (`link.sh:278`) |
+| `_scratch/` is the only sanctioned throwaway zone | no project has one |
+| "`docs/_internal/` missing — run: `scio link`" | `link` never creates it (`lint.sh:604`) |
+| AGENTS.md: read the skill | activation mounted 60 of 86, silently |
+
+**The review question that falls out, worth applying to anything this toolkit
+asserts: what enforces this claim, and can that thing actually deliver?**
+
+---
+
+## 6. The next implementation run — planned, ready to fan out
 
 `docs/_internal/plans/2026-08-20-memory-and-seams/` — `00_INDEX.md` plus seven
-phase briefs, each one bounded implementer. Owner has approved the design.
-Read the INDEX first: §4 is a conflict map (phases 01 and 02 edit the same file
-and must serialize), §6 lists what is deliberately out of scope.
+phase briefs, each one bounded implementer. **Owner approved the design.**
 
-Evidence behind it: `docs/_internal/research/2026-08-20-internal-skeleton/` —
-four field inspections across 24 projects, a digest, and two consults. Cite it;
-do not re-derive it.
+Read `00_INDEX.md` first. §4 is a conflict map: **phases 01 and 02 both edit
+`lib/scio/lint.sh` and must serialize** — do not put them in parallel worktrees.
+§6 lists what is deliberately out of scope.
 
-The organizing finding, which generalises beyond this plan: every defect found
-on 2026-08-20 was **an instruction naming something the mechanism does not
-guarantee**. Four instances in one day. The review question that falls out —
-*what enforces this claim, and can it actually deliver?* — is worth applying to
-anything the toolkit asserts.
+| # | Ships | Repo |
+|---|---|---|
+| 01 | delete the three unbacked claims (lint predicate, `_scratch/` claim, CRAFT routes, hook text) | scio |
+| 02 | the opt-in `internal-memory` lint check that replaces them | scio |
+| 03 | stop shipping `.gitkeep` and empty category dirs | scio |
+| 04 | strip scio's path grammar from the user-global dev-env template | scio |
+| 05 | 7 docs citing the deleted `sciagent new project` verb | scbio-docker |
+| 06 | ADR-D10 — the record for all of it | scio |
+| 07 | delegation seam: retention contract + `probe.sh`/`launch.sh` as skill assets | scio |
 
-## 5. Next steps, in order
+Fan-out: `{01→02} ∥ 03 ∥ 04 ∥ 05 ∥ 06 ∥ 07`.
 
-5. Merge `dev --no-ff` → `main`; push hub **and** origin.
-6. **The sweep, 15 repos** (#30) — align → rename → link → craft → commit →
-   bump. Repoint the stale `origin/dev` upstreams to `hub/dev` in the same pass
-   (#31).
-7. Clear the `scbio-docker` pin drift off `3ab3768`.
-8. dev-env adoption of the 8-file handoff bundle under
-   `docs/_internal/handoff/dev-env/` (#33) — this is also what makes the
-   interaction stance live; it is active nowhere today. dev-env is clean at
-   `0b5a4b0`.
-9. `scbio-docker/AGENTS.md` documents a two-step `sciagent new project --type
-   analysis <dir>`. That verb is deleted, so the file currently sends an agent
-   to a command that does not exist. Owed to `init-project.sh` + the three
-   verbs.
-10. Consumer `scripts/` → `stages/` (#8). Last, after the repos rename.
+Evidence: `docs/_internal/research/2026-08-20-internal-skeleton/` — four field
+inspections across 24 projects, a digest (`FINDINGS_field.md`), and three
+consults (layout, enforcement, delegation). **Cite it; do not re-derive it.**
 
-## 6. Owner-only, no deadline
+### Decided, so do not reopen
+
+- **No new hook** — not Claude, not Codex, not git `pre-commit`. Surface
+  ranking: populated filesystem > `scio lint` > git hook > harness hooks. Codex
+  *does* have a full hook surface (`PreToolUse`/`Stop`/`SessionStart`,
+  `~/.codex/hooks.json`, trust by definition hash) and it was **rejected**: it
+  would need a project `.codex/` where none exists in any of 24 projects.
+- **Never scaffold empty.** A directory arrives with its first real file.
+- **Do not name a location nothing creates.** That is why the `_scratch/` claim
+  is being deleted, not relocated.
+- **No hand-maintained intent metadata.** The owner rejected config-knob
+  anchors (`decisions.<stage>`, `status: APPROVED`) from lived experience: they
+  produced churn and variables nobody could justify. Intent lives with the
+  stage and the figure it produced.
+- **No mirror of `02_analysis/helpers/`** — a helper serves several stages, so
+  its rationale files with the consuming stage.
+- **The seam.** Follows the repo → scio. Follows the human → dev-env.
+  Corollary: **dev-env may name a path for a tool, never for an agent.**
+- **Delegation prompts stay disposable.** They are an execution projection of a
+  plan, not the plan; the durable record already exists in-tree. What was
+  missing is a retention contract, not a path.
+
+---
+
+## 7. Traps — expensive to rediscover
+
+**`module-vendor`'s state column says nothing about currency.** Of the 15
+fleet-managed unswept copies, 5 report `BEHIND v48` and 10 read `OK clean`, yet
+all 20 sit at the same commit — the 10 track an `origin/dev` that is an
+*ancestor* of their own HEAD. Verify by SHA.
+
+**`v48` and `56` are both right.** `v48` is measured against the copy's upstream
+(`106f59f`); `56` is the true distance to `dev`. The gap is the unpushed
+commits.
+
+**Six copies are absent from `module-vendor status` on purpose.** `config.sh`
+`MODULE_VENDOR_EXCLUDE` names five **frozen by owner decision 2026-08-18**
+(12868-EH, Dakota_Black_NPC_DRP1, 13403-YD_Christina, JBader_scHFD, 13036-DM)
+plus Gama_Vivian. Exclusion, not branch-pinning, is what holds them, because
+`sync align` advances any copy it can see on a shared branch. **Do not "fix"
+their absence.**
+
+**`AdaW-eWAT-WL-bulkRNAseq` is benign** — a gitlink at pin `108da7a` with an
+empty directory. Uninitialized submodule, nothing bound, nothing dangling.
+
+**Never run `link` between `align` and `rename` in the sweep.** Align dangles 8
+agent and 2 command mounts per repo.
+
+**`docs/_internal/` is gitignored** (`.gitignore:11`). Everything tracked there
+was force-added, so this file and its siblings need `git add -f`.
+
+**A `craft.yaml` edit changes every consumer's CRAFT hash.** Verify the rendered
+body against `HEAD:craft.yaml` before committing unless the change is *intended*
+to alter it. `body:` must stay the last top-level key — `block.sh` reads it as a
+trailing block scalar. `max_lines: 25` is enforced by `lint --check toolkit`.
+
+**Release tests build throwaway fixture repos, never this one** — the builder
+runs the suite, so a test building this repo would re-enter it. Hence no
+`--skip-checks` flag by design.
+
+**`lint` has 11 selectable names; `all` runs 10.** `toolkit` is opt-in and
+validates this repo's own assets, so it must never gain a finding that fires in
+a consumer. Phase 02 makes it 12/10 on the same principle.
+
+**Bash only on the core path** — no `yq`, `jq`, `python3` (`AGENTS.md` rule 1).
+
+---
+
+## 8. Owner-only, no deadline
 
 - `docs/guidelines/` remainder — `data_processing.md` 281, `gsea_analysis.md`
   342, `master_tables.md` 380 lines await reconciliation against the assay
-  skills. That call is scientific, not structural.
-- A decision-gates lint check (#34) — `notebooks/` is invisible to lint today.
-  Deferred pending a stable contract.
-- ADR-D10 unwritten. **ADR-D5 is closed, not pending** — earlier revisions of
-  this file called it "decided, unimplemented", which was wrong: the ADR carries
-  its own demolition note of 2026-08-13 saying the adapter split and the `bind`
-  surface were superseded by the one convergent `link` operation. There is no
-  `lib/scio/harness/` layer to build. Task #6 closed on that basis.
-- `v-last-orchestrated` (= `5e5347e`, exactly where the unswept copies sit) is
-  hub-only. Reachable as an ancestor, so nothing is lost, but the named anchor
-  is not on origin.
-- Stale `.sciagent/manifest.json` (mode 0600) inside the 14616-DM and
+  skills. Scientific, not structural.
+- Decision-gates lint (#34): `notebooks/` is invisible to lint. Deferred.
+- **ADR-D5 is closed, not pending.** Earlier revisions of this file said
+  "decided, unimplemented" — wrong. The ADR carries its own demolition note of
+  2026-08-13: the adapter split and `bind` surface were superseded by the one
+  convergent `link`. No `lib/scio/harness/` layer exists to build. Task #6
+  closed on that basis.
+- `v-last-orchestrated` (= `5e5347e`, where the unswept copies sit) is hub-only.
+  Reachable as an ancestor; the named anchor is not on origin.
+- Stale `.sciagent/manifest.json` (mode 0600) in the 14616-DM and
   13403-YD_Christina toolkit checkouts — what makes 14616-DM read
-  `UNTRACKED ?1`. Deliberately untouched: `rm` inside a consumer is the owner's
-  call.
+  `UNTRACKED ?1`. Untouched: `rm` inside a consumer is the owner's call.
 
-## 7. Distribution channels, for orientation
+## 9. After the owner unblocks
+
+1. Merge `dev --no-ff` → `main`; push hub **and** origin.
+2. **The sweep, 15 repos** (#30) — align → rename → link → craft → commit →
+   bump; repoint stale `origin/dev` upstreams to `hub/dev` in the same pass
+   (#31). This is what actually delivers the 26 unreachable skills.
+3. Clear the `scbio-docker` pin drift off `3ab3768`.
+4. dev-env adoption of the 8-file bundle (#33) — the habit layer, live nowhere.
+   dev-env clean at `0b5a4b0`.
+5. Consumer `scripts/` → `stages/` (#8). Last, after the rename.
+
+## 10. Distribution channels
 
 | Channel | State |
 |---|---|
@@ -237,9 +321,8 @@ anything the toolkit asserts.
 | Global install — `install.sh` + `scripts/build-release.sh` | shipped, exercised end-to-end |
 | npx / marketplace | not built, secondary by ADR-D2 |
 
-Two known rough edges in the global channel, both design calls rather than bugs:
-pruning the link-*owning* version leaves an installed version with no
-`bin/scio` (fixing it means uninstall acquires a version-promotion policy); and
+Two known rough edges in the global channel, both design calls: pruning the
+link-*owning* version leaves an installed version with no `bin/scio`; and
 uninstalling a version dangles the six category links of any project bound from
-it, which `propagation.md` now records because the receipt lists installed files
+it, which `propagation.md` records because the receipt lists installed files
 rather than the projects bound from them.
