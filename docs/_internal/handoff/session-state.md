@@ -175,6 +175,23 @@ vendor paths in 15 repos, and `scbio-docker/AGENTS.md` would need fixing twice.
 
 ---
 
+## 4b. The next implementation run is planned and ready to fan out
+
+`docs/_internal/plans/2026-08-20-memory-and-seams/` — `00_INDEX.md` plus seven
+phase briefs, each one bounded implementer. Owner has approved the design.
+Read the INDEX first: §4 is a conflict map (phases 01 and 02 edit the same file
+and must serialize), §6 lists what is deliberately out of scope.
+
+Evidence behind it: `docs/_internal/research/2026-08-20-internal-skeleton/` —
+four field inspections across 24 projects, a digest, and two consults. Cite it;
+do not re-derive it.
+
+The organizing finding, which generalises beyond this plan: every defect found
+on 2026-08-20 was **an instruction naming something the mechanism does not
+guarantee**. Four instances in one day. The review question that falls out —
+*what enforces this claim, and can it actually deliver?* — is worth applying to
+anything the toolkit asserts.
+
 ## 5. Next steps, in order
 
 5. Merge `dev --no-ff` → `main`; push hub **and** origin.
@@ -199,8 +216,11 @@ vendor paths in 15 repos, and `scbio-docker/AGENTS.md` would need fixing twice.
   skills. That call is scientific, not structural.
 - A decision-gates lint check (#34) — `notebooks/` is invisible to lint today.
   Deferred pending a stable contract.
-- ADR-D5 (#6) decided, unimplemented: extract project binding behind a common
-  layer plus harness adapters. ADR-D10 unwritten.
+- ADR-D10 unwritten. **ADR-D5 is closed, not pending** — earlier revisions of
+  this file called it "decided, unimplemented", which was wrong: the ADR carries
+  its own demolition note of 2026-08-13 saying the adapter split and the `bind`
+  surface were superseded by the one convergent `link` operation. There is no
+  `lib/scio/harness/` layer to build. Task #6 closed on that basis.
 - `v-last-orchestrated` (= `5e5347e`, exactly where the unswept copies sit) is
   hub-only. Reachable as an ancestor, so nothing is lost, but the named anchor
   is not on origin.
