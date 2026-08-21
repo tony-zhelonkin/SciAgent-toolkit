@@ -9,7 +9,7 @@ Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 only what those cannot — where the work stopped, what waits on the owner, and
 the facts that cost time to rediscover.
 
-Last verified: **2026-08-20**, toolkit at `1c7599f`.
+Last verified: **2026-08-21**, toolkit at `2a1c702`. 63 tests passing.
 
 ---
 
@@ -68,7 +68,7 @@ cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 
 ### What that showed on 2026-08-20
 
-`dev` = `1c7599f`, **8 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`dev` = `2a1c702`, **11 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
 `main` = `c83dfe2` both remotes. 62 tests passing, 0 failing. `toolkit` lint
 clean. Tree clean.
 
@@ -244,9 +244,40 @@ Read `00_INDEX.md` first. §4 is a conflict map: **phases 01 and 02 both edit
 | 04 | strip scio's path grammar from the user-global dev-env template | scio |
 | 05 | 7 docs citing the deleted `sciagent new project` verb | scbio-docker |
 | 06 | ADR-D10 — the record for all of it | scio |
-| 07 | delegation seam: retention contract + `probe.sh`/`launch.sh` as skill assets | scio |
+| 07 | delegation seam: retention contract, cite scbio-docker for the bwrap cause | scio |
+| 08 | **DONE `2a1c702`** — `probe.sh`/`launch.sh` assets; SKILL.md 416 → 150 | scio |
 
-Fan-out: `{01→02} ∥ 03 ∥ 04 ∥ 05 ∥ 06 ∥ 07`.
+Fan-out for what remains: `{01→02} ∥ 03 ∥ 04 ∥ 05 ∥ 06 ∥ 07`.
+
+**Phase 08 shipped 2026-08-21** (fanned out to two codex workers on disjoint
+files, reviewed by re-running every gate rather than trusting their reports).
+`delegate-cli` prescribed `--search`, which exists in **neither** codex 0.147.0
+nor 0.149.0 — the skill *caused* a field failure. Its backgrounding advice was
+a Claude Code tool parameter, absent when the owner runs `!` himself. It said
+nothing about concurrency, and two overlapping runs of one unit wrote the same
+paths for ~2.5 min until the orchestrator stopped trusting the worker's report.
+
+Now: `skills/delegate-cli/assets/probe.sh` reads `codex exec --help` and emits
+capability as `KEY=VALUE` (`HAS_SEARCH_FLAG`, `WEB_MODE`), proving tool use with
+a nonce file; `launch.sh` keeps the typed command short (the wrap fix), feeds the
+prompt via stdin, locks per unit so a duplicate refuses, requires
+`--parallel-ok` to run beside a *different* unit, backgrounds on `--bg`, and
+fails when an `--expect` artifact is absent. Verified live: `HAS_SEARCH_FLAG=0`,
+`WEB_MODE=config_enable`, and a real end-to-end codex run captured.
+
+**The generalisable lesson: a skill must not assert the flags of a CLI that
+version-drifts underneath it.** Two codex versions are live in the fleet
+(0.147.0 host, 0.149.0 container, installed by an unpinned `setup_ai_env.sh`).
+Prose dated "verified 2026-07-28" already failed once. Probe, do not assert.
+
+Field evidence: `docs/_internal/research/2026-08-21-delegation-invocation/` —
+three per-project investigations plus a gpt-5.5 design consult. It also records
+that **four** conventions for delegation artifacts existed (JR-MC
+`docs/_internal/codex/`, Meta-Aging `_scratch/codex_handoff/`, 14782-DM
+`/tmp/…/scratchpad/codex/`, and the skill's own `/tmp/<unit>`), that Meta-Aging
+worked on **operator habit rather than mechanism**, and that JR-MC's good
+wrapper was itself untracked inside a gitignored tree — the best answer in the
+fleet was the least durable.
 
 Evidence: `docs/_internal/research/2026-08-20-internal-skeleton/` — four field
 inspections across 24 projects, a digest (`FINDINGS_field.md`), and three
