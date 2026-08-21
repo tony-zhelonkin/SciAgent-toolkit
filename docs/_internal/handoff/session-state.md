@@ -9,7 +9,7 @@ Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 only what those cannot — where the work stopped, what waits on the owner, and
 the facts that cost time to rediscover.
 
-Last verified: **2026-08-21**, toolkit at `779eb6f`. 64 tests passing.
+Last verified: **2026-08-21**, toolkit at `d1a8dc4`. 65 tests passing.
 
 ---
 
@@ -68,9 +68,12 @@ cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 
 ### What that showed on 2026-08-21
 
-`dev` = `779eb6f`, **17 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
-`main` = `c83dfe2` both remotes. **64** tests passing, 0 failing. `toolkit` lint
+`dev` = `d1a8dc4`, **20 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`main` = `c83dfe2` both remotes. **65** tests passing, 0 failing. `toolkit` lint
 clean. Tree clean.
+
+A file cannot name the commit that adds it, so the tip is this handoff's own
+commit, one past `d1a8dc4`. Re-derive rather than trusting either number.
 
 Unpushed, oldest first:
 
@@ -92,13 +95,18 @@ beb933b  Point the handoff at the shipped delegation assets
 3a6870e  Ship no directory that has nothing to copy
 432e9cf  Keep project paths out of the user-global habit layer
 779eb6f  Record ADR-D10 — memory mirrors the analysis, lint is its surface
+710094f  Bring the handoff up to a fully implemented plan
+4503fbe  Write category links that resolve from both sides of the container
+d1a8dc4  Track the plan directories a clone could not see
 ```
 
-Five change behaviour: `42ae8a1` (uninstall exit-3), `287e8e4` (CRAFT budget
+Six change behaviour: `42ae8a1` (uninstall exit-3), `287e8e4` (CRAFT budget
 check), `2a1c702` (delegation assets), `60c1f2d` (a deleted lint predicate plus
 the new `internal-memory` check, and a CRAFT body change every consumer sees as
 drift on re-pin), `3a6870e` (five `.gitkeep` and six READMEs leave the
-scaffold). The rest is documentation, planning and evidence.
+scaffold), `4503fbe` (**relative category links** plus `harness-links`; every
+bound copy's mounts get rewritten by its next `link`). The rest is
+documentation, planning and evidence.
 
 In **scbio-docker**, on branch `feat/bulkirna-v0.5.0`: `5dd9cbd` (seven docs off
 the deleted verb) and `127c8a5` (the `si` alias — see §7). The submodule pin
@@ -109,14 +117,14 @@ Fleet — **25 real copies, 19 tracked** (`JR-MC-Tonsill/JR-MC` appeared
 
 | Count | Commit | Behind `dev` | What |
 |---|---|---|---|
-| 1 | `779eb6f` | 0 | scbio-docker — the canonical dev checkout |
-| 1 | `e33b635` | 8 | JR-MC — new, bound in-container |
-| 1 | `106f59f` | 17 | 14616-DM — the swept pilot |
-| 20 | `5e5347e` | **65** | unswept (15 fleet-managed + 5 frozen by decision) |
-| 1 | `cf19c6d` | 131 | PanSci — PINNED, deliberately |
+| 1 | `d1a8dc4` | 0 | scbio-docker — the canonical dev checkout |
+| 1 | `e33b635` | 11 | JR-MC — new, bound in-container |
+| 1 | `106f59f` | 20 | 14616-DM — the swept pilot |
+| 20 | `5e5347e` | **68** | unswept (15 fleet-managed + 5 frozen by decision) |
+| 1 | `cf19c6d` | 134 | PanSci — PINNED, deliberately |
 | 1 | `fb6012a` | not in canonical history | Gama_Vivian — excluded by config |
 
-`scbio-docker` pin drift: records `3ab3768`, checked out `779eb6f`.
+`scbio-docker` pin drift: records `3ab3768`, checked out `d1a8dc4`.
 
 ---
 
@@ -168,7 +176,7 @@ implement it. Availability still needs the sweep. The other three are closed.
 
 ## 4. Blocked on the owner — six decisions
 
-1. **Review `106f59f..dev`** (17 commits; 5 change behaviour). The owner intends to tweak wording
+1. **Review `106f59f..dev`** (20 commits; 6 change behaviour). The owner intends to tweak wording
    during review. Use `nvim -c 'DiffviewOpen origin/dev'` — **not** `A..dev`: a
    commit-to-commit range makes both panes read-only because neither side is a
    file on disk. One revision diffs against the working tree, so the right pane
@@ -202,7 +210,31 @@ Also carried: commit 14761-DM (was blocked on a live `codex exec` writing
 
 ---
 
-## 4b. NEW 2026-08-21 — #37 blocks the sweep, decide it first
+## 4b. #37 — FIXED 2026-08-21 in `4503fbe`. The sweep is unblocked.
+
+Owner ruling: relativize **and** add the lint predicate, so it cannot come back
+silently. `_link_symlink_target` now serves both the six category links and the
+two helper libs — relative while the source is inside the project, absolute for
+a global install, where a relative chain breaks the moment the project moves.
+
+The part that mattered most: the idempotency test compares the **written** target
+rather than where it resolves. A resolution test reads an absolute link as
+current, so `link` would have been a silent no-op in all 25 bound copies — the
+fix meant to reach them would never have arrived. A re-run now reports each
+repair. `lint --check harness-links` (in `all`) fails a mount that does not
+resolve or that names an absolute path inside the project, and stays quiet on an
+absolute target outside it. `tests/test_lint_harness_links.sh` covers all nine
+cases, including the repair path and the global-install exemption.
+
+`CHANGELOG:59` is true again: its historical claim that all three namespaces and
+both mirrors are relative now matches behaviour.
+
+**What the sweep must still do about this:** every one of the 25 copies is
+carrying absolute links today, so the sweep's `link` step is now also the repair
+step — and it must run *after* the re-pin, or it writes relative links against
+the old pin. Verify with `readlink .claude/skills` per repo, not by resolution.
+
+### The original finding, kept for the record
 
 `_link_category` (`link.sh:140-172`) writes the six category links **absolute**:
 `src="$SCIO_TOOLKIT/$category"`, `ln -s "$src" "$dst"`, no relativization. The
@@ -249,14 +281,14 @@ something the mechanism does not guarantee.**
 | "`docs/_internal/` missing — run: `scio link`" | `link` never creates it | predicate deleted `60c1f2d` |
 | AGENTS.md: read the skill | activation mounted 60 of 86, silently | fixed by design; needs the sweep |
 | pass `--search` to codex | the flag exists in no live version | fixed `2a1c702` |
-| category links are relative (`CHANGELOG:59`) | they are absolute | **open — #37** |
+| category links are relative (`CHANGELOG:59`) | they were absolute | fixed `4503fbe` |
 | `alias si` runs the toolkit CLI | it named `bin/sciagent`, deleted | fixed `127c8a5` |
 
 **The review question that falls out, worth applying to anything this toolkit
 asserts: what enforces this claim, and can that thing actually deliver?**
 
-Seven instances now, five closed. The two that remain are the two where the
-mechanism, not the wording, has to change.
+Seven instances now, six closed. The one that remains is the one where the
+mechanism, not the wording, has to change: the memory tree is still gitignored
 
 ---
 
@@ -429,7 +461,7 @@ trailing block scalar. `max_lines: 25` is enforced by `lint --check toolkit`.
 runs the suite, so a test building this repo would re-enter it. Hence no
 `--skip-checks` flag by design.
 
-**`lint` has 12 selectable names; `all` runs 10.** `toolkit` and
+**`lint` has 13 selectable names; `all` runs 11.** `toolkit` and
 `internal-memory` are both opt-in: `toolkit` validates this repo's own assets,
 and `internal-memory` would fire in every consumer before any project has
 adopted the skeleton. Neither may ever gain a finding that fires from `all`.
