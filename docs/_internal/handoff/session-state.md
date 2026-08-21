@@ -9,7 +9,7 @@ Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 only what those cannot — where the work stopped, what waits on the owner, and
 the facts that cost time to rediscover.
 
-Last verified: **2026-08-21**, toolkit at `d1a8dc4`. 65 tests passing.
+Last verified: **2026-08-21**, toolkit at `686c408`. 65 tests passing.
 
 ---
 
@@ -19,7 +19,7 @@ Last verified: **2026-08-21**, toolkit at `d1a8dc4`. 65 tests passing.
   Non-regenerable: it encodes traps (the CORESH Entrez-integer trap,
   species-mismatch silent failures, iterative peak merging) that took real
   analyses to learn.
-- **THE MECHANISM** — `lib/scio/` 2,619 LOC + `bin/scio` 65. Three verbs, one
+- **THE MECHANISM** — `lib/scio/` 2,896 LOC + `bin/scio` 65. Three verbs, one
   concern each: `link` = availability (convergent), `craft` = standing text
   (idempotent), `lint` = enforcement (read-only).
 - **THE AUTHORITY** — Git. The submodule pin **is** the lock (ADR-D1). No
@@ -68,12 +68,12 @@ cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 
 ### What that showed on 2026-08-21
 
-`dev` = `d1a8dc4`, **20 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`dev` = `686c408`, **27 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
 `main` = `c83dfe2` both remotes. **65** tests passing, 0 failing. `toolkit` lint
 clean. Tree clean.
 
 A file cannot name the commit that adds it, so the tip is this handoff's own
-commit, one past `d1a8dc4`. Re-derive rather than trusting either number.
+commit, one past `686c408`. Re-derive rather than trusting either number.
 
 Unpushed, oldest first:
 
@@ -98,6 +98,13 @@ beb933b  Point the handoff at the shipped delegation assets
 710094f  Bring the handoff up to a fully implemented plan
 4503fbe  Write category links that resolve from both sides of the container
 d1a8dc4  Track the plan directories a clone could not see
+4b150fd  Record #37 fixed and the sweep unblocked
+4e67fe9  Record the consult on whether the memory tree earns its own depth
+3f6d4ef  Let scope be the only structure in the memory tree
+a4ba98e  Trace where the delegation time actually went
+63f27dc  Bring nine catalog assets onto the one memory grammar
+72dff47  Record the publication-topology and delegation-redesign consults
+686c408  Count both forms of history the memory tree can already have
 ```
 
 Six change behaviour: `42ae8a1` (uninstall exit-3), `287e8e4` (CRAFT budget
@@ -105,8 +112,11 @@ check), `2a1c702` (delegation assets), `60c1f2d` (a deleted lint predicate plus
 the new `internal-memory` check, and a CRAFT body change every consumer sees as
 drift on re-pin), `3a6870e` (five `.gitkeep` and six READMEs leave the
 scaffold), `4503fbe` (**relative category links** plus `harness-links`; every
-bound copy's mounts get rewritten by its next `link`). The rest is
-documentation, planning and evidence.
+bound copy's mounts get rewritten by its next `link`), `3f6d4ef` (**the memory
+grammar flattens**; `internal-memory` rewritten, and a second CRAFT body change),
+`63f27dc` (nine catalog assets re-routed), `686c408` (a history predicate that
+counts worktrees and parent-tracked trees). The rest is documentation, planning
+and evidence.
 
 In **scbio-docker**, on branch `feat/bulkirna-v0.5.0`: `5dd9cbd` (seven docs off
 the deleted verb) and `127c8a5` (the `si` alias — see §7). The submodule pin
@@ -117,14 +127,14 @@ Fleet — **25 real copies, 19 tracked** (`JR-MC-Tonsill/JR-MC` appeared
 
 | Count | Commit | Behind `dev` | What |
 |---|---|---|---|
-| 1 | `d1a8dc4` | 0 | scbio-docker — the canonical dev checkout |
-| 1 | `e33b635` | 11 | JR-MC — new, bound in-container |
-| 1 | `106f59f` | 20 | 14616-DM — the swept pilot |
-| 20 | `5e5347e` | **68** | unswept (15 fleet-managed + 5 frozen by decision) |
-| 1 | `cf19c6d` | 134 | PanSci — PINNED, deliberately |
+| 1 | `686c408` | 0 | scbio-docker — the canonical dev checkout |
+| 1 | `e33b635` | 18 | JR-MC — new, bound in-container |
+| 1 | `106f59f` | 27 | 14616-DM — the swept pilot |
+| 20 | `5e5347e` | **75** | unswept (15 fleet-managed + 5 frozen by decision) |
+| 1 | `cf19c6d` | 141 | PanSci — PINNED, deliberately |
 | 1 | `fb6012a` | not in canonical history | Gama_Vivian — excluded by config |
 
-`scbio-docker` pin drift: records `3ab3768`, checked out `d1a8dc4`.
+`scbio-docker` pin drift: records `3ab3768`, checked out `686c408`.
 
 ---
 
@@ -374,6 +384,62 @@ Evidence: `docs/_internal/research/2026-08-20-internal-skeleton/` — four field
 inspections across 24 projects, a digest (`FINDINGS_field.md`), and three
 consults (layout, enforcement, delegation). **Cite it; do not re-derive it.**
 
+### 6b. After the plan — the grammar got simpler and the delegation gap got named
+
+**The memory tree lost a level** (`3f6d4ef`, `63f27dc`). A consult asked to
+default every directory to *delete* and argue each back in. Scope survived;
+document category did not. A stage holds `session.md` and flat topic notes beside
+it — `30_grn/network-selection.md`, not `30_grn/reasoning/network-selection.md`.
+Software repos lose the invented `<work-stem>` key and use `_project/` alone,
+because there is no observable work key for lint to check. The `_common` README
+template is gone: it stated the grammar a third time. Owner rulings, all four:
+flatten, `_project/` for software, delete the README, keep Decision 6 with lint
+observing it.
+
+**"Git history is its archive" is deleted.** It is false in an ignored,
+non-nested tree, where an in-place `session.md` update destroys what it replaced.
+ADR-D10 still recommends the nested repository, **no verb creates one**, and
+`internal-memory` reports a tree holding continuity records with no history. A
+`.git` *file* (worktree, submodule) and a parent that force-tracked the tree both
+count as history — the first predicate missed both (`686c408`).
+
+**The grammar was stated in twelve places.** Changing it once changed nothing:
+nine catalog assets still routed to `docs/_internal/reasoning/`, including
+`agents/handoff.md`, which emitted *"MISSING TRACE — add to
+docs/_internal/reasoning/"* into real projects. Fixed. **Five more remain and
+need a decision, not a substitution — task #45.** `/decompose` and `/implement`
+carry a whole second plan vocabulary (`README.md`, `phase-NN.md`, `_campaign.md`)
+that the `00_INDEX.md` predicate will flag on every plan they produce.
+
+**Delegation: the failure was delivery, decisively** — the trace is
+`docs/_internal/research/2026-08-21-delegation-monitoring/TRACE_jr-mc-session.md`,
+measured from a 5.2 MB transcript. JR-MC ran the pre-asset 416-line skill;
+`assets/` was absent from its pinned checkout. `2a1c702` existed in this
+repository for **13 h 25 min** before the owner complained and never arrived,
+because nothing re-pins a vendored submodule mid-session.
+
+Dead time is *entirely* launch-to-observation: **349.8 min** worst case, **219.7
+min** with the owner demonstrably present, against 4 s from observation to action.
+The split is mechanical — every gap over six minutes was a `nohup &` with no
+watcher; every gap under two minutes was a run the harness knew about. `| tail -5`
+was inert, measured: **0 bytes** observable after ten minutes while the run log
+held **425,956**.
+
+Three findings that outlive that project:
+
+- **Prose warnings do not work.** The old skill documented the `pgrep -f`
+  self-match and the `pkill -f` exit-144 trap, both marked verified. The session
+  reproduced both — once with the truth and the falsehood in the *same command
+  output*, and the falsehood won for four hours. This is the argument for assets
+  over prose, made by experiment.
+- **The orchestrator cannot wake itself.** All nine idle gaps end with a user
+  message or a harness notification; there is no third mechanism. A detached run
+  with no harness task id is unobservable *in principle* — so
+  **`launch.sh --bg` reproduces the `nohup` failure** and must go (task #46).
+- **The owner's foreground `!` runs were the well-behaved ones**, because timeout
+  promotion gave them a task id. The deliberate, correct-looking backgrounding was
+  the invisible half.
+
 ### Decided, so do not reopen
 
 - **No new hook** — not Claude, not Codex, not git `pre-commit`. Surface
@@ -461,7 +527,7 @@ trailing block scalar. `max_lines: 25` is enforced by `lint --check toolkit`.
 runs the suite, so a test building this repo would re-enter it. Hence no
 `--skip-checks` flag by design.
 
-**`lint` has 13 selectable names; `all` runs 11.** `toolkit` and
+**`lint` has 13 selectable names; `all` runs 11.** (`harness-links` joined `all`; `internal-memory` and `toolkit` are opt-in.) `toolkit` and
 `internal-memory` are both opt-in: `toolkit` validates this repo's own assets,
 and `internal-memory` would fire in every consumer before any project has
 adopted the skeleton. Neither may ever gain a finding that fires from `all`.
