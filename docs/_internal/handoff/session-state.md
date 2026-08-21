@@ -175,6 +175,41 @@ Also carried: commit 14761-DM (was blocked on a live `codex exec` writing
 
 ---
 
+## 4b. NEW 2026-08-21 — #37 blocks the sweep, decide it first
+
+`_link_category` (`link.sh:140-172`) writes the six category links **absolute**:
+`src="$SCIO_TOOLKIT/$category"`, `ln -s "$src" "$dst"`, no relativization. The
+helper-shim path (`link.sh:230-231`) *does* relativize. So relativization
+survived the demolition for `02_analysis/helpers/` and was lost for
+skills/agents/commands in `3ab3768`. Verified live:
+
+```
+.claude/skills                   -> /data1/.../SciAgent-toolkit/skills        absolute
+02_analysis/helpers/figure-style -> ../../../../../data1/.../figure-style      relative
+```
+
+`CHANGELOG.md:59` still claims all three namespaces and both mirrors are
+relative. False since `3ab3768` — a **fifth** instance of §5's defect class,
+this time in the changelog.
+
+Observed in the field: `/data2/users/JCRLab/JR-MC-Tonsill/JR-MC` (new
+2026-08-21, pinned at `e33b635` = current dev) has all six links pointing at
+`/workspaces/JR-MC/01_modules/...` — they resolve in the container and dangle on
+the host.
+
+**Why it blocks #30:** `link` from the host rewrites all six to host paths and
+breaks the container; in-container it breaks host tooling. Last writer wins. The
+sweep runs `link` in 15 repos — from the host that silently breaks every
+container-bound project. Fix, or fix the invocation location, before sweeping.
+
+Also: the helper path's absolute fallback is dead — `realpath --relative-to`
+always succeeds, so an external toolkit gets a `../../../../../` chain instead
+of the intended absolute. Same change should fix it.
+
+**The fleet also grew while blocked.** 19 tracked SciAgent copies now, not 18 —
+`JR-MC-Tonsill/JR-MC` appeared overnight. Each day the sweep waits adds a copy
+that needs it. Unswept copies are now **57** behind, not 56.
+
 ## 5. The organizing finding
 
 Every defect surfaced on 2026-08-20 was the same defect: **an instruction naming
