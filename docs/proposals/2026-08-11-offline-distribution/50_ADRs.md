@@ -313,3 +313,85 @@ during the migration.
 
 **Blocks:** the pilot re-pin and coordinated fleet migration. **Reversible:** yes, at fleet
 coordination cost.
+
+---
+
+## ADR-D10 — Project memory mirrors analysis and is enforced from the tree [Arch]
+
+**Context.** The toolkit's always-on text says durable memory lives in tracked files under
+`docs/_internal/`, while `link` writes that path into `SCIO:GITIGNORE` and `docs-layout` warns when
+the ignored directory is absent. By the instruction's own definition, the mandated location
+produces no durable record in the parent repository. The measured evidence is recorded in
+`docs/_internal/research/2026-08-20-internal-skeleton/`: among 24 projects, 10 have no
+`docs/_internal/`; two independently made it a nested Git repository, with 126 and 210 commits and
+no remote; empty `handoffs/` scaffolds coexist with real handoffs in `sessions/`; the fleet uses ten
+handoff spellings; the named root `_scratch/` convention has no populated instance; and one internal
+tree reached 568 MB after absorbing a virtual environment. The instruction, scaffold, and mechanism
+describe different systems.
+
+**Decision.**
+
+1. **Memory mirrors the analysis.** Memory for `02_analysis/stages/NN_<stem>.*` lives at
+   `docs/_internal/NN_<stem>/`. Memory that spans or precedes stages lives under
+   `docs/_internal/_project/`. The stage number is the key agents and humans already share, so this
+   mapping requires no intent metadata. There is no mirror for `02_analysis/helpers/`: a helper can
+   serve several stages, and its rationale belongs with a consuming stage or under `_project/`. A
+   repository with no stages keys the same way on its own work units, so the software templates say
+   `docs/_internal/<work-stem>/`; the lint check evaluates the stem predicate only where a stage
+   directory exists to evaluate it against.
+
+2. **A plan is a third durable form.** The two ordinary forms are `reasoning/<topic>.md` and
+   `session.md`; `session.md` is updated in place and Git history is its archive. Plans are also
+   durable. The strongest working example in the fleet is 14782-DM's
+   `docs/_internal/plans/2026-08-14_consensus-migration/`, whose 93-line `00_STATE.md` coordinates six
+   numbered phase files. This toolkit ships `templates/plan/` and uses the same pattern for this
+   work.
+
+   **OPEN — awaiting owner ruling.** The proposed placement is
+   `_project/plans/<date-slug>/`, because a plan spans stages. Its `00_STATE.md` and `session.md` are
+   the same form under two names; the owner must choose one spelling, which is then updated in
+   place. A plan is created with its first substantive state or phase file. A later ruling belongs
+   in an appended owner-ruling note beneath this ADR.
+
+3. **Scratch is disposable work.** Scio names no sanctioned scratch location. Agents and tools may
+   use an appropriate disposable workspace without turning it into durable memory.
+
+4. **Directories arrive with content.** Scaffolding creates a directory with its first authentic
+   file. A populated example carries the structure agents can copy; `.gitkeep` carries no usable
+   contract.
+
+5. **Tree lint is the enforcement surface.** Enforcement is the opt-in, harness-blind
+   `scio lint --check internal-memory`, which reads the repository tree. Codex has a full hook
+   surface — `PreToolUse`, `Stop`, and `SessionStart` in `~/.codex/hooks.json`, trusted by definition
+   hash — and using it is rejected. Project enforcement would require a project `.codex/`, a
+   directory present in zero of the 24 surveyed projects, and would duplicate a Claude-shaped
+   mechanism. No Claude, Codex, or Git hook is added. A `pre-commit` invocation of the lint remains
+   available as a later escalation if evidence shows agents skip it.
+
+6. **Memory is a nested repository in place, declared by the parent.** `docs/_internal/` becomes
+   its own Git repository. The parent already ignores the path, so the nesting needs no additional
+   wiring. The parent tracks `docs/internal-memory.md`, which names the memory location and makes the
+   nested repository visible. A submodule is rejected because durability would depend on pin bumps;
+   20 of 24 surveyed copies currently share one stale pin. Parent-tracked memory is rejected because
+   agent churn would flood the human log and restore the publication hazard. Remotes and hub syncing
+   remain deferred.
+
+7. **Ownership follows the seam.** Scio owns path grammar, examples, always-on router text, and lint
+   predicates. dev-env owns user-global habits. The test is: *follows the repository → Scio; follows
+   the human → dev-env.* dev-env may name a path for a tool, such as a watcher or credential mount;
+   agent-facing paths belong to Scio.
+
+**Consequences.** The unsupported tracked-memory promise, root `_scratch/` directive, and
+`docs-layout` remediation claim become deletable, as do the pre-created empty memory categories and
+their `.gitkeep` files. Migration does not bulk-add or relocate the 8,317 existing files. Existing
+memory is handled opportunistically when its project next becomes active. No `docs/_internal/` is
+created solely to conform: absence is the majority state and is legitimate. This ADR records the
+nested-repository topology and parent pointer; it does not implement either or determine where
+memory is pushed.
+
+The review question generalises beyond memory: *for every claim the toolkit makes, what enforces it,
+and can that thing actually deliver?* Four defects found in one day had the same shape: an
+instruction named something its mechanism did not guarantee.
+
+**Blocks:** nothing. **Reversible:** yes; the deletions are recoverable from history and no data is
+destroyed.
