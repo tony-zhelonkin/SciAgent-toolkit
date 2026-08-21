@@ -1,34 +1,6 @@
 # docs/_internal/ — agent-facing working documents
 
-This tree is the project's reasoning record: decision traces, dated handoffs, research
-notes, and the stable scientific framing. It is agent-facing, not the published
-deliverable. Public-facing material lives under `docs/` outside `_internal/`.
-
-## Layout
-
-| Path | Holds |
-|------|-------|
-| `scientific-context.md` | stable scientific framing (question, datasets, goals) |
-| `reasoning/` | decision traces, why-not logs, agent thinking |
-| `sessions/` | dated session handoffs |
-| `research/` | literature / web research notes |
-
-## Naming conventions
-
-| Pattern | Used for |
-|---------|----------|
-| `YYYY-MM-DD_NN_topic.md` | research notes and explorations (`NN` = within-day sequence) |
-| `YYYY-MM-DD_<slug>.md` | session handoffs |
-| `<slug>.md` | decisions and ADRs (dateless) |
-
-`NN` is the within-day sequence number. Compute it from the files already present for
-today's date:
-
-```bash
-printf "%02d" $(( $(ls dir/ | grep "^$DATE" | wc -l) + 1 ))
-```
-
-## One-way reference rule
-
-`docs/_internal/` may reference any public artifact (scripts, results, config keys).
-The reverse is forbidden: public-facing files must NOT link to or mention `_internal/`.
+Keep reasoning and session state beside the work it serves under
+`docs/_internal/<work-stem>/`. Use `docs/_internal/_project/` for work that spans or
+precedes individual work units. Create each directory with its first real file.
+References flow from these records to published artifacts under `docs/`.

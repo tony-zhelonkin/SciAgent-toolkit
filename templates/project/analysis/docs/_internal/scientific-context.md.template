@@ -2,9 +2,9 @@
 
 **Created:** {{DATE}} · **Species / system:** {{SPECIES}}
 
-This is the canonical scientific framing for the project. It changes rarely. Running notes,
-handoffs, and decision logs belong under `docs/_internal/sessions/` and
-`docs/_internal/reasoning/`, not here.
+This is the canonical scientific framing for the project. It changes rarely. Record
+stage-specific work under `docs/_internal/<stage-stem>/` and cross-stage work under
+`docs/_internal/_project/`.
 
 ---
 

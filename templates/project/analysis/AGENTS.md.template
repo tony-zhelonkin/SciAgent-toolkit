@@ -10,8 +10,9 @@ This file is the single source of truth for AI agent behavior in this project.
 ## Project context
 
 The canonical scientific framing — question, datasets, hypotheses, goals — lives in
-`docs/_internal/scientific-context.md`. Read it before acting. Session handoffs are written
-to `docs/_internal/sessions/YYYY-MM-DD_<slug>.md`.
+`docs/_internal/scientific-context.md`. Read it before acting. Resume from the active
+stage's `docs/_internal/<stage-stem>/session.md`, or from
+`docs/_internal/_project/session.md` for cross-stage work.
 
 ## Toolkit context
 
@@ -84,22 +85,23 @@ block rendered by `scio craft`. That block is authoritative — do not hand-edit
 
 ## Documentation namespace
 
-`docs/_internal/` is agent-facing (not the published deliverable). Route every output here:
+`docs/_internal/` is the agent-facing reasoning record. Its structure mirrors the analysis:
 
 | Output kind | Directory |
 |-------------|-----------|
-| session handoff | `docs/_internal/sessions/` |
-| research note | `docs/_internal/research/` |
-| decision log | `docs/_internal/reasoning/` |
 | scientific framing | `docs/_internal/scientific-context.md` |
-| public phased plan | `docs/_internal/plans/{date-slug}/` |
+| stage session | `docs/_internal/<stage-stem>/session.md` |
+| stage reasoning | `docs/_internal/<stage-stem>/reasoning/<topic>.md` |
+| cross-stage session | `docs/_internal/_project/session.md` |
+| cross-stage reasoning | `docs/_internal/_project/reasoning/<topic>.md` |
 
-Naming conventions: see `docs/_internal/README.md`.
+Create each directory with its first real file. Update `session.md` in place; git history
+is its archive.
 
 **One-way reference rule:** public `docs/` must NOT reference `_internal/` paths.
 
-**Never-grow-this-file rule:** if `AGENTS.md` exceeds ~150 lines, split content into
-referenced files under `docs/_internal/`.
+**Never-grow-this-file rule:** if `AGENTS.md` exceeds ~150 lines, move the excess into a
+real stage or project-wide reasoning record and reference it here.
 
 ---
 
