@@ -75,6 +75,6 @@ See `00_ARCHITECTURE.md` (optional companion) for design rationale. This INDEX i
 - **Figure-style contract.** Every figure goes through `project_theme()` / `set_paper_style()` reading sizes from `analysis_config.yaml:figures`; saved via `save_figure()` or `save_overview()` (atomic figure + table + caption). Acceptance greps ban inline `theme(text` / raw `ggsave(width=<number>` / raw hex colours in `*_viz.*` files.
 - **Results placement.** Artifacts land under `03_results/<stage_id>/{figures,tables}/by_contrast/<c>/` or `_overview/`; stage must be declared in `analysis_config.yaml:stages` before first write.
 - **Claim ladder.** README captions state the evidential tier: L0 raw counts → L3 statistical association → L7 mechanistic claim. L7 requires orthogonal validation; it is never licensed from a single differential result.
-- **Reasoning traces.** Before any non-trivial algorithmic decision (model choice, cutoff, decomposition criterion), write a reasoning note to `docs/_internal/reasoning/` citing evidence and alternatives rejected.
+- **Reasoning traces.** Before any non-trivial algorithmic decision (model choice, cutoff, decomposition criterion), write a topic note in the owning `docs/_internal/<stage-stem>/` scope, or `_project/` when it spans stages, citing evidence and alternatives rejected.
 - **Single source of truth.** <cite your SSOTs — e.g. craft.yaml, lib/figure-style/, templates/plan/>. Deletions of second homes are part of the work.
 - **<Add plan-specific global notes here.>**

@@ -18,13 +18,18 @@ A chat summary is ephemeral — the next session has no access to it. A `/tmp` o
 
 ## Where traces live
 
+The question's scope owns the note. A stage-scoped note uses the stem of its
+`02_analysis/stages/NN_<stem>.*` file; work that spans or precedes stages uses `_project/`.
+
 | Purpose | Path |
 |---|---|
-| Decision logs | `docs/_internal/reasoning/YYYY-MM-DD_NN_<topic>.md` |
-| Research notes | `docs/_internal/research/{date-slug}/YYYY-MM-DD_NN_<topic>.md` |
+| Stage decision or finding | `docs/_internal/<stage-stem>/<topic>.md` |
+| Cross-stage decision or finding | `docs/_internal/_project/<topic>.md` |
+| Literature or web research | `docs/_internal/_project/<topic>.md` |
+| Current work state | `docs/_internal/<stage-stem>/session.md` or `docs/_internal/_project/session.md` |
 | Throwaway probes | `_scratch/` or `$TMPDIR` only — never committed |
 
-`NN` is the within-day sequence number (01, 02, …). Both directories exist in standard analysis projects; create them if absent.
+Use a stable topic slug and update `session.md` in place. Create the owning scope with its first real note if absent.
 
 ---
 
@@ -86,7 +91,7 @@ Routine operations (re-running a committed stage with no parameter changes) do n
 
 ## Done when
 
-- The decision and at least one rejected alternative are written to `docs/_internal/reasoning/` or `docs/_internal/research/`.
+- The decision and at least one rejected alternative are written to a topic note in the scope that owns it.
 - Every `03_results/` artifact produced since the last committed stage has a committed `02_analysis/stages/NN_*` that reproduces it.
 - No non-trivial reasoning lives only in chat or in a `/tmp` file.
 

@@ -6,8 +6,8 @@ Add a new figure family with its own grep-isolable namespace, strict compute→v
 
 | Param | Shape | Default | Meaning |
 |---|---|---|---|
-| `slug` | `$ARGUMENTS[0]` (positional, **required**) | — | Figure family slug (e.g. `genotype-umap`). Used as the base name for stages, artifacts, and the research dir. |
-| `stage-id` | `$ARGUMENTS[1]` (positional, **required**) | — | Target stage identifier (e.g. `03_clustering`). Resolves the output root to `03_results/<stage-id>/`. |
+| `slug` | `$ARGUMENTS[0]` (positional, **required**) | — | Figure family slug (e.g. `genotype-umap`). Used as the base name for stages, artifacts, and stage notes. |
+| `stage-id` | `$ARGUMENTS[1]` (positional, **required**) | — | Target stage identifier and stage-file stem (e.g. `03_clustering`). Resolves the output root to `03_results/<stage-id>/` and the memory scope to `docs/_internal/<stage-id>/`. |
 | `--namespace-token` | flag | derived from `slug` by replacing `-` with `_` (e.g. `genotype_umap`) | A grep-isolable token that MUST prefix every new identifier, filename, and variable in the compute and viz stages. Used in the namespace-isolation gate in Phase 5. |
 | `--n-implementers` | flag | `1` | Number of parallel Sonnet implementers. `2` = dispatch compute and viz concurrently once both briefs are ready; `1` = sequential (default, safer for inter-stage dependency). |
 
@@ -21,7 +21,7 @@ Resolve and announce the run config:
 
 ```
 /add-figure-variant {slug}  stage={stage-id}
-  Research dir:      docs/_internal/research/{date}-{slug}/
+  Stage memory:      docs/_internal/{stage-id}/
   Results root:      03_results/{stage-id}/
   Namespace token:   {namespace-token}
   Implementers:      {n-implementers} (Sonnet)
@@ -39,12 +39,12 @@ Stop.
 
 ## Phase 1: Evidence → research (persist, not chat-only)
 
-Create `docs/_internal/research/{date}-{slug}/` if it does not exist. Do NOT proceed if the directory cannot be created.
+Create `docs/_internal/{stage-id}/` with the rationale note if it does not exist. Do NOT proceed if the note cannot be created.
 
 Capture the rationale and data contract for the new figure family into:
 
 ```
-docs/_internal/research/{date}-{slug}/01_rationale.md
+docs/_internal/{stage-id}/{slug}-rationale.md
 ```
 
 This file MUST exist on disk before Phase 2 begins. The file records:
@@ -70,10 +70,10 @@ List the facet levels or grouping variables the figure family iterates over (e.g
 What the figure must show, at what statistical threshold, for the family to be considered correct.
 ```
 
-**STOP condition — rationale absent.** If `01_rationale.md` is not on disk after this phase, stop:
+**STOP condition — rationale absent.** If `{slug}-rationale.md` is not on disk after this phase, stop:
 
 ```
-docs/_internal/research/{date}-{slug}/01_rationale.md was not written.
+docs/_internal/{stage-id}/{slug}-rationale.md was not written.
 A chat-only rationale cannot anchor the mini-plan. Re-run or write the rationale manually.
 ```
 
@@ -83,12 +83,12 @@ Stop.
 
 Dispatch **one Opus planner**. The planner reads:
 
-1. `docs/_internal/research/{date}-{slug}/01_rationale.md` — the data contract and acceptance criteria.
+1. `docs/_internal/{stage-id}/{slug}-rationale.md` — the data contract and acceptance criteria.
 2. `02_analysis/config/analysis_config.yaml` — stage ids, `figures:` block (geometry, font floors, sub-layout names).
 3. `skills/figure-style/SKILL.md` + `lib/figure-style/figure_helpers.{R,py}` — the figure-style contract (helper functions, anti-patterns, single-tier dual-format semantics).
 4. Existing `02_analysis/stages/` file listing — to determine the next available `NN` stage index.
 
-The planner writes `docs/_internal/research/{date}-{slug}/02_miniplan.md`:
+The planner writes `docs/_internal/{stage-id}/{slug}-miniplan.md`:
 
 ```markdown
 # Mini-plan: {slug}
@@ -122,10 +122,10 @@ State verbatim: what artifacts must exist, what panels must be non-empty, what t
 namespace-isolation grep must confirm, and what figure-audit criteria the family must pass.
 ```
 
-**STOP condition — mini-plan absent.** If `02_miniplan.md` is not on disk after the Opus planner returns, stop:
+**STOP condition — mini-plan absent.** If `{slug}-miniplan.md` is not on disk after the Opus planner returns, stop:
 
 ```
-docs/_internal/research/{date}-{slug}/02_miniplan.md was not written.
+docs/_internal/{stage-id}/{slug}-miniplan.md was not written.
 The compute and viz implementers cannot proceed without a persisted mini-plan.
 ```
 
@@ -139,7 +139,7 @@ Dispatch **one Sonnet implementer** with the mini-plan as context. The implement
 02_analysis/stages/NN_{slug}_compute.{R,py}
 ```
 
-where `NN` is the index declared in `02_miniplan.md`.
+where `NN` is the index declared in `{slug}-miniplan.md`.
 
 **Compute discipline (non-negotiable):**
 
@@ -211,7 +211,7 @@ Stop.
 Dispatch **one Opus reviewer**. The reviewer MUST perform all four checks. A review that lives only in chat is a failure; the reviewer MUST write its verdict to:
 
 ```
-docs/_internal/reasoning/{date}_{slug}_review.md
+docs/_internal/{stage-id}/{slug}-review.md
 ```
 
 ### (a) Open the produced PDFs — confirm non-empty panels
@@ -274,7 +274,7 @@ A figure with a missing or empty `**How to read:**` is an **automatic FAIL** on 
 
 ### Review verdict
 
-The reviewer writes the verdict to `docs/_internal/reasoning/{date}_{slug}_review.md`:
+The reviewer writes the verdict to `docs/_internal/{stage-id}/{slug}-review.md`:
 
 ```markdown
 # Review verdict: {slug}
@@ -305,7 +305,7 @@ Leaks outside scope: {none | list of offending file:line}
 
 ```
 Review FAILED on check ({a|b|c|d}).
-See docs/_internal/reasoning/{date}_{slug}_review.md for details.
+See docs/_internal/{stage-id}/{slug}-review.md for details.
 Fix the indicated issue and re-run the review phase.
 ```
 
@@ -336,9 +336,9 @@ When all phases and checks are green:
 ```
 /add-figure-variant {slug}  stage={stage-id}  complete.
 
-Research dir:    docs/_internal/research/{date}-{slug}/
-  01_rationale.md   — data contract + scientific rationale
-  02_miniplan.md    — Opus mini-plan (namespace decl, compute/viz outputs, acceptance gate)
+Stage memory:    docs/_internal/{stage-id}/
+  {slug}-rationale.md   — data contract + scientific rationale
+  {slug}-miniplan.md    — Opus mini-plan (namespace decl, compute/viz outputs, acceptance gate)
 
 Stages:
   02_analysis/stages/NN_{slug}_compute.{R,py}   — COMPUTE only (no plots)
@@ -351,7 +351,7 @@ Artifacts produced:
   03_results/{stage-id}/README.md                                            (captions, updated)
 
 Review:
-  docs/_internal/reasoning/{date}_{slug}_review.md   (Opus verdict — all 4 checks PASS)
+  docs/_internal/{stage-id}/{slug}-review.md   (Opus verdict — all 4 checks PASS)
 
 Namespace isolation: grep "{namespace-token}" — confined to intended stages/artifacts ✓
 Dual formats:        both .pdf + .png present for every stem ✓
@@ -369,6 +369,6 @@ If stopped at a failed phase, report the failing phase, the missing or offending
 5. **Namespace isolation is non-negotiable.** If the token appears in sibling stages or unrelated artifacts, the review fails. A leaking namespace corrupts the audit trail and makes the family non-removable.
 6. **`save_overview()` is the only sanctioned figure+table+caption path.** It writes three things atomically. `save_figure()` alone is permitted only when the source table and caption are written separately in the same stage. Never ship a figure without its same-stem CSV and its `## figures/...` README section.
 7. **No inline style overrides.** No `ggsave(width=<literal>)`, `element_text(size=<num>)`, `theme(...)` blocks, or raw hex color strings in the viz stage. All style decisions go through `project_theme(config=FIG_CFG)` / `set_paper_style(config=FIG_CFG)`. Inline overrides silently break the single-tier font floors.
-8. **Persist every decision before proceeding.** Research rationale → `01_rationale.md`. Mini-plan → `02_miniplan.md`. Review verdict → `{date}_{slug}_review.md`. A decision with no trace is non-reproducible.
+8. **Persist every decision before proceeding.** Research rationale → `{slug}-rationale.md`. Mini-plan → `{slug}-miniplan.md`. Review verdict → `{slug}-review.md`. A decision with no trace is non-reproducible.
 9. **Model tiering is explicit.** Mini-planner = **Opus**. Compute implementer = **Sonnet**. Viz implementer = **Sonnet**. Reviewer = **Opus**. `captions` cleanup = `captions` agent (Sonnet). State the tier at every dispatch.
 10. **Mandatory `captions` pass always runs.** Even when `save_overview()` wrote captions at creation time, run the `captions` agent as the final cleanup pass — it is the backstop for README-adjacency.

@@ -1,13 +1,13 @@
 ---
 name: handoff
-description: Create a dated session handoff after completing work. Use this agent:\n\n1. **After completing a development stage** - When you've finished implementing a feature, refactoring a script, completing an analysis, or reaching any checkpoint\n2. **Before ending a Claude Code session** - To document what was accomplished for the next session\n3. **After significant progress** - Major changes, bug fixes, or important discoveries\n\n<example>\nContext: User completed a major analysis stage\nuser: "I've finished processing the datasets. Can you document this?"\nassistant: "I'll use the handoff agent to write a dated session handoff documenting the completion."\n<uses Agent tool to launch handoff>\n</example>\n\n<example>\nContext: User is wrapping up the session\nuser: "Let's wrap up for today. We got the integration working."\nassistant: "I'll invoke the handoff agent to write a session handoff before ending the session."\n<uses Agent tool to launch handoff>\n</example>
+description: Create the current session handoff after completing work. Use this agent:\n\n1. **After completing a development stage** - When you've finished implementing a feature, refactoring a script, completing an analysis, or reaching any checkpoint\n2. **Before ending a Claude Code session** - To document what was accomplished for the next session\n3. **After significant progress** - Major changes, bug fixes, or important discoveries\n\n<example>\nContext: User completed a major analysis stage\nuser: "I've finished processing the datasets. Can you document this?"\nassistant: "I'll use the handoff agent to update the stage session handoff."\n<uses Agent tool to launch handoff>\n</example>\n\n<example>\nContext: User is wrapping up the session\nuser: "Let's wrap up for today. We got the integration working."\nassistant: "I'll invoke the handoff agent to update the session handoff before ending the session."\n<uses Agent tool to launch handoff>\n</example>
 tools: Bash, Glob, Grep, Read, Write, TodoWrite, BashOutput
 model: sonnet
 color: blue
 domain:
   - session-management
 outputs:
-  default_path: docs/_internal/sessions/
+  default_path: docs/_internal/_project/session.md
   kind: session-handoff
   path_source: AGENTS.md
 ---
@@ -17,27 +17,23 @@ handoffs that let the next session resume seamlessly.
 
 ## Step 0: Resolve output path
 
-1. Read `AGENTS.md`. Find the `## Documentation namespace` section.
-2. Locate the routing table entry for "session handoff". Use that directory.
+1. Read `AGENTS.md` and list `02_analysis/stages/NN_*`.
+2. If the stopped work belongs to one stage, use `docs/_internal/<stage-stem>/session.md`.
+   If it spans or precedes stages, use `docs/_internal/_project/session.md`.
 
 Fallback: use `outputs.default_path` from this agent's frontmatter
-(`docs/_internal/sessions/`).
+(`docs/_internal/_project/session.md`).
 
 Never write to project root. Never hardcode project-specific paths.
 
 ## Core Responsibility
 
-Write one dated session handoff capturing the current state of the project. Prior dated
-handoffs stay in place — they are the continuity record, not clutter. There is no archive
-directory.
+Update one `session.md` capturing the current state of the owning scope. Git history is the
+continuity record.
 
-## Filename Format (MANDATORY)
+## Filename (MANDATORY)
 
-`YYYY-MM-DD_<slug>.md`, where `<slug>` is 2–4 words describing what the session did.
-
-- Example: `2026-05-25_integration-working.md`
-- Date: `date +%Y-%m-%d`
-- If a same-day collision occurs, append a time suffix: `YYYY-MM-DD_HHMM_<slug>.md`.
+`session.md`, updated in place in the resolved stage or `_project` scope.
 
 ## Workflow
 
@@ -45,8 +41,7 @@ directory.
 
 Read, in this order:
 - `docs/_internal/scientific-context.md` — the primary scientific framing.
-- The most recent prior session file in the resolved sessions directory
-  (`ls -1 <sessions_dir>/*.md | sort | tail -n 1`), to see where the last session left off.
+- The resolved `session.md`, if present, to see where the last session left off.
 - Recent checkpoint files or results relevant to the work just done.
 
 ### Step 2: Pre-write check — uncaptioned artifacts
@@ -59,10 +54,10 @@ session opens with caption writing rather than silently losing provenance.
 
 ### Step 3: Write the handoff
 
-Write `<sessions_dir>/YYYY-MM-DD_<slug>.md` using this template (aim for 40–80 lines):
+Write the resolved `session.md` using this template (aim for 40–80 lines):
 
 ```markdown
-# Session handoff: <slug> — YYYY-MM-DD
+# Session handoff: <scope>
 
 ## Quick Orientation
 **Where we are:** [current stage / analysis]
@@ -95,8 +90,8 @@ Write `<sessions_dir>/YYYY-MM-DD_<slug>.md` using this template (aim for 40–80
 ## Open decisions
 <!-- Non-trivial decisions made this session, each linked to its reasoning trace. -->
 <!-- A decision with no trace is non-reproducible — flag it explicitly. -->
-- **[Decision title]:** [one-sentence summary] → `docs/_internal/reasoning/<slug>.md`
-- **[Decision title]:** [one-sentence summary] → [MISSING TRACE — add to docs/_internal/reasoning/ before closing]
+- **[Decision title]:** [one-sentence summary] → `docs/_internal/<stage-stem>/<topic>.md` (use `_project/<topic>.md` for cross-stage work)
+- **[Decision title]:** [one-sentence summary] → [MISSING TRACE — add to `docs/_internal/<stage-stem>/<topic>.md`, or `_project/<topic>.md` for cross-stage work, before closing]
 - [or "none"]
 
 ## Uncaptioned artifacts
@@ -119,30 +114,30 @@ count of open decisions (flagging any without a reasoning trace).
 **Include:** concrete metrics (cell counts, sizes), exact paths, actionable next steps with
 commands, critical gotchas.
 
-**Avoid:** verbose narrative, speculation, full project history (prior dated handoffs hold
-that), and any reference to `docs/_internal/` from public-facing files.
+**Avoid:** verbose narrative, speculation, full project history (Git history holds that),
+and any reference to `docs/_internal/` from public-facing files.
 
 **Focus:** the current session and what the next session must know to continue today.
 
 ## Quality Checks
 
 Before finalizing:
-- [ ] Output path resolved from AGENTS.md (Step 0), not hardcoded.
-- [ ] Filename is `YYYY-MM-DD_<slug>.md`.
+- [ ] Output path resolved from the owning analysis scope (Step 0).
+- [ ] Filename is `session.md`.
 - [ ] Quick Orientation section is present.
 - [ ] All file paths are exact.
 - [ ] `## Stages run` lists every stage executed this session by its committed
       `02_analysis/stages/NN_*` path; any uncommitted stage is flagged `[UNCOMMITTED]`.
 - [ ] `## Artifacts produced` maps each `03_results/` artifact to the stage that made it.
-- [ ] `## Open decisions` links each non-trivial decision to its `docs/_internal/reasoning/`
-      trace; decisions without a trace are flagged `[MISSING TRACE]`.
+- [ ] `## Open decisions` links each non-trivial decision to a topic note in the owning
+      scope; decisions without a trace are flagged `[MISSING TRACE]`.
 - [ ] `## Uncaptioned artifacts` reflects the Step 2 scan.
-- [ ] Prior dated handoffs left untouched.
+- [ ] Existing `session.md` is updated in place.
 
 ## Important Notes
 
-1. **Never write to project root.** Always write under the resolved sessions directory.
-2. **Do NOT modify other files** — only write the new handoff.
+1. **Never write to project root.** Always write the resolved scope's `session.md`.
+2. **Do NOT modify other files** — only update the handoff.
 3. **Be specific** — exact paths, exact numbers, exact commands.
 4. **Be concise** — enable a 5-minute orientation, not a 30-minute read.
 

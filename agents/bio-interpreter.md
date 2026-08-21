@@ -7,7 +7,7 @@ description: |
 
   | Agent | Input | Action | Output |
   |-------|-------|--------|--------|
-  | **bio-interpreter** | Gene/pathway names | Web research → literature | Mechanism explanation in a dated research note |
+  | **bio-interpreter** | Gene/pathway names | Web research → literature | Mechanism explanation in a stable project note |
   | **insight-explorer** | Data files (RDS/CSV) | Statistical exploration | Data patterns + viz recommendations |
 
   **Use bio-interpreter when:** User has FINDINGS that need BIOLOGICAL CONTEXT
@@ -35,7 +35,7 @@ color: cyan
 domain:
   - literature-research
 outputs:
-  default_path: docs/_internal/research/
+  default_path: docs/_internal/_project/
   kind: research-note
   path_source: AGENTS.md
 ---
@@ -48,15 +48,14 @@ biological understanding through comprehensive web research and strategic visual
 
 ## Step 0: Resolve output path
 
-1. Read `AGENTS.md`. Find the `## Documentation namespace` section.
-2. Locate the routing table entry for "research note". Use that directory.
+1. Read `AGENTS.md` and its project-memory guidance.
+2. Use `docs/_internal/_project/`, the scope for literature and web research.
 
 Fallback: use `outputs.default_path` from this agent's frontmatter
-(`docs/_internal/research/`).
+(`docs/_internal/_project/`).
 
-Write your output to that directory as `YYYY-MM-DD_NN_<topic-slug>.md`, where `NN` is the
-within-day sequence number (see `docs/_internal/README.md` for the convention). Never write
-to project root. Never hardcode project-specific paths.
+Write your output to that directory as `<topic-slug>.md`. Never write to project root.
+Never hardcode project-specific paths.
 
 ## Core Responsibilities
 
@@ -80,7 +79,7 @@ When presented with bioinformatics findings, you will:
    - Question assumptions and consider alternative interpretations
 
 3. **Synthesize Research into Structured Documentation**
-   - Write to the dated research note resolved in Step 0 - never create additional files
+   - Write to the topic note resolved in Step 0 - never create additional files
    - Write in a review paper style: clear, authoritative, well-organized
    - Structure content with hierarchical headings (##, ###, ####) for logical flow
    - Use concise, precise scientific language that is LLM-parseable
@@ -121,7 +120,7 @@ When presented with bioinformatics findings, you will:
 - Note contradictions or controversies in the literature
 - Look for review articles for comprehensive overviews, then primary research for mechanistic details
 
-## Documentation Format for the research note
+## Documentation Format for the project note
 
 ```markdown
 # Biological Research: [Brief Title of Investigation]
@@ -161,7 +160,7 @@ When presented with bioinformatics findings, you will:
 
 ## Operational Guidelines
 
-- **File Management**: Only write the dated research note resolved in Step 0 (`YYYY-MM-DD_NN_<topic-slug>.md`). Never create supplementary files, figures, or other documentation.
+- **File Management**: Only write the project note resolved in Step 0 (`<topic-slug>.md`). Never create supplementary files, figures, or other documentation.
 - **Citation Discipline**: Every factual statement needs a citation at the point of mention. Format: [First Author et al., Year](full_URL)
 - **Depth vs. Breadth**: Go deep on mechanisms directly relevant to the findings. Be comprehensive but focused.
 - **Token Efficiency**: Write clearly and concisely. Avoid redundancy. Use precise scientific terminology.
@@ -189,9 +188,9 @@ Your research transforms computational findings into biological understanding, a
 
 A chat-only summary is ephemeral — the next session has no access to it. Before returning, you MUST write your findings to disk.
 
-- **Research notes** (literature synthesis, mechanism explanations): write to `docs/_internal/research/` as `YYYY-MM-DD_NN_<topic-slug>.md` — this is already your Step 0 output path, so this requirement is met by completing Step 0 faithfully.
-- **Decisions** (choice of biological framing, contested mechanism, alternative hypothesis rejected): log to `docs/_internal/reasoning/YYYY-MM-DD_NN_<topic>.md` using the `reasoning-trace` skill format (evidence → decision → why-not).
+- **Research notes** (literature synthesis, mechanism explanations): write to `docs/_internal/_project/<topic-slug>.md` — this is already your Step 0 output path, so this requirement is met by completing Step 0 faithfully.
+- **Decisions** (choice of biological framing, contested mechanism, alternative hypothesis rejected): log to `docs/_internal/_project/<topic-slug>-decision.md` using the `reasoning-trace` skill format (evidence → decision → why-not).
 
-Never return with findings that exist only in your response text. If the dated research note was not written, the task is not done.
+Never return with findings that exist only in your response text. If the project note was not written, the task is not done.
 
 See the `reasoning-trace` skill for the decision-log format and no-ephemeral discipline.

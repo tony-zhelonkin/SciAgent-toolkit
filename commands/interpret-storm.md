@@ -7,7 +7,7 @@ Multi-wave interpretation of a result set → information-graphic / interactive-
 | Param | Shape | Default | Meaning |
 |---|---|---|---|
 | `dataset-path` | `$ARGUMENTS[0]` (positional, **required**) | — | The results to interpret — a checkpoint, master table, or `03_results/<stage-id>/` artifact directory. This is the internal ground truth the interpreters read alongside the Wave-1 web notes. |
-| `slug` | `$ARGUMENTS[1]` (positional, **required**) | — | Interpretation slug. Resolves the research dir to `docs/_internal/research/{today}-{slug}/` (date = `date +%F`) and the design doc to `docs/_internal/reasoning/{today}-{slug}-figures.md`. The slug is forwarded (prefixed) to each `/add-figure-variant` hand-off in Wave 4. |
+| `slug` | `$ARGUMENTS[1]` (positional, **required**) | — | Interpretation slug. Prefixes the project notes under `docs/_internal/_project/`, including the `{slug}-figures.md` design doc. The slug is forwarded (prefixed) to each `/add-figure-variant` hand-off in Wave 4. |
 | `--n-interpreters <int>` | flag | `3` | Number of Opus interpreters in Wave 2. Each takes a distinct interpretive angle; the default three angles are **mechanism**, **pathway**, and **clinical**. |
 | `--n-designers <int>` | flag | `2` | Number of Opus designers in Wave 3. Each proposes one information graphic or interactive viewer that answers a synthesis gap. |
 
@@ -22,8 +22,8 @@ Resolve and announce the run config:
 ```
 /interpret-storm {dataset-path}  slug={slug}
   Dataset:       {dataset-path}
-  Research dir:  docs/_internal/research/{date}-{slug}/
-  Design doc:    docs/_internal/reasoning/{date}-{slug}-figures.md
+  Project memory: docs/_internal/_project/
+  Design doc:    docs/_internal/_project/{slug}-figures.md
   Interpreters:  {n-interpreters} (Opus, parallel) — angles: mechanism · pathway · clinical
   Designers:     {n-designers} (Opus, parallel)
   Web tools:     {available | unavailable — degrades to "cite what you can reach"}
@@ -38,31 +38,31 @@ Pass an existing checkpoint, master table, or 03_results/<stage-id>/ artifact di
 
 Stop.
 
-## Phase 1: Initialize research directory
+## Phase 1: Initialize project memory
 
-Create `docs/_internal/research/{date}-{slug}/` if it does not already exist. Do NOT proceed if the directory cannot be created (permissions, path collision). Announce:
+The first Wave-1 strand creates `docs/_internal/_project/` with its first note if the scope does not already exist. Do NOT proceed if the note cannot be created (permissions, path collision). Announce:
 
 ```
-Research dir ready: docs/_internal/research/{date}-{slug}/
+Project memory target: docs/_internal/_project/{slug}-*.md
 ```
 
-This directory must exist on disk before any wave writes. No wave buffers its output in memory and flushes at the end — each strand, each note, each synthesis lands on disk as it completes, so a partial run is recoverable from exactly the wave that was interrupted.
+Each strand, note, and synthesis lands on disk as it completes, so a partial run is recoverable from exactly the wave that was interrupted.
 
 ## Phase 2: Wave 1 — web research (model tier: **Opus**, fan-out)
 
 Gather external context that the interpreters will read alongside the dataset: published literature, pathway/interaction databases, prior art, canonical methods. Dispatch a fan-out of Opus research strands (one per topic — e.g. the genes/pathways/cell-types that dominate the dataset, the disease or perturbation context, the methods used to generate the results).
 
-**Web tools.** Use the harness's web tools (`WebSearch` / `WebFetch`) where available, plus any in-harness literature tools (e.g. PubMed). **When web is unavailable, the command degrades gracefully: cite what you can reach** — in-repo references, the dataset's own metadata, prior research notes under `docs/_internal/research/` — and say so explicitly in each note. The command ALWAYS persists what it found, even when "what it found" is "web unavailable; grounded only in {in-repo sources}." A degraded Wave 1 is still a persisted Wave 1.
+**Web tools.** Use the harness's web tools (`WebSearch` / `WebFetch`) where available, plus any in-harness literature tools (e.g. PubMed). **When web is unavailable, the command degrades gracefully: cite what you can reach** — in-repo references, the dataset's own metadata, prior notes under `docs/_internal/_project/` — and say so explicitly in each note. The command ALWAYS persists what it found, even when "what it found" is "web unavailable; grounded only in {in-repo sources}." A degraded Wave 1 is still a persisted Wave 1.
 
 **Persistence rule — each strand writes its own note.** Each research strand MUST write to:
 
 ```
-docs/_internal/research/{date}-{slug}/web-<topic>.md
+docs/_internal/_project/{slug}-web-<topic>.md
 ```
 
-where `<topic>` is a short kebab-case label (`web-tnf-signaling.md`, `web-cd8-exhaustion.md`, `web-prior-art.md`). **The file must exist on disk before Wave 2 begins.** If a read-only strand cannot write directly, the orchestrator writes the note immediately on receiving the strand's output — before any interpreter is dispatched. A web finding that lives only in chat is a failure of this command's core purpose.
+where `<topic>` is a short kebab-case label (`tnf-signaling`, `cd8-exhaustion`, `prior-art`). **The file must exist on disk before Wave 2 begins.** If a read-only strand cannot write directly, the orchestrator writes the note immediately on receiving the strand's output — before any interpreter is dispatched. A web finding that lives only in chat is a failure of this command's core purpose.
 
-Each `web-<topic>.md` follows the `reasoning-trace` note format:
+Each `{slug}-web-<topic>.md` follows the `reasoning-trace` note format:
 
 ```markdown
 # Web research: <topic>
@@ -91,10 +91,10 @@ One sentence: what external question this strand covers and which part of the da
 
 **Never invent a citation.** If a claim cannot be tied to a reachable source, mark it `[uncited — interpreter to verify against dataset]` rather than attaching a fabricated DOI.
 
-**STOP condition — web wave not persisted.** If no `web-*.md` note exists on disk after Wave 1 returns, stop:
+**STOP condition — web wave not persisted.** If no `{slug}-web-*.md` note exists on disk after Wave 1 returns, stop:
 
 ```
-Wave 1 wrote no docs/_internal/research/{date}-{slug}/web-*.md notes.
+Wave 1 wrote no docs/_internal/_project/{slug}-web-*.md notes.
 Even a web-unavailable run must persist what it could reach. A chat-only web wave
 cannot be read by the interpreters. Re-run or write the notes manually.
 ```
@@ -103,7 +103,7 @@ Stop. After the web notes are on disk, announce:
 
 ```
 Wave 1 complete — web research persisted:
-  docs/_internal/research/{date}-{slug}/web-<topic>.md  (×N)
+  docs/_internal/_project/{slug}-web-<topic>.md  (×N)
   Web status: {available | unavailable}
 Proceeding to Wave 2 — interpret.
 ```
@@ -120,13 +120,13 @@ Dispatch `--n-interpreters` Opus interpreters **in parallel**. Each interpreter 
 
 If `--n-interpreters` differs from 3, distribute angles so each interpreter owns a distinct, non-overlapping interpretive frame; describe its angle in its prompt.
 
-Each interpreter reads (1) the dataset at `dataset-path` and (2) all Wave-1 `web-*.md` notes — it does NOT re-do the web research; the persisted notes are the external source of truth for this wave. Each interpreter writes:
+Each interpreter reads (1) the dataset at `dataset-path` and (2) all Wave-1 `{slug}-web-*.md` notes — it does NOT re-do the web research; the persisted notes are the external source of truth for this wave. Each interpreter writes:
 
 ```
-docs/_internal/research/{date}-{slug}/reason-<angle>.md
+docs/_internal/_project/{slug}-reason-<angle>.md
 ```
 
-(`reason-mechanism.md`, `reason-pathway.md`, `reason-clinical.md`). **The file must exist on disk before the synthesizer is dispatched.** Format:
+(`{slug}-reason-mechanism.md`, `{slug}-reason-pathway.md`, `{slug}-reason-clinical.md`). **The file must exist on disk before the synthesizer is dispatched.** Format:
 
 ```markdown
 # Interpretation: <angle>
@@ -138,7 +138,7 @@ One sentence: what this angle interprets about the dataset.
 
 ## Sources
 - Dataset: {dataset-path} — {what was read: columns, objects, tables}
-- Web notes read: {list of web-<topic>.md}
+- Web notes read: {list of {slug}-web-<topic>.md}
 
 ## Interpretation
 ### Claim 1 — <short label>
@@ -153,10 +153,10 @@ One sentence: what this angle interprets about the dataset.
 - {what the data cannot yet answer; what would resolve it; which would most change the conclusions}
 ```
 
-**STOP condition — interpreter trace absent.** If any `reason-<angle>.md` is absent or empty after its interpreter returns, stop:
+**STOP condition — interpreter trace absent.** If any `{slug}-reason-<angle>.md` is absent or empty after its interpreter returns, stop:
 
 ```
-Interpreter <angle> did not write docs/_internal/research/{date}-{slug}/reason-<angle>.md.
+Interpreter <angle> did not write docs/_internal/_project/{slug}-reason-<angle>.md.
 A chat-only interpretation cannot be synthesized. Re-run or investigate the interpreter.
 ```
 
@@ -164,8 +164,8 @@ Stop.
 
 After all `--n-interpreters` traces are on disk, dispatch **one Opus synthesizer**. The synthesizer:
 
-1. **Reads** all `reason-<angle>.md` traces (and may consult the `web-*.md` notes for citations). It does NOT re-interpret the dataset from scratch — the angle traces are the source of truth for this wave.
-2. **Produces** `docs/_internal/research/{date}-{slug}/_SYNTHESIS.md` — the single document Wave 3 reads.
+1. **Reads** all `{slug}-reason-<angle>.md` traces (and may consult the `{slug}-web-*.md` notes for citations). It does NOT re-interpret the dataset from scratch — the angle traces are the source of truth for this wave.
+2. **Produces** `docs/_internal/_project/{slug}-synthesis.md` — the single document Wave 3 reads.
 3. **Tags every claim** as one of:
    - `[verified]` — directly observed in the dataset or a cited source the interpreter named
    - `[inferred]` — a conclusion an interpreter drew; plausible but not directly confirmed
@@ -173,7 +173,7 @@ After all `--n-interpreters` traces are on disk, dispatch **one Opus synthesizer
    No synthesis-original claims: every finding traces to at least one angle trace.
 4. **Lists the highest-value gaps** — ranked. These are the gaps the Wave-3 designers will target: each accepted figure must answer one of them.
 
-`_SYNTHESIS.md` structure:
+`{slug}-synthesis.md` structure:
 
 ```markdown
 # Synthesis: {slug}
@@ -196,19 +196,19 @@ After all `--n-interpreters` traces are on disk, dispatch **one Opus synthesizer
 2. **<gap label>** — ...
 ```
 
-**Persistence rule — synthesis before design.** `_SYNTHESIS.md` MUST exist on disk before Wave 3 begins. Do not pass synthesis content inline to the designers; the file is the hand-off artifact. Announce:
+**Persistence rule — synthesis before design.** `{slug}-synthesis.md` MUST exist on disk before Wave 3 begins. Do not pass synthesis content inline to the designers; the file is the hand-off artifact. Announce:
 
 ```
 Wave 2 complete — interpretation persisted:
-  reason-<angle>.md  (×{n-interpreters})
-  _SYNTHESIS.md      (verified: {count} · inferred: {count} · gaps: {count})
+  {slug}-reason-<angle>.md  (×{n-interpreters})
+  {slug}-synthesis.md (verified: {count} · inferred: {count} · gaps: {count})
 Proceeding to Wave 3 — design.
 ```
 
-**STOP condition — synthesis absent.** If `_SYNTHESIS.md` is not on disk after the synthesizer returns, stop:
+**STOP condition — synthesis absent.** If `{slug}-synthesis.md` is not on disk after the synthesizer returns, stop:
 
 ```
-Synthesizer did not write docs/_internal/research/{date}-{slug}/_SYNTHESIS.md.
+Synthesizer did not write docs/_internal/_project/{slug}-synthesis.md.
 The designers cannot proceed without a persisted synthesis of the gaps.
 ```
 
@@ -216,7 +216,7 @@ Stop.
 
 ## Phase 4: Wave 3 — design (model tier: **Opus**, `--n-designers`)
 
-Dispatch `--n-designers` Opus designers **in parallel**. Each designer reads `_SYNTHESIS.md` (specifically the ranked gaps) and proposes **one** information graphic or interactive viewer that answers a distinct synthesis gap. Two designers, two distinct gaps — no two proposals target the same gap.
+Dispatch `--n-designers` Opus designers **in parallel**. Each designer reads `{slug}-synthesis.md` (specifically the ranked gaps) and proposes **one** information graphic or interactive viewer that answers a distinct synthesis gap. Two designers, two distinct gaps — no two proposals target the same gap.
 
 Each designer consults `skills/figure-style/SKILL.md` (the single-tier, dual-format PDF + PNG contract, the legibility floors, the `save_overview()` figure+table+caption discipline) so the proposal is buildable by `/add-figure-variant` without redesign.
 
@@ -226,12 +226,12 @@ Every proposal MUST declare, concretely:
 - **Data contract** — exactly what the figure needs: which columns / objects / tables from `dataset-path`, the checkpoint the compute step would write, and the viz inputs. (This is the data contract `/add-figure-variant`'s mini-plan will inherit.)
 - **Figure-style plan** — the figure plan: panel layout, what `<stem>.pdf` (vector) and `<stem>.png` (raster) — same geometry, one plot object — each carry, the sub-layout (`_overview/` or `by_contrast/<c>/`), and (for an interactive viewer) the static fallback panel that still satisfies the figure-style contract.
 - **Claim tier (L0–L7)** — the epistemic level the figure supports, on the project's interpretation ladder: **L0** raw data · **L1** QC metric · **L2** normalized counts · **L3** statistical test result · **L4** pathway/gene-set enrichment · **L5** comparative claim · **L6** mechanistic inference · **L7** proposed mechanism. A figure that targets an `[inferred]` synthesis gap MUST NOT claim a tier above L6 — it is a proposed reading, not a verified fact.
-- **Which gap it answers** — the exact ranked gap from `_SYNTHESIS.md` this design resolves.
+- **Which gap it answers** — the exact ranked gap from `{slug}-synthesis.md` this design resolves.
 
 **Persistence rule — designs to disk before build.** All proposals are persisted to a single design doc:
 
 ```
-docs/_internal/reasoning/{date}-{slug}-figures.md
+docs/_internal/_project/{slug}-figures.md
 ```
 
 **This file must exist on disk before Wave 4 begins.** Format:
@@ -239,25 +239,25 @@ docs/_internal/reasoning/{date}-{slug}-figures.md
 ```markdown
 # Figure designs: {slug}
 
-**Date:** {date}  ·  **Wave:** 3 (design, Opus)  ·  **Synthesis:** docs/_internal/research/{date}-{slug}/_SYNTHESIS.md
+**Date:** {date}  ·  **Wave:** 3 (design, Opus)  ·  **Synthesis:** docs/_internal/_project/{slug}-synthesis.md
 
 ## Design 1 — <token suffix>
-- **Answers gap:** {ranked gap N from _SYNTHESIS.md}
+- **Answers gap:** {ranked gap N from {slug}-synthesis.md}
 - **Kind:** information graphic | interactive viewer
 - **Namespace token:** `{slug}_<suffix>`
 - **Data contract:** compute inputs {columns/objects} → checkpoint {path/schema} → viz inputs {checkpoint}
 - **Variant plan (print+screen):** {print panel/geometry} · {screen panel/geometry} · sub-layout {_overview | by_contrast/<c>}
 - **Claim tier:** L<n> — {one line: why this tier; never above L6 for an inferred gap}
-- **Status of the underlying claim:** [verified] | [inferred] (from _SYNTHESIS.md)
+- **Status of the underlying claim:** [verified] | [inferred] (from {slug}-synthesis.md)
 
 ## Design 2 — <token suffix>
 [repeat the block — must answer a different gap]
 ```
 
-**STOP condition — design doc absent.** If `docs/_internal/reasoning/{date}-{slug}-figures.md` is not on disk after the designers return, stop:
+**STOP condition — design doc absent.** If `docs/_internal/_project/{slug}-figures.md` is not on disk after the designers return, stop:
 
 ```
-Wave 3 wrote no docs/_internal/reasoning/{date}-{slug}-figures.md.
+Wave 3 wrote no docs/_internal/_project/{slug}-figures.md.
 The /add-figure-variant hand-offs cannot proceed without persisted, namespaced designs.
 ```
 
@@ -265,13 +265,13 @@ Stop. After the design doc is on disk, announce:
 
 ```
 Wave 3 complete — designs persisted:
-  docs/_internal/reasoning/{date}-{slug}-figures.md  ({n-designers} designs)
+  docs/_internal/_project/{slug}-figures.md  ({n-designers} designs)
 Proceeding to Wave 4 — build (/add-figure-variant hand-offs).
 ```
 
 ## Phase 5: Wave 4 — build (hand off to `/add-figure-variant`)
 
-For **each accepted design** in `docs/_internal/reasoning/{date}-{slug}-figures.md`, hand off to `/add-figure-variant`. Each hand-off runs that command's full compute → viz → Opus-review pipeline; `/interpret-storm` does NOT re-implement figures itself.
+For **each accepted design** in `docs/_internal/_project/{slug}-figures.md`, hand off to `/add-figure-variant`. Each hand-off runs that command's full compute → viz → Opus-review pipeline; `/interpret-storm` does NOT re-implement figures itself.
 
 ```
 /add-figure-variant {slug}-<token-suffix> <stage-id> --namespace-token <token>
@@ -290,13 +290,13 @@ When all four waves complete and every design has been handed to `/add-figure-va
 ```
 /interpret-storm {slug} complete.
 
-Research dir: docs/_internal/research/{date}-{slug}/
-  web-<topic>.md     (×N)              — Wave 1 (Opus web research, citations)
-  reason-<angle>.md  (×{n-interpreters}) — Wave 2 (Opus interpreters: mechanism/pathway/clinical)
-  _SYNTHESIS.md                          — Wave 2 (Opus synthesizer, verified-vs-inferred + ranked gaps)
+Project memory: docs/_internal/_project/
+  {slug}-web-<topic>.md     (×N)              — Wave 1 (Opus web research, citations)
+  {slug}-reason-<angle>.md  (×{n-interpreters}) — Wave 2 (Opus interpreters: mechanism/pathway/clinical)
+  {slug}-synthesis.md                          — Wave 2 (Opus synthesizer, verified-vs-inferred + ranked gaps)
 
 Design doc:
-  docs/_internal/reasoning/{date}-{slug}-figures.md  — Wave 3 ({n-designers} Opus designs: token + data contract + variant plan + claim tier)
+  docs/_internal/_project/{slug}-figures.md  — Wave 3 ({n-designers} Opus designs: token + data contract + variant plan + claim tier)
 
 Synthesis stats:
   Verified claims:  {count}
@@ -312,13 +312,13 @@ Build hand-offs (Wave 4):
 /add-figure-variant is now running per design. See its output for scripts, artifacts, and the review verdict.
 ```
 
-If the run was interrupted at a wave boundary (a `web-*.md`, a `reason-<angle>.md`, the `_SYNTHESIS.md`, or the design doc is absent), report which wave failed and the missing file path, and recommend re-running from the failed wave. The already-persisted waves are valid — that is the recoverability the persist-every-wave discipline buys.
+If the run was interrupted at a wave boundary (a `{slug}-web-*.md`, a `{slug}-reason-<angle>.md`, the `{slug}-synthesis.md`, or the design doc is absent), report which wave failed and the missing file path, and recommend re-running from the failed wave. The already-persisted waves are valid — that is the recoverability the persist-every-wave discipline buys.
 
 ## Rules
 
-1. **Persist every wave before the next begins — this is the POINT.** Wave 1 `web-*.md` notes exist on disk before any interpreter is dispatched. Wave 2 `reason-<angle>.md` traces exist before the synthesizer; `_SYNTHESIS.md` exists before any designer. Wave 3 `{date}-{slug}-figures.md` exists before any `/add-figure-variant` hand-off. This is not an optimization — this command exists *because* agents otherwise lose the reasoning in chat. A chat-only wave is a failure, not a step. (`reasoning-trace`: capture the answer, delete the shell.)
+1. **Persist every wave before the next begins — this is the POINT.** Wave 1 `{slug}-web-*.md` notes exist on disk before any interpreter is dispatched. Wave 2 `{slug}-reason-<angle>.md` traces exist before the synthesizer; `{slug}-synthesis.md` exists before any designer. Wave 3 `{slug}-figures.md` exists before any `/add-figure-variant` hand-off. This is not an optimization — this command exists *because* agents otherwise lose the reasoning in chat. A chat-only wave is a failure, not a step. (`reasoning-trace`: capture the answer, delete the shell.)
 2. **Web research degrades, never disappears.** Use `WebSearch`/`WebFetch` (and PubMed-style tools) where available; when web is unavailable, cite what you can reach (in-repo references, dataset metadata, prior notes) and say so. ALWAYS persist what was found. Never invent a citation — mark unsupported claims `[uncited]` for the interpreters to verify against the dataset.
-3. **Verified vs inferred, explicitly tagged.** Every claim in `_SYNTHESIS.md` carries `[verified]` or `[inferred]`; the distinction flows into the design doc (claim tier) and protects downstream figures from presenting a guess as a fact. No synthesis-original claims — every claim traces to an angle trace.
+3. **Verified vs inferred, explicitly tagged.** Every claim in `{slug}-synthesis.md` carries `[verified]` or `[inferred]`; the distinction flows into the design doc (claim tier) and protects downstream figures from presenting a guess as a fact. No synthesis-original claims — every claim traces to an angle trace.
 4. **Distinct angles, distinct gaps.** Each interpreter owns a non-overlapping interpretive frame; each designer answers a distinct ranked gap. Interpreters do not read each other's traces — that is the synthesizer's job.
 5. **Every design is buildable by `/add-figure-variant` without redesign.** A proposal MUST declare a namespace token, a data contract, a figure-style plan (per the `figure-style` contract), and a claim tier (L0–L7). A design missing any of these cannot be handed off.
 6. **The build gate is `/add-figure-variant` — do not collapse it.** Wave 4 hands each design to `/add-figure-variant`, which opens the produced PDFs, runs `figure-audit`, verifies namespace isolation, and runs the mandatory `captions` pass. `/interpret-storm` never writes figure scripts itself.

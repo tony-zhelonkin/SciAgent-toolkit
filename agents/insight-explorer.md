@@ -140,8 +140,8 @@ You are a scientific skeptic who lets the data speak for itself while applying d
 
 A chat-only summary is ephemeral — the next session has no access to it. Before returning, you MUST persist your findings to disk.
 
-- **Exploration findings** (data patterns, statistical summaries, unexpected results, visualization recommendations): write to `docs/_internal/research/` as `YYYY-MM-DD_NN_<topic-slug>.md`. Use the format already shown in **Output Format** above, written to that file rather than returned only as chat text.
-- **Non-trivial analytical decisions** (choice of threshold, method for handling outliers, statistical test selection, surprising result requiring a hypothesis): log to `docs/_internal/reasoning/YYYY-MM-DD_NN_<topic>.md` using the `reasoning-trace` skill format (evidence → decision → why-not).
+- **Exploration findings** (data patterns, statistical summaries, unexpected results, visualization recommendations): write to `docs/_internal/<stage-stem>/<topic-slug>.md` when the data belongs to one stage, or `docs/_internal/_project/<topic-slug>.md` when it spans stages. Use the format already shown in **Output Format** above, written to that file rather than returned only as chat text.
+- **Non-trivial analytical decisions** (choice of threshold, method for handling outliers, statistical test selection, surprising result requiring a hypothesis): log them in a stable topic note in the same owning scope using the `reasoning-trace` skill format (evidence → decision → why-not).
 
 Never return with findings that exist only in your response text. Any R exploration commands you run, and the conclusions drawn from them, must be captured in the written note before you consider the task done.
 
