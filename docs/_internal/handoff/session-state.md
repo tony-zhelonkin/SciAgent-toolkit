@@ -9,7 +9,7 @@ Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 only what those cannot — where the work stopped, what waits on the owner, and
 the facts that cost time to rediscover.
 
-Last verified: **2026-08-21**, toolkit at `2a1c702`. 63 tests passing.
+Last verified: **2026-08-21**, toolkit at `beb933b`. 63 tests passing.
 
 ---
 
@@ -66,10 +66,10 @@ done | sort
 cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 ```
 
-### What that showed on 2026-08-20
+### What that showed on 2026-08-21
 
-`dev` = `2a1c702`, **11 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
-`main` = `c83dfe2` both remotes. 62 tests passing, 0 failing. `toolkit` lint
+`dev` = `beb933b`, **12 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`main` = `c83dfe2` both remotes. **63** tests passing, 0 failing. `toolkit` lint
 clean. Tree clean.
 
 Unpushed, oldest first:
@@ -83,25 +83,35 @@ c7e8c2e  Record where the work stopped for a cold session
 f234b2c  Survey how agent memory actually lands in 24 projects
 e315de2  Plan the run that makes the toolkit's claims true
 1c7599f  Keep delegation prompts disposable; contract, not a path
+e33b635  Bring the cold-start handoff up to the session's end state
+63d80a7  Record that the sweep would break every container it touches
+2a1c702  Let the assets spell the flags the skill kept getting wrong
+beb933b  Point the handoff at the shipped delegation assets
 ```
 
-Fleet — **24 real copies**:
+Only `42ae8a1` (uninstall exit-3 fix), `287e8e4` (CRAFT budget check) and
+`2a1c702` (delegation assets) change behaviour. The rest is documentation,
+planning and evidence.
+
+Fleet — **25 real copies, 19 tracked** (`JR-MC-Tonsill/JR-MC` appeared
+2026-08-21):
 
 | Count | Commit | Behind `dev` | What |
 |---|---|---|---|
-| 1 | `1c7599f` | 0 | scbio-docker — the canonical dev checkout |
-| 1 | `106f59f` | 8 | 14616-DM — the swept pilot |
-| 20 | `5e5347e` | **56** | unswept (15 fleet-managed + 5 frozen by decision) |
-| 1 | `cf19c6d` | 122 | PanSci — PINNED, deliberately |
+| 1 | `beb933b` | 0 | scbio-docker — the canonical dev checkout |
+| 1 | `e33b635` | 2 | JR-MC — new, bound in-container |
+| 1 | `106f59f` | 12 | 14616-DM — the swept pilot |
+| 20 | `5e5347e` | **60** | unswept (15 fleet-managed + 5 frozen by decision) |
+| 1 | `cf19c6d` | 126 | PanSci — PINNED, deliberately |
 | 1 | `fb6012a` | not in canonical history | Gama_Vivian — excluded by config |
 
-`scbio-docker` pin drift: records `3ab3768`, checked out `1c7599f`.
+`scbio-docker` pin drift: records `3ab3768`, checked out `beb933b`.
 
 ---
 
 ## 3. The pain points this design is answering
 
-Not abstractions — each was measured on 2026-08-20.
+Not abstractions — each was measured on 2026-08-20/21.
 
 **Memory dies with the container.** `craft.yaml` tells every agent durable
 memory lives in tracked files under `docs/_internal/`; `link.sh:278` writes that
@@ -133,15 +143,16 @@ JSONs. Retention is not a later refinement.
 
 **Scratch escapes the project.** `craft.yaml` calls root `_scratch/` "the only
 sanctioned throwaway zone"; **no project has one**. Agents write to
-`/tmp/claude-<pid>/<hashed-workspace>/<uuid>/scratchpad/` — and
-`delegate-cli` itself prescribes `/tmp` three times. Prescribed behaviour, not
-drift.
+`/tmp/claude-<pid>/<hashed-workspace>/<uuid>/scratchpad/`. `delegate-cli`
+itself prescribed `/tmp` three times — prescribed behaviour, not drift. The
+skill half is **fixed** by `2a1c702`; the `craft.yaml` `_scratch/` claim is
+phase 01's to delete.
 
 ---
 
-## 4. Blocked on the owner — five decisions
+## 4. Blocked on the owner — six decisions
 
-1. **Review `106f59f..dev`** (8 commits). The owner intends to tweak wording
+1. **Review `106f59f..dev`** (12 commits; 3 change behaviour). The owner intends to tweak wording
    during review. Use `nvim -c 'DiffviewOpen origin/dev'` — **not** `A..dev`: a
    commit-to-commit range makes both panes read-only because neither side is a
    file on disk. One revision diffs against the working tree, so the right pane
