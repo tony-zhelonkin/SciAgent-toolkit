@@ -9,7 +9,7 @@ Authoritative design: `docs/architecture.md`, `docs/propagation.md`. Decisions:
 only what those cannot — where the work stopped, what waits on the owner, and
 the facts that cost time to rediscover.
 
-Last verified: **2026-08-21**, toolkit at `686c408`. 65 tests passing.
+Last verified: **2026-08-21**, toolkit at `5ca754e`. 65 tests passing.
 
 ---
 
@@ -68,12 +68,12 @@ cd /data1/users/antonz/pipeline/module-vendor && ./module-vendor status
 
 ### What that showed on 2026-08-21
 
-`dev` = `686c408`, **27 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
+`dev` = `5ca754e`, **29 ahead** of `hub/dev` = `origin/dev` = `106f59f`.
 `main` = `c83dfe2` both remotes. **65** tests passing, 0 failing. `toolkit` lint
 clean. Tree clean.
 
 A file cannot name the commit that adds it, so the tip is this handoff's own
-commit, one past `686c408`. Re-derive rather than trusting either number.
+commit, one past `5ca754e`. Re-derive rather than trusting either number.
 
 Unpushed, oldest first:
 
@@ -439,6 +439,36 @@ Three findings that outlive that project:
 - **The owner's foreground `!` runs were the well-behaved ones**, because timeout
   promotion gave them a task id. The deliberate, correct-looking backgrounding was
   the invisible half.
+
+### 6c. Queued — the catalog does not know bulkiRNA exists (#47)
+
+Plan: `docs/_internal/plans/2026-08-22-bulkirna-api-crosscheck/`.
+
+An RNAseq-toolkit agent flagged three owner-gated skill files. Verifying it found
+**thirteen skills naming a vendored toolkit path or `clusterProfiler`, and none
+mentioning bulkiRNA** — a 59-export package that absorbed `coresh_search`,
+`gs_test`, the `gs_*` master-table and plotting layers, `gsdb_*`, and the whole
+`annotate_genes`/`read_counts_matrix`/`build_dge`/`write_session_provenance` set
+that `annotate-bulk-rnaseq-data:71` still pins to *RNAseq-toolkit v0.2.0*.
+
+**Do not start rewriting.** Three versions are live at once: the source tree at
+`1.1.0.9000`, the **running image at `0.4.0` with no `coresh_*` layer and no
+`bulkirna_api` at all**, and the skills describing v0.2.0 scripts. The image pins
+by commit (`BULKIRNA_SHA` in `scbio-docker/.../install_core.R:178`), so the API a
+project has is a property of its image version — and eight of nine live containers
+run `scdock-r-dev:v0.5.10` while `VERSION` says `v0.5.14`. Writing
+`coresh_search()` into a skill today names a function its readers do not have.
+Phase 01 is read-only and picks the floor first. **Probe, do not assert** — the
+`delegate-cli` lesson, arriving in a second place.
+
+Sequencing: **land it before the sweep**, or it waits for the next re-pin. R is
+not on the host; check the installed API with
+`docker exec <container> Rscript -e 'getNamespaceExports("bulkiRNA")'`.
+
+Back to the RNAseq-toolkit side: `bulkirna_api()` has the `superseded_by` column
+that would make this mechanical and fills it with `NA` (`R/api.R:130`) — the
+package is the right home for that mapping. And the image pin, not the skill text,
+is the real gate.
 
 ### Decided, so do not reopen
 
