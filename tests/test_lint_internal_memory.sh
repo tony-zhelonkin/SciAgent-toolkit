@@ -6,10 +6,11 @@
 #      --strict. Absence is the majority state across the fleet and is
 #      legitimate; the check audits the SHAPE of a tree that exists.
 #   2. _project/ with content plus a stage dir holding a non-empty session.md
-#      → clean under --strict. A sibling stage dir holding only
-#      reasoning/<topic>.md is equally valid.
-#   3. A stage dir with neither a non-empty session.md nor a non-empty
-#      reasoning/*.md → the empty-scaffold finding this check exists for.
+#      → clean under --strict. A sibling stage dir holding only a flat
+#      <topic>.md is equally valid. The fixture nests a git repo because that
+#      is the topology ADR-D10 recommends, and test 12 covers its absence.
+#   3. A stage dir holding no non-empty Markdown → the empty-scaffold finding
+#      this check exists for.
 #   4. A .gitkeep anywhere beneath the tree → finding.
 #   5. handoffs/ as an immediate child → retired flat namespace finding.
 #   6. A directory matching no stage stem → finding.
@@ -19,6 +20,10 @@
 #   9. --strict promotes WARN to ERROR and exit 1; without it, exit 0.
 #  10. The check is opt-in: `--check all --strict` never mentions it.
 #  11. An unknown --check name lists internal-memory among the valid names.
+#  12. A tree holding continuity records with no history → finding. session.md
+#      is updated in place, so without history the update destroys what it
+#      replaced. Observed, not mandated: no verb creates the repo.
+#  13. A plan directory with no 00_INDEX.md → finding; with one → clean.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -62,10 +67,11 @@ P2="$TMPDIR_TEST/p2"
 make_proj "$P2" 30_grn 40_peaks
 mkdir -p "$P2/docs/_internal/_project" \
          "$P2/docs/_internal/30_grn" \
-         "$P2/docs/_internal/40_peaks/reasoning"
+         "$P2/docs/_internal/40_peaks"
 printf 'Cohort scope decided 2026-08-01.\n' > "$P2/docs/_internal/_project/session.md"
 printf 'Stopped after the GRN pass.\n' > "$P2/docs/_internal/30_grn/session.md"
-printf 'Why the peak floor is 0.05.\n' > "$P2/docs/_internal/40_peaks/reasoning/floor.md"
+printf 'Why the peak floor is 0.05.\n' > "$P2/docs/_internal/40_peaks/floor.md"
+git -C "$P2/docs/_internal" init -q
 
 set +e
 out2=$("$SCIO" lint --check internal-memory --strict --project-dir "$P2" 2>&1)
@@ -82,7 +88,7 @@ fi
 # ---------------------------------------------------------------------------
 P3="$TMPDIR_TEST/p3"
 make_proj "$P3" 30_grn
-mkdir -p "$P3/docs/_internal/30_grn/reasoning"
+mkdir -p "$P3/docs/_internal/30_grn"
 
 set +e
 out3=$("$SCIO" lint --check internal-memory --project-dir "$P3" 2>&1)
@@ -93,7 +99,7 @@ if [[ "$rc3" -ne 0 ]]; then
     printf '%s\n' "$out3" >&2
     exit 1
 fi
-if ! printf '%s\n' "$out3" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ has neither'; then
+if ! printf '%s\n' "$out3" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ holds no non-empty Markdown'; then
     echo "FAIL [$_TEST_NAME] test3: expected the empty-scaffold WARN" >&2
     printf '%s\n' "$out3" >&2
     exit 1
@@ -108,7 +114,7 @@ if [[ "$rc3s" -eq 0 ]]; then
     printf '%s\n' "$out3s" >&2
     exit 1
 fi
-if ! printf '%s\n' "$out3s" | grep -q 'ERROR internal-memory: docs/_internal/30_grn/ has neither'; then
+if ! printf '%s\n' "$out3s" | grep -q 'ERROR internal-memory: docs/_internal/30_grn/ holds no non-empty Markdown'; then
     echo "FAIL [$_TEST_NAME] test9: --strict must emit ERROR" >&2
     printf '%s\n' "$out3s" >&2
     exit 1
@@ -119,7 +125,7 @@ printf '' > "$P3/docs/_internal/30_grn/session.md"
 set +e
 out3e=$("$SCIO" lint --check internal-memory --project-dir "$P3" 2>&1)
 set -e
-if ! printf '%s\n' "$out3e" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ has neither'; then
+if ! printf '%s\n' "$out3e" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ holds no non-empty Markdown'; then
     echo "FAIL [$_TEST_NAME] test3: an empty session.md must not satisfy the content rule" >&2
     printf '%s\n' "$out3e" >&2
     exit 1
@@ -130,14 +136,14 @@ fi
 # ---------------------------------------------------------------------------
 P4="$TMPDIR_TEST/p4"
 make_proj "$P4" 30_grn
-mkdir -p "$P4/docs/_internal/30_grn/reasoning"
+mkdir -p "$P4/docs/_internal/30_grn"
 printf 'Stopped mid-pass.\n' > "$P4/docs/_internal/30_grn/session.md"
-touch "$P4/docs/_internal/30_grn/reasoning/.gitkeep"
+touch "$P4/docs/_internal/30_grn/.gitkeep"
 
 set +e
 out4=$("$SCIO" lint --check internal-memory --project-dir "$P4" 2>&1)
 set -e
-if ! printf '%s\n' "$out4" | grep -q 'WARN internal-memory: docs/_internal/30_grn/reasoning/.gitkeep claims a directory'; then
+if ! printf '%s\n' "$out4" | grep -q 'WARN internal-memory: docs/_internal/30_grn/.gitkeep claims a directory'; then
     echo "FAIL [$_TEST_NAME] test4: expected a .gitkeep finding" >&2
     printf '%s\n' "$out4" >&2
     exit 1
@@ -182,6 +188,7 @@ P6B="$TMPDIR_TEST/p6b"
 mkdir -p "$P6B/02_analysis/scripts" "$P6B/docs/_internal/30_grn"
 printf 'x <- 1\n' > "$P6B/02_analysis/scripts/30_grn.R"
 printf 'Stopped after the GRN pass.\n' > "$P6B/docs/_internal/30_grn/session.md"
+git -C "$P6B/docs/_internal" init -q
 
 set +e
 out6b=$("$SCIO" lint --check internal-memory --strict --project-dir "$P6B" 2>&1)
@@ -207,12 +214,12 @@ printf 'x\n' > "$P7/docs/_internal/30_grn/cells.parquet"
 set +e
 out7=$("$SCIO" lint --check internal-memory --project-dir "$P7" 2>&1)
 set -e
-if ! printf '%s\n' "$out7" | grep -q 'non-memory payload under docs/_internal/: docs/_internal/_project/.venv'; then
+if ! printf '%s\n' "$out7" | grep -q 'docs/_internal/_project/.venv is not memory'; then
     echo "FAIL [$_TEST_NAME] test7: expected the virtualenv finding" >&2
     printf '%s\n' "$out7" >&2
     exit 1
 fi
-if ! printf '%s\n' "$out7" | grep -q 'non-memory payload under docs/_internal/: docs/_internal/30_grn/cells.parquet'; then
+if ! printf '%s\n' "$out7" | grep -q 'docs/_internal/30_grn/cells.parquet is not memory'; then
     echo "FAIL [$_TEST_NAME] test7: expected the parquet finding" >&2
     printf '%s\n' "$out7" >&2
     exit 1
@@ -254,7 +261,7 @@ printf 'Older.\n' > "$P8B/docs/_internal/30_grn/session_20260801.md"
 set +e
 out8b=$("$SCIO" lint --check internal-memory --project-dir "$P8B" 2>&1)
 set -e
-if ! printf '%s\n' "$out8b" | grep -q 'WARN internal-memory: docs/_internal/30_grn holds several session files'; then
+if ! printf '%s\n' "$out8b" | grep -q 'WARN internal-memory: docs/_internal/30_grn holds several continuity records'; then
     echo "FAIL [$_TEST_NAME] test8b: expected the session-pile finding" >&2
     printf '%s\n' "$out8b" >&2
     exit 1
@@ -286,6 +293,69 @@ fi
 if ! printf '%s\n' "$out11" | grep -q 'internal-memory'; then
     echo "FAIL [$_TEST_NAME] test11: the valid-name list must include internal-memory" >&2
     printf '%s\n' "$out11" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 12: continuity records with no history.
+# ---------------------------------------------------------------------------
+P12="$TMPDIR_TEST/p12"
+make_proj "$P12" 30_grn
+mkdir -p "$P12/docs/_internal/30_grn"
+printf 'Stopped mid-pass.\n' > "$P12/docs/_internal/30_grn/session.md"
+
+set +e
+out12=$("$SCIO" lint --check internal-memory --project-dir "$P12" 2>&1)
+set -e
+if ! printf '%s\n' "$out12" | grep -q 'WARN internal-memory: docs/_internal/ holds continuity records and no history'; then
+    echo "FAIL [$_TEST_NAME] test12: expected the no-history finding" >&2
+    printf '%s\n' "$out12" >&2
+    exit 1
+fi
+
+# A tree of topic notes without a session.md is not making the in-place claim,
+# so it is not reported.
+P12B="$TMPDIR_TEST/p12b"
+make_proj "$P12B" 30_grn
+mkdir -p "$P12B/docs/_internal/30_grn"
+printf 'Why the floor is 0.05.\n' > "$P12B/docs/_internal/30_grn/floor.md"
+
+set +e
+out12b=$("$SCIO" lint --check internal-memory --strict --project-dir "$P12B" 2>&1)
+rc12b=$?
+set -e
+if [[ "$rc12b" -ne 0 || -n "$out12b" ]]; then
+    echo "FAIL [$_TEST_NAME] test12b: topic notes alone must not trigger the history finding (rc=$rc12b)" >&2
+    printf '%s\n' "$out12b" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 13: a plan directory earns itself with a phase map.
+# ---------------------------------------------------------------------------
+P13="$TMPDIR_TEST/p13"
+make_proj "$P13" 30_grn
+mkdir -p "$P13/docs/_internal/_project/plans/2026-08-20-slug"
+printf 'Phase one.\n' > "$P13/docs/_internal/_project/plans/2026-08-20-slug/01_first.md"
+git -C "$P13/docs/_internal" init -q
+
+set +e
+out13=$("$SCIO" lint --check internal-memory --project-dir "$P13" 2>&1)
+set -e
+if ! printf '%s\n' "$out13" | grep -q 'docs/_internal/_project/plans/2026-08-20-slug needs a non-empty 00_INDEX.md'; then
+    echo "FAIL [$_TEST_NAME] test13: expected the missing-index finding" >&2
+    printf '%s\n' "$out13" >&2
+    exit 1
+fi
+
+printf 'The phase map.\n' > "$P13/docs/_internal/_project/plans/2026-08-20-slug/00_INDEX.md"
+set +e
+out13b=$("$SCIO" lint --check internal-memory --strict --project-dir "$P13" 2>&1)
+rc13b=$?
+set -e
+if [[ "$rc13b" -ne 0 || -n "$out13b" ]]; then
+    echo "FAIL [$_TEST_NAME] test13b: a plan with an index must be clean (rc=$rc13b)" >&2
+    printf '%s\n' "$out13b" >&2
     exit 1
 fi
 

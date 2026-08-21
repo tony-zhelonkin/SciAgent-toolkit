@@ -11,8 +11,7 @@ This file is the single source of truth for AI agent behavior in this project.
 
 This is a **software** repository: a reusable package, not an analysis. Package
 identity, language, and lint/test commands live in `tool_config.yaml`. The design intent
-and scope live with the work they govern under `docs/_internal/<work-stem>/`.
-Cross-cutting records live under `docs/_internal/_project/`.
+and scope live under `docs/_internal/_project/`.
 
 ---
 
@@ -30,7 +29,7 @@ Run `scio link` to bind the toolkit catalog and project guardrails. Run
 3. **No analysis idioms.** This is a library — no checkpoint objects, no `00_data/` tree,
    no figure generation. Examples go in `examples/`.
 4. **Benchmarks are reproducible.** Performance claims are backed by records kept with
-   the relevant work under `docs/_internal/<work-stem>/`.
+   a record under `docs/_internal/_project/`.
 
 ---
 
@@ -50,17 +49,19 @@ Run `scio link` to bind the toolkit catalog and project guardrails. Run
 
 ## Documentation namespace
 
-`docs/_internal/` is the agent-facing reasoning record. Its structure follows the work:
+`docs/_internal/` is the agent-facing reasoning record. A software repository has no
+analysis stages to key memory to, and its issues and branches already partition the work,
+so everything lives under one scope:
 
 | Path | Holds |
 |------|-------|
-| `docs/_internal/<work-stem>/session.md` | current handoff for one work unit |
-| `docs/_internal/<work-stem>/reasoning/<topic>.md` | work-specific reasoning |
-| `docs/_internal/_project/session.md` | current cross-cutting handoff |
-| `docs/_internal/_project/reasoning/<topic>.md` | cross-cutting reasoning |
+| `docs/_internal/_project/session.md` | where the work stopped |
+| `docs/_internal/_project/<topic>.md` | one design decision, API choice or benchmark |
+| `docs/_internal/_project/plans/<date-slug>/` | a phased plan: `00_INDEX.md` + `NN_<slug>.md` |
 
-Create each directory with its first real file. Update `session.md` in place; git history
-is its archive.
+Create each directory with its first real file, and update `session.md` in place — an
+in-place update keeps one current record instead of a dated pile, so write it knowing it
+replaces what was there.
 
 ---
 

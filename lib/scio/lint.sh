@@ -622,7 +622,7 @@ _lint_check_docs_layout() {
     while IFS= read -r f; do
         [[ -f "$f" ]] || continue
         _vcheck_emit "$strict" "$quiet" docs-layout \
-            "report in results dir: $(basename "$f") — move to docs/_internal/reports/" || rc=1
+            "report in results dir: $(basename "$f") — a stage README captions its own artifacts; move prose into this repo's memory record" || rc=1
     done < <(find "$projdir/03_results" -maxdepth 1 -name "*.md" 2>/dev/null)
 
     # Multiple archive-style naming conventions coexisting under one parent.
@@ -726,17 +726,20 @@ _lint_check_harness_links() {
 # ---------------------------------------------------------------------------
 # Check: internal-memory
 # ---------------------------------------------------------------------------
-# Audit the SHAPE of an existing docs/_internal/ memory tree: directories keyed
-# to the stage that produced them, each holding real content. Findings are soft
-# warnings unless --strict:
+# Audit the SHAPE of an existing docs/_internal/ memory tree: one directory per
+# scope, each holding real content. Scope is the only structure — a stage stem,
+# or `_project/` for what spans or precedes stages. There is no per-document
+# category directory: a stage holds `session.md` and flat topic notes beside it.
+# Findings are soft warnings unless --strict:
 #   - a retired flat namespace as an immediate child
-#   - an immediate child matching no stage stem
-#   - a stage directory with neither a non-empty session.md nor a non-empty
-#     reasoning/*.md — the empty-scaffold failure this check exists to catch
-#   - a .gitkeep anywhere beneath the tree
-#   - more than one session file in one directory
-#   - a non-memory payload: virtualenv, cache, checkpoint, bytecode, log,
-#     parquet
+#   - an immediate child that is not a scope this project has
+#   - a scope holding no non-empty Markdown — the empty-scaffold failure
+#   - a plan directory with no non-empty 00_INDEX.md
+#   - a .gitkeep, or any empty directory
+#   - several continuity files in one directory, where one is updated in place
+#   - a file that is not memory: memory is Markdown
+#   - a populated tree with no history mechanism, so an in-place update of
+#     session.md overwrites the only copy of what it replaces
 #
 # Opt-in, never a member of `all`: it would fire in every consumer before any
 # project has adopted the skeleton, and `all` must stay quiet on legitimate
@@ -757,14 +760,18 @@ _lint_check_internal_memory() {
     # so an absent tree produces no output at all.
     [[ -d "$root" ]] || return 0
 
-    # The stage stems this project actually has, from either stage-dir
-    # spelling. An empty list means the stem predicate cannot be evaluated, so
-    # it is skipped rather than guessed.
+    # This is a consumer grammar. The toolkit's own memory tree predates it and
+    # is audited by `--check toolkit` instead.
+    [[ -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ]] && return 0
+
+    # The scopes this project has. A viz twin shares its compute stage's number
+    # and stem, so `NN_topic_viz` collapses to `NN_topic`: one stage, one scope.
     local -a stems=()
     local f base
     while IFS= read -r f; do
         base=$(basename "$f")
-        stems+=("${base%.*}")
+        base="${base%.*}"
+        stems+=("${base%_viz}")
     done < <(_vcheck_stage_files "$projdir")
 
     local d name s matched
@@ -775,76 +782,121 @@ _lint_check_internal_memory() {
         case "$name" in
             handoffs|sessions|plans|reports|research)
                 _vcheck_emit "$strict" "$quiet" internal-memory \
-                    "docs/_internal/$name/ is a retired flat namespace — memory is keyed to the stage that produced it" || rc=1
+                    "docs/_internal/$name/ is a retired flat namespace — memory is keyed to the scope that produced it" || rc=1
                 continue
                 ;;
         esac
 
-        # _project/ holds memory that spans or precedes stages, including a
-        # plan directory, so it is judged on holding content rather than on
-        # the two stage-level forms.
         if [[ "$name" == "_project" ]]; then
-            if [[ -z "$(find "$d" -type f ! -empty -print -quit 2>/dev/null)" ]]; then
-                _vcheck_emit "$strict" "$quiet" internal-memory \
-                    "docs/_internal/_project/ holds no content — a directory arrives with its first real file" || rc=1
-            fi
+            _lint_im_scope_content "$d" "$name" "$strict" "$quiet" || rc=1
+            _lint_im_plans "$projdir" "${d%/}/plans" "$strict" "$quiet" || rc=1
             continue
         fi
 
-        if (( ${#stems[@]} > 0 )); then
-            matched=0
-            for s in "${stems[@]}"; do
-                [[ "$name" == "$s" ]] && { matched=1; break; }
-            done
-            if (( matched == 0 )); then
-                _vcheck_emit "$strict" "$quiet" internal-memory \
-                    "docs/_internal/$name/ matches no stage stem — key it to a stage or move it under _project/" || rc=1
-                continue
-            fi
+        # Without stages there is no observable work key to validate against, so
+        # `_project/` is the only scope. Inventing a second grammar would name a
+        # vocabulary nothing checks.
+        if (( ${#stems[@]} == 0 )); then
+            _vcheck_emit "$strict" "$quiet" internal-memory \
+                "docs/_internal/$name/ is not a scope this project has — with no 02_analysis stages, memory belongs under _project/" || rc=1
+            continue
         fi
 
-        if [[ ! -s "$d/session.md" ]] && \
-           [[ -z "$(find "$d/reasoning" -maxdepth 1 -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]]; then
+        matched=0
+        for s in "${stems[@]}"; do
+            [[ "$name" == "$s" ]] && { matched=1; break; }
+        done
+        if (( matched == 0 )); then
             _vcheck_emit "$strict" "$quiet" internal-memory \
-                "docs/_internal/$name/ has neither a non-empty session.md nor a non-empty reasoning/*.md" || rc=1
+                "docs/_internal/$name/ matches no stage stem — key it to a stage or move it under _project/" || rc=1
+            continue
         fi
+
+        _lint_im_scope_content "$d" "$name" "$strict" "$quiet" || rc=1
     done
 
+    local -a findings=()
     while IFS= read -r f; do
         [[ -n "$f" ]] || continue
-        _vcheck_emit "$strict" "$quiet" internal-memory \
-            "${f#"$projdir"/} claims a directory that has no content yet — create it with its first real file" || rc=1
+        findings+=("${f#"$projdir"/} claims a directory that has no content yet — create it with its first real file")
     done < <(find "$root" -name .git -prune -o -type f -name '.gitkeep' -print 2>/dev/null | sort)
 
-    # More than one session file in one directory is the dated pile the
-    # single updated-in-place session.md replaces.
     while IFS= read -r f; do
         [[ -n "$f" ]] || continue
-        _vcheck_emit "$strict" "$quiet" internal-memory \
-            "${f#"$projdir"/} holds several session files — session.md is updated in place and git history is its archive" || rc=1
-    done < <(find "$root" -name .git -prune -o -type f -name '*session*.md' -print 2>/dev/null \
-        | awk '{ n = split($0, a, "/"); dir = ""; for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]; count[dir]++ }
-               END { for (dir in count) if (count[dir] > 1) print dir }' | sort)
+        findings+=("${f#"$projdir"/} is empty — a directory arrives with its first real file")
+    done < <(find "$root" -name .git -prune -o -type d -empty -print 2>/dev/null | sort)
 
-    # Non-memory payloads. One surveyed tree is 568 MB because a virtualenv
-    # lives in it (91.5% of its files); another is 231 MB around a model
-    # checkpoint. A matched directory is reported once and not descended into.
-    # A nested .git/ is exempt: ADR-D10 recommends that topology.
+    # Memory is Markdown. An allowlist rather than a blacklist of payload types:
+    # one surveyed tree is 568 MB because a virtualenv lives in it, another 231 MB
+    # around a model checkpoint, and between them the fleet has accumulated PNG,
+    # PDF, JSON and CSV too. A matched directory is reported once and not
+    # descended into. A nested .git/ is exempt — it is the recommended topology.
     while IFS= read -r f; do
         [[ -n "$f" ]] || continue
-        _vcheck_emit "$strict" "$quiet" internal-memory \
-            "non-memory payload under docs/_internal/: ${f#"$projdir"/} — memory is text" || rc=1
+        findings+=("${f#"$projdir"/} is not memory — memory is Markdown")
     done < <(find "$root" -name .git -prune \
         -o -type d \( -name '.venv' -o -name 'venv' -o -name '__pycache__' \
                       -o -name '.ipynb_checkpoints' -o -name 'node_modules' \
                       -o -name '.mypy_cache' -o -name '.pytest_cache' \
                       -o -name '.ruff_cache' \) -prune -print \
-        -o -type f \( -name '*.pyc' -o -name '*.parquet' -o -name '*.log' \
-                      -o -name '*.h5' -o -name '*.h5ad' -o -name '*.rds' \
-                      -o -name '*.pt' -o -name '*.pth' -o -name '*.ckpt' \
-                      -o -name '*.pkl' -o -name '*.npz' -o -name '*.zip' \) -print \
+        -o -type f ! -name '*.md' ! -name '.gitignore' ! -name '.gitattributes' \
+                   ! -name '.gitkeep' -print \
         2>/dev/null | sort)
 
+    # Several continuity records in one directory is the dated pile that one
+    # updated-in-place session.md replaces. Anchored, so a phase file such as
+    # 01_session-recovery.md is not swept up by a substring.
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        findings+=("${f#"$projdir"/} holds several continuity records — one session.md is updated in place")
+    done < <(find "$root" -name .git -prune -o -type f \
+        \( -name 'session*.md' -o -name 'handoff*.md' -o -name 'STATE.md' \
+           -o -name '00_STATE.md' -o -name 'HANDOFFS.md' \) -print 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); dir = ""; for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]; count[dir]++ }
+               END { for (dir in count) if (count[dir] > 1) print dir }' | sort)
+
+    # A populated tree with no history mechanism. The grammar says session.md is
+    # updated in place, which only preserves what it replaces where history
+    # exists; the parent gitignores this path, so the parent's history is not it.
+    # ADR-D10 recommends a nested repository. This observes the condition rather
+    # than mandating the fix, and `link` creates nothing.
+    if [[ ! -d "$root/.git" ]] && \
+       [[ -n "$(find "$root" -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]] && \
+       [[ -n "$(find "$root" -type f -name 'session*.md' -print -quit 2>/dev/null)" ]]; then
+        findings+=("docs/_internal/ holds continuity records and no history — an in-place update overwrites the only copy; see ADR-D10")
+    fi
+
+    local msg
+    for msg in "${findings[@]+"${findings[@]}"}"; do
+        _vcheck_emit "$strict" "$quiet" internal-memory "$msg" || rc=1
+    done
+
+    return $rc
+}
+
+# _lint_im_scope_content <dir> <name> <strict> <quiet>
+# A scope earns its directory by holding a non-empty Markdown file: session.md,
+# a flat topic note, or content nested under it such as a plan.
+_lint_im_scope_content() {
+    local d="$1" name="$2" strict="$3" quiet="$4"
+    [[ -z "$(find "$d" -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]] || return 0
+    _vcheck_emit "$strict" "$quiet" internal-memory \
+        "docs/_internal/$name/ holds no non-empty Markdown — a directory arrives with its first real file"
+}
+
+# _lint_im_plans <projdir> <plansdir> <strict> <quiet>
+# A phased plan earns a directory by carrying the map that makes it one.
+_lint_im_plans() {
+    local projdir="$1" plans="$2" strict="$3" quiet="$4"
+    local rc=0 p rel
+    [[ -d "$plans" ]] || return 0
+    for p in "$plans"/*/; do
+        [[ -d "$p" ]] || continue
+        [[ -s "$p/00_INDEX.md" ]] && continue
+        rel="${p%/}"
+        _vcheck_emit "$strict" "$quiet" internal-memory \
+            "${rel#"$projdir"/} needs a non-empty 00_INDEX.md — a plan without a phase map is a topic note" || rc=1
+    done
     return $rc
 }
 

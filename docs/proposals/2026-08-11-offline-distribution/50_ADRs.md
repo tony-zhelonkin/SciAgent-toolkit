@@ -342,13 +342,25 @@ describe different systems.
    `docs/_internal/NN_<stem>/`. Memory that spans or precedes stages lives under
    `docs/_internal/_project/`. The stage number is the key agents and humans already share, so this
    mapping requires no intent metadata. There is no mirror for `02_analysis/helpers/`: a helper can
-   serve several stages, and its rationale belongs with a consuming stage or under `_project/`. A
-   repository with no stages keys the same way on its own work units, so the software templates say
-   `docs/_internal/<work-stem>/`; the lint check evaluates the stem predicate only where a stage
-   directory exists to evaluate it against.
+   serve several stages, and its rationale belongs with a consuming stage or under `_project/`.
 
-2. **A plan is a third durable form.** The two ordinary forms are `reasoning/<topic>.md` and
-   `session.md`; `session.md` is updated in place and Git history is its archive. Plans are also
+   **Scope is the only structure.** A stage directory holds `session.md` and flat topic notes
+   beside it — `30_grn/network-selection.md`, not `30_grn/reasoning/network-selection.md`. A
+   per-document category directory classifies rather than scoping: it promises a collection, usually
+   delivers one file, and is the same promise-shaped thing that made `handoffs/` ship empty in five
+   projects. The fleet's competing `reasoning/` spellings are the evidence that the category became
+   a vocabulary problem.
+
+   A repository with no stages has no observable work key for lint to validate, so it uses
+   `_project/` alone. Inventing a second grammar would name a vocabulary nothing checks; a software
+   repository's issues and branches already partition its work.
+
+2. **A plan is a third durable form.** The two ordinary forms are a flat `<topic>.md` and
+   `session.md`; `session.md` is updated in place, which keeps one current record instead of a dated
+   pile. That trade is only safe where the tree has history: an in-place update in an ignored,
+   non-nested tree destroys what it replaces. Decision 6 recommends the topology that supplies it,
+   and `lint --check internal-memory` reports a populated tree that has none — the condition is
+   observed rather than asserted away. Plans are also
    durable. The strongest working example in the fleet is 14782-DM's
    `docs/_internal/plans/2026-08-14_consensus-migration/`, whose 93-line `00_STATE.md` coordinates six
    numbered phase files. This toolkit ships `templates/plan/` and uses the same pattern for this
@@ -360,6 +372,10 @@ describe different systems.
    `session.md` is updated in place. A plan is created with its first substantive file. This keeps
    one grammar — `session.md` means "where this work stands" at every level of the tree — and it is
    what the `internal-memory` lint already checks for.
+
+   A plan earns a *directory* by being phased: the lint requires a non-empty `00_INDEX.md`, because
+   the phase map is what a directory buys over a single file. A plan that fits in one file is a
+   topic note beside the stage it serves.
 
 3. **Scratch is disposable work.** Scio names no sanctioned scratch location. Agents and tools may
    use an appropriate disposable workspace without turning it into durable memory.
@@ -376,13 +392,28 @@ describe different systems.
    mechanism. No Claude, Codex, or Git hook is added. A `pre-commit` invocation of the lint remains
    available as a later escalation if evidence shows agents skip it.
 
-6. **Memory is a nested repository in place, declared by the parent.** `docs/_internal/` becomes
-   its own Git repository. The parent already ignores the path, so the nesting needs no additional
-   wiring. The parent tracks `docs/internal-memory.md`, which names the memory location and makes the
-   nested repository visible. A submodule is rejected because durability would depend on pin bumps;
-   20 of 24 surveyed copies currently share one stale pin. Parent-tracked memory is rejected because
-   agent churn would flood the human log and restore the publication hazard. Remotes and hub syncing
-   remain deferred.
+6. **Memory is a nested repository in place, declared by the parent — recommended, and observed
+   rather than created.** `docs/_internal/` becomes its own Git repository. The parent already
+   ignores the path, so the nesting needs no additional wiring. The parent tracks
+   `docs/internal-memory.md`, which names the memory location and makes the nested repository
+   visible. A submodule is rejected because durability would depend on pin bumps; 20 of 24 surveyed
+   copies currently share one stale pin. Parent-tracked memory is rejected because agent churn would
+   flood the human log and restore the publication hazard.
+
+   **No verb creates this.** `link` writes no repository and no pointer: a binding verb that
+   initialises a Git repository as a side effect would surprise, and the two projects that adopted
+   this topology did it by hand without help. What the toolkit does instead is *notice*:
+   `lint --check internal-memory` reports a tree that holds continuity records and has no history,
+   because that is the condition under which decision 2's in-place update loses information. This is
+   deliberately weaker than the earlier draft, which recorded a topology nothing produced and so
+   committed this ADR's own defect class into the decision record.
+
+   **Still open: reachability.** Both nested repositories found in the survey have no remote, so
+   they carry history and still die with the disk. And a public parent needs a deliberate answer to
+   whether its memory becomes public with it, with a link durable enough to follow years later.
+   Neither is settled here; both are the subject of
+   `docs/_internal/research/2026-08-21-memory-publication/`, and the answer belongs in its own ADR
+   once creation, reachability, recovery and redaction are defined together.
 
 7. **Ownership follows the seam.** Scio owns path grammar, examples, always-on router text, and lint
    predicates. dev-env owns user-global habits. The test is: *follows the repository → Scio; follows

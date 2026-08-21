@@ -1,6 +1,0 @@
-# docs/_internal/ — agent-facing working documents
-
-Keep reasoning and session state beside the work it serves under
-`docs/_internal/<work-stem>/`. Use `docs/_internal/_project/` for work that spans or
-precedes individual work units. Create each directory with its first real file.
-References flow from these records to published artifacts under `docs/`.

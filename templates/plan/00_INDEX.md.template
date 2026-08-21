@@ -2,7 +2,9 @@
   HOW TO USE THIS TEMPLATE
   ========================
   One INDEX per plan, one NN_<slug>.md per phase — both under:
-      docs/_internal/plans/{{DATE}}-<plan-slug>/
+      docs/_internal/_project/plans/{{DATE}}-<plan-slug>/
+  A plan spans stages, so it is project-scoped. A plan that fits in one file is
+  a topic note beside the stage it serves, not a directory.
 
   Fill every <angle-bracket> placeholder with your plan-specific text.
   Replace the {{DATE}} token when instantiating this template. All other

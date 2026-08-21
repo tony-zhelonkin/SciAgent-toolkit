@@ -8,6 +8,7 @@
 #
 # Do not hand-edit. Regenerate with: tools/gen-template-provenance.sh
 # Lines are: <sha1>  <path relative to templates/>
+329d589db4b4af0fa371f505b7b60ccc150afd73  project/_common/.claude/hooks/no_ephemeral.sh.template
 929d3ba184d69da7c38b6b2de737d56639ef942b  project/_common/.claude/hooks/no_ephemeral.sh.template
 b877e489c097e4cb35e8735a387e2621f59d3d5b  project/_common/.claude/hooks/no_ephemeral.sh.template
 82c51109600cbab289d28bc2d133595effb5527f  project/_common/.claude/hooks/no_ephemeral.sh.template
