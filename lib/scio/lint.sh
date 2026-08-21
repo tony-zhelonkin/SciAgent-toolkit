@@ -857,12 +857,16 @@ _lint_check_internal_memory() {
 
     # A populated tree with no history mechanism. The grammar says session.md is
     # updated in place, which only preserves what it replaces where history
-    # exists; the parent gitignores this path, so the parent's history is not it.
-    # ADR-D10 recommends a nested repository. This observes the condition rather
-    # than mandating the fix, and `link` creates nothing.
-    if [[ ! -d "$root/.git" ]] && \
-       [[ -n "$(find "$root" -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]] && \
-       [[ -n "$(find "$root" -type f -name 'session*.md' -print -quit 2>/dev/null)" ]]; then
+    # exists. ADR-D10 recommends a nested repository. This observes the condition
+    # rather than mandating the fix, and `link` creates nothing.
+    #
+    # Two ways history can already exist, and both count: a nested repository —
+    # where `.git` is a FILE, not a directory, when the memory is a worktree or a
+    # submodule — or a parent that tracks the tree despite the ignore rule, which
+    # is what a force-add produces. Either way the archive is real.
+    if [[ ! -e "$root/.git" ]] && \
+       [[ -n "$(find "$root" -type f -name 'session*.md' -print -quit 2>/dev/null)" ]] && \
+       ! _lint_im_parent_tracks "$projdir"; then
         findings+=("docs/_internal/ holds continuity records and no history — an in-place update overwrites the only copy; see ADR-D10")
     fi
 
@@ -872,6 +876,16 @@ _lint_check_internal_memory() {
     done
 
     return $rc
+}
+
+# _lint_im_parent_tracks <projdir>
+# True when the parent repository tracks anything under docs/_internal/, which a
+# force-add produces despite the ignore rule. Then the parent's history is the
+# archive and no nested repository is needed.
+_lint_im_parent_tracks() {
+    local projdir="$1"
+    [[ "$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]] || return 1
+    [[ -n "$(git -C "$projdir" ls-files -- docs/_internal 2>/dev/null | head -1)" ]]
 }
 
 # _lint_im_scope_content <dir> <name> <strict> <quiet>

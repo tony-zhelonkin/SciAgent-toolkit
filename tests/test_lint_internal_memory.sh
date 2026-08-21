@@ -24,6 +24,8 @@
 #      is updated in place, so without history the update destroys what it
 #      replaced. Observed, not mandated: no verb creates the repo.
 #  13. A plan directory with no 00_INDEX.md → finding; with one → clean.
+#  14. History can be a .git FILE (worktree or submodule), or a parent that
+#      tracks the tree despite the ignore rule. Both count; neither is flagged.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -356,6 +358,46 @@ set -e
 if [[ "$rc13b" -ne 0 || -n "$out13b" ]]; then
     echo "FAIL [$_TEST_NAME] test13b: a plan with an index must be clean (rc=$rc13b)" >&2
     printf '%s\n' "$out13b" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 14: the two other ways history can already exist.
+# ---------------------------------------------------------------------------
+# (a) .git as a FILE, which is what a worktree or a submodule leaves behind.
+P14="$TMPDIR_TEST/p14"
+make_proj "$P14" 30_grn
+mkdir -p "$P14/docs/_internal/30_grn"
+printf 'Stopped mid-pass.\n' > "$P14/docs/_internal/30_grn/session.md"
+printf 'gitdir: /elsewhere/memory.git\n' > "$P14/docs/_internal/.git"
+
+set +e
+out14=$("$SCIO" lint --check internal-memory --project-dir "$P14" 2>&1)
+set -e
+if printf '%s\n' "$out14" | grep -q 'no history'; then
+    echo "FAIL [$_TEST_NAME] test14a: a .git file is a nested repo, not an absence" >&2
+    printf '%s\n' "$out14" >&2
+    exit 1
+fi
+
+# (b) the parent tracks the tree, which a force-add produces.
+P14B="$TMPDIR_TEST/p14b"
+make_proj "$P14B" 30_grn
+mkdir -p "$P14B/docs/_internal/30_grn"
+printf 'Stopped mid-pass.\n' > "$P14B/docs/_internal/30_grn/session.md"
+git -C "$P14B" init -q
+git -C "$P14B" config user.email "test@example.com"
+git -C "$P14B" config user.name "Test"
+printf 'docs/_internal/\n' > "$P14B/.gitignore"
+git -C "$P14B" add -f docs/_internal/30_grn/session.md
+git -C "$P14B" commit -q -m "memory"
+
+set +e
+out14b=$("$SCIO" lint --check internal-memory --project-dir "$P14B" 2>&1)
+set -e
+if printf '%s\n' "$out14b" | grep -q 'no history'; then
+    echo "FAIL [$_TEST_NAME] test14b: a parent-tracked tree already has an archive" >&2
+    printf '%s\n' "$out14b" >&2
     exit 1
 fi
 
