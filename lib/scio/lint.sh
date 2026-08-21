@@ -35,6 +35,11 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
+#   harness-links   every mount `link` writes still resolves, and names no
+#                   absolute path inside the project — such a path resolves on
+#                   one side of the container boundary only. An absolute target
+#                   outside the project is the global-install channel and is
+#                   silent. Absent mounts are an absent subject.
 #   internal-memory the shape of an existing docs/_internal/ tree: stage-keyed
 #                   directories holding real content, no retired flat
 #                   namespace, no .gitkeep, no session pile, no non-memory
@@ -665,6 +670,60 @@ _lint_check_docs_layout() {
 }
 
 # ---------------------------------------------------------------------------
+# Check: harness-links
+# ---------------------------------------------------------------------------
+# Every mount `link` writes must still resolve, and must not name an absolute
+# path inside the project. The same project tree is mounted at two absolute
+# paths — the host's and the container's — so an absolute in-project target can
+# only ever name one of them, and `link` run from the other side silently
+# rewrites all six. Findings are soft warnings unless --strict:
+#   - a toolkit mount that does not resolve
+#   - a toolkit mount whose target is an absolute path inside this project
+#
+# An absolute target pointing OUTSIDE the project is correct and stays silent:
+# that is the global-install channel, where a relative chain would break the
+# moment the project directory moves.
+_LINT_HARNESS_MOUNTS=(
+    .claude/skills .claude/agents .claude/commands
+    .agents/skills .agents/agents .agents/commands
+    02_analysis/helpers/figure-style 02_analysis/helpers/interactive-style
+)
+
+_lint_check_harness_links() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+    local proj rel p target
+
+    proj=$(cd "$projdir" 2>/dev/null && pwd -P) || return 0
+
+    for rel in "${_LINT_HARNESS_MOUNTS[@]}"; do
+        p="$projdir/$rel"
+        # Absent-subject guard, per mount: a project may bind neither harness
+        # directory, and a real populated directory is the user's own.
+        [[ -L "$p" ]] || continue
+
+        target=$(readlink "$p") || continue
+
+        if [[ ! -e "$p" ]]; then
+            _vcheck_emit "$strict" "$quiet" harness-links \
+                "$rel does not resolve (-> $target) — run: scio link" || rc=1
+            continue
+        fi
+
+        if [[ "$target" == /* ]]; then
+            case "$target/" in
+                "$proj"/*)
+                    _vcheck_emit "$strict" "$quiet" harness-links \
+                        "$rel names an absolute path inside this project (-> $target) — it resolves on one side of the container boundary only; run: scio link" || rc=1
+                    ;;
+            esac
+        fi
+    done
+
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
 # Check: internal-memory
 # ---------------------------------------------------------------------------
 # Audit the SHAPE of an existing docs/_internal/ memory tree: directories keyed
@@ -861,12 +920,12 @@ _lint_run_checks() {
     local n
     for n in "${names[@]}"; do
         case "$n" in
-            all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|internal-memory|toolkit) run+=("$n") ;;
+            all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout harness-links); break ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|harness-links|internal-memory|toolkit) run+=("$n") ;;
             "") ;;
             *)
                 echo "scio lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout internal-memory toolkit all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout harness-links internal-memory toolkit all" >&2
                 return 1 ;;
         esac
     done
@@ -880,6 +939,7 @@ _lint_run_checks() {
             freshness)      _lint_check_freshness      "$projdir" "$strict" "$quiet" || rc=1 ;;
             hooks)          _lint_check_hooks          "$projdir" "$strict" "$quiet" || rc=1 ;;
             docs-layout)    _lint_check_docs_layout    "$projdir" "$strict" "$quiet" || rc=1 ;;
+            harness-links)  _lint_check_harness_links  "$projdir" "$strict" "$quiet" || rc=1 ;;
             internal-memory) _lint_check_internal_memory "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
@@ -910,7 +970,7 @@ scio lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | hooks | docs-layout |
                             stage-thinness | comment-intent | stage-layout |
-                            internal-memory | toolkit | all.
+                            harness-links | internal-memory | toolkit | all.
                      Default (no --check given): all. `internal-memory` and
                      `toolkit` are opt-in and are not members of `all`.
   --strict           Findings become HARD failures (exit 1) instead of WARN.

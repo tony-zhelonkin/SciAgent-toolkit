@@ -314,6 +314,13 @@ during the migration.
 **Blocks:** the pilot re-pin and coordinated fleet migration. **Reversible:** yes, at fleet
 coordination cost.
 
+**Owner ruling, 2026-08-21 — sequenced into the sweep.** The rename runs in the same pass as the
+fleet sweep rather than before or after it. The sweep already rewrites the paths this rename touches:
+four vendor-dir spellings are live (`01_modules`, `01_scripts`, `01_Modules`, `01_Scripts`) and each
+resolves individually, so a separate rename pass would walk 25 copies twice. Docs written between
+now and the sweep keep naming `01_modules/SciAgent-toolkit/`, which stays correct until the copies
+move.
+
 ---
 
 ## ADR-D10 — Project memory mirrors analysis and is enforced from the tree [Arch]
@@ -347,11 +354,12 @@ describe different systems.
    numbered phase files. This toolkit ships `templates/plan/` and uses the same pattern for this
    work.
 
-   **OPEN — awaiting owner ruling.** The proposed placement is
-   `_project/plans/<date-slug>/`, because a plan spans stages. Its `00_STATE.md` and `session.md` are
-   the same form under two names; the owner must choose one spelling, which is then updated in
-   place. A plan is created with its first substantive state or phase file. A later ruling belongs
-   in an appended owner-ruling note beneath this ADR.
+   **Owner ruling, 2026-08-21.** A plan lives at `_project/plans/<date-slug>/`, because it spans
+   stages. `session.md` is the one spelling: `00_STATE.md` was the same form under another name, so a
+   plan directory holds `session.md` beside its `00_INDEX.md` and `NN_<slug>.md` phase files, and
+   `session.md` is updated in place. A plan is created with its first substantive file. This keeps
+   one grammar — `session.md` means "where this work stands" at every level of the tree — and it is
+   what the `internal-memory` lint already checks for.
 
 3. **Scratch is disposable work.** Scio names no sanctioned scratch location. Agents and tools may
    use an appropriate disposable workspace without turning it into durable memory.

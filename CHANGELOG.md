@@ -11,6 +11,24 @@ The catalog now binds through one directory symlink per harness category.
 
 ### Changed
 
+- **The six category links are relative again when the toolkit is vendored
+  inside the project.** `_link_category` wrote `$SCIO_TOOLKIT/<category>`
+  verbatim, so every link named an absolute path: written from the host they
+  resolved only on the host, written in a container only in the container, and
+  the last `link` run won. Measured in the field on 2026-08-21 — a project
+  pinned at the current tip had all six pointing at `/workspaces/<name>/…`,
+  reachable from inside its container and dangling from outside. One
+  `_link_symlink_target` helper now serves the category links and the
+  `02_analysis/helpers` libs: relative while the source is inside the project,
+  absolute for a global install, where a relative chain would break the moment
+  the project moves. That also retires the helper path's unreachable fallback,
+  since `realpath --relative-to` always succeeded. The idempotency test compares
+  the *written* target rather than where it resolves — a resolution test reads an
+  absolute link as current and would have left all 25 bound copies unrepaired.
+  A re-run reports each repair. New `lint --check harness-links` fails a mount
+  that does not resolve or that names an absolute path inside the project, so the
+  regression cannot return silently; an absolute target outside the project is
+  the global-install channel and stays quiet.
 - **Scio now ships as the three-verb `link`, `craft`, and `lint`
   toolkit.** The demolition series removed role activation and stack state,
   deactivation, status/list, project scaffolding, update and provisioning,

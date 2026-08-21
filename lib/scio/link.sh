@@ -42,6 +42,28 @@ _link_target_path() {
     fi
 }
 
+# _link_symlink_target <link_dir> <src>
+# Echo the target to write into a symlink placed in <link_dir>.
+#
+# Relative whenever the source lives inside this project, so a single `link` run
+# resolves from the host and from inside a container: the same project tree is
+# mounted at two different absolute paths, and an absolute target can only ever
+# name one of them. Absolute when the toolkit is installed outside the project,
+# where a relative chain would break as soon as the project directory moves.
+_link_symlink_target() {
+    local link_dir="$1" src="$2"
+    local proj src_abs rel
+    proj=$(pwd -P 2>/dev/null) || { printf '%s' "$src"; return 0; }
+    src_abs=$(_link_resolve "$src")
+    case "$src_abs/" in
+        "$proj"/*) ;;
+        *) printf '%s' "$src_abs"; return 0 ;;
+    esac
+    rel=$(realpath --relative-to="$link_dir" "$src_abs" 2>/dev/null) \
+        || { printf '%s' "$src_abs"; return 0; }
+    printf '%s' "$rel"
+}
+
 # Print the project's pinned toolkit path when one is present.
 _link_in_repo_toolkit() {
     local path
@@ -145,14 +167,20 @@ _link_category() {
     _link_sweep_dir "$dst" || return 1
     mkdir -p "$harness" || { echo "scio link: failed to create $harness" >&2; return 1; }
 
+    local target
+    target=$(_link_symlink_target "$harness" "$src")
+
+    # Compare the written target, not where it resolves to. An absolute link
+    # resolves correctly on the side that wrote it, so a resolution test reads
+    # as current and leaves every already-bound project unrepaired.
     if [[ -L "$dst" ]]; then
-        if [[ "$(_link_target_path "$dst")" == "$(_link_resolve "$src")" ]]; then
+        if [[ "$(readlink "$dst")" == "$target" ]]; then
             return 0
         fi
         local old
         old=$(readlink "$dst")
-        ln -sfn "$src" "$dst" || { echo "scio link: failed to replace $dst" >&2; return 1; }
-        echo "replaced link: $dst -> $src (was $old)"
+        ln -sfn "$target" "$dst" || { echo "scio link: failed to replace $dst" >&2; return 1; }
+        echo "replaced link: $dst -> $target (was $old)"
         return 0
     fi
 
@@ -167,8 +195,8 @@ _link_category() {
         return 1
     fi
 
-    ln -s "$src" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
-    echo "linked: $dst -> $src"
+    ln -s "$target" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
+    echo "linked: $dst -> $target"
 }
 
 _HELPER_SHIM_TPL_REL="project/analysis/02_analysis/helpers"
@@ -205,8 +233,10 @@ _link_helper_libs() {
         [[ -d "$src" ]] || continue
         dst="$link_dir/$libdir"
 
+        target=$(_link_symlink_target "$link_dir" "$src")
+
         if [[ -L "$dst" ]]; then
-            if [[ "$(_link_target_path "$dst")" == "$(_link_resolve "$src")" ]]; then
+            if [[ "$(readlink "$dst")" == "$target" ]]; then
                 continue
             fi
             if ! _link_owned_by_toolkit "$dst"; then
@@ -227,13 +257,8 @@ _link_helper_libs() {
             continue
         fi
 
-        if realpath --relative-to="$link_dir" "$src" >/dev/null 2>&1; then
-            target=$(realpath --relative-to="$link_dir" "$src")
-        else
-            target="$src"
-        fi
         ln -s "$target" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
-        echo "linked: $dst -> $src"
+        echo "linked: $dst -> $target"
     done
     return "$failed"
 }
