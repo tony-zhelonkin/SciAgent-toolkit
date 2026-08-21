@@ -241,4 +241,33 @@ if printf '%s\n' "$out6" | grep -qi 'docs-layout\|docs/_internal'; then
     exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# Test 7: docs/ exists, docs/_internal/ does not → SILENT. `link` never
+# creates that directory, so a remediation naming it could not remediate, and
+# the warning pressured exactly the empty scaffolding the field survey found
+# harmful. Absence of a memory tree is legitimate and must produce no output,
+# even under --strict.
+# ---------------------------------------------------------------------------
+PROJ7="$TMPDIR_TEST/proj7"
+mkdir -p "$PROJ7/docs"
+git -C "$PROJ7" init -q
+git -C "$PROJ7" config user.email "test@example.com"
+git -C "$PROJ7" config user.name "Test"
+
+set +e
+out7=$("$SCIO" lint --check docs-layout --strict --project-dir "$PROJ7" 2>&1)
+rc7=$?
+set -e
+
+if [[ "$rc7" -ne 0 ]]; then
+    echo "FAIL [$_TEST_NAME] test7: docs/ without docs/_internal/ must exit 0, got $rc7" >&2
+    printf '%s\n' "$out7" >&2
+    exit 1
+fi
+if [[ -n "$out7" ]]; then
+    echo "FAIL [$_TEST_NAME] test7: expected NO output when docs/_internal/ is simply absent" >&2
+    printf '%s\n' "$out7" >&2
+    exit 1
+fi
+
 pass

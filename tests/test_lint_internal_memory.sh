@@ -1,0 +1,292 @@
+#!/usr/bin/env bash
+# tests/test_lint_internal_memory.sh — the `internal-memory` project check.
+#
+# Tests:
+#   1. No docs/_internal/ at all → CLEAN no-op: exit 0, NO output, even under
+#      --strict. Absence is the majority state across the fleet and is
+#      legitimate; the check audits the SHAPE of a tree that exists.
+#   2. _project/ with content plus a stage dir holding a non-empty session.md
+#      → clean under --strict. A sibling stage dir holding only
+#      reasoning/<topic>.md is equally valid.
+#   3. A stage dir with neither a non-empty session.md nor a non-empty
+#      reasoning/*.md → the empty-scaffold finding this check exists for.
+#   4. A .gitkeep anywhere beneath the tree → finding.
+#   5. handoffs/ as an immediate child → retired flat namespace finding.
+#   6. A directory matching no stage stem → finding.
+#   7. A .venv/ directory and a .parquet file → non-memory payload findings,
+#      and the venv is reported once rather than per contained file.
+#   8. A nested docs/_internal/.git/ → NOT a finding (ADR-D10 topology).
+#   9. --strict promotes WARN to ERROR and exit 1; without it, exit 0.
+#  10. The check is opt-in: `--check all --strict` never mentions it.
+#  11. An unknown --check name lists internal-memory among the valid names.
+set -u
+. "$(dirname "$0")/_lib.sh"
+
+setup_tmpdir
+FAKE="$TMPDIR_TEST/fake-toolkit"
+build_fake_toolkit "$FAKE"
+export SCIO_TOOLKIT="$FAKE"
+SCIO="$FAKE/bin/scio"
+
+# Build a project with one stage file per requested stem.
+make_proj() {
+    local dir="$1"; shift
+    mkdir -p "$dir/02_analysis/stages"
+    local stem
+    for stem in "$@"; do
+        printf 'x <- 1\n' > "$dir/02_analysis/stages/$stem.R"
+    done
+}
+
+# ---------------------------------------------------------------------------
+# Test 1: no docs/_internal/ → silent.
+# ---------------------------------------------------------------------------
+P1="$TMPDIR_TEST/p1"
+make_proj "$P1" 30_grn
+mkdir -p "$P1/docs"
+
+set +e
+out1=$("$SCIO" lint --check internal-memory --strict --project-dir "$P1" 2>&1)
+rc1=$?
+set -e
+if [[ "$rc1" -ne 0 || -n "$out1" ]]; then
+    echo "FAIL [$_TEST_NAME] test1: absent docs/_internal/ must be silent (rc=$rc1)" >&2
+    printf '%s\n' "$out1" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 2: a well-formed tree passes under --strict.
+# ---------------------------------------------------------------------------
+P2="$TMPDIR_TEST/p2"
+make_proj "$P2" 30_grn 40_peaks
+mkdir -p "$P2/docs/_internal/_project" \
+         "$P2/docs/_internal/30_grn" \
+         "$P2/docs/_internal/40_peaks/reasoning"
+printf 'Cohort scope decided 2026-08-01.\n' > "$P2/docs/_internal/_project/session.md"
+printf 'Stopped after the GRN pass.\n' > "$P2/docs/_internal/30_grn/session.md"
+printf 'Why the peak floor is 0.05.\n' > "$P2/docs/_internal/40_peaks/reasoning/floor.md"
+
+set +e
+out2=$("$SCIO" lint --check internal-memory --strict --project-dir "$P2" 2>&1)
+rc2=$?
+set -e
+if [[ "$rc2" -ne 0 || -n "$out2" ]]; then
+    echo "FAIL [$_TEST_NAME] test2: a well-formed memory tree must be clean (rc=$rc2)" >&2
+    printf '%s\n' "$out2" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 3: a stage dir with no content, and test 9's severity pair.
+# ---------------------------------------------------------------------------
+P3="$TMPDIR_TEST/p3"
+make_proj "$P3" 30_grn
+mkdir -p "$P3/docs/_internal/30_grn/reasoning"
+
+set +e
+out3=$("$SCIO" lint --check internal-memory --project-dir "$P3" 2>&1)
+rc3=$?
+set -e
+if [[ "$rc3" -ne 0 ]]; then
+    echo "FAIL [$_TEST_NAME] test3: soft warn must exit 0, got $rc3" >&2
+    printf '%s\n' "$out3" >&2
+    exit 1
+fi
+if ! printf '%s\n' "$out3" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ has neither'; then
+    echo "FAIL [$_TEST_NAME] test3: expected the empty-scaffold WARN" >&2
+    printf '%s\n' "$out3" >&2
+    exit 1
+fi
+
+set +e
+out3s=$("$SCIO" lint --check internal-memory --strict --project-dir "$P3" 2>&1)
+rc3s=$?
+set -e
+if [[ "$rc3s" -eq 0 ]]; then
+    echo "FAIL [$_TEST_NAME] test9: --strict must promote to exit 1" >&2
+    printf '%s\n' "$out3s" >&2
+    exit 1
+fi
+if ! printf '%s\n' "$out3s" | grep -q 'ERROR internal-memory: docs/_internal/30_grn/ has neither'; then
+    echo "FAIL [$_TEST_NAME] test9: --strict must emit ERROR" >&2
+    printf '%s\n' "$out3s" >&2
+    exit 1
+fi
+
+# An empty file does not count as content.
+printf '' > "$P3/docs/_internal/30_grn/session.md"
+set +e
+out3e=$("$SCIO" lint --check internal-memory --project-dir "$P3" 2>&1)
+set -e
+if ! printf '%s\n' "$out3e" | grep -q 'WARN internal-memory: docs/_internal/30_grn/ has neither'; then
+    echo "FAIL [$_TEST_NAME] test3: an empty session.md must not satisfy the content rule" >&2
+    printf '%s\n' "$out3e" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 4: a .gitkeep anywhere beneath the tree.
+# ---------------------------------------------------------------------------
+P4="$TMPDIR_TEST/p4"
+make_proj "$P4" 30_grn
+mkdir -p "$P4/docs/_internal/30_grn/reasoning"
+printf 'Stopped mid-pass.\n' > "$P4/docs/_internal/30_grn/session.md"
+touch "$P4/docs/_internal/30_grn/reasoning/.gitkeep"
+
+set +e
+out4=$("$SCIO" lint --check internal-memory --project-dir "$P4" 2>&1)
+set -e
+if ! printf '%s\n' "$out4" | grep -q 'WARN internal-memory: docs/_internal/30_grn/reasoning/.gitkeep claims a directory'; then
+    echo "FAIL [$_TEST_NAME] test4: expected a .gitkeep finding" >&2
+    printf '%s\n' "$out4" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 5: handoffs/ as an immediate child.
+# ---------------------------------------------------------------------------
+P5="$TMPDIR_TEST/p5"
+make_proj "$P5" 30_grn
+mkdir -p "$P5/docs/_internal/handoffs"
+printf 'Where the work stopped.\n' > "$P5/docs/_internal/handoffs/2026-08-01.md"
+
+set +e
+out5=$("$SCIO" lint --check internal-memory --project-dir "$P5" 2>&1)
+set -e
+if ! printf '%s\n' "$out5" | grep -q 'WARN internal-memory: docs/_internal/handoffs/ is a retired flat namespace'; then
+    echo "FAIL [$_TEST_NAME] test5: expected the retired-namespace finding" >&2
+    printf '%s\n' "$out5" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 6: a directory matching no stage stem.
+# ---------------------------------------------------------------------------
+P6="$TMPDIR_TEST/p6"
+make_proj "$P6" 30_grn
+mkdir -p "$P6/docs/_internal/99_nowhere"
+printf 'Notes with no stage.\n' > "$P6/docs/_internal/99_nowhere/session.md"
+
+set +e
+out6=$("$SCIO" lint --check internal-memory --project-dir "$P6" 2>&1)
+set -e
+if ! printf '%s\n' "$out6" | grep -q 'WARN internal-memory: docs/_internal/99_nowhere/ matches no stage stem'; then
+    echo "FAIL [$_TEST_NAME] test6: expected the unmatched-stem finding" >&2
+    printf '%s\n' "$out6" >&2
+    exit 1
+fi
+
+# The 02_analysis/scripts/ spelling is accepted for the pre-rename window.
+P6B="$TMPDIR_TEST/p6b"
+mkdir -p "$P6B/02_analysis/scripts" "$P6B/docs/_internal/30_grn"
+printf 'x <- 1\n' > "$P6B/02_analysis/scripts/30_grn.R"
+printf 'Stopped after the GRN pass.\n' > "$P6B/docs/_internal/30_grn/session.md"
+
+set +e
+out6b=$("$SCIO" lint --check internal-memory --strict --project-dir "$P6B" 2>&1)
+rc6b=$?
+set -e
+if [[ "$rc6b" -ne 0 || -n "$out6b" ]]; then
+    echo "FAIL [$_TEST_NAME] test6b: the 02_analysis/scripts/ spelling must be accepted (rc=$rc6b)" >&2
+    printf '%s\n' "$out6b" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 7: non-memory payloads, and the venv reported once.
+# ---------------------------------------------------------------------------
+P7="$TMPDIR_TEST/p7"
+make_proj "$P7" 30_grn
+mkdir -p "$P7/docs/_internal/30_grn" "$P7/docs/_internal/_project/.venv/lib"
+printf 'Stopped mid-pass.\n' > "$P7/docs/_internal/30_grn/session.md"
+printf 'x\n' > "$P7/docs/_internal/_project/.venv/lib/site.pyc"
+printf 'x\n' > "$P7/docs/_internal/_project/.venv/pyvenv.cfg"
+printf 'x\n' > "$P7/docs/_internal/30_grn/cells.parquet"
+
+set +e
+out7=$("$SCIO" lint --check internal-memory --project-dir "$P7" 2>&1)
+set -e
+if ! printf '%s\n' "$out7" | grep -q 'non-memory payload under docs/_internal/: docs/_internal/_project/.venv'; then
+    echo "FAIL [$_TEST_NAME] test7: expected the virtualenv finding" >&2
+    printf '%s\n' "$out7" >&2
+    exit 1
+fi
+if ! printf '%s\n' "$out7" | grep -q 'non-memory payload under docs/_internal/: docs/_internal/30_grn/cells.parquet'; then
+    echo "FAIL [$_TEST_NAME] test7: expected the parquet finding" >&2
+    printf '%s\n' "$out7" >&2
+    exit 1
+fi
+if printf '%s\n' "$out7" | grep -q 'site.pyc'; then
+    echo "FAIL [$_TEST_NAME] test7: a matched directory must be reported once, not descended into" >&2
+    printf '%s\n' "$out7" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8: a nested docs/_internal/.git/ is the recommended topology.
+# ---------------------------------------------------------------------------
+P8="$TMPDIR_TEST/p8"
+make_proj "$P8" 30_grn
+mkdir -p "$P8/docs/_internal/30_grn"
+printf 'Stopped mid-pass.\n' > "$P8/docs/_internal/30_grn/session.md"
+git -C "$P8/docs/_internal" init -q
+
+set +e
+out8=$("$SCIO" lint --check internal-memory --strict --project-dir "$P8" 2>&1)
+rc8=$?
+set -e
+if [[ "$rc8" -ne 0 || -n "$out8" ]]; then
+    echo "FAIL [$_TEST_NAME] test8: a nested memory repo must not be reported (rc=$rc8)" >&2
+    printf '%s\n' "$out8" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8b: several session files in one directory.
+# ---------------------------------------------------------------------------
+P8B="$TMPDIR_TEST/p8b"
+make_proj "$P8B" 30_grn
+mkdir -p "$P8B/docs/_internal/30_grn"
+printf 'Current.\n' > "$P8B/docs/_internal/30_grn/session.md"
+printf 'Older.\n' > "$P8B/docs/_internal/30_grn/session_20260801.md"
+
+set +e
+out8b=$("$SCIO" lint --check internal-memory --project-dir "$P8B" 2>&1)
+set -e
+if ! printf '%s\n' "$out8b" | grep -q 'WARN internal-memory: docs/_internal/30_grn holds several session files'; then
+    echo "FAIL [$_TEST_NAME] test8b: expected the session-pile finding" >&2
+    printf '%s\n' "$out8b" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 10: opt-in — `--check all --strict` never runs it.
+# ---------------------------------------------------------------------------
+set +e
+out10=$("$SCIO" lint --check all --strict --project-dir "$P3" 2>&1)
+set -e
+if printf '%s\n' "$out10" | grep -q 'internal-memory'; then
+    echo "FAIL [$_TEST_NAME] test10: internal-memory must not be a member of all" >&2
+    printf '%s\n' "$out10" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 11: the name is selectable and appears in the valid-name list.
+# ---------------------------------------------------------------------------
+set +e
+out11=$("$SCIO" lint --check bogus --project-dir "$P1" 2>&1)
+rc11=$?
+set -e
+if [[ "$rc11" -eq 0 ]]; then
+    echo "FAIL [$_TEST_NAME] test11: an unknown --check name must exit 1" >&2
+    exit 1
+fi
+if ! printf '%s\n' "$out11" | grep -q 'internal-memory'; then
+    echo "FAIL [$_TEST_NAME] test11: the valid-name list must include internal-memory" >&2
+    printf '%s\n' "$out11" >&2
+    exit 1
+fi
+
+pass

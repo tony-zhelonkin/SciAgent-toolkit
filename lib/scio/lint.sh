@@ -20,7 +20,7 @@
 #                   the (c) GUARDRAIL layer).
 #   docs-layout     docs/_internal/ must be gitignored when the project is a
 #                   git repo (leaks internal notes on push otherwise); plus
-#                   softer structural warnings — missing docs/_internal/, a
+#                   softer structural warnings — a
 #                   stray .md at the 03_results/ root, mixed archive-naming
 #                   conventions, non-standard handoff filenames. No-ops
 #                   entirely (same absent-subject pattern as figure-style/
@@ -35,6 +35,10 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
+#   internal-memory the shape of an existing docs/_internal/ tree: stage-keyed
+#                   directories holding real content, no retired flat
+#                   namespace, no .gitkeep, no session pile, no non-memory
+#                   payload. Opt-in like `toolkit`; absent tree is silence.
 #   toolkit         skill frontmatter shape, cross-namespace collisions, and
 #                   the rendered CRAFT body against craft.yaml `max_lines:`.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
@@ -598,11 +602,6 @@ _lint_check_docs_layout() {
     # does not mandate that one exist.
     [[ -d "$projdir/docs" ]] || return 0
 
-    # docs/_internal/ does not exist (docs/ itself does, so the project has
-    # opted into the convention but hasn't finished scaffolding it).
-    [[ -d "$projdir/docs/_internal" ]] || \
-        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: scio link" || rc=1; }
-
     # docs/_internal/ exists but is NOT gitignored (in a git repo).
     if [[ -d "$projdir/docs/_internal" ]]; then
         local _in_git
@@ -661,6 +660,131 @@ _lint_check_docs_layout() {
                 "non-standard handoff filename: $(basename "$f")" || rc=1
         fi
     done
+
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+# Check: internal-memory
+# ---------------------------------------------------------------------------
+# Audit the SHAPE of an existing docs/_internal/ memory tree: directories keyed
+# to the stage that produced them, each holding real content. Findings are soft
+# warnings unless --strict:
+#   - a retired flat namespace as an immediate child
+#   - an immediate child matching no stage stem
+#   - a stage directory with neither a non-empty session.md nor a non-empty
+#     reasoning/*.md — the empty-scaffold failure this check exists to catch
+#   - a .gitkeep anywhere beneath the tree
+#   - more than one session file in one directory
+#   - a non-memory payload: virtualenv, cache, checkpoint, bytecode, log,
+#     parquet
+#
+# Opt-in, never a member of `all`: it would fire in every consumer before any
+# project has adopted the skeleton, and `all` must stay quiet on legitimate
+# absence.
+#
+# What it cannot do: judge whether reasoning is sound, whether anything
+# important went unrecorded, or whether a note is still current. It cannot see
+# work that never left a scratch directory. Claiming any of that would repeat
+# the defect it exists to remove — an instruction naming something the
+# mechanism does not guarantee.
+_lint_check_internal_memory() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+    local root="$projdir/docs/_internal"
+
+    # Absent-subject guard, same shape as docs-layout and results-layout: 10 of
+    # 24 surveyed projects have no docs/_internal/ and absence is legitimate,
+    # so an absent tree produces no output at all.
+    [[ -d "$root" ]] || return 0
+
+    # The stage stems this project actually has, from either stage-dir
+    # spelling. An empty list means the stem predicate cannot be evaluated, so
+    # it is skipped rather than guessed.
+    local -a stems=()
+    local f base
+    while IFS= read -r f; do
+        base=$(basename "$f")
+        stems+=("${base%.*}")
+    done < <(_vcheck_stage_files "$projdir")
+
+    local d name s matched
+    for d in "$root"/*/; do
+        [[ -d "$d" ]] || continue
+        name=$(basename "$d")
+
+        case "$name" in
+            handoffs|sessions|plans|reports|research)
+                _vcheck_emit "$strict" "$quiet" internal-memory \
+                    "docs/_internal/$name/ is a retired flat namespace — memory is keyed to the stage that produced it" || rc=1
+                continue
+                ;;
+        esac
+
+        # _project/ holds memory that spans or precedes stages, including a
+        # plan directory, so it is judged on holding content rather than on
+        # the two stage-level forms.
+        if [[ "$name" == "_project" ]]; then
+            if [[ -z "$(find "$d" -type f ! -empty -print -quit 2>/dev/null)" ]]; then
+                _vcheck_emit "$strict" "$quiet" internal-memory \
+                    "docs/_internal/_project/ holds no content — a directory arrives with its first real file" || rc=1
+            fi
+            continue
+        fi
+
+        if (( ${#stems[@]} > 0 )); then
+            matched=0
+            for s in "${stems[@]}"; do
+                [[ "$name" == "$s" ]] && { matched=1; break; }
+            done
+            if (( matched == 0 )); then
+                _vcheck_emit "$strict" "$quiet" internal-memory \
+                    "docs/_internal/$name/ matches no stage stem — key it to a stage or move it under _project/" || rc=1
+                continue
+            fi
+        fi
+
+        if [[ ! -s "$d/session.md" ]] && \
+           [[ -z "$(find "$d/reasoning" -maxdepth 1 -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]]; then
+            _vcheck_emit "$strict" "$quiet" internal-memory \
+                "docs/_internal/$name/ has neither a non-empty session.md nor a non-empty reasoning/*.md" || rc=1
+        fi
+    done
+
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        _vcheck_emit "$strict" "$quiet" internal-memory \
+            "${f#"$projdir"/} claims a directory that has no content yet — create it with its first real file" || rc=1
+    done < <(find "$root" -name .git -prune -o -type f -name '.gitkeep' -print 2>/dev/null | sort)
+
+    # More than one session file in one directory is the dated pile the
+    # single updated-in-place session.md replaces.
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        _vcheck_emit "$strict" "$quiet" internal-memory \
+            "${f#"$projdir"/} holds several session files — session.md is updated in place and git history is its archive" || rc=1
+    done < <(find "$root" -name .git -prune -o -type f -name '*session*.md' -print 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); dir = ""; for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]; count[dir]++ }
+               END { for (dir in count) if (count[dir] > 1) print dir }' | sort)
+
+    # Non-memory payloads. One surveyed tree is 568 MB because a virtualenv
+    # lives in it (91.5% of its files); another is 231 MB around a model
+    # checkpoint. A matched directory is reported once and not descended into.
+    # A nested .git/ is exempt: ADR-D10 recommends that topology.
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        _vcheck_emit "$strict" "$quiet" internal-memory \
+            "non-memory payload under docs/_internal/: ${f#"$projdir"/} — memory is text" || rc=1
+    done < <(find "$root" -name .git -prune \
+        -o -type d \( -name '.venv' -o -name 'venv' -o -name '__pycache__' \
+                      -o -name '.ipynb_checkpoints' -o -name 'node_modules' \
+                      -o -name '.mypy_cache' -o -name '.pytest_cache' \
+                      -o -name '.ruff_cache' \) -prune -print \
+        -o -type f \( -name '*.pyc' -o -name '*.parquet' -o -name '*.log' \
+                      -o -name '*.h5' -o -name '*.h5ad' -o -name '*.rds' \
+                      -o -name '*.pt' -o -name '*.pth' -o -name '*.ckpt' \
+                      -o -name '*.pkl' -o -name '*.npz' -o -name '*.zip' \) -print \
+        2>/dev/null | sort)
 
     return $rc
 }
@@ -738,11 +862,11 @@ _lint_run_checks() {
     for n in "${names[@]}"; do
         case "$n" in
             all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|toolkit) run+=("$n") ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|internal-memory|toolkit) run+=("$n") ;;
             "") ;;
             *)
                 echo "scio lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout toolkit all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout internal-memory toolkit all" >&2
                 return 1 ;;
         esac
     done
@@ -756,6 +880,7 @@ _lint_run_checks() {
             freshness)      _lint_check_freshness      "$projdir" "$strict" "$quiet" || rc=1 ;;
             hooks)          _lint_check_hooks          "$projdir" "$strict" "$quiet" || rc=1 ;;
             docs-layout)    _lint_check_docs_layout    "$projdir" "$strict" "$quiet" || rc=1 ;;
+            internal-memory) _lint_check_internal_memory "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-layout)   _lint_check_stage_layout   "$projdir" "$strict" "$quiet" || rc=1 ;;
@@ -785,8 +910,9 @@ scio lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | hooks | docs-layout |
                             stage-thinness | comment-intent | stage-layout |
-                            toolkit | all.
-                     Default (no --check given): all.
+                            internal-memory | toolkit | all.
+                     Default (no --check given): all. `internal-memory` and
+                     `toolkit` are opt-in and are not members of `all`.
   --strict           Findings become HARD failures (exit 1) instead of WARN.
   --quiet            Suppress soft-WARN output on success/no-strict findings.
 
