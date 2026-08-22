@@ -3,6 +3,59 @@
 **Repo:** scio · **Blocked by:** phase 01's floor decision · Read `00_INDEX.md`
 §2 for the principle.
 
+> **Phase 01 answered this brief's two open questions on 2026-08-21.** Read
+> `01_inventory.report.md` §6 and §11 before starting.
+>
+> 1. **The floor decision landed on option 3 below — wait for the image.** The
+>    package is not installed at all on `v0.5.10`, which is 7 of 8 live
+>    containers, so no bulkiRNA text is executable for them. `v0.5.14` carries
+>    the 0.6.0 API and is already built. **This phase is blocked on recreating
+>    the containers, not on a scbio-docker code change.**
+> 2. **The mount-shape grep is done. Deleting `scripts/*.R` is safe** — the one
+>    live consumer sources its own copy, and no file in the fleet reaches through
+>    the mount. No shims needed.
+>
+> Phase 01 also split this phase in two. **Phase 02a below is unblocked and
+> should ship now**; the rewrite waits.
+>
+> The floor set, when it unblocks, is `0.6.0 ∩ HEAD` — 58 functions. **Never name
+> one of the 21 legacy exports** (`run_gsea`, `load_reference_db`,
+> `normalize_gsea_results`, `download_gatom_references`, the `gsea_*` plots …):
+> they are live in the pinned image and already deleted upstream, so writing them
+> buys one image version and then breaks.
+
+---
+
+## Phase 02a — the false claims, unblocked
+
+Twenty-two claim hits name paths that exist in **no project**, under every image
+version. They are wrong today, their fix names no package function, and they gate
+on nothing. Ship them independently of everything above.
+
+1. **`01_scripts/RNAseq-toolkit/…` → `01_modules/RNAseq-toolkit/…`** — ten hits
+   across five `bulk-rnaseq-gsea` files (`custom-db:96`, `master-tables:405,407`,
+   `msigdb:318,319,399`, `visualization:435,436,437`, `SKILL:196`). All eight live
+   projects use `01_modules/`. One skill family, two spellings of one mount.
+2. **`source("02_analysis/helpers/normalize_gsea.R")` and `…/pathway_utils.R`** —
+   `master-tables:56,104,105`, `custom-db:107`. Neither file exists in any
+   project; `02_analysis/helpers/` is empty in seven of eight.
+3. **`source("02_analysis/config/config.R")`** — `SKILL:76`, `msigdb:50`,
+   `master-tables:104`, `visualization:61,62`. Present in 1 of 8 (14616-DM).
+   Either stop asserting it or state it as a project-local convention the reader
+   supplies.
+4. **`TE-RNAseq-toolkit` version labels** — `annotate-bulk-rnaseq-data` and
+   `te-geneset-gsea` say `v0.1.0`; `star-te-preprocessing:68,156` and
+   `te-reference-saf-build:224` say `v2.0.0`/`v2.0.1`; the repo is at `v2.0.3-5`.
+   Phase 01 verified every cited file, the hardcoded-`source()` trap
+   (`create_te_genesets.R:109,175`) and the `gs_name`/`gene_symbol` contract all
+   survive the jump — so this is a **label correction only**. Do not touch the
+   substance, and do not start the TE track's own audit.
+
+Same gates as below. This is the `docs-layout` lesson in the catalog: an
+instruction naming something the mechanism does not guarantee.
+
+---
+
 ## The three
 
 The subset the RNAseq-toolkit agent named, and the highest-confidence rows in the
@@ -46,27 +99,29 @@ Frontmatter `description` stays ≤ 350 chars and must stop promising what the f
 no longer contains — `bulk-rnaseq-gsea`'s currently advertises "MSigDB execution
 via clusterProfiler/fgsea".
 
-## The deletion that needs a check first
+## The deletion — checked, and clear
 
-Removing `coresh-signature-search/scripts/*.R` changes **mount shape**, and those
-paths are live in every bound project as
-`.claude/skills/coresh-signature-search/scripts/…`. Before deleting, grep the
-fleet for anything that sources them:
+Removing `coresh-signature-search/scripts/*.R` changes **mount shape**, so phase
+01 ran the fleet grep first. Result in `01_inventory.report.md` §11:
 
-```bash
-grep -rn "coresh_batch\|extract_gene_loadings\|symbols_to_entrez" \
-  /data1/users/antonz /data2/users/JCRLab --include="*.R" --include="*.py" \
-  --include="*.qmd" --include="*.md" 2>/dev/null | grep -v SciAgent-toolkit
-```
+- One live consumer, `13403-YD_Christina`, runs all three scripts in earnest —
+  from its own copy at `02_Analysis/helpers/R/coresh/`.
+- **Nothing in the fleet sources the mount path** (`.claude/skills/…/scripts/` or
+  `01_Modules/SciAgent-toolkit/skills/…/scripts/`).
 
-A hit means a real analysis depends on the path. Then the scripts stay as thin
-shims that call the package, or they stay put and only the prose changes — decide
-on the evidence, and say which in the report.
+**Delete them outright. No shims.** Do re-run the grep if the sweep lands first —
+it changes what is bound where.
 
-## If the floor is the installed API
+Worth carrying into the rewrite's prose: that one project holds four
+md5-identical copies of the same 269-line kernel. Five homes for one function is
+the condition `coresh_search` exists to end.
 
-Phase 01 may find the absorbing functions absent from the live image. Then the
-skill cannot simply say `coresh_search(...)`. Options, in preference order:
+## The floor — phase 01 chose option 3
+
+It found worse than "absent from the live image": the whole package is absent from
+`v0.5.10`, and `coresh_*` reaches **0 of 8** containers. Option 3 it is. The
+options are kept below because option 1 becomes the answer if the owner decides
+the fleet stays split.
 
 1. Say the version the verb requires, and give the one-line check the reader can
    run: `"coresh_search" %in% getNamespaceExports("bulkiRNA")`. **Probe, do not

@@ -10,6 +10,12 @@ files (`coresh-signature-search`, `bulk-rnaseq-gsea`,
 `annotate-bulk-rnaseq-data`) and correctly said the gate was a decision, not a
 technical dependency. Verifying it surfaced a larger and more awkward picture.
 
+> **Phase 01 ran 2026-08-21 — read `01_inventory.report.md`, and read it before
+> §1 below.** Two premises in this INDEX were measured wrong. bulkiRNA is not
+> version-behind on `v0.5.10`, it is **absent** (7 of 8 live containers); and
+> `BULKIRNA_SHA = e42c2de1` is tag **`0.6.0` with 79 exports**, in an image that
+> is already built. The report supersedes §1's version table and re-scopes §4.
+
 ---
 
 ## 1. What the cross-check found

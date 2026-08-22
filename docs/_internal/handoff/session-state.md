@@ -440,9 +440,55 @@ Three findings that outlive that project:
   promotion gave them a task id. The deliberate, correct-looking backgrounding was
   the invisible half.
 
-### 6c. Queued — the catalog does not know bulkiRNA exists (#47)
+### 6c. The catalog does not know bulkiRNA exists (#47) — phase 01 RAN
 
-Plan: `docs/_internal/plans/2026-08-22-bulkirna-api-crosscheck/`.
+Plan: `docs/_internal/plans/2026-08-22-bulkirna-api-crosscheck/`. **Read
+`01_inventory.report.md` before the rest of this section** — it measured two of
+the premises below wrong, and it re-scoped the plan.
+
+**Corrections.** bulkiRNA is not version-behind on `v0.5.10`, it is **absent** —
+`packageVersion` errors outright, in **7 of 8 live containers**. And
+`BULKIRNA_SHA = e42c2de1` is tag **`0.6.0`, 79 exports**, in an image
+(`scdock-r-dev:v0.5.14`) that is **already built**.
+
+**The fleet is split, complementarily.** The 7 `v0.5.10` projects all have
+`01_modules/RNAseq-toolkit` vendored at `v0.2.0-9-g752481f`, with every cited file
+really present — so the skills' `source()` text is **true and executable there**,
+and dead only in `jr-mc`. A bulkiRNA rewrite would be the exact reverse, and
+`coresh_*` reaches **0 of 8**. No single version of the text is right for the
+fleet as it stands. This is a half-finished migration, not documentation lag.
+
+**The trap that decides phase 02.** The surface was refactored, not just grown:
+`0.4.0 (64) ⊂ 0.6.0 (79)`, and `HEAD (59) = 0.6.0 − 21 legacy + 1`. The catalog
+already names **ten of those 21** (`run_gsea`, `load_reference_db`,
+`normalize_gsea_results`, `download_gatom_references`, the `gsea_*` plots …), all
+live in the pin and **already deleted upstream**. So the naive modernisation —
+prefix with `bulkiRNA::` — compiles against the image and is already wrong.
+Floor = `0.6.0 ∩ HEAD` = **58 functions**; name nothing outside it.
+
+**Outcomes.** Phase 02 split in two. **#48 (phase 02a) is unblocked**: 22 claim
+hits name paths existing in *no* project, wrong under every image version and
+fixing them names no package function — `01_scripts/` vs `01_modules/` (10 hits),
+`02_analysis/helpers/{normalize_gsea,pathway_utils}.R` (nowhere), `config.R` (1 of
+8), plus TE version labels (`v0.1.0` and `v2.0.x` for one repo actually at
+`v2.0.3`; substance verified intact, label only). The rewrite itself is **#49, an
+owner decision**: recreate the containers on `v0.5.14`. Two-hop propagation, third
+instance — hop 1 here is the **image tag**. **#50** is the reverse pass: the
+`de_*` family has no skill at all.
+
+Phase 02's mount-shape grep is **done** — `coresh-signature-search/scripts/*.R`
+can be **deleted outright**, no shims. The one live consumer
+(`13403-YD_Christina`) sources its own copy; it holds **four md5-identical copies**
+of that 269-line kernel. Sweep target found there too: bound the pre-#37 way, 41
+per-skill absolute symlinks, 44 skills unreachable — folded into #30.
+
+Still true from the original queue entry, and still the right recommendations back
+to the RNAseq-toolkit side: `bulkirna_api()`'s `superseded_by` is `NA`
+(`R/api.R:130`), so the package should populate the mapping it alone knows; and R
+is not on the host — check the installed API with
+`docker exec <container> Rscript -e 'getNamespaceExports("bulkiRNA")'`.
+
+<details><summary>The original queue entry, kept — it is what phase 01 tested</summary>
 
 An RNAseq-toolkit agent flagged three owner-gated skill files. Verifying it found
 **thirteen skills naming a vendored toolkit path or `clusterProfiler`, and none
@@ -469,6 +515,8 @@ Back to the RNAseq-toolkit side: `bulkirna_api()` has the `superseded_by` column
 that would make this mechanical and fills it with `NA` (`R/api.R:130`) — the
 package is the right home for that mapping. And the image pin, not the skill text,
 is the real gate.
+
+</details>
 
 ### Decided, so do not reopen
 
