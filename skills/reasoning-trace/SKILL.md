@@ -29,7 +29,8 @@ The question's scope owns the note. A stage-scoped note uses the stem of its
 | Current work state | `docs/_internal/<stage-stem>/session.md` or `docs/_internal/_project/session.md` |
 | Throwaway probes | `_scratch/` or `$TMPDIR` only — never committed |
 
-Use a stable topic slug and update `session.md` in place. Create the owning scope with its first real note if absent.
+Use a stable topic slug and update `session.md` in place. 
+Create the owning scope with its first real note if absent.
 
 ---
 

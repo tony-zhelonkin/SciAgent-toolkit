@@ -6,13 +6,17 @@ project.
 ## Telos
 
 A helper family that becomes load-bearing, important, or reused across projects
-earns its own repository with a cleanly designed user API. Promotion gives that
-capability an explicit audience, ownership model, test surface, and release life.
+earns its own repository with a cleanly designed user API. 
+
+Promotion gives
+- capability an explicit audience, 
+- ownership model, 
+- test surface, 
+- and release life.
 
 ## Signals that justify the move
 
-Look for several reinforcing signals:
-
+Reinforcing signals:
 - two or more real projects need the capability without project-specific edits;
 - callers rely on a stable conceptual API rather than copying internals;
 - failures would block important analyses or corrupt consequential outputs;
@@ -28,34 +32,30 @@ when every caller still requires a different interface.
 ## Signals to keep it in the project
 
 Keep the family local while:
-
 - its vocabulary and schema remain specific to one dataset or claim;
 - the API changes whenever the analysis question changes;
 - tests require most of the originating project to construct a fixture;
 - there is one caller and little expected reuse;
 - dependencies are inseparable from the project's environment; or
 - nobody can own releases and compatibility.
-
-Local code is a valid destination. A cohesive folder already supplies a useful
-boundary without creating repository and release obligations.
+Local code is a valid destination. 
 
 ## Readiness review
 
 Before moving code, write down:
-
-1. the intended users and their smallest useful entry points;
+1. the intended users and their smallest useful entry points and workflow behaviour;
 2. guarantees, refusals, schemas, and error behavior;
 3. the project assumptions that must become arguments or adapters;
 4. the minimum independent test matrix;
 5. ownership and release expectations; and
 6. the migration path for existing callers.
 
-Design the user API from those needs. The local helper façade is evidence, not an
-API that must be exported unchanged.
+Design the user API from those needs. 
+The local helper façade is evidence, not an API that must be exported unchanged.
 
 ## Decision
 
-Promote when the capability has a coherent audience and independent lifecycle.
+Suggest to promote when the capability has a coherent audience and independent lifecycle.
 Keep it local when extraction would mainly relocate project assumptions or create
-maintenance ceremony without a durable user contract. Record the decision where
-the project's architecture decisions live and revisit it when the signals change.
+maintenance ceremony without a durable user contract. 
+Record the decision where the project's architecture decisions live and revisit it when the signals change.

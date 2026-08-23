@@ -41,8 +41,7 @@
 | Phase | Scripts | Purpose | Output |
 |-------|---------|---------|--------|
 | **1** | `1.x.*.R` | Core analysis (DE, GSEA) | Checkpoints (RDS) |
-| **2** | `1.x.*.R` | Master tables | CSV exports |
-| **3** | `2.x.*.R` | R visualizations | PDF/PNG plots |
+| **2** | `1.x.*.R` | Master tables | CSV exports || **3** | `2.x.*.R` | R visualizations | PDF/PNG plots |
 | **4** | `3.x.*.py` | Python visualizations | Publication figures |
 | **5** | `3.x.*.py` | Interactive dashboards | HTML files |
 

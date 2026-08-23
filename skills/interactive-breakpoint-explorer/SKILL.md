@@ -8,17 +8,19 @@ license: MIT
 
 ## Overview
 
-At a pipeline inflection point there are calls you cannot make from a summary table — *what
-is that high-mito FOXP3 corner I keep noticing, and is it one donor?* You have to **look**, and
-looking means brushing a live embedding, recoloring it, and pulling the cells you lassoed into
-pandas to characterize them. This skill is the house pattern for that moment: a **live-kernel
-Python Quarto notebook** that drives [jscatter](https://jupyter-scatter.dev/) linked panels,
+At a pipeline inflection point there are calls you cannot make from a summary table,
+e.g. *what is that high-mito FOXP3 corner I keep noticing, and is it one donor?* 
+You have to **look**, and looking means brushing a live embedding, recoloring it, and pulling the cells you lassoed into
+pandas to characterize them. 
+
+This skill is the house pattern for that moment: 
+a **live-kernel Python Quarto notebook** that drives [jscatter](https://jupyter-scatter.dev/) linked panels,
 extracts a brushed selection, persists its barcodes + a labelled snapshot, and ends in a
 `## Decision — decisions.[stage]` note.
 
 It is the **live-kernel sibling** of `decision-gate-notebook` (which is a static, read-only R
-review that records the APPROVED gate). This explorer does **not** own the gate — it **feeds**
-it: it produces the evidence and the barcode selection a human weighs before flipping
+review that records the APPROVED gate). This explorer does **not** own the gate — it **feeds** it: 
+it produces the evidence and the barcode selection a human weighs before flipping
 `decisions.[stage].status: APPROVED`.
 
 **When to use this skill:**

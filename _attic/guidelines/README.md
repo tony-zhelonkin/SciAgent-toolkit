@@ -2,15 +2,20 @@
 
 **Version:** 2.0.0
 **Last Updated:** 2025-12-15
-**Purpose:** Modular methodology guidelines for AI agents performing bulk RNA-seq analysis
+**Purpose:** Modular methodology guidelines for AI agents performing computational biology analysis
 
 ---
 
 ## Overview
 
-This directory contains **universal, vendor-agnostic** methodology guidelines that ANY AI agent (Claude, Gemini, Codex, or future models) should follow when performing RNA-seq analysis.
+This directory contains **universal, vendor-agnostic** methodology guidelines 
+that ANY AI agent (Claude, Gemini, Codex, or future models) should follow when performing 
+computational biology analysis, ranging from bulk/pseudo-bulk RNAseq, ATACseq to their 
+true single cell counterparts. 
 
-These guidelines are the **single source of truth** for analysis patterns, coding conventions, and workflow standards. `CLAUDE.md` (via `@AGENTS.md`) references these guidelines rather than duplicating content.
+These guidelines are the **single source of truth** 
+for analysis patterns, coding conventions, and workflow standards. 
+`CLAUDE.md` (via `@AGENTS.md`) references these guidelines rather than duplicating content.
 
 ---
 
@@ -81,12 +86,15 @@ When starting work on an RNA-seq project:
 
 ### For Humans
 
-These guidelines encode best practices learned across multiple projects. They ensure:
+These guidelines encode best practices learned across multiple projects. 
+They ensure:
 - Consistent analysis patterns across AI assistants
 - Reproducible workflows
 - Maintainable code
 
-To customize for a specific project, create a `PROJECT_CONTEXT.md` file with project-specific details (biological question, datasets, contrasts) rather than modifying these universal guidelines.
+To customize for a specific project, create a `PROJECT_CONTEXT.md` file with 
+project-specific details (biological question, datasets, contrasts) rather than 
+modifying these guidelines.
 
 ---
 
