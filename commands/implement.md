@@ -9,7 +9,8 @@ interruption.
 This command is the **continuation of `/decompose`**: it consumes the
 `DECOMPOSE-COMPLETE` handoff block and drives every phase from stub to verified
 artifact. Implementation is explicitly its only scope — do **not** use it for
-planning (use `/decompose`) or mechanical drift-checks (use `/verify`).
+planning (use `/decompose`) or mechanical drift-checks (the `architecture-first-dev`
+skill routes those to `references/verify.md`).
 
 Every subagent dispatched here is an **Opus** subagent (`model: opus`), except
 purely mechanical fixes surfaced by reviewers, which may be delegated to a
@@ -97,13 +98,14 @@ IMPLEMENT-COMPLETE
   plan_dir:    docs/_internal/plans/{slug}/
   phases:      {N}
   ledger:      docs/_internal/plans/{slug}/_implementation.md
-  next:        /verify {slug}   (mechanical drift check against plan + design)
+  next:        drift check against plan + design — architecture-first-dev, verify route
 ```
 
 ## Phase 0: Parse arguments & resolve plan
 
 Separate `<slug>`, `--phase`, `--auto`, `--resume` from `$ARGUMENTS`. If
-`<slug>` is missing, reject: `Usage: /implement <slug> [--phase N] [--auto]`.
+`<slug>` is missing, list the plans that exist and ask which to implement rather
+than printing a usage line.
 
 **Resolve the plan directory.** Read
 `docs/_internal/plans/<slug>/README.md` — verify `status: SOLIDIFIED` is
@@ -313,12 +315,12 @@ Passes applied:
   A+ architecture reviews        ({n} arch reviews, all SOUND)
   B sliding-window seam reviews  ({windows}, all SEAM-SOUND)
 
-Next: /verify {slug}   (mechanical drift check against plan + design)
+Next: drift check against plan + design — architecture-first-dev, verify route
 ```
 
 In **autonomous mode** (`--auto` / goal-driven), append the `IMPLEMENT-COMPLETE`
 handoff block (see *Autonomous mode*) so the outer loop can continue — then
-yield. In **default mode**, stop here. **Either way, do not run `/verify`
+yield. In **default mode**, stop here. **Either way, do not run the drift check
 automatically** — verification is a separate step.
 
 ## Rules

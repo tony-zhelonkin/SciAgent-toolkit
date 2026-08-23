@@ -11,10 +11,10 @@ Research fan-out → synthesis → pipeline plan. Runs `--n-explorers` parallel 
 | `--n-explorers <int>` | flag | `3` | Number of parallel Opus explorers. Each explorer owns a distinct lane; the default three lanes are **codebase** (repo layout, existing stages, stage-ids, config), **literature** (published methods, known approaches, relevant papers), and **reference-implementation** (external repos or toolkits that solve an analogous problem). |
 | `--idempotency-peer <slug>` | flag | none | A sibling pipeline slug whose namespaces (stage-ids, checkpoint names, master-table column prefixes) the new plan must not clobber. When set, the synthesizer annotates the `_SYNTHESIS.md` with peer namespace facts and the `/pipeline-plan` handoff includes an explicit instruction to verify disjointness. |
 
-Flag parsing is order-independent. If either positional argument is missing, reject:
-```
-Usage: /explore-and-plan "<question>" <slug> [--n-explorers <int>] [--idempotency-peer <slug>]
-```
+Flag order does not matter. If either positional argument is missing, **ask for
+it** rather than printing a usage line — the caller is in a conversation, and
+what is missing is the question being researched, not the syntax. Ask what should
+be explored; propose a slug from the answer and confirm it.
 
 Resolve and announce the run config:
 ```

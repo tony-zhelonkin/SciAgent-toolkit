@@ -6,7 +6,8 @@ specs — and emit a solidified, architecturally-validated **phase-plan document
 set**. The output is a plan ready to hand to implementers; **implementation is
 explicitly out of scope for this command.**
 
-Use this instead of `/plan` when the problem is too big for one agent to hold:
+Use this instead of the architect skill's single-pass plan route when the problem
+is too big for one agent to hold:
 when decomposition itself needs review, when each phase deserves its own
 dedicated planner working against its own slice of the artifacts, and when the
 seams between phases must be audited before a single line is written.
