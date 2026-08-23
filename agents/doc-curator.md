@@ -9,8 +9,8 @@ description: |
   files have grown stale or oversized, or you want to verify a project follows the
   docs-namespace conventions before sharing it.
 
-  **Do NOT use for:** writing a single caption (use `captions`), generating a session
-  handoff (use `handoff`), or any analysis/data task. This agent only touches docs.
+  **Do NOT use for:** writing a single caption (use `captions`), recording the session
+  (use `/handoff`), or any analysis/data task. This agent only touches docs.
 
   **What it produces:** a findings report (compliance violations + redundancy map) and,
   on confirmation, consolidated documentation. It never deletes in bulk without asking.
