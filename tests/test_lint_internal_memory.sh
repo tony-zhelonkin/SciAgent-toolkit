@@ -20,12 +20,17 @@
 #   9. --strict promotes WARN to ERROR and exit 1; without it, exit 0.
 #  10. The check is opt-in: `--check all --strict` never mentions it.
 #  11. An unknown --check name lists internal-memory among the valid names.
-#  12. A tree holding continuity records with no history → finding. session.md
-#      is updated in place, so without history the update destroys what it
-#      replaced. Observed, not mandated: no verb creates the repo.
+#  12. A populated tree that is not its own repository → finding. The memory is
+#      always its own repo: that is what makes an in-place session.md update
+#      safe, and what lets its visibility be chosen apart from the code. A tree
+#      of topic notes with no session.md is reported too — the requirement is
+#      the topology, not the filename. Observed, not mandated: no verb creates
+#      the repo.
 #  13. A plan directory with no 00_INDEX.md → finding; with one → clean.
-#  14. History can be a .git FILE (worktree or submodule), or a parent that
-#      tracks the tree despite the ignore rule. Both count; neither is flagged.
+#  14. The nested repo may be a .git FILE (worktree or submodule) — not an
+#      absence. A parent that tracks the tree as plain files ALONGSIDE that
+#      repository is its own finding: two histories of one tree. The submodule
+#      form (a gitlink) is the publication route and stays silent.
 set -u
 . "$(dirname "$0")/_lib.sh"
 
@@ -299,7 +304,7 @@ if ! printf '%s\n' "$out11" | grep -q 'internal-memory'; then
 fi
 
 # ---------------------------------------------------------------------------
-# Test 12: continuity records with no history.
+# Test 12: a populated tree that is not its own repository.
 # ---------------------------------------------------------------------------
 P12="$TMPDIR_TEST/p12"
 make_proj "$P12" 30_grn
@@ -309,26 +314,37 @@ printf 'Stopped mid-pass.\n' > "$P12/docs/_internal/30_grn/session.md"
 set +e
 out12=$("$SCIO" lint --check internal-memory --project-dir "$P12" 2>&1)
 set -e
-if ! printf '%s\n' "$out12" | grep -q 'WARN internal-memory: docs/_internal/ holds continuity records and no history'; then
-    echo "FAIL [$_TEST_NAME] test12: expected the no-history finding" >&2
+if ! printf '%s\n' "$out12" | grep -q 'WARN internal-memory: docs/_internal/ is not its own repository'; then
+    echo "FAIL [$_TEST_NAME] test12: expected the not-a-repository finding" >&2
     printf '%s\n' "$out12" >&2
     exit 1
 fi
 
-# A tree of topic notes without a session.md is not making the in-place claim,
-# so it is not reported.
+# Topic notes with no session.md are reported too: the requirement is that the
+# memory is its own repository, which does not depend on which file is present.
 P12B="$TMPDIR_TEST/p12b"
 make_proj "$P12B" 30_grn
 mkdir -p "$P12B/docs/_internal/30_grn"
 printf 'Why the floor is 0.05.\n' > "$P12B/docs/_internal/30_grn/floor.md"
 
 set +e
-out12b=$("$SCIO" lint --check internal-memory --strict --project-dir "$P12B" 2>&1)
-rc12b=$?
+out12b=$("$SCIO" lint --check internal-memory --project-dir "$P12B" 2>&1)
 set -e
-if [[ "$rc12b" -ne 0 || -n "$out12b" ]]; then
-    echo "FAIL [$_TEST_NAME] test12b: topic notes alone must not trigger the history finding (rc=$rc12b)" >&2
+if ! printf '%s\n' "$out12b" | grep -q 'is not its own repository'; then
+    echo "FAIL [$_TEST_NAME] test12b: a topic-note tree with no repo must be reported" >&2
     printf '%s\n' "$out12b" >&2
+    exit 1
+fi
+
+# Giving it a repository clears the finding.
+git -C "$P12B/docs/_internal" init -q
+set +e
+out12c=$("$SCIO" lint --check internal-memory --strict --project-dir "$P12B" 2>&1)
+rc12c=$?
+set -e
+if [[ "$rc12c" -ne 0 || -n "$out12c" ]]; then
+    echo "FAIL [$_TEST_NAME] test12c: a nested repo must clear the finding (rc=$rc12c)" >&2
+    printf '%s\n' "$out12c" >&2
     exit 1
 fi
 
@@ -374,29 +390,33 @@ printf 'gitdir: /elsewhere/memory.git\n' > "$P14/docs/_internal/.git"
 set +e
 out14=$("$SCIO" lint --check internal-memory --project-dir "$P14" 2>&1)
 set -e
-if printf '%s\n' "$out14" | grep -q 'no history'; then
+if printf '%s\n' "$out14" | grep -q 'not its own repository'; then
     echo "FAIL [$_TEST_NAME] test14a: a .git file is a nested repo, not an absence" >&2
     printf '%s\n' "$out14" >&2
     exit 1
 fi
 
-# (b) the parent tracks the tree, which a force-add produces.
+# (b) the parent force-adds the tree as plain files while the nested repository
+# also versions it: two histories of one tree, which is its own finding.
 P14B="$TMPDIR_TEST/p14b"
 make_proj "$P14B" 30_grn
 mkdir -p "$P14B/docs/_internal/30_grn"
 printf 'Stopped mid-pass.\n' > "$P14B/docs/_internal/30_grn/session.md"
+# Order matters: git refuses to add plain paths inside an existing embedded
+# repository, so the parent tracks them first and the nested repo arrives after.
 git -C "$P14B" init -q
 git -C "$P14B" config user.email "test@example.com"
 git -C "$P14B" config user.name "Test"
 printf 'docs/_internal/\n' > "$P14B/.gitignore"
 git -C "$P14B" add -f docs/_internal/30_grn/session.md
-git -C "$P14B" commit -q -m "memory"
+git -C "$P14B" commit -q -m "memory" >/dev/null
+git -C "$P14B/docs/_internal" init -q
 
 set +e
 out14b=$("$SCIO" lint --check internal-memory --project-dir "$P14B" 2>&1)
 set -e
-if printf '%s\n' "$out14b" | grep -q 'no history'; then
-    echo "FAIL [$_TEST_NAME] test14b: a parent-tracked tree already has an archive" >&2
+if ! printf '%s\n' "$out14b" | grep -q 'two histories of one tree'; then
+    echo "FAIL [$_TEST_NAME] test14b: plain-tracked files beside the nested repo must be reported" >&2
     printf '%s\n' "$out14b" >&2
     exit 1
 fi

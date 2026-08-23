@@ -358,7 +358,7 @@ describe different systems.
 2. **A plan is a third durable form.** The two ordinary forms are a flat `<topic>.md` and
    `session.md`; `session.md` is updated in place, which keeps one current record instead of a dated
    pile. That trade is only safe where the tree has history: an in-place update in an ignored,
-   non-nested tree destroys what it replaces. Decision 6 recommends the topology that supplies it,
+   non-nested tree destroys what it replaces. Decision 6 states the topology that supplies it,
    and `lint --check internal-memory` reports a populated tree that has none — the condition is
    observed rather than asserted away. Plans are also
    durable. The strongest working example in the fleet is 14782-DM's
@@ -392,28 +392,41 @@ describe different systems.
    mechanism. No Claude, Codex, or Git hook is added. A `pre-commit` invocation of the lint remains
    available as a later escalation if evidence shows agents skip it.
 
-6. **Memory is a nested repository in place, declared by the parent — recommended, and observed
-   rather than created.** `docs/_internal/` becomes its own Git repository. The parent already
-   ignores the path, so the nesting needs no additional wiring. The parent tracks
-   `docs/internal-memory.md`, which names the memory location and makes the nested repository
-   visible. A submodule is rejected because durability would depend on pin bumps; 20 of 24 surveyed
-   copies currently share one stale pin. Parent-tracked memory is rejected because agent churn would
-   flood the human log and restore the publication hazard.
+6. **Memory is its own repository, always.** `docs/_internal/` is a Git repository in its own
+   right, in every project. The parent already ignores the path, so the nesting needs no additional
+   wiring. The parent tracks `docs/internal-memory.md`, which names the memory location and makes
+   the nested repository visible.
+
+   Two properties follow, and both are the point. An in-place update of `session.md` is safe,
+   because the repository holds what the update replaced — decision 2 depends on this. And the
+   memory's **visibility is a separate decision from the code's**: the owner chooses whether the
+   reasoning is published, on its own schedule, rather than inheriting the parent's answer.
+
+   **Publication is a submodule, at the moment of publication.** When the reasoning should ship —
+   at paper submission, or when a repository goes public — the parent embeds the memory as a
+   submodule and the whole history travels with a durable pin. A submodule is *rejected as the
+   day-to-day durability mechanism*, because durability would then depend on pin bumps and 20 of 24
+   surveyed copies share one stale pin. It is the right form for a deliberate release, where the pin
+   is the citation. Force-adding the tree into the parent as plain files is rejected outright: it
+   gives one tree two histories, floods the human log with agent churn, and destroys the choice
+   above.
 
    **No verb creates this.** `link` writes no repository and no pointer: a binding verb that
    initialises a Git repository as a side effect would surprise, and the two projects that adopted
    this topology did it by hand without help. What the toolkit does instead is *notice*:
-   `lint --check internal-memory` reports a tree that holds continuity records and has no history,
-   because that is the condition under which decision 2's in-place update loses information. This is
-   deliberately weaker than the earlier draft, which recorded a topology nothing produced and so
-   committed this ADR's own defect class into the decision record.
+   `lint --check internal-memory` reports a populated tree that is not its own repository, and
+   reports plain-tracked files sitting beside one.
 
    **Still open: reachability.** Both nested repositories found in the survey have no remote, so
-   they carry history and still die with the disk. And a public parent needs a deliberate answer to
-   whether its memory becomes public with it, with a link durable enough to follow years later.
-   Neither is settled here; both are the subject of
-   `docs/_internal/research/2026-08-21-memory-publication/`, and the answer belongs in its own ADR
-   once creation, reachability, recovery and redaction are defined together.
+   they carry history and still die with the disk. That is a backup question rather than a topology
+   question, and it is the subject of
+   `docs/_internal/research/2026-08-21-memory-publication/`.
+
+   *Owner ruling, 2026-08-23.* The nested repository is not a recommendation to be weighed against
+   alternatives — it is the topology, in every project. Publication follows the parent's public /
+   private knob, at the owner's discretion, via the submodule route above. An earlier draft of this
+   decision ranked three options and left publication open, which is why the design had to be
+   re-derived from the gitignore rule more than once.
 
 7. **Ownership follows the seam.** Scio owns path grammar, examples, always-on router text, and lint
    predicates. dev-env owns user-global habits. The test is: *follows the repository → Scio; follows
