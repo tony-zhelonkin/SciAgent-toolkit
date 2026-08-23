@@ -28,6 +28,25 @@
 
 ## Phase 02a — the false claims, unblocked
 
+> **Shipped 2026-08-23** — `fff5ff8` (paths) and `337dc53` (TE labels).
+> 66 tests passing, `lint --check toolkit --strict` clean, zero residual hits.
+>
+> - **Item 1** — 10 hits renamed to `01_modules/`, mechanical.
+> - **Items 2–3** — the paths could not be repointed, because they exist
+>   nowhere: `config/config.R`, `helpers/normalize_gsea.R`,
+>   `helpers/pathway_utils.R`, `color_config.R`, `DIR_TOOLKIT`,
+>   `source_toolkit()`, `load_or_compute()` and the numbered `1.x` stages are
+>   **one project's private layout**, transcribed into four reference files and
+>   presented as universal. Each entry point now names which paths the reader
+>   supplies and which one the skill guarantees. The examples stand; their
+>   standing changed.
+> - **Scope +2.** `bulk-rnaseq-activity-inference` carries the same `config.R`
+>   claim in `tf-activity:196` and `visualization:52`. It names no vendored
+>   toolkit path, which is why the grep that built the 13-skill scope missed it.
+> - **Item 4** — 15 labels to `v2.0.3`, after verifying all seven cited files
+>   are present at that tag. `featureCounts v2.0.2` is a different artifact and
+>   was excluded by anchoring the substitution to the toolkit name.
+
 Twenty-two claim hits name paths that exist in **no project**, under every image
 version. They are wrong today, their fix names no package function, and they gate
 on nothing. Ship them independently of everything above.
