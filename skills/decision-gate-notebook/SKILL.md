@@ -15,10 +15,10 @@ downstream stage leans on — and burying them in a script's defaults means nobo
 *looked*.
 
 This skill is the house pattern for those moments: a **read-only review notebook** that
-re-plots what the stage just wrote, lays out the numbers behind each call, and — crucially —
-**records the decision back into `analysis_config.yaml`**, where the next stage reads
-`status: APPROVED` and otherwise refuses to run. The notebook is the eyes; the config is the
-gate; the numbered script is the hands.
+re-plots what the stage just wrote, lays out the numbers behind each call, and **sets the latch
+in `analysis_config.yaml`**, where the next stage reads `status: APPROVED` and otherwise refuses
+to run. The notebook is the eyes; the config is the gate; the numbered script is the hands. The
+reasoning behind the call is a topic note under `docs/_internal/<stage-stem>/`.
 
 **When to use this skill:**
 - A pipeline reaches an inflection point a human must sign off on before a costly / irreversible stage (freezing a signature, exporting a projection, committing an annotation).
@@ -94,14 +94,17 @@ decisions:
     ortholog_ambiguity:
       drop_interaction_if_trivial: false
       trivial_min_genes: 10
-    # ---- audit trail ----
-    decided_by: ""            # who approved
-    decided_on: ""            # ISO date
-    note: ""                  # one line of rationale
+    record: docs/_internal/<stage-stem>/<topic>.md   # where the reasoning lives
 ```
 
 The notebook reads these same keys and shows the human exactly what `status: APPROVED` would
 freeze — so the plots and the config never drift apart.
+
+**Every key in this block is read by something** — the notebook, or the downstream stage's
+guard. Keep it that way. The reasoning behind the call is a different artifact: the evidence
+weighed, the alternative rejected, who decided and when belong in a topic note under
+`docs/_internal/<stage-stem>/` (skill: `reasoning-trace`), which is versioned and survives the
+next edit to this config. `status` is a latch; the note is the record.
 
 ### 3. The gate — the next stage refuses until APPROVED
 
@@ -216,6 +219,8 @@ After authoring a decision-gate notebook, confirm:
 - [ ] **Headless figures:** rendered `.md` references committed `figure-gfm/*.png` (not `.svg`, not base64 `data:` URIs).
 - [ ] **The gate bites:** with `status: PROPOSED`, the downstream stage `stop()`s; flipping to `APPROVED` lets it run.
 - [ ] **Config-tracked prose:** the proposed answers in the narrative are read from `decisions.[stage]`, not hardcoded.
+- [ ] **Every key has a reader:** each key under `decisions.[stage]` is consumed by the notebook or the stage guard. A key nothing reads belongs in the topic note.
+- [ ] **The reasoning is durable:** the evidence weighed and the alternative rejected are written to `docs/_internal/<stage-stem>/`, not left in a YAML string.
 
 ---
 
