@@ -761,9 +761,11 @@ _lint_check_internal_memory() {
     # so an absent tree produces no output at all.
     [[ -d "$root" ]] || return 0
 
-    # This is a consumer grammar. The toolkit's own memory tree predates it and
-    # is audited by `--check toolkit` instead.
-    [[ -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ]] && return 0
+    # Only the scope grammar is consumer-specific: it keys to 02_analysis/stages,
+    # which the toolkit's own tree has none of. The payload and topology rules
+    # below are universal, so the toolkit is held to them like any consumer.
+    local self=0
+    [[ -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ]] && self=1
 
     # The scopes this project has. A viz twin shares its compute stage's number
     # and stem, so `NN_topic_viz` collapses to `NN_topic`: one stage, one scope.
@@ -777,6 +779,7 @@ _lint_check_internal_memory() {
 
     local d name s matched
     for d in "$root"/*/; do
+        (( self )) && break
         [[ -d "$d" ]] || continue
         name=$(basename "$d")
 
