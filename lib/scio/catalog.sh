@@ -216,6 +216,25 @@ _catalog_check() {
         fail=1
     done
 
+    # A skill directory arrives with its first real file. A .gitkeep asserts a
+    # directory that has nothing in it, and an empty one reaches the consumer as
+    # a promise of content that never comes. Both propagate: templates/skill/
+    # carried four .gitkeep files into every skill copied from it.
+    local keep empty rel
+    while IFS= read -r keep; do
+        [[ -n "$keep" ]] || continue
+        rel="${keep#"$root"/}"
+        echo "ERROR toolkit: $rel: claims a directory that needs no claim — a directory arrives with its first real file" >&2
+        fail=1
+    done < <(find "$root/skills" "$root/templates" -type f -name '.gitkeep' 2>/dev/null | sort)
+
+    while IFS= read -r empty; do
+        [[ -n "$empty" ]] || continue
+        rel="${empty#"$root"/}"
+        echo "ERROR toolkit: $rel/: is empty — delete it, or give it the file it exists for" >&2
+        fail=1
+    done < <(find "$root/skills" -type d -empty 2>/dev/null | sort)
+
     # The CRAFT body is always-on text in every consumer's AGENTS.md, so its
     # declared budget binds here. Silent without a craft.yaml, matching
     # craft_render_and_write, so a toolkit with no craft SSOT is unaffected.
