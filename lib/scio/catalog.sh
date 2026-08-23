@@ -204,6 +204,18 @@ _catalog_check() {
         fi
     done
 
+    # The attic holds retired skills, which is what its README and
+    # docs/skill-lifecycle.md claim. Anything else there is unreachable by every
+    # mount and invisible to lint, so it drifts into a second home for a claim.
+    local attic_entry attic_name
+    for attic_entry in "$root"/_attic/*/; do
+        [[ -d "$attic_entry" ]] || continue
+        attic_name=$(basename "$attic_entry")
+        [[ -f "$attic_entry/SKILL.md" ]] && continue
+        echo "ERROR toolkit: _attic/$attic_name: holds no SKILL.md — the attic is for retired skills; move it to docs/ or a skill, or delete it" >&2
+        fail=1
+    done
+
     # The CRAFT body is always-on text in every consumer's AGENTS.md, so its
     # declared budget binds here. Silent without a craft.yaml, matching
     # craft_render_and_write, so a toolkit with no craft SSOT is unaffected.

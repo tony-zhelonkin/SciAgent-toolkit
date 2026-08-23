@@ -4,12 +4,13 @@ description: >
   Owner's conventions for readable analysis code. Use when creating, reviewing,
   or refactoring 02_analysis; deciding what belongs in stages, helpers, config,
   or notebooks; grouping helper families behind provisional APIs; designing
-  restartable data flow; or assessing package-readiness.
+  restartable data flow; assessing package-readiness; or writing R and Python
+  to house idiom.
 ---
 
 # Analysis Code Conventions Router
 
-Use this skill for structural decisions inside analysis code. 
+Use this skill for decisions inside analysis code -- structural, and at the level of the line. 
 Apply the CRAFT Code shape contract first; 
 this router selects the qualitative guide needed for the decision at hand. 
 
@@ -39,8 +40,11 @@ What decision is being made?
 ├─ Where should state, checkpoints, and cross-stage contracts live?
 │     → restartability-and-dataflow.md
 │
-└─ Has a project helper become an independent library candidate?
-      → promotion-readiness.md
+├─ Has a project helper become an independent library candidate?
+│     → promotion-readiness.md
+│
+└─ How is the line itself written -- naming, progress, failure, paths?
+      → language-style.md
 ```
 
 ## Routing contract
@@ -63,6 +67,7 @@ What decision is being made?
 | Flat helper or cohesive family; public boundary | [`references/helper-family-apis.md`](references/helper-family-apis.md) | A small named API with reviewable internals |
 | Restart boundaries and cross-stage data flow | [`references/restartability-and-dataflow.md`](references/restartability-and-dataflow.md) | Explicit state and resumable execution |
 | Independent repository candidacy | [`references/promotion-readiness.md`](references/promotion-readiness.md) | A keep-local or promote decision |
+| Naming, progress and failure idiom, paths, documentation | [`references/language-style.md`](references/language-style.md) | Code that reads as house R or house Python |
 
 ## Boundary routes
 
