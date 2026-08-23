@@ -48,6 +48,9 @@ Need to visualize activity inference results?
 
 ## Quick Start
 
+> `02_analysis/config/config.R` and `color_config.R` are a project convention,
+> not something this skill ships — supply your own equivalents.
+
 ```r
 source("02_analysis/config/config.R")
 source("02_analysis/config/color_config.R")

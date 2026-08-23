@@ -55,6 +55,12 @@ Need GSEA figures?
 
 ## Quick Start
 
+> **The `02_analysis/config/` paths below are a project convention.**
+> `config.R`, `color_config.R` and the `source_toolkit()` they define belong to
+> the project these examples were transcribed from — supply your own
+> equivalents. The vendored `01_modules/RNAseq-toolkit/` is the only path this
+> skill guarantees.
+
 ### R Static Visualizations (from RDS checkpoints)
 
 ```r
@@ -432,9 +438,9 @@ geom_point(shape = 21, stroke = 0, fill = "blue")
 
 ## Resources
 
-- **RNAseq-toolkit:** `01_scripts/RNAseq-toolkit/scripts/GSEA/GSEA_plotting/`
-- **Visualization workflow docs:** `01_scripts/RNAseq-toolkit/docs/GSEA-workflow/04-output-artifacts-and-visualization.md`
-- **Core pipeline docs:** `01_scripts/RNAseq-toolkit/docs/GSEA-workflow/01-core-pipeline-and-toolkit.md`
+- **RNAseq-toolkit:** `01_modules/RNAseq-toolkit/scripts/GSEA/GSEA_plotting/`
+- **Visualization workflow docs:** `01_modules/RNAseq-toolkit/docs/GSEA-workflow/04-output-artifacts-and-visualization.md`
+- **Core pipeline docs:** `01_modules/RNAseq-toolkit/docs/GSEA-workflow/01-core-pipeline-and-toolkit.md`
 - **clusterProfiler:** https://bioconductor.org/packages/clusterProfiler/
 - **enrichplot:** https://bioconductor.org/packages/enrichplot/
 - **Plotly.js:** https://plotly.com/javascript/

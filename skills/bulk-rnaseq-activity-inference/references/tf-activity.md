@@ -192,6 +192,10 @@ The `core_enrichment` field uses the full regulon (all targets in the dataset), 
 
 #### Checkpoint Caching Pattern
 
+> `02_analysis/config/config.R` and the `load_or_compute()` it defines are a
+> project convention, not something this skill ships. The pattern is what
+> matters here; supply your own memoized-checkpoint helper.
+
 ```r
 source("02_analysis/config/config.R")
 

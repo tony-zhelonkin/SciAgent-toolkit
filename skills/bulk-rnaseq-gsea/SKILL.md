@@ -70,6 +70,11 @@ Where are you in the GSEA pipeline?
 
 ## Quick Start
 
+> **The `02_analysis/` paths below are a project convention.** `config/config.R`
+> and the `DIR_TOOLKIT` it defines belong to the project these examples were
+> transcribed from — supply your own equivalents. The vendored
+> `01_modules/RNAseq-toolkit/` is the only path this skill guarantees.
+
 The most common path: single-database MSigDB GSEA from limma-voom results.
 
 ```r
@@ -193,7 +198,7 @@ normalization helper, checkpoint, table, plot, and interactive paths shown throu
 - **fgsea paper:** Korotkevich et al. (2021) bioRxiv, doi:10.1101/060012
 - **msigdbr:** https://cran.r-project.org/package=msigdbr
 - **MSigDB collections:** https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
-- **RNAseq-toolkit GSEA docs:** `01_scripts/RNAseq-toolkit/docs/GSEA-workflow/`
+- **RNAseq-toolkit GSEA docs:** `01_modules/RNAseq-toolkit/docs/GSEA-workflow/`
 
 ---
 
