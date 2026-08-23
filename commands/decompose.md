@@ -42,9 +42,10 @@ confirmation. So the simplest valid call is just one sentence:
 
 - **task statement** (required) — all the non-flag prose in `$ARGUMENTS`. Describe
   what to plan; plain text, no quotes needed.
-- `--slug <kebab-id>` — optional explicit name for the `docs/_internal/plans/<slug>/` output
-  folder. **If omitted, derive a kebab-case slug from the task statement and echo
-  it back** ("planning into `docs/_internal/plans/figma-relay-recs/` — ok?") before any work.
+- `--slug <kebab-id>` — optional explicit name for the plan directory,
+  `docs/_internal/_project/plans/<date>-<slug>/`. **If omitted, derive a
+  kebab-case slug from the task statement and echo it back** ("planning into
+  `_project/plans/2026-08-23-figma-relay-recs/` — ok?") before any work.
 - `--artifacts <csv>` — the large artifacts in scope (repos, dirs, design docs).
   If omitted, the pioneer infers them and **lists what it chose for confirmation.**
 - `--north-star <path|quoted>` — a domain-specific design rubric that the
@@ -53,7 +54,7 @@ confirmation. So the simplest valid call is just one sentence:
 - `--window N` — consecutive-phase window for the consolidation pass (default 3).
 - `--auto` — **autonomous mode** (see below). Implied whenever `/decompose` is
   invoked under a goal-driven / drive-to-completion run.
-- `--resume <slug>` — re-read `docs/_internal/plans/<slug>/` and pick up at the first
+- `--resume <slug>` — re-read that plan's directory and pick up at the first
   incomplete stage (slug required here so the campaign is unambiguous).
 
 ## Autonomous mode (`--auto`, or running under a goal)
@@ -68,7 +69,7 @@ and proceed."* Specifically:
 | Echo derived slug, await confirmation | Adopt the derived slug, log it, continue |
 | Pioneer lists inferred artifacts for confirmation | Adopt the inferred set, log it; if truly nothing is in scope, that's a hard FAIL — stop |
 | Stage B resplit "glance-check" before proceeding | Apply the resplit, log it, continue (still bounded to **two** Stage-B passes) |
-| Existing `docs/.../plan/` → ask resume-or-restart | **Resume** at the first incomplete stage |
+| Existing plan directory → ask resume-or-restart | **Resume** at the first incomplete stage |
 | Stage E "surface and stop" | Surface, then emit the handoff signal below — do not idle |
 
 What **does not** change in autonomous mode: the hard scope boundary. `/decompose`
@@ -79,9 +80,9 @@ machine-readable handoff so the outer goal loop can pick up the implementation:
 ```
 DECOMPOSE-COMPLETE
   status:      SOLIDIFIED
-  plan_dir:    docs/_internal/plans/{slug}/
+  plan_dir:    docs/_internal/_project/plans/{date}-{slug}/
   phases:      {N}
-  entrypoint:  docs/_internal/plans/{slug}/phase-01.md
+  entrypoint:  docs/_internal/_project/plans/{date}-{slug}/01_<slug>.md
   next:        implement phases 1..{N} in dependency order (e.g. /implement {slug} 1 --auto)
 ```
 
@@ -89,7 +90,7 @@ The two-pass Stage-B cap and the "is anything in scope?" check are retained as
 **hard stops** even in autonomous mode: a goal-driven loop should fail loudly on a
 malformed decomposition rather than burn the whole budget on a bad skeleton.
 
-All artifacts land under `docs/_internal/plans/{slug}/`.
+All artifacts land under `docs/_internal/_project/plans/{date}-{slug}/`.
 
 ## The House rubric (default north-star)
 
@@ -114,9 +115,14 @@ slug from the task statement (e.g. "Address the figma-relay recommendations" →
 `figma-relay-recs`) and **echo it for confirmation** before doing any work — the
 user may rename it in their next message. On `--resume <slug>`, the slug is given.
 
-Create `docs/_internal/plans/{slug}/` if absent. If it already exists and `--resume` was not
-passed, report current stage state (which `phase-NN.md` exist, which gates passed
-per `_campaign.md`) and ask whether to **resume** or **restart**.
+**Resolve the plan directory.** It is
+`docs/_internal/_project/plans/{date}-{slug}/`, where `{date}` is `date +%F`. A
+plan spans stages, so it is project-scoped. On `--resume`, match the existing
+directory by slug rather than re-dating it.
+
+Create it if absent. If it already exists and `--resume` was not passed, report
+current stage state (which `NN_<slug>.md` exist, which gates passed per
+`_campaign.md`) and ask whether to **resume** or **restart**.
 
 ## Stage A — Pioneer decomposition (1–2 Opus, parallel-independent)
 
@@ -140,19 +146,21 @@ Pioneer dispatch prompt (per pioneer):
 > north-star: {north-star}.
 
 The main agent merges pioneer output (if two ran, reconcile overlapping phases and
-renumber into one global order) and writes:
+renumber into one global order) and writes, in the plan directory:
 
-- `docs/_internal/plans/{slug}/README.md` — overview, the **Phase Summary** table (Phase |
-  Charter | Artifacts | Depends-on), the resolved artifact set, and the active
-  north-star (House + any `--north-star`).
-- `docs/_internal/plans/{slug}/phase-NN.md` — one **stub** per phase: charter, artifact
-  slice, dependencies, expected seams. Body left for Stage C to populate.
-- `docs/_internal/plans/{slug}/_campaign.md` — the orchestration ledger: stage gates, agent
-  roster, and the decomposition rationale. Seed it with Stage A's verdict.
+- `00_INDEX.md` — overview, the **Phase Summary** table (Phase | Charter |
+  Artifacts | Depends-on), the resolved artifact set, and the active north-star
+  (House + any `--north-star`). Fill it from `templates/plan/00_INDEX.md.template`.
+- `NN_<slug>.md` — one **stub** per phase, from
+  `templates/plan/NN_slug.md.template`: charter, artifact slice, dependencies,
+  expected seams. Body left for Stage C to populate. The number orders the
+  phases; the slug is what makes the filename readable.
+- `_campaign.md` — the orchestration ledger: stage gates, agent roster, and the
+  decomposition rationale. Seed it with Stage A's verdict.
 
 ## Stage B — Feasibility gate (1 Opus reviewer)
 
-Dispatch one Opus `feasibility` reviewer over the full stub set + README.
+Dispatch one Opus `feasibility` reviewer over the full stub set + INDEX.
 
 > Review this phase decomposition for **single-agent feasibility**. For each
 > phase, judge whether one Opus agent could populate a complete, high-quality
@@ -162,7 +170,7 @@ Dispatch one Opus `feasibility` reviewer over the full stub set + README.
 > acyclic and the ordering is buildable. Check the seams the pioneer named are the
 > real ones. Return a verdict per phase plus an overall READY / NEEDS-RESPLIT.
 
-If `NEEDS-RESPLIT`: apply the recommended splits/merges, renumber, update README
+If `NEEDS-RESPLIT`: apply the recommended splits/merges, renumber, update INDEX
 + stubs + `_campaign.md`, and re-run Stage B **once**. Surface the resplit to the
 user as a glance-check before proceeding. Do not loop more than twice without user
 input.
@@ -177,9 +185,9 @@ dependency is still unpopulated waits for it.
 
 **Planner** dispatch prompt (per phase N):
 > Populate the full implementation plan for **Phase N: {charter}** of {slug}.
-> Read the phase stub, the README (for global context and the seams you must
+> Read the phase stub, the INDEX (for global context and the seams you must
 > honour), the plans of phases you depend on, and **your phase's artifact slice
-> against the actual codebase/docs**: {slice}. Write `phase-NN.md` with: Context
+> against the actual codebase/docs**: {slice}. Write `NN_<slug>.md` with: Context
 > (what upstream phases make available), Files to Create / Modify (with the real
 > paths and the patterns to follow, grounded in the artifacts), the interfaces
 > this phase exposes downstream, Verification checks, and References to the
@@ -187,14 +195,14 @@ dependency is still unpopulated waits for it.
 > seams. Optimise against the north-star: {north-star}. Emit a plan, not code.
 
 **Reviewer** dispatch prompt (paired, per phase N):
-> Review the populated `phase-NN.md` against the **actual artifacts** ({slice})
-> and the README seams. Trim nicks: paths that don't exist, patterns that don't
+> Review the populated `NN_<slug>.md` against the **actual artifacts** ({slice})
+> and the INDEX seams. Trim nicks: paths that don't exist, patterns that don't
 > match the codebase, interfaces that contradict a neighbour, accidental
 > complexity, anything ornamental. Confirm the phase is architecturally sound in
 > isolation and at its declared boundaries. Return concrete edits (not vibes); the
 > main agent applies them. Verdict: SOUND / NEEDS-WORK with specifics.
 
-Apply each reviewer's edits to its `phase-NN.md`. Record per-pair verdicts in
+Apply each reviewer's edits to its `NN_<slug>.md`. Record per-pair verdicts in
 `_campaign.md`. A phase is "populated" only after its reviewer returns SOUND.
 
 ## Stage D — Sliding-window consolidation (Opus, overlapping windows)
@@ -215,31 +223,31 @@ Consolidator dispatch prompt (per window):
 > the window and propose the simpler shape where one exists. Judge the window
 > against the north-star: {north-star} — is the interface this set carves out
 > laconic, ergonomic, beautiful to wield for a blind agent operator? Return
-> cross-phase edits (which `phase-NN.md`, what change, why) plus a window verdict.
+> cross-phase edits (which `NN_<slug>.md`, what change, why) plus a window verdict.
 
 Apply window edits. Where two overlapping windows touch the same shared phase,
 reconcile their edits (the shared phase is the overlap by design — prefer the edit
-that strengthens the seam). Log every cross-phase decision in
-`docs/_internal/plans/{slug}/_consolidation.md` (the seam ledger: coupling/decoupling calls,
-complexity-budget verdicts, load-bearing decisions). Update `_campaign.md` gate.
+that strengthens the seam). Log every cross-phase decision in `_consolidation.md`
+(the seam ledger: coupling/decoupling calls, complexity-budget verdicts,
+load-bearing decisions). Update `_campaign.md` gate.
 
 Optionally run a single final consolidator over the **whole** plan when the phase
 count exceeds 2×window, to catch end-to-end coherence the windows can't see.
 
 ## Stage E — Surface the solidified plan
 
-The plan is now multi-pass validated. Stamp `docs/_internal/plans/{slug}/README.md` with
+The plan is now multi-pass validated. Stamp the plan's `00_INDEX.md` with
 `status: SOLIDIFIED` and surface:
 
 ```
 Phase-plan campaign complete for {slug} — SOLIDIFIED.
 
-  docs/_internal/plans/{slug}/
-    README.md          overview + phase summary + north-star
-    phase-01.md … NN   populated, pair-reviewed, window-consolidated
-    _decomposition…    pioneer rationale (in _campaign.md)
-    _consolidation.md  seam ledger (coupling/decoupling, complexity calls)
-    _campaign.md       orchestration ledger (every gate + verdict)
+  docs/_internal/_project/plans/{date}-{slug}/
+    00_INDEX.md         overview + phase summary + north-star
+    NN_<slug>.md ×{N}   populated, pair-reviewed, window-consolidated
+    _campaign.md        orchestration ledger (every gate + verdict, and the
+                        pioneer's decomposition rationale)
+    _consolidation.md   seam ledger (coupling/decoupling, complexity calls)
 
 Passes applied:
   A pioneer decompose   ({n} pioneers)
@@ -249,7 +257,7 @@ Passes applied:
 
 This plan is ready to hand to implementers.
 Implementation is out of scope for /decompose — kick it off separately
-(e.g. /implement {slug} <phase> under the architect role).
+(e.g. /implement {slug} --phase 1).
 ```
 
 In **autonomous mode** (`--auto` / goal-driven), append the `DECOMPOSE-COMPLETE`

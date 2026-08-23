@@ -24,16 +24,16 @@ implement phases.
 /implement <slug> [--phase N] [--auto] [--resume <slug>]
 ```
 
-- **`<slug>`** (required) — the kebab-case plan identifier matching
-  `docs/_internal/plans/<slug>/` produced by `/decompose`. Also accepted as a
-  bare path to the plan directory.
+- **`<slug>`** (required) — the kebab-case plan identifier matching a
+  `docs/_internal/_project/plans/<date>-<slug>/` directory produced by
+  `/decompose`. Also accepted as a bare path to the plan directory.
 - **`--phase N`** — run exactly phase N in isolation (hand-paced, default mode
   when no `--auto`). Stops after that phase and waits.
 - **`--auto`** — autonomous end-to-end mode: drive all remaining phases to
   completion, stopping only at a hard FAIL, an escalation the conductor cannot
   resolve, or campaign completion. Implied whenever `/implement` runs inside a
   goal-driven loop that drives to completion without checking back.
-- **`--resume <slug>`** — re-read `docs/_internal/plans/<slug>/_implementation.md`
+- **`--resume <slug>`** — re-read that plan's `_implementation.md` ledger
   and pick up at the first incomplete phase. If `<slug>` was already given as
   the first positional argument, the flag is redundant but accepted.
 
@@ -56,16 +56,16 @@ When `/decompose` emits:
 ```
 DECOMPOSE-COMPLETE
   status:      SOLIDIFIED
-  plan_dir:    docs/_internal/plans/{slug}/
+  plan_dir:    docs/_internal/_project/plans/{date}-{slug}/
   phases:      {N}
-  entrypoint:  docs/_internal/plans/{slug}/phase-01.md
+  entrypoint:  docs/_internal/_project/plans/{date}-{slug}/01_<slug>.md
   next:        implement phases 1..{N} in dependency order (e.g. /implement {slug} 1 --auto)
 ```
 
 `/implement <slug> --auto` or `/implement <slug> --phase 1` is the correct
 continuation. The slug, phase count, and plan directory are read directly from
-`docs/_internal/plans/<slug>/README.md` — the handoff block need not be
-reproduced; the plan directory is the authoritative source.
+the plan's `00_INDEX.md` — the handoff block need not be reproduced; the plan
+directory is the authoritative source.
 
 ## Autonomous mode (`--auto`, or running under a goal)
 
@@ -95,9 +95,9 @@ campaign completion so the outer goal loop can continue:
 ```
 IMPLEMENT-COMPLETE
   status:      SHIPPED
-  plan_dir:    docs/_internal/plans/{slug}/
+  plan_dir:    docs/_internal/_project/plans/{date}-{slug}/
   phases:      {N}
-  ledger:      docs/_internal/plans/{slug}/_implementation.md
+  ledger:      docs/_internal/_project/plans/{date}-{slug}/_implementation.md
   next:        drift check against plan + design — architecture-first-dev, verify route
 ```
 
@@ -107,9 +107,10 @@ Separate `<slug>`, `--phase`, `--auto`, `--resume` from `$ARGUMENTS`. If
 `<slug>` is missing, list the plans that exist and ask which to implement rather
 than printing a usage line.
 
-**Resolve the plan directory.** Read
-`docs/_internal/plans/<slug>/README.md` — verify `status: SOLIDIFIED` is
-stamped. If the status is not SOLIDIFIED, stop:
+**Resolve the plan directory.** It is
+`docs/_internal/_project/plans/<date>-<slug>/`, matched by slug — `/decompose`
+dated it, so do not re-date it here. Read its `00_INDEX.md` and verify
+`status: SOLIDIFIED` is stamped. If it is not, stop:
 ```
 Plan <slug> is not SOLIDIFIED — run /decompose first.
 ```
@@ -123,8 +124,8 @@ or restart.
 **Echo the dispatch plan.** Before any subagent fires:
 ```
 Implementing <slug>: {N} phases, starting at phase {start}.
-  Plan:    docs/_internal/plans/<slug>/
-  Ledger:  docs/_internal/plans/<slug>/_implementation.md
+  Plan:    docs/_internal/_project/plans/<date>-<slug>/
+  Ledger:  docs/_internal/_project/plans/<date>-<slug>/_implementation.md
   Mode:    [single-phase N | end-to-end from N | end-to-end all]
 ```
 
@@ -148,9 +149,8 @@ Dispatch one Opus `implementer` subagent per phase. Independent phases
 Implementer dispatch prompt (per phase N):
 > You are implementing **Phase N: {charter}** of {slug}.
 > Read:
->   1. `docs/_internal/plans/{slug}/phase-NN.md` — your specification.
->   2. `docs/_internal/plans/{slug}/README.md` — global context and seams to
->      honour.
+>   1. `{plan_dir}/NN_<slug>.md` — your specification.
+>   2. `{plan_dir}/00_INDEX.md` — global context and the seams to honour.
 >   3. The phase docs for every phase you depend on — what they expose to you.
 >   4. The actual codebase/artifacts at your slice: {slice}.
 >
@@ -162,7 +162,7 @@ Implementer dispatch prompt (per phase N):
 > area minimal (only what the phase specifies), and run the project's tests if
 > test infrastructure exists.
 >
-> When done, stamp `phase-NN.md` frontmatter:
+> When done, stamp `NN_<slug>.md` frontmatter:
 > ```yaml
 > ---
 > phase: <N>
@@ -199,13 +199,13 @@ Once the implementer returns DONE, dispatch one Opus `reviewer` subagent.
 Reviewer dispatch prompt (per phase N):
 > Review the **on-disk implementation of Phase N: {charter}** of {slug}.
 > Do not rely on the implementer's self-report — **verify on disk directly**:
-> read every file listed in `phase-NN.md` `files_touched`, re-run the phase's
+> read every file listed in `NN_<slug>.md` `files_touched`, re-run the phase's
 > verification checklist yourself, re-derive any quoted counts or metrics.
 >
 > Check against:
->   - `phase-NN.md` — the specification (are all items delivered?).
->   - `docs/_internal/plans/{slug}/README.md` — seams to honour (does this
->     phase respect its declared interfaces to neighbours?).
+>   - `NN_<slug>.md` — the specification (are all items delivered?).
+>   - `{plan_dir}/00_INDEX.md` — seams to honour (does this phase respect
+>     its declared interfaces to neighbours?).
 >   - The actual codebase — patterns followed? Minimal surface? No accidental
 >     complexity? No ornamental code? `_superseded/` used where appropriate?
 >
@@ -227,7 +227,7 @@ pair verdict in `_implementation.md`.
 
 ### A3 — Architecture reviewer (for complex or seam-heavy phases)
 
-For phases flagged in `README.md` as high-complexity or seam-heavy —
+For phases flagged in `00_INDEX.md` as high-complexity or seam-heavy —
 specifically: phases touching devops infrastructure, stateful session handling,
 cross-phase integration contracts, or any phase the conductor judges as
 carrying load-bearing architectural decisions — dispatch a **+1 Opus
@@ -239,8 +239,8 @@ Architecture reviewer dispatch prompt:
 > {slug} — not a line review, an architecture review. Think carefully about:
 >
 >   1. **Contract correctness.** Does this phase's exported interface (the one
->      downstream phases depend on) match what `README.md` and the adjacent
->      `phase-NN.md` files declare? Name any discrepancy exactly.
+>      downstream phases depend on) match what `00_INDEX.md` and the adjacent
+>      `NN_<slug>.md` files declare? Name any discrepancy exactly.
 >   2. **Load-bearing decisions.** Identify the 1–3 decisions in this phase
 >      that, if wrong, would force rework in two or more later phases. Are they
 >      correct? Are they reversible if not?
@@ -274,7 +274,7 @@ Window reviewer dispatch prompt (per window):
 >     silent fragmentation of one concern across three files or modules.
 >   - Things that should be decoupled actually are — no hidden coupling, no
 >     leaked abstraction, no re-entrant state that was not declared.
->   - The interfaces between phases are exactly as `README.md` specified — no
+>   - The interfaces between phases are exactly as `00_INDEX.md` specified — no
 >     undeclared additions, no quietly dropped contracts.
 >   - No slop accumulated across phase boundaries: duplicate helpers,
 >     inconsistent naming, copy-paste logic that should be shared.
@@ -283,7 +283,7 @@ Window reviewer dispatch prompt (per window):
 > files and seam that is broken, and the concrete cross-phase fix needed.
 
 **If SEAM-DEFECT:** the conductor patches the affected phases, updates their
-`phase-NN.md` `files_touched`, and re-runs the window reviewer once. If still
+`NN_<slug>.md` `files_touched`, and re-runs the window reviewer once. If still
 SEAM-DEFECT, the conductor escalates to the human (hard stop in `--auto`).
 
 Log every cross-phase decision in `_implementation.md`'s seam log section.
@@ -297,7 +297,7 @@ windows cannot see.
 When all phases are `shipped` and all window reviews are `SEAM-SOUND`, close
 the campaign:
 
-1. Stamp `docs/_internal/plans/{slug}/README.md` `status: SHIPPED`.
+1. Stamp the plan's `00_INDEX.md` `status: SHIPPED`.
 2. Record final summary in `_implementation.md`: phase count, dates, all agent
    verdicts, any escalations and how they were resolved.
 3. Surface the campaign summary:
@@ -305,10 +305,10 @@ the campaign:
 ```
 Implementation campaign complete for {slug} — SHIPPED.
 
-  docs/_internal/plans/{slug}/
-    README.md            plan + status (SHIPPED)
-    phase-01.md … NN    each stamped shipped/deferred/blocked
-    _implementation.md  orchestration ledger (all dispatches, verdicts, escalations)
+  docs/_internal/_project/plans/{date}-{slug}/
+    00_INDEX.md          plan + status (SHIPPED)
+    NN_<slug>.md ×{N}    each stamped shipped/deferred/blocked
+    _implementation.md   orchestration ledger (dispatches, verdicts, escalations)
 
 Passes applied:
   A implementer+reviewer pairs   ({n} pairs, all SOUND)
@@ -380,7 +380,7 @@ automatically** — verification is a separate step.
 9. **Minimal surface area.** Implementers do not add "while we're here"
    refactors, speculative helpers, or defensive code for scenarios outside the
    phase spec. If something looks like it should change, they escalate; they do
-   not silently improve. The north-star from the plan's README is a gate, not a
+   not silently improve. The north-star from the plan's INDEX is a gate, not a
    garnish.
 
 10. **The scope boundary is hard in both modes.** `/implement` never plans or
