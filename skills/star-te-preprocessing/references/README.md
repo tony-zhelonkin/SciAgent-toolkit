@@ -8,7 +8,7 @@ Contents:
   staging → TEtranscripts GTF → grouped `_noExon` SAF (`bedtools subtract`) → two-pass
   `runFeatureCounts_TE_and_genes.sh` → gene + TE subfamily matrices → QC gate → handoff to
   `annotate-bulk-rnaseq-data`. Generalized from the per-dataset `/scratch/nf-core/13036-DM/README.md`.
-  Points to (does not copy) the TE-RNAseq-toolkit v2.0.0 driver.
+  Points to (does not copy) the TE-RNAseq-toolkit v2.0.3 driver.
 
 ## `te_star.config`
 

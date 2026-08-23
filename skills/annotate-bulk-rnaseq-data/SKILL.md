@@ -69,7 +69,7 @@ If TE rows were counted stranded with a sense/antisense split upstream (`--te-st
 - **Gene path detail:** `references/gene-annotation.md`
 - **TE path detail:** `references/te-annotation.md`
 - **Gene helpers:** RNAseq-toolkit **v0.2.0** — `scripts/General/{io_helpers,annotate_genes,dge_helpers,provenance}.R`
-- **TE helpers:** TE-RNAseq-toolkit **v0.1.0** — `R/te_utils.R`, `R/validate_te_input.R`, `R/create_combined_dge.R`, `R/create_te_genesets.R`
+- **TE helpers:** TE-RNAseq-toolkit **v2.0.3** — `R/te_utils.R`, `R/validate_te_input.R`, `R/create_combined_dge.R`, `R/create_te_genesets.R`
 
 ---
 

@@ -9,7 +9,7 @@
 ## 1. Column-Name Contract (Critical)
 
 TE GMTs produced by `create_te_genesets()` / `export_te_genesets_gmt()` in
-`TE-RNAseq-toolkit v0.1.0` use **`gs_name`** and **`gene_symbol`** as column names — NOT the
+`TE-RNAseq-toolkit v2.0.3` use **`gs_name`** and **`gene_symbol`** as column names — NOT the
 `term`/`gene` naming used by the bulk-rnaseq-gsea custom-db recipes. This distinction matters in
 exactly two places:
 
@@ -55,7 +55,7 @@ GMT), not Ensembl gene IDs or gene symbols. Build it from rows where `is_te == T
 combined DGEList produced by `create_combined_dge()`:
 
 ```r
-# combined_dge: output of create_combined_dge() from TE-RNAseq-toolkit v0.1.0
+# combined_dge: output of create_combined_dge() from TE-RNAseq-toolkit v2.0.3
 # is_te column is added by create_combined_dge() to $genes
 de_tbl <- combined_dge$table        # or limma topTable equivalent
 te_idx <- combined_dge$genes$is_te  # logical vector, same length as rows
@@ -234,7 +234,7 @@ stopifnot(all(grepl("^TE_CLASS_",  export_cls$ID)))
 
 ---
 
-## 7. Source Files (TE-RNAseq-toolkit v0.1.0)
+## 7. Source Files (TE-RNAseq-toolkit v2.0.3)
 
 | File | Relevant exports |
 |---|---|

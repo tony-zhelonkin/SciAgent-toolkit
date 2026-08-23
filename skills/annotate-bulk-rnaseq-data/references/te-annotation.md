@@ -14,7 +14,7 @@ TE matrix rows use the toolkit-canonical 3-field label **`Subfamily:Family:Class
 (e.g. `L1Md_A:L1:LINE`). This is the same label `star-te-preprocessing` writes into
 the SAF `GeneID`, so it parses cleanly downstream.
 
-> **Authoritative parser:** TE-RNAseq-toolkit **v0.1.0** —
+> **Authoritative parser:** TE-RNAseq-toolkit **v2.0.3** —
 > `R/te_utils.R::parse_te_id` (version-pinned). Do not restate the parser logic here;
 > the code is the spec.
 
@@ -28,7 +28,7 @@ the SAF `GeneID`, so it parses cleanly downstream.
 
 ## Helpers (SSoT — do not duplicate code)
 
-From **TE-RNAseq-toolkit v0.1.0**:
+From **TE-RNAseq-toolkit v2.0.3**:
 
 - `TE_CYTOPLASMIC_CLASSES` / `TE_NUCLEAR_CLASSES` — `R/te_utils.R` — class constants
   (`LINE`, `SINE`, `LTR`, `Retroposon` / `DNA`, `RC`)
@@ -70,7 +70,7 @@ counts_te_fp  <- "00_data/processed/featurecounts_TE/te_counts_matrix.txt"
 # RNAseq-toolkit v0.2.0 (gene-path helpers — already sourced if running after gene-annotation.md)
 source("01_modules/RNAseq-toolkit/scripts/General/io_helpers.R")
 
-# TE-RNAseq-toolkit v0.1.0 — source rich R/ factories in dependency order
+# TE-RNAseq-toolkit v2.0.3 — source rich R/ factories in dependency order
 source("01_modules/TE-RNAseq-toolkit/R/te_utils.R")          # constants + parse_te_id + build_te_annotation
 source("01_modules/TE-RNAseq-toolkit/R/validate_te_input.R") # validate_combined_input (required by create_combined_dge)
 source("01_modules/TE-RNAseq-toolkit/R/create_combined_dge.R")
@@ -216,6 +216,6 @@ recipe above sidesteps this by building the class T2G/T2N directly from the alre
 3. **Metadata / samples**: Ensure `samp_df` rownames match count column names.
 4. **TE format**: TE IDs are expected in `Subfamily:Family:Class` format (e.g.
    `L1Md_A:L1:LINE`), as produced by `star-te-preprocessing` and parsed by
-   TE-RNAseq-toolkit v0.1.0 `R/te_utils.R::parse_te_id`.
+   TE-RNAseq-toolkit v2.0.3 `R/te_utils.R::parse_te_id`.
 5. **GMT handoff**: Pass `<id>_TE_family.gmt` and `<id>_TE_class.gmt` to
    `te-geneset-gsea` for downstream pathway analysis.

@@ -221,7 +221,7 @@ filenames. `--keep-classes '^(LINE|SINE|LTR|RC)$'` optionally whitelists classes
 ## Science rationale (pointer, not a copy)
 
 Building these artifacts is a science-laden, once-per-build decision exercise — not a
-mechanical format conversion. The full theory lives in **TE-RNAseq-toolkit v2.0.1 —
+mechanical format conversion. The full theory lives in **TE-RNAseq-toolkit v2.0.3 —
 `docs/METHODOLOGY.md`** (version-pinned; do not duplicate). The builder must internalize:
 
 - **Subfamily grouping is the deliberate quantification unit, not a shortcut**
@@ -317,7 +317,7 @@ all datasets on the same build reuse this one file.
 - **Build record template:** `references/reference-build-record-template.md`.
 - **Provenance audit / skill ADR:** `docs/_internal/research/08-shared-artifact-provenance-and-skill-decision.md`.
 - **Downstream consumer:** `star-te-preprocessing/SKILL.md` + `references/te-counting-workflow.md`.
-- **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.1** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
+- **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.3** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
 - **TE GTF source:** TEtranscripts — https://www.mghlab.org/software/tetranscripts
 - **TE-ID parser** (label `Subfamily:Family:Class`): TE-RNAseq-toolkit — `R/te_utils.R::parse_te_id`.
 
