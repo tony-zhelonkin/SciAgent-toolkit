@@ -5,8 +5,7 @@
 >
 > One genome build = one record. Fill a copy each time the TE reference is (re)built and keep
 > it beside the artifacts (e.g. `/data1/shared/ref/<species>/<provider>/<build>/`). This closes
-> the acquisition + build provenance gaps flagged in
-> `docs/_internal/research/08-shared-artifact-provenance-and-skill-decision.md` §B.
+> the acquisition and build provenance gap that left per-dataset READMEs as the only record.
 
 ---
 

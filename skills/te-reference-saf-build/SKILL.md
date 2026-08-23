@@ -20,8 +20,7 @@ SAF. These artifacts are built **~once per genome build** and **shared across ev
 dataset** — all reference mm39 runs (13036-DM, AdaW_eWAT_WL, 14839-DM) point at the
 *same* files under `/data1/shared/ref/mouse/Ensembl/mm39/`. The build recipe was
 previously homeless: the toolkit owned zero build code, and the recipe lived only as
-inline awk/bedtools prose in per-dataset `/scratch` READMEs (provenance audit:
-`docs/_internal/research/08-shared-artifact-provenance-and-skill-decision.md` §B, §D).
+inline awk/bedtools prose in per-dataset `/scratch` READMEs.
 This skill gives that recipe a single source of truth and an owned, tested executable
 (`scripts/build_te_saf.sh`).
 
@@ -315,7 +314,6 @@ all datasets on the same build reuse this one file.
 
 - **Build script (owned):** `scripts/build_te_saf.sh` — steps 2–3 as a deterministic, awk/bedtools-only executable.
 - **Build record template:** `references/reference-build-record-template.md`.
-- **Provenance audit / skill ADR:** `docs/_internal/research/08-shared-artifact-provenance-and-skill-decision.md`.
 - **Downstream consumer:** `star-te-preprocessing/SKILL.md` + `references/te-counting-workflow.md`.
 - **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.3** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
 - **TE GTF source:** TEtranscripts — https://www.mghlab.org/software/tetranscripts
