@@ -561,11 +561,16 @@ _lint_check_freshness() {
     fi
 
     # --- submodule commit vs toolkit HEAD ---------------------------------
-    local submod="" submod_rel="" toolkit_dir
+    # A candidate has to be a toolkit checkout with its own git directory. An
+    # ordinary directory of the same name would otherwise shadow the real
+    # submodule, and `git -C` walks upward, so the comparison would silently be
+    # against the project's own repository instead of failing.
+    local submod="" submod_rel="" toolkit_dir cand
     for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
-        submod_rel="01_modules/$toolkit_dir"
-        if [[ -d "$projdir/$submod_rel" ]]; then
-            submod="$projdir/$submod_rel"
+        cand="$projdir/01_modules/$toolkit_dir"
+        if [[ -e "$cand/.git" ]] && [[ -x "$cand/bin/scio" || -f "$cand/craft.yaml" ]]; then
+            submod_rel="01_modules/$toolkit_dir"
+            submod="$cand"
             break
         fi
     done

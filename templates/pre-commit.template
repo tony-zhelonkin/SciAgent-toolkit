@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
-# Vendored copies predating the ADR-D9 rename are still at SciAgent-toolkit.
-for name in scio SciAgent-toolkit; do
-    candidate="$root/01_modules/$name/bin/scio"
+# Found by its executable, so the vendored directory's name does not matter and
+# the ADR-D9 rename needs no edit here.
+for candidate in "$root"/01_modules/*/bin/scio; do
     if [[ -x "$candidate" ]]; then
         "$candidate" lint --project-dir "$root"
         break

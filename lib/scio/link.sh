@@ -64,24 +64,48 @@ _link_symlink_target() {
     printf '%s' "$rel"
 }
 
+# True when a path looks like a toolkit checkout rather than a same-named
+# directory that happens to exist. Without this, a stray `01_modules/scio/` can
+# shadow the real pinned copy.
+_link_is_toolkit() {
+    [[ -x "$1/bin/scio" || -f "$1/craft.yaml" ]]
+}
+
 # Print the project's pinned toolkit path when one is present.
+#
+# Evidence strength decides first and the name only breaks ties: a path the
+# project DECLARED in .gitmodules outranks one merely found on disk, whichever
+# name each carries. Preferring the name across stages would let an unrelated
+# `./misc/scio` beat a declared `vendor/SciAgent-toolkit` submodule, and the
+# locality guard would then refuse the project's own pinned copy as external.
 _link_in_repo_toolkit() {
-    local path toolkit_dir
-    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
-        if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
-            path=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
-                | awk '{print $2}' | grep -E "(^|/)${toolkit_dir}$" | head -1)
-            if [[ -n "$path" && -d "$path" ]]; then
+    local path toolkit_dir declared
+
+    # Stage 1 — declared in .gitmodules.
+    if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
+        declared=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
+            | awk '{print $2}')
+        for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+            path=$(printf '%s\n' "$declared" | grep -E "(^|/)${toolkit_dir}$" | head -1)
+            if [[ -n "$path" && -d "$path" ]] && _link_is_toolkit "$path"; then
                 printf '%s\n' "$path"
                 return 0
             fi
-        fi
-        if [[ -d "01_modules/$toolkit_dir" ]]; then
+        done
+    fi
+
+    # Stage 2 — the conventional location.
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        if [[ -d "01_modules/$toolkit_dir" ]] && _link_is_toolkit "01_modules/$toolkit_dir"; then
             printf '01_modules/%s\n' "$toolkit_dir"
             return 0
         fi
+    done
+
+    # Stage 3 — any other single level down.
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
         for path in ./*/"$toolkit_dir"; do
-            if [[ -d "$path" ]]; then
+            if [[ -d "$path" ]] && _link_is_toolkit "$path"; then
                 printf '%s\n' "$path"
                 return 0
             fi

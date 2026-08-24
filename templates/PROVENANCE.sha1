@@ -13,6 +13,7 @@
 b877e489c097e4cb35e8735a387e2621f59d3d5b  project/_common/.claude/hooks/no_ephemeral.sh.template
 82c51109600cbab289d28bc2d133595effb5527f  project/_common/.claude/hooks/no_ephemeral.sh.template
 12dafe8a3e39dde0663827ee6f0cb559b6821fd6  project/_common/.claude/hooks/no_ephemeral.sh.template
+faac7a7d176e29022b550a65d4091d84067a974c  project/_common/.claude/hooks/caption_sweep.sh.template
 0967317f71d71b7200b5ed43fd1ca3a9db422619  project/_common/.claude/hooks/caption_sweep.sh.template
 5bb31502c7c4c27aacce23310203e1ada8fb3e59  project/_common/.claude/hooks/caption_sweep.sh.template
 c9572d2ffa88f20864cbb9b3ac328f18e8c7de3c  project/_common/.claude/hooks/caption_sweep.sh.template
