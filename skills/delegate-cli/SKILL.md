@@ -63,6 +63,19 @@ condition without substituting another tool or installing software.
 A bypass removes the sandbox and requires explicit user authorization. Prompt rules do not recreate
 sandbox enforcement: asking a worker to behave as if sandboxed is not a sandbox.
 
+**Sandboxed codex cannot read files in some containers**, including scbio-docker dev containers as
+shipped, because the container policy blocks the namespace or filter operation the sandbox is built
+on. Run `--file-read-check` and read what it prints:
+
+- `SANDBOX_FILE_READ=ok` — the sandbox works here; use it.
+- `SANDBOX_FILE_READ=blocked` — every file-dependent task will fail under that sandbox, and it will
+  look like the model refusing to cooperate rather than a platform denial. The only two remedies are
+  relaxing the container policy (`scbio-docker docs/ai-integration.md`) and an authorized `--bypass`.
+  Rewording the prompt is not one of them.
+
+Check this before a file-dependent delegation rather than after it, and treat the result as a
+property of the container rather than of the task.
+
 ## Launch codex
 
 Use the launcher after a successful probe:

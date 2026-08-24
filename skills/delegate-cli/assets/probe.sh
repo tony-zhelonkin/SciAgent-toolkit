@@ -159,8 +159,25 @@ if [ "$file_read_check" -eq 1 ]; then
     else
         check_status=$?
     fi
-    [ "$check_status" -eq 0 ] \
-        || fail 14 "codex could not inspect the nonce file"
+    # A sandboxed codex cannot read files at all when the container blocks the
+    # namespace or filter operations its sandbox is built on. That failure looks
+    # like a model refusing to cooperate, so name it: the remedy is a container
+    # policy change or an explicitly authorized --bypass, and no prompt wording
+    # substitutes for either.
+    if [ "$check_status" -ne 0 ]; then
+        if grep -Eqi 'bwrap|landlock|seccomp|unshare|namespace|Operation not permitted' \
+                "$stream_file" 2>/dev/null; then
+            printf 'SANDBOX_FILE_READ=blocked\n'
+            printf 'probe.sh: codex could not inspect a file with sandbox %s.\n' \
+                "${sandbox:-default}" >&2
+            printf 'probe.sh: the container blocks the operation its sandbox needs. Either relax the\n' >&2
+            printf 'probe.sh: container policy (see scbio-docker docs/ai-integration.md) or obtain\n' >&2
+            printf 'probe.sh: explicit authorization for --bypass, which removes the sandbox.\n' >&2
+            exit 14
+        fi
+        fail 14 "codex could not inspect the nonce file"
+    fi
     grep -Fq -- "$nonce" "$final_file" 2>/dev/null \
         || fail 14 "codex final output did not contain the nonce"
+    printf 'SANDBOX_FILE_READ=ok\n'
 fi
