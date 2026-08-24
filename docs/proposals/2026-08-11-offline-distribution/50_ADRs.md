@@ -397,10 +397,19 @@ describe different systems.
    wiring. The parent tracks `docs/internal-memory.md`, which names the memory location and makes
    the nested repository visible.
 
-   Two properties follow, and both are the point. An in-place update of `session.md` is safe,
-   because the repository holds what the update replaced — decision 2 depends on this. And the
-   memory's **visibility is a separate decision from the code's**: the owner chooses whether the
-   reasoning is published, on its own schedule, rather than inheriting the parent's answer.
+   Two properties follow, and both are the point. Rewriting `session.md` is safe, because the
+   outgoing copy is kept beside it as `session-<date>.md` — the last day that copy was actual —
+   and the repository versions both; decision 2 depends on this. And the memory's **visibility is
+   a separate decision from the code's**: the owner chooses whether the reasoning is published, on
+   its own schedule, rather than inheriting the parent's answer.
+
+   **The archive is a file, not only a commit** (owner ruling, 2026-08-24). Git holds the diffs,
+   but a diff does not say when a claim stopped being true, and a superseded premise is not
+   something a reader reconstructs from a patch. So each rewrite leaves a dated, self-contained
+   copy on disk: the live file is what a reader opens, and the archives are the history of intent.
+   `lint --check internal-memory` accepts one live `session.md` beside any number of
+   `session-<date>.md`, and reports a continuity filename outside that shape or an archive with no
+   live file beside it.
 
    **Publication is a submodule, at the moment of publication.** When the reasoning should ship —
    at paper submission, or when a repository goes public — the parent embeds the memory as a

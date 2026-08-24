@@ -21,7 +21,7 @@ recovered from a diff, so it is not something to delegate to a fresh reader.
 
 ## What it writes
 
-One file, updated in place:
+One live file, plus the archives it has superseded:
 
 | Scope of the work | File |
 |---|---|
@@ -32,11 +32,26 @@ Resolve the scope from what the session touched. If the work genuinely spans
 one stage and part of another, ask which scope owns it rather than guessing —
 the wrong scope buries the record where nobody looks for it.
 
-`docs/_internal/` is its own git repository. Overwriting `session.md` is safe
-because that repository holds the history: commit there as part of the handoff.
-If it is not a repository yet, say so and stop — an overwrite would destroy the
-previous session's record, and that is the one failure this command must not
-cause.
+**Keep the copy you supersede.** Before writing, move the current `session.md`
+to `session-<date>.md`, where `<date>` is the last day that copy was actual —
+`date +%F` at the time of the handoff. A second handoff the same day appends a
+counter: `session-2026-08-24-2.md`. Then write the new `session.md`.
+
+```bash
+d=$(date +%F); n="session-$d"
+[ -e "docs/_internal/<scope>/$n.md" ] && n="$n-2"      # and -3, …
+mv docs/_internal/<scope>/session.md "docs/_internal/<scope>/$n.md"
+```
+
+The live file is what a reader opens; the archives are the history of intent,
+each one readable on its own terms and stamped with the period it described. Git
+holds the diffs, but a diff does not tell a reader when a claim stopped being
+true, and nobody reconstructs a superseded premise from a patch.
+
+`docs/_internal/` is its own git repository — commit there as part of the
+handoff. If it is not a repository yet, say so and stop: the archive would have
+nowhere durable to live, and losing the previous session's record is the one
+failure this command must not cause.
 
 Nothing else is modified. This command does not commit the parent repository.
 
@@ -90,6 +105,7 @@ Omit a section that has nothing in it. An empty heading is noise.
   them — a fabricated premise is worse than an absent one.
 - Each non-trivial decision either cites a topic note or carries `[NO RECORD]`.
 - Under sixty lines.
+- The superseded `session.md` kept as `session-<date>.md`, not overwritten.
 - `docs/_internal/` committed.
 
 Report back: the file written, the next action, and the count of `[UNCOMMITTED]`

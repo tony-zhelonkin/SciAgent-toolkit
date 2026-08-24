@@ -42,8 +42,9 @@
 #                   silent. Absent mounts are an absent subject.
 #   internal-memory the shape of an existing docs/_internal/ tree: stage-keyed
 #                   directories holding real content, no retired flat
-#                   namespace, no .gitkeep, no session pile, no non-memory
-#                   payload. Opt-in like `toolkit`; absent tree is silence.
+#                   namespace, no .gitkeep, one live session.md per scope
+#                   beside its dated archives, no non-memory payload. Opt-in
+#                   like `toolkit`; absent tree is silence.
 #   toolkit         skill frontmatter shape, cross-namespace collisions, and
 #                   the rendered CRAFT body against craft.yaml `max_lines:`.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
@@ -736,10 +737,12 @@ _lint_check_harness_links() {
 #   - a scope holding no non-empty Markdown — the empty-scaffold failure
 #   - a plan directory with no non-empty 00_INDEX.md
 #   - a .gitkeep, or any empty directory
-#   - several continuity files in one directory, where one is updated in place
+#   - a continuity filename outside `session.md` plus `session-<date>.md`
+#   - archives with no live session.md beside them
 #   - a file that is not memory: memory is Markdown
-#   - a populated tree that is not its own repository, so an in-place update of
-#     session.md overwrites the only copy and its visibility is the parent's
+#   - a populated tree that is not its own repository, so a rewrite of
+#     session.md has nowhere to keep the copy it supersedes and the tree's
+#     visibility is the parent's to choose
 #   - a parent tracking the tree as plain files beside that repository
 #
 # Opt-in, never a member of `all`: it would fire in every consumer before any
@@ -847,17 +850,34 @@ _lint_check_internal_memory() {
                    ! -name '.gitkeep' -print \
         2>/dev/null | sort)
 
-    # Several continuity records in one directory is the dated pile that one
-    # updated-in-place session.md replaces. Anchored, so a phase file such as
-    # 01_session-recovery.md is not swept up by a substring.
-    while IFS= read -r f; do
-        [[ -n "$f" ]] || continue
-        findings+=("${f#"$projdir"/} holds several continuity records — one session.md is updated in place")
+    # Continuity is one live session.md per scope plus any number of archives
+    # named session-<date>.md, the date being the last day that copy was actual.
+    # A handoff rewrites the live file and keeps the outgoing one, so several
+    # files here is the correct state; the defect is a name outside that shape.
+    # Interval expressions are avoided so this holds under any POSIX awk.
+    local cont dir
+    while IFS= read -r cont; do
+        [[ -n "$cont" ]] || continue
+        findings+=("${cont#"$projdir"/}: retired continuity filename — a scope holds one live session.md plus session-<date>.md archives")
     done < <(find "$root" -name .git -prune -o -type f \
         \( -name 'session*.md' -o -name 'handoff*.md' -o -name 'STATE.md' \
            -o -name '00_STATE.md' -o -name 'HANDOFFS.md' \) -print 2>/dev/null \
-        | awk '{ n = split($0, a, "/"); dir = ""; for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]; count[dir]++ }
-               END { for (dir in count) if (count[dir] > 1) print dir }' | sort)
+        | awk '{ n = split($0, a, "/"); base = a[n]
+                 if (base == "session.md") next
+                 if (base ~ /^session-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9](-[0-9]+)?\.md$/) next
+                 print }' | sort)
+
+    # An archive with no live file means the rewrite lost its subject: a reader
+    # opening the scope finds only records that have already stopped being true.
+    while IFS= read -r dir; do
+        [[ -n "$dir" ]] || continue
+        [[ -f "$dir/session.md" ]] && continue
+        findings+=("${dir#"$projdir"/}/: holds session-<date>.md archives with no live session.md")
+    done < <(find "$root" -name .git -prune -o -type f -name 'session-*.md' -print 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); base = a[n]; dir = ""
+                 for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]
+                 if (base ~ /^session-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9](-[0-9]+)?\.md$/) seen[dir] = 1 }
+               END { for (d in seen) print d }' | sort)
 
     # The memory is its own repository. That is what makes an in-place update of
     # session.md safe, and it is what lets the owner publish or withhold the

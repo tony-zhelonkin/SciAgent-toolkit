@@ -257,7 +257,7 @@ if [[ "$rc8" -ne 0 || -n "$out8" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Test 8b: several session files in one directory.
+# Test 8b: a continuity filename outside the live-plus-archive shape.
 # ---------------------------------------------------------------------------
 P8B="$TMPDIR_TEST/p8b"
 make_proj "$P8B" 30_grn
@@ -268,9 +268,53 @@ printf 'Older.\n' > "$P8B/docs/_internal/30_grn/session_20260801.md"
 set +e
 out8b=$("$SCIO" lint --check internal-memory --project-dir "$P8B" 2>&1)
 set -e
-if ! printf '%s\n' "$out8b" | grep -q 'WARN internal-memory: docs/_internal/30_grn holds several continuity records'; then
-    echo "FAIL [$_TEST_NAME] test8b: expected the session-pile finding" >&2
+if ! printf '%s\n' "$out8b" | grep -q 'session_20260801.md: retired continuity filename'; then
+    echo "FAIL [$_TEST_NAME] test8b: expected the retired-filename finding" >&2
     printf '%s\n' "$out8b" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8c: session.md beside its dated archives is the CORRECT state. A handoff
+# rewrites the live file and keeps the copy it supersedes, stamped with the last
+# day that copy was actual, so several files here must stay silent. The -2 form
+# covers a second handoff on the same day.
+# ---------------------------------------------------------------------------
+P8C="$TMPDIR_TEST/p8c"
+make_proj "$P8C" 30_grn
+mkdir -p "$P8C/docs/_internal/30_grn"
+git -C "$P8C/docs/_internal" init -q 2>/dev/null
+printf 'Current.\n'          > "$P8C/docs/_internal/30_grn/session.md"
+printf 'Actual to Aug 1.\n'  > "$P8C/docs/_internal/30_grn/session-2026-08-01.md"
+printf 'Later that day.\n'   > "$P8C/docs/_internal/30_grn/session-2026-08-01-2.md"
+printf 'Actual to Aug 9.\n'  > "$P8C/docs/_internal/30_grn/session-2026-08-09.md"
+
+set +e
+out8c=$("$SCIO" lint --check internal-memory --project-dir "$P8C" 2>&1)
+rc8c=$?
+set -e
+if [[ "$rc8c" -ne 0 ]] || [[ -n "$out8c" ]]; then
+    echo "FAIL [$_TEST_NAME] test8c: archives beside a live session.md must be silent" >&2
+    printf '%s\n' "$out8c" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8d: archives with no live session.md — the rewrite lost its subject, and
+# a reader opening the scope finds only records that stopped being true.
+# ---------------------------------------------------------------------------
+P8D="$TMPDIR_TEST/p8d"
+make_proj "$P8D" 30_grn
+mkdir -p "$P8D/docs/_internal/30_grn"
+git -C "$P8D/docs/_internal" init -q 2>/dev/null
+printf 'Actual to Aug 1.\n' > "$P8D/docs/_internal/30_grn/session-2026-08-01.md"
+
+set +e
+out8d=$("$SCIO" lint --check internal-memory --project-dir "$P8D" 2>&1)
+set -e
+if ! printf '%s\n' "$out8d" | grep -q 'archives with no live session.md'; then
+    echo "FAIL [$_TEST_NAME] test8d: expected the orphaned-archive finding" >&2
+    printf '%s\n' "$out8d" >&2
     exit 1
 fi
 
