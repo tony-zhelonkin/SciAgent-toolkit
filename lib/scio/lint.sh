@@ -561,8 +561,15 @@ _lint_check_freshness() {
     fi
 
     # --- submodule commit vs toolkit HEAD ---------------------------------
-    local submod="$projdir/01_modules/SciAgent-toolkit"
-    if [[ -d "$submod" ]]; then
+    local submod="" submod_rel="" toolkit_dir
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        submod_rel="01_modules/$toolkit_dir"
+        if [[ -d "$projdir/$submod_rel" ]]; then
+            submod="$projdir/$submod_rel"
+            break
+        fi
+    done
+    if [[ -n "$submod" ]]; then
         local sub_head tk_head
         sub_head=$(git -C "$submod" rev-parse HEAD 2>/dev/null)
         tk_head=$(git -C "$tk_root" rev-parse HEAD 2>/dev/null)
@@ -570,7 +577,7 @@ _lint_check_freshness() {
             # Only warn when the submodule is an ANCESTOR of (behind) HEAD.
             if git -C "$tk_root" merge-base --is-ancestor "$sub_head" "$tk_head" 2>/dev/null; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: scio link && scio craft" || rc=1
+                    "$submod_rel is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: scio link && scio craft" || rc=1
             fi
         fi
     fi
@@ -693,9 +700,10 @@ _LINT_HARNESS_MOUNTS=(
 _lint_check_harness_links() {
     local projdir="$1" strict="$2" quiet="$3"
     local rc=0
-    local proj rel p target
+    local proj rel p target toolkit_dirs_re
 
     proj=$(cd "$projdir" 2>/dev/null && pwd -P) || return 0
+    toolkit_dirs_re=$(IFS='|'; printf '%s' "${_SCIO_TOOLKIT_DIRS[*]}")
 
     for rel in "${_LINT_HARNESS_MOUNTS[@]}"; do
         p="$projdir/$rel"
@@ -741,7 +749,7 @@ _lint_check_harness_links() {
             [[ -n "$cite" ]] || continue
             _vcheck_emit "$strict" "$quiet" harness-links \
                 "$cite reaches a skill by vendor path — route through .claude/ or .agents/, which is what the harness reads and what a global install has" || rc=1
-        done < <(git -C "$projdir" grep -l -I -E '01_[Mm]odules/SciAgent-toolkit/skills/' \
+        done < <(git -C "$projdir" grep -l -I -E "01_[Mm]odules/(${toolkit_dirs_re})/skills/" \
                     -- . ':(exclude)docs/_internal' ':(exclude)tests' 2>/dev/null | sort)
     fi
 

@@ -66,24 +66,26 @@ _link_symlink_target() {
 
 # Print the project's pinned toolkit path when one is present.
 _link_in_repo_toolkit() {
-    local path
-    if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
-        path=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
-            | awk '{print $2}' | grep -E '(^|/)SciAgent-toolkit$' | head -1)
-        if [[ -n "$path" && -d "$path" ]]; then
-            printf '%s\n' "$path"
+    local path toolkit_dir
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
+            path=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
+                | awk '{print $2}' | grep -E "(^|/)${toolkit_dir}$" | head -1)
+            if [[ -n "$path" && -d "$path" ]]; then
+                printf '%s\n' "$path"
+                return 0
+            fi
+        fi
+        if [[ -d "01_modules/$toolkit_dir" ]]; then
+            printf '01_modules/%s\n' "$toolkit_dir"
             return 0
         fi
-    fi
-    if [[ -d 01_modules/SciAgent-toolkit ]]; then
-        printf '%s\n' 01_modules/SciAgent-toolkit
-        return 0
-    fi
-    for path in ./*/SciAgent-toolkit; do
-        if [[ -d "$path" ]]; then
-            printf '%s\n' "$path"
-            return 0
-        fi
+        for path in ./*/"$toolkit_dir"; do
+            if [[ -d "$path" ]]; then
+                printf '%s\n' "$path"
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -122,7 +124,7 @@ _link_migrate_state_dir() {
 
 # True for a link into this toolkit, including legacy dangling container paths.
 _link_owned_by_toolkit() {
-    local path="$1" resolved root
+    local path="$1" resolved root toolkit_dir
     [[ -L "$path" ]] || return 1
     resolved=$(_link_target_path "$path") || return 1
     root=$(_link_resolve "$SCIO_TOOLKIT")
@@ -133,11 +135,13 @@ _link_owned_by_toolkit() {
     # An existing outside target is user-owned. The suffix test is only for
     # dangling legacy mounts whose /workspaces project path is absent here.
     [[ -e "$path" ]] && return 1
-    case "$resolved" in
-        */SciAgent-toolkit/skills/*|*/SciAgent-toolkit/agents/*|*/SciAgent-toolkit/commands/*|*/SciAgent-toolkit/system-prompts/*|*/SciAgent-toolkit/lib/figure-style|*/SciAgent-toolkit/lib/interactive-style)
-            return 0 ;;
-        *)  return 1 ;;
-    esac
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        case "$resolved" in
+            */"$toolkit_dir"/skills/*|*/"$toolkit_dir"/agents/*|*/"$toolkit_dir"/commands/*|*/"$toolkit_dir"/system-prompts/*|*/"$toolkit_dir"/lib/figure-style|*/"$toolkit_dir"/lib/interactive-style)
+                return 0 ;;
+        esac
+    done
+    return 1
 }
 
 _link_sweep_dir() {

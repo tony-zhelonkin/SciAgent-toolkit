@@ -44,13 +44,13 @@ case "$verb" in
         usage
         exit 0 ;;
     craft)
-        modules="block.sh craft.sh craft_verb.sh"
+        modules="common.sh block.sh craft.sh craft_verb.sh"
         entry=cmd_craft ;;
     link)
-        modules="block.sh ownership.sh claude_settings.sh link.sh"
+        modules="common.sh block.sh ownership.sh claude_settings.sh link.sh"
         entry=cmd_link ;;
     lint)
-        modules="block.sh craft.sh catalog.sh lint.sh"
+        modules="common.sh block.sh craft.sh catalog.sh lint.sh"
         entry=cmd_lint ;;
     *)
         echo "scio: unknown verb '$verb'" >&2
