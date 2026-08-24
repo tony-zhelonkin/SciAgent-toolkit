@@ -46,7 +46,8 @@ Need pathway enrichment from DE results?
 > **The `02_analysis/` paths below are a project convention.** `config/config.R`
 > and the `DIR_TOOLKIT` and `MSIGDB_DATABASES` it defines belong to the project
 > these examples were transcribed from — supply your own equivalents. The
-> vendored `01_modules/RNAseq-toolkit/` is the only path this skill guarantees.
+> `<toolkit>/` means wherever this project vendors RNAseq-toolkit — the mount
+> differs across projects, so resolve it rather than copying a path.
 
 Minimal single-database GSEA run using the toolkit wrapper:
 
@@ -323,8 +324,8 @@ transcribed project's layout, shown as one worked arrangement.
 |------|------|
 | `02_analysis/config/config.R` | Defines `MSIGDB_DATABASES`, parameters, `load_or_compute()` |
 | `02_analysis/config/pipeline.yaml` | Shared YAML config (species, colors, schemas) |
-| `01_modules/RNAseq-toolkit/scripts/GSEA/GSEA_processing/run_gsea.R` | Core single-database wrapper |
-| `01_modules/RNAseq-toolkit/scripts/GSEA/GSEA_processing/run_gsea_analysis.R` | Multi-database pipeline with auto-plotting |
+| `<toolkit>/scripts/GSEA/GSEA_processing/run_gsea.R` | Core single-database wrapper |
+| `<toolkit>/scripts/GSEA/GSEA_processing/run_gsea_analysis.R` | Multi-database pipeline with auto-plotting |
 | `02_analysis/1.1.core_pipeline.R` | Executes GSEA across all configured databases |
 | `02_analysis/1.5.create_master_tables.R` | Aggregates into master CSV (see master-tables.md) |
 
@@ -404,4 +405,4 @@ After running GSEA, confirm:
 - **fgsea paper:** Korotkevich et al. (2021) bioRxiv, doi:10.1101/060012
 - **msigdbr CRAN:** https://cran.r-project.org/package=msigdbr
 - **MSigDB collections:** https://www.gsea-msigdb.org/gsea/msigdb/collections.jsp
-- **RNAseq-toolkit GSEA docs:** `01_modules/RNAseq-toolkit/docs/GSEA-workflow/02-msigdb-gsea-pipeline.md`
+- **RNAseq-toolkit GSEA docs:** `<toolkit>/docs/GSEA-workflow/02-msigdb-gsea-pipeline.md`
