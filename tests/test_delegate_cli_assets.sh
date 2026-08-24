@@ -141,48 +141,85 @@ set -e
 printf 'Implement the bounded fixture task.\n' > "$TMPDIR_TEST/prompt.md"
 : > "$TMPDIR_TEST/block"
 
-set +e
-held_out=$(SCIO_STUB_BLOCK="$TMPDIR_TEST/block" TMPDIR="$TMPDIR_TEST/runtime" PATH="$STUB_PATH" \
-    timeout 2 "$LAUNCH" --unit held --workdir "$TMPDIR_TEST/work" \
-    --prompt "$TMPDIR_TEST/prompt.md" --bg 2>&1)
-rc=$?
-set -e
-assert_eq "$rc" "0" "--bg must return before the held stub finishes"
-held_pid_file=$(printf '%s\n' "$held_out" | sed -n 's/^PID_FILE=//p')
-[ -s "$held_pid_file" ] || { echo "FAIL [$_TEST_NAME] --bg did not write its pid file" >&2; exit 1; }
+# The lock assertions below need a launcher that holds its unit while another
+# tries to take it. --bg used to provide that; it is gone, so the test does what
+# a harness does — backgrounds the FOREGROUND launcher and waits for the status
+# file it writes before spawning the child.
+_hold() {
+    SCIO_STUB_BLOCK="$TMPDIR_TEST/block" TMPDIR="$TMPDIR_TEST/runtime" PATH="$STUB_PATH" \
+        "$LAUNCH" --unit "$1" --workdir "$TMPDIR_TEST/work" \
+        --prompt "$TMPDIR_TEST/prompt.md" ${2:+"$2"} \
+        > "$TMPDIR_TEST/$1.out" 2>&1 &
+    HOLD_PID=$!
+}
+
+# Wait for state=running, not merely for the file: the launcher writes
+# `starting` before it spawns codex, so the file exists before a child does.
+_await_status() {
+    local path="$TMPDIR_TEST/runtime/scio-delegate/$1/current/status.tsv" tries=0 state=
+    while [ "$tries" -lt 300 ]; do
+        if [ -s "$path" ]; then
+            state=$(awk -F'\t' '$1 == "state" { print $2 }' "$path" | tail -n 1)
+            [ "$state" = "running" ] && return 0
+        fi
+        sleep 0.02
+        tries=$(( tries + 1 ))
+    done
+    echo "FAIL [$_TEST_NAME] unit $1 never reached state=running (last: ${state:-none})" >&2
+    exit 1
+}
+
+_hold held
+held_pid=$HOLD_PID
+_await_status held
+
+# Status exists while the child is still blocked. Before the rebuild this file
+# appeared only after the child was reaped, so an in-flight question had no
+# answer at all.
+held_state=$(awk -F'\t' '$1 == "state" { print $2 }' \
+    "$TMPDIR_TEST/runtime/scio-delegate/held/current/status.tsv" | tail -n 1)
+assert_eq "$held_state" "running" "a held run must report state=running"
 
 set +e
 SCIO_STUB_BLOCK="$TMPDIR_TEST/block" TMPDIR="$TMPDIR_TEST/runtime" PATH="$STUB_PATH" \
-    "$LAUNCH" --unit held --workdir "$TMPDIR_TEST/work" --prompt "$TMPDIR_TEST/prompt.md" --bg \
+    "$LAUNCH" --unit held --workdir "$TMPDIR_TEST/work" --prompt "$TMPDIR_TEST/prompt.md" \
     > "$TMPDIR_TEST/duplicate.out" 2>&1
 rc=$?
 set -e
 [ "$rc" -ne 0 ] || { echo "FAIL [$_TEST_NAME] a second run acquired the same unit lock" >&2; exit 1; }
 
+_hold disjoint --parallel-ok
+parallel_pid=$HOLD_PID
+_await_status disjoint
+
+# A different active unit WITHOUT --parallel-ok is refused: independence is an
+# affirmation the caller makes, never an inference the launcher draws.
 set +e
-parallel_out=$(SCIO_STUB_BLOCK="$TMPDIR_TEST/block" TMPDIR="$TMPDIR_TEST/runtime" PATH="$STUB_PATH" \
-    "$LAUNCH" --unit disjoint --workdir "$TMPDIR_TEST/work" \
-    --prompt "$TMPDIR_TEST/prompt.md" --parallel-ok --bg 2>&1)
+SCIO_STUB_BLOCK="$TMPDIR_TEST/block" TMPDIR="$TMPDIR_TEST/runtime" PATH="$STUB_PATH" \
+    "$LAUNCH" --unit third --workdir "$TMPDIR_TEST/work" --prompt "$TMPDIR_TEST/prompt.md" \
+    > "$TMPDIR_TEST/third.out" 2>&1
 rc=$?
 set -e
-assert_eq "$rc" "0" "a different unit with --parallel-ok must be accepted"
-parallel_pid_file=$(printf '%s\n' "$parallel_out" | sed -n 's/^PID_FILE=//p')
-[ -s "$parallel_pid_file" ] || {
-    echo "FAIL [$_TEST_NAME] parallel background run did not write its pid file" >&2
+[ "$rc" -ne 0 ] || {
+    echo "FAIL [$_TEST_NAME] a concurrent unit was accepted without --parallel-ok" >&2
     exit 1
 }
 
 rm "$TMPDIR_TEST/block"
-for status_path in "${held_pid_file%/pid}/status.tsv" "${parallel_pid_file%/pid}/status.tsv"; do
-    attempts=0
-    while [ ! -s "$status_path" ] && [ "$attempts" -lt 200 ]; do
-        sleep 0.02
-        attempts=$((attempts + 1))
-    done
-    [ -s "$status_path" ] || {
-        echo "FAIL [$_TEST_NAME] background child did not record status: $status_path" >&2
-        exit 1
-    }
+set +e
+wait "$held_pid"; wait "$parallel_pid"
+set -e
+
+for unit_name in held disjoint; do
+    status_path="$TMPDIR_TEST/runtime/scio-delegate/$unit_name/current/status.tsv"
+    final_state=$(awk -F'\t' '$1 == "state" { print $2 }' "$status_path" | tail -n 1)
+    case "$final_state" in
+        succeeded|failed) ;;
+        *)
+            echo "FAIL [$_TEST_NAME] unit $unit_name ended in state '$final_state'" >&2
+            exit 1
+            ;;
+    esac
 done
 
 set +e

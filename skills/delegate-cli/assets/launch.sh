@@ -5,7 +5,7 @@ set -eu
 usage() {
     echo "usage: launch.sh --unit NAME --workdir DIR --prompt FILE [options]" >&2
     echo "options: --rules FILE --model MODEL --effort LEVEL --sandbox MODE --bypass --web" >&2
-    echo "         --expect PATH [--expect PATH ...] --parallel-ok --bg" >&2
+    echo "         --expect PATH [--expect PATH ...] --parallel-ok" >&2
 }
 
 fail() {
@@ -29,7 +29,6 @@ sandbox=
 bypass=0
 want_web=0
 parallel_ok=0
-background=0
 expects=()
 
 while [ "$#" -gt 0 ]; do
@@ -87,8 +86,7 @@ while [ "$#" -gt 0 ]; do
             shift
             ;;
         --bg)
-            background=1
-            shift
+            fail 2 "--bg has been removed; run the foreground launcher through the caller's background-task mechanism"
             ;;
         -h|--help)
             usage
@@ -210,6 +208,17 @@ for expected in "${expects[@]}"; do
     esac
 done
 
+
+# The unit's `current` symlink points at the newest run, so a reader that knows
+# only the unit name can find it. Relative, so the tree survives being moved,
+# and replaced by rename(2) so a reader never observes it absent.
+unit_dir="$run_root/$unit"
+publish_current() {
+    ln -s "$run_id" "$unit_dir/.current.$$" 2>/dev/null || return 0
+    mv -Tf "$unit_dir/.current.$$" "$unit_dir/current" 2>/dev/null \
+        || rm -f "$unit_dir/.current.$$"
+}
+
 print_paths() {
     printf 'RUN_DIR=%s\n' "$(shell_value "$run_dir")"
     printf 'PROMPT=%s\n' "$(shell_value "$rendered")"
@@ -220,42 +229,111 @@ print_paths() {
 }
 
 path_bytes() {
-    measured_path="$1"
-    if [ -f "$measured_path" ]; then
-        wc -c < "$measured_path" | tr -d '[:space:]'
+    if [ -f "$1" ]; then
+        wc -c < "$1" | tr -d '[:space:]'
     else
         printf '0'
     fi
 }
 
-record_status() {
-    codex_status="$1"
-    final_status="$2"
+path_mtime() {
+    if [ -e "$1" ]; then
+        stat -c %Y "$1" 2>/dev/null || printf '%s' '-'
+    else
+        printf '%s' '-'
+    fi
+}
+
+now_epoch() {
+    date -u +%s
+}
+
+# Roles are fixed so a reader can key on them: prompt, stream and final are the
+# launcher's own files, expect the caller's declared outputs.
+artifact_roles=(prompt stream final)
+artifact_paths=("$rendered" "$stream" "$final")
+for measured_path in ${expect_paths[@]+"${expect_paths[@]}"}; do
+    artifact_roles+=(expect)
+    artifact_paths+=("$measured_path")
+done
+
+# Baselines are taken once, before Codex starts, so a reader can tell an output
+# this run produced from one that was already on disk.
+baseline_bytes=()
+baseline_mtime=()
+for measured_path in "${artifact_paths[@]}"; do
+    baseline_bytes+=("$(path_bytes "$measured_path")")
+    baseline_mtime+=("$(path_mtime "$measured_path")")
+done
+
+# A fingerprint of every artifact's size and mtime. When it changes, the run did
+# something observable, which is what last_activity_epoch records.
+fingerprint() {
+    local i out=
+    for i in "${!artifact_paths[@]}"; do
+        out="$out$(path_bytes "${artifact_paths[$i]}"):$(path_mtime "${artifact_paths[$i]}")|"
+    done
+    printf '%s' "$out"
+}
+
+start_epoch=$(now_epoch)
+last_activity_epoch="$start_epoch"
+last_fingerprint=$(fingerprint)
+
+# One atomic snapshot: written to a sibling temporary file and renamed, so a
+# reader either sees the previous complete record or this one, never a partial.
+STATUS_SCHEMA=1
+write_status() {
+    local state="$1" child="$2" codex_exit="$3" result_exit="$4" terminal="$5"
+    local tmp="$status_file.tmp.$$" i
     {
-        printf 'kind\tpath\tvalue\n'
-        printf 'codex_status\t-\t%s\n' "$codex_status"
-        printf 'status\t-\t%s\n' "$final_status"
-        printf 'bytes\t%s\t%s\n' "$rendered" "$(path_bytes "$rendered")"
-        printf 'bytes\t%s\t%s\n' "$final" "$(path_bytes "$final")"
-        printf 'bytes\t%s\t%s\n' "$stream" "$(path_bytes "$stream")"
-        for measured_path in "${expect_paths[@]}"; do
-            printf 'bytes\t%s\t%s\n' "$measured_path" "$(path_bytes "$measured_path")"
+        printf 'schema\t%s\n' "$STATUS_SCHEMA"
+        printf 'unit\t%s\n' "$unit"
+        printf 'run_id\t%s\n' "$run_id"
+        printf 'state\t%s\n' "$state"
+        printf 'launcher_pid\t%s\n' "$$"
+        printf 'child_pid\t%s\n' "$child"
+        printf 'start_epoch\t%s\n' "$start_epoch"
+        printf 'sample_epoch\t%s\n' "$(now_epoch)"
+        printf 'last_activity_epoch\t%s\n' "$last_activity_epoch"
+        printf 'terminal_epoch\t%s\n' "$terminal"
+        printf 'codex_exit\t%s\n' "$codex_exit"
+        printf 'result_exit\t%s\n' "$result_exit"
+        for i in "${!artifact_paths[@]}"; do
+            printf 'artifact\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+                "${artifact_roles[$i]}" \
+                "$(path_bytes "${artifact_paths[$i]}")" \
+                "$(path_mtime "${artifact_paths[$i]}")" \
+                "${baseline_bytes[$i]}" \
+                "${baseline_mtime[$i]}" \
+                "${artifact_paths[$i]}"
         done
-    } > "$status_file"
+    } > "$tmp"
+    mv -f "$tmp" "$status_file"
+}
+
+refresh_activity() {
+    local current
+    current=$(fingerprint)
+    if [ "$current" != "$last_fingerprint" ]; then
+        last_fingerprint="$current"
+        last_activity_epoch=$(now_epoch)
+    fi
 }
 
 print_bytes() {
-    printf 'BYTES\t%s\t%s\n' "$(path_bytes "$rendered")" "$rendered"
-    printf 'BYTES\t%s\t%s\n' "$(path_bytes "$final")" "$final"
-    printf 'BYTES\t%s\t%s\n' "$(path_bytes "$stream")" "$stream"
-    for measured_path in "${expect_paths[@]}"; do
-        printf 'BYTES\t%s\t%s\n' "$(path_bytes "$measured_path")" "$measured_path"
+    local i
+    for i in "${!artifact_paths[@]}"; do
+        printf 'BYTES\t%s\t%s\n' "$(path_bytes "${artifact_paths[$i]}")" "${artifact_paths[$i]}"
     done
 }
 
+# Fixed cadence. A tunable would be a knob whose only effect is how stale a
+# reader's answer may be, and the reader already reports that as heartbeat age.
+HEARTBEAT_S=2
+
 run_codex() {
-    emit_counts="$1"
-    codex_args=(exec -C "$workdir" --skip-git-repo-check -o "$final")
+    local codex_args=(exec -C "$workdir" --skip-git-repo-check -o "$final")
     [ -z "$model" ] || codex_args+=(-m "$model")
     [ -z "$effort" ] || codex_args+=(-c "model_reasoning_effort=$effort")
     [ -z "$sandbox" ] || codex_args+=(-s "$sandbox")
@@ -264,60 +342,63 @@ run_codex() {
         codex_args+=(-c tools.web_search=true --enable web_search_request)
     fi
 
-    if codex "${codex_args[@]}" - < "$rendered" > "$stream" 2>&1; then
-        codex_status=0
-    else
-        codex_status=$?
-    fi
+    write_status starting - - - -
 
-    final_status="$codex_status"
-    if [ ! -s "$final" ] && [ "$final_status" -eq 0 ]; then
-        final_status=30
+    codex "${codex_args[@]}" - < "$rendered" > "$stream" 2>&1 &
+    local child_pid=$!
+    printf '%s\n' "$child_pid" > "$pid_file"
+    write_status running "$child_pid" - - -
+
+    # Status is written while the child runs, not only once it is reaped: an
+    # in-flight question is the one a reader actually has.
+    while kill -0 "$child_pid" 2>/dev/null; do
+        sleep "$HEARTBEAT_S"
+        refresh_activity
+        write_status running "$child_pid" - - -
+    done
+
+    local codex_status=0
+    set +e
+    wait "$child_pid"
+    codex_status=$?
+    set -e
+
+    local result_status="$codex_status"
+    if [ ! -s "$final" ] && [ "$result_status" -eq 0 ]; then
+        result_status=30
     fi
-    for measured_path in "${expect_paths[@]}"; do
-        if [ ! -e "$measured_path" ] && [ "$final_status" -eq 0 ]; then
-            final_status=31
+    for measured_path in ${expect_paths[@]+"${expect_paths[@]}"}; do
+        if [ ! -e "$measured_path" ] && [ "$result_status" -eq 0 ]; then
+            result_status=31
         fi
     done
 
-    record_status "$codex_status" "$final_status"
-    [ "$emit_counts" -ne 1 ] || print_bytes
-    return "$final_status"
+    refresh_activity
+    local state=succeeded
+    [ "$result_status" -eq 0 ] || state=failed
+    write_status "$state" "$child_pid" "$codex_status" "$result_status" "$(now_epoch)"
+
+    print_bytes
+    return "$result_status"
 }
 
 print_paths
 printf 'PROMPT_BYTES=%s\n' "$(path_bytes "$rendered")"
 
-if [ "$background" -eq 1 ]; then
-    (
-        trap 'release_lock' EXIT HUP INT TERM
-        printf '%s\n' "$BASHPID" > "$pid_file"
-        printf '%s\n' "$BASHPID" > "$lock/pid"
-        if run_codex 0; then
-            exit 0
-        else
-            exit $?
-        fi
-    ) >/dev/null 2>&1 &
-    child_pid=$!
-    trap - EXIT HUP INT TERM
-
-    attempts=0
-    while [ ! -s "$pid_file" ] && [ "$attempts" -lt 100 ]; do
-        sleep 0.01
-        attempts=$((attempts + 1))
-    done
-    if [ ! -s "$pid_file" ]; then
-        kill "$child_pid" 2>/dev/null || true
-        wait "$child_pid" 2>/dev/null || true
-        fail 32 "background child did not write its pid"
-    fi
-    printf 'PID=%s\n' "$(sed -n '1p' "$pid_file")"
-    exit 0
-fi
-
 printf '%s\n' "$$" > "$pid_file"
-if run_codex 1; then
+write_status starting - - - -
+publish_current
+
+# A launcher killed mid-run leaves state=running with a frozen heartbeat, which
+# is the honest record. A signal it can catch is recorded as interrupted.
+on_signal() {
+    write_status interrupted - - 130 "$(now_epoch)"
+    release_lock
+    exit 130
+}
+trap 'on_signal' HUP INT TERM
+
+if run_codex; then
     run_status=0
 else
     run_status=$?

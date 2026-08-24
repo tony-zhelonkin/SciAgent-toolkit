@@ -14,9 +14,11 @@ Use these peer CLIs for bounded work that benefits from an independent implement
 researcher. Prefer codex for implementation and code review; prefer agy for web research and very
 large-context synthesis. Honor a user's named tool.
 
-Keep fan-out bounded to two or three independent units. Give every writer an exclusive file or
-directory scope. Use a patch-only deliverable when exclusive paths are unavailable. Treat network
-access, workspace writes, and unsandboxed execution as separate authorizations.
+Keep fan-out bounded to two or three **independent** units, meaning both: neither unit consumes an
+output the other may create or modify, and their write scopes are disjoint. Disjoint writes alone are
+not independence — a unit that reads what another is still writing has a dependency edge. Use a
+patch-only deliverable when exclusive paths are unavailable. Treat network access, workspace writes,
+and unsandboxed execution as separate authorizations.
 
 ## Prepare the prompt
 
@@ -58,13 +60,8 @@ that depends on inspecting local files, especially in a Linux devcontainer. Stop
 and report the emitted facts and exit status. The probe may report that codex is absent; report that
 condition without substituting another tool or installing software.
 
-The host investigation on 2026-08-21 used `codex-cli-exec 0.147.0`. Treat that result as dated evidence
-and rely on the probe for the active capability surface.
-
-Some Linux devcontainers prevent codex file inspection because their container policy blocks the
-bwrap namespace operation. See `scbio-docker/docs/ai-integration.md` for the seccomp cause and container
-remediation. A bypass removes the sandbox and requires explicit user authorization; prompt rules do
-not recreate sandbox enforcement.
+A bypass removes the sandbox and requires explicit user authorization. Prompt rules do not recreate
+sandbox enforcement: asking a worker to behave as if sandboxed is not a sandbox.
 
 ## Launch codex
 
@@ -76,21 +73,33 @@ Use the launcher after a successful probe:
   --model "$model" --sandbox "$sandbox"
 ```
 
-The asset owns codex flag spelling, file-backed stdin delivery, final-message capture, stream logging,
-run directories, status records, byte counts, and locks. Pass optional launcher arguments according to
-the task:
+The asset owns flag spelling, stdin delivery, final-message capture, stream logging, run directories,
+status records and locks; run `launch.sh --help` for the option list. Two flags are judgement rather
+than mechanics:
 
-- `--rules FILE` prepends reusable rules to the task prompt.
-- `--effort LEVEL` selects reasoning effort.
-- `--web` requests the capability-gated web mechanism.
-- `--expect PATH` names each artifact that must exist after the run.
-- `--bg` returns after recording the PID and run paths.
-- `--parallel-ok` affirms that a different active unit has a disjoint write scope.
-- `--bypass` is reserved for an explicitly authorized unsandboxed run.
+- `--parallel-ok` **affirms independence as defined above** — no dependency edge in either direction,
+  and disjoint write scopes. Withhold it whenever a dependency exists or is uncertain; the live-unit
+  refusal then serializes the launches for you.
+- `--bypass` runs unsandboxed and requires explicit authorization for that specific run.
 
-Use a stable, specific unit name. A repeated active unit indicates overlapping work and must be
-resolved before relaunching. Background completion is determined from the launcher's PID and status
-artifacts. Use those records instead of process-name matching.
+Use a stable, specific unit name. A repeated active unit means overlapping work, and resolving that
+comes before relaunching.
+
+### Keep the launcher attached
+
+**`launch.sh` runs in the foreground. Background the attached launcher, never detach it.** Disk state
+supports polling; only a harness task supplies wake-up. A detached launcher has neither, which is why
+every long dead-time launch in the 2026-08-21 session was a run nobody was waiting on.
+
+| Caller | What to run |
+|---|---|
+| Owner behind `!` | The foreground command, no `&` and no `nohup`. Timeout promotion supplies the task id. |
+| Orchestrator launching the work | The same foreground command, submitted through the harness's own background-task facility, so the harness owns the process and notifies on it. |
+| Orchestrator observing someone else's launch | `status.sh --file "$status_file" --wait` as a harness background task, shadowing the run. |
+| Interactive shell | Foreground. A human using job control owns that terminal's observation. |
+
+`--bg` is removed and refused with a message, because it created observable files and no completion
+signal.
 
 ## Run agy headlessly
 
@@ -126,8 +135,23 @@ PID at launch and wait on that PID or on the expected output artifact.
 
 ## Review the result
 
-Use the launcher's reported paths and byte counts to locate the codex result. A final message is a
-worker report; acceptance depends on repository state and rendered artifacts.
+Read the run's state from disk, by unit or by the `STATUS` path the launcher printed:
+
+```bash
+"$skill_dir/assets/status.sh" --unit "$unit"
+```
+
+It prints one `SUMMARY` line — state, PIDs, elapsed, heartbeat and activity age, stream and final
+bytes, `expected_present=n/m`, and the real codex and result exit codes — then one `ARTIFACT` line
+per file with current and baseline bytes and mtimes. The `FINAL` and `STREAM` paths hold the output.
+
+**It reports quantities and never a phase or a percentage,** because nothing on disk supports one.
+Hung versus slow stays your judgement: a fresh heartbeat with old activity means the supervisor is
+alive while codex may be computing, blocked or stuck; a stale heartbeat means the writer itself
+stopped, so suspicion falls on the launcher, the host or the filesystem. A terminal state is
+definitive — the launcher reaped the child and recorded its real status.
+
+A final message is a worker report; acceptance depends on repository state and rendered artifacts.
 
 For every delegated change:
 
@@ -141,10 +165,3 @@ For every delegated change:
    not expose visual collisions.
 5. Relay a concise result with the worker/model used, changed artifacts, verification evidence, and
    unresolved deviations.
-
-## See also
-
-- `reasoning-trace`
-- `architecture-first-dev`
-- `decision-gate-notebook`
-- `interactive-breakpoint-explorer`

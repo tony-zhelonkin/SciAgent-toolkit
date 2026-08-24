@@ -216,6 +216,27 @@ _catalog_check() {
         fail=1
     done
 
+    # delegate-cli is the one skill whose instructions are executed rather than
+    # read, so a missing, unreadable or non-executable asset is a broken skill
+    # and not a documentation defect. The retired --bg is enforced where it can
+    # be: launch.sh refuses the flag. Grepping SKILL.md for it would flag the
+    # sentence recording its removal as readily as a prescription to use it.
+    local dcli="$root/skills/delegate-cli" asset
+    if [[ -d "$dcli" ]]; then
+        for asset in probe.sh launch.sh status.sh; do
+            if [[ ! -f "$dcli/assets/$asset" ]]; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: is absent — the skill prescribes it" >&2
+                fail=1
+            elif [[ ! -x "$dcli/assets/$asset" ]]; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: is not executable" >&2
+                fail=1
+            elif ! bash -n "$dcli/assets/$asset" 2>/dev/null; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: does not parse" >&2
+                fail=1
+            fi
+        done
+    fi
+
     # A skill directory arrives with its first real file. A .gitkeep asserts a
     # directory that has nothing in it, and an empty one reaches the consumer as
     # a promise of content that never comes. Both propagate: templates/skill/
