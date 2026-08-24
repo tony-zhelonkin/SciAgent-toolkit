@@ -5,6 +5,7 @@ set -eu
 usage() {
     echo "usage: launch.sh --unit NAME --workdir DIR --prompt FILE [options]" >&2
     echo "options: --rules FILE --model MODEL --effort LEVEL --sandbox MODE --bypass --web" >&2
+    echo "  --effort rides -c model_reasoning_effort; codex exec has no effort flag" >&2
     echo "         --expect PATH [--expect PATH ...] --parallel-ok" >&2
 }
 

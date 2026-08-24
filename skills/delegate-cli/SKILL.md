@@ -55,12 +55,24 @@ Resolve asset paths relative to this `SKILL.md`. Before each codex launch, run:
 "$skill_dir/assets/probe.sh" --workdir "$workdir" --sandbox "$sandbox"
 ```
 
-**Pass no `--model` unless you have a reason.** The probe reports
-`CODEX_MODEL_CONFIGURED` from the local config, which is what an unflagged launch uses and is known
-to work. A `--model` value is echoed back as `CODEX_MODEL_REQUESTED_VALIDATED=0`: the flag's
-existence is checkable, its value is not, and an unsupported one is refused by the server tens of
-seconds after launch rather than by the probe. The same applies to `--effort` when the config
-already sets a reasoning effort.
+**Naming a model is deliberate; guessing one is not.** Two are in use:
+
+| Model | For |
+|---|---|
+| `gpt-5.6-sol` | the default, and most implementation and review work |
+| `gpt-5.5` | brainstorming, and discussions leaning on broad world knowledge |
+
+The probe prints `CODEX_MODEL_CONFIGURED` from the local config, which is what an unflagged launch
+uses. A `--model` value comes back as `CODEX_MODEL_REQUESTED_VALIDATED=0`, and that zero is the
+point: the flag's existence is checkable, its value is not, so an unsupported name is refused by the
+server tens of seconds into the run rather than by the probe. Pass one of the two above, or pass none.
+
+**Reasoning effort has no flag of its own.** `codex exec` accepts neither `--effort` nor `--search`;
+both ride the generic config override. The launcher's `--effort LEVEL` maps to
+`-c model_reasoning_effort=LEVEL`, and its `--web` to `-c tools.web_search=true --enable
+web_search_request` — which is what `WEB_MODE=config_enable` reports. Omit `--effort` when the config
+already sets the level you want. For a combination you reuse, `codex -p <name>` layers
+`$CODEX_HOME/<name>.config.toml` instead.
 
 Add the probe's `--web` option when the task requires web access. Add `--file-read-check` before work
 that depends on inspecting local files, especially in a Linux devcontainer. Stop on a nonzero result

@@ -284,6 +284,28 @@ printf '%s\n' "$out9b" | grep -q 'CODEX_MODEL_REQUESTED_VALIDATED=0' || {
     printf '%s\n' "$out9b" >&2; exit 1
 }
 
+# --- 9c. effort and web ride -c, because codex exec has no flag for either --
+_mkenv e9c
+_capable_stub "$(_argv_recorder)
+out=; prev=
+for a in \"\$@\"; do [ \"\$prev\" = \"-o\" ] && out=\"\$a\"; prev=\"\$a\"; done
+cat > /dev/null; printf 'ok\\n' > \"\$out\"; exit 0"
+TMPDIR="$TD/tmp" PATH="$BIN:$PATH" "$ASSETS/launch.sh" \
+    --unit u_effort --workdir "$W" --prompt "$P" --effort high --web > "$TD/out" 2>&1
+grep -qx -- 'model_reasoning_effort=high' "$TD/argv" || {
+    echo "FAIL [$_TEST_NAME] case9c: --effort did not become -c model_reasoning_effort" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+grep -qx -- 'tools.web_search=true' "$TD/argv" || {
+    echo "FAIL [$_TEST_NAME] case9c: --web did not become -c tools.web_search" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+# An effort flag would be wrong: codex exec does not have one.
+grep -qE -- '^--(effort|reasoning|search)$' "$TD/argv" && {
+    echo "FAIL [$_TEST_NAME] case9c: a flag codex exec lacks was passed" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+
 # --- 10. opt-in live smoke test ----------------------------------------
 # Costs tokens and needs a configured codex, so it runs only on request.
 if [ "${SCIO_DELEGATE_LIVE:-0}" = "1" ]; then
