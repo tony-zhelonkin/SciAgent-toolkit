@@ -2,6 +2,18 @@
 
 **Run 2026-08-21 on the host, read-only. No file under `skills/` was changed.**
 
+> **Correction, 2026-08-24.** Row 2 of §3 says `01_scripts/RNAseq-toolkit/`
+> "exists in **zero** projects" and that "every project uses `01_modules/`".
+> Both are wrong. A survey of all nine projects holding the tree found **three
+> spellings**: `01_modules/` in 7, `01_scripts/` in `12868-EH` — with all six
+> cited paths present — and `01_Scripts/` in
+> `GVDRP1_prj/Gama_Vivian_DRP1_bulkRNAseq`. The verdict `false today` is wrong
+> for row 2; the defect is a **layout migration in progress**, so no single
+> spelling is correct for the fleet. Rows 5 and 6 stand as measured.
+>
+> Phase 02a acted on the bad measurement first (`fff5ff8`) and was corrected in
+> `91c3869`: the citations now name no mount at all.
+
 The brief asked for three layers. There are **four**, and the fleet is split down
 the middle between two of them. That split, not staleness, is the finding.
 
