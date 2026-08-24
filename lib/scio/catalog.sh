@@ -216,6 +216,27 @@ _catalog_check() {
         fail=1
     done
 
+    # A skill citing its own asset must have it. The condition is that the skill
+    # OWNS the directory: `assets/x` in a skill with an assets/ directory is a
+    # promise about its own tree, while `scripts/y` in a skill with no scripts/
+    # names somebody else's — a vendored toolkit, usually. Without that
+    # distinction the check would flag every external citation.
+    local sdir sname cited target
+    for sdir in "$root"/skills/*/; do
+        [[ -f "$sdir/SKILL.md" ]] || continue
+        sname=$(basename "$sdir")
+        [[ "$sname" == _* ]] && continue
+        while IFS= read -r cited; do
+            [[ -n "$cited" ]] || continue
+            [[ -d "$sdir${cited%%/*}" ]] || continue
+            target="$sdir$cited"
+            [[ -e "$target" ]] && continue
+            echo "ERROR toolkit: $sname: cites $cited, which it does not have" >&2
+            fail=1
+        done < <(grep -oE '`(references|scripts|assets|checks|env|tests)/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*`' \
+                    "$sdir/SKILL.md" 2>/dev/null | tr -d '`' | sort -u)
+    done
+
     # delegate-cli is the one skill whose instructions are executed rather than
     # read, so a missing, unreadable or non-executable asset is a broken skill
     # and not a documentation defect. The retired --bg is enforced where it can

@@ -314,7 +314,7 @@ all datasets on the same build reuse this one file.
 
 - **Build script (owned):** `scripts/build_te_saf.sh` — steps 2–3 as a deterministic, awk/bedtools-only executable.
 - **Build record template:** `references/reference-build-record-template.md`.
-- **Downstream consumer:** `star-te-preprocessing/SKILL.md` + `references/te-counting-workflow.md`.
+- **Downstream consumer:** `star-te-preprocessing/SKILL.md` and `star-te-preprocessing/references/te-counting-workflow.md`.
 - **Methodology / rationale** (subfamily vs locus, exon subtraction, Random-One, class composition): TE-RNAseq-toolkit **v2.0.3** — `docs/METHODOLOGY.md` (version-pinned; pointed to, not copied).
 - **TE GTF source:** TEtranscripts — https://www.mghlab.org/software/tetranscripts
 - **TE-ID parser** (label `Subfamily:Family:Class`): TE-RNAseq-toolkit — `R/te_utils.R::parse_te_id`.
