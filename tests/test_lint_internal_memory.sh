@@ -257,64 +257,105 @@ if [[ "$rc8" -ne 0 || -n "$out8" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Test 8b: a continuity filename outside the live-plus-archive shape.
+# Test 8b: a dated sibling of session.md. The live record is the only session
+# file at the scope root, so a reader never has to work out which one is current.
 # ---------------------------------------------------------------------------
 P8B="$TMPDIR_TEST/p8b"
 make_proj "$P8B" 30_grn
 mkdir -p "$P8B/docs/_internal/30_grn"
 printf 'Current.\n' > "$P8B/docs/_internal/30_grn/session.md"
-printf 'Older.\n' > "$P8B/docs/_internal/30_grn/session_20260801.md"
+printf 'Older.\n' > "$P8B/docs/_internal/30_grn/session-2026-08-01.md"
 
 set +e
 out8b=$("$SCIO" lint --check internal-memory --project-dir "$P8B" 2>&1)
 set -e
-if ! printf '%s\n' "$out8b" | grep -q 'session_20260801.md: retired continuity filename'; then
-    echo "FAIL [$_TEST_NAME] test8b: expected the retired-filename finding" >&2
+if ! printf '%s\n' "$out8b" | grep -q 'session-2026-08-01.md: the live record is session.md'; then
+    echo "FAIL [$_TEST_NAME] test8b: expected a dated sibling to be reported" >&2
     printf '%s\n' "$out8b" >&2
     exit 1
 fi
 
+# A legacy name is the same finding.
+P8B2="$TMPDIR_TEST/p8b2"
+make_proj "$P8B2" 30_grn
+mkdir -p "$P8B2/docs/_internal/30_grn"
+printf 'x\n' > "$P8B2/docs/_internal/30_grn/session.md"
+printf 'x\n' > "$P8B2/docs/_internal/30_grn/HANDOFFS.md"
+set +e
+out8b2=$("$SCIO" lint --check internal-memory --project-dir "$P8B2" 2>&1)
+set -e
+if ! printf '%s\n' "$out8b2" | grep -q 'HANDOFFS.md: the live record is session.md'; then
+    echo "FAIL [$_TEST_NAME] test8b2: expected a legacy continuity name to be reported" >&2
+    printf '%s\n' "$out8b2" >&2
+    exit 1
+fi
+
 # ---------------------------------------------------------------------------
-# Test 8c: session.md beside its dated archives is the CORRECT state. A handoff
-# rewrites the live file and keeps the copy it supersedes, stamped with the last
-# day that copy was actual, so several files here must stay silent. The -2 form
-# covers a second handoff on the same day.
+# Test 8c: session.md beside session-history/ is the CORRECT state, and stays
+# silent however many records the history holds. Two on one day are ordered by
+# their timestamps with no counter and no tie-break.
 # ---------------------------------------------------------------------------
 P8C="$TMPDIR_TEST/p8c"
 make_proj "$P8C" 30_grn
-mkdir -p "$P8C/docs/_internal/30_grn"
+mkdir -p "$P8C/docs/_internal/30_grn/session-history"
 git -C "$P8C/docs/_internal" init -q 2>/dev/null
-printf 'Current.\n'          > "$P8C/docs/_internal/30_grn/session.md"
-printf 'Actual to Aug 1.\n'  > "$P8C/docs/_internal/30_grn/session-2026-08-01.md"
-printf 'Later that day.\n'   > "$P8C/docs/_internal/30_grn/session-2026-08-01-2.md"
-printf 'Actual to Aug 9.\n'  > "$P8C/docs/_internal/30_grn/session-2026-08-09.md"
+printf 'Current.\n' > "$P8C/docs/_internal/30_grn/session.md"
+H="$P8C/docs/_internal/30_grn/session-history"
+printf 'Actual to 09:14.\n' > "$H/20260801T091412Z.md"
+printf 'Actual to 17:03.\n' > "$H/20260801T170355Z.md"
+printf 'Actual to Aug 9.\n' > "$H/20260809T113000Z.md"
 
 set +e
 out8c=$("$SCIO" lint --check internal-memory --project-dir "$P8C" 2>&1)
 rc8c=$?
 set -e
 if [[ "$rc8c" -ne 0 ]] || [[ -n "$out8c" ]]; then
-    echo "FAIL [$_TEST_NAME] test8c: archives beside a live session.md must be silent" >&2
+    echo "FAIL [$_TEST_NAME] test8c: a live record beside its history must be silent" >&2
     printf '%s\n' "$out8c" >&2
     exit 1
 fi
 
+# Sorting the history is chronological order — the one job the name has.
+first=$(ls "$H" | sort | head -n 1)
+if [[ "$first" != "20260801T091412Z.md" ]]; then
+    echo "FAIL [$_TEST_NAME] test8c: history does not sort chronologically (first: $first)" >&2
+    exit 1
+fi
+
 # ---------------------------------------------------------------------------
-# Test 8d: archives with no live session.md — the rewrite lost its subject, and
-# a reader opening the scope finds only records that stopped being true.
+# Test 8d: an archive whose name is not a timestamp cannot be ordered.
 # ---------------------------------------------------------------------------
 P8D="$TMPDIR_TEST/p8d"
 make_proj "$P8D" 30_grn
-mkdir -p "$P8D/docs/_internal/30_grn"
+mkdir -p "$P8D/docs/_internal/30_grn/session-history"
 git -C "$P8D/docs/_internal" init -q 2>/dev/null
-printf 'Actual to Aug 1.\n' > "$P8D/docs/_internal/30_grn/session-2026-08-01.md"
+printf 'x\n' > "$P8D/docs/_internal/30_grn/session.md"
+printf 'x\n' > "$P8D/docs/_internal/30_grn/session-history/old-one.md"
 
 set +e
 out8d=$("$SCIO" lint --check internal-memory --project-dir "$P8D" 2>&1)
 set -e
-if ! printf '%s\n' "$out8d" | grep -q 'archives with no live session.md'; then
-    echo "FAIL [$_TEST_NAME] test8d: expected the orphaned-archive finding" >&2
+if ! printf '%s\n' "$out8d" | grep -q 'old-one.md: session-history/ holds one file per superseded record'; then
+    echo "FAIL [$_TEST_NAME] test8d: expected an unordered archive name to be reported" >&2
     printf '%s\n' "$out8d" >&2
+    exit 1
+fi
+
+# ---------------------------------------------------------------------------
+# Test 8e: history with no live record beside it.
+# ---------------------------------------------------------------------------
+P8E="$TMPDIR_TEST/p8e"
+make_proj "$P8E" 30_grn
+mkdir -p "$P8E/docs/_internal/30_grn/session-history"
+git -C "$P8E/docs/_internal" init -q 2>/dev/null
+printf 'x\n' > "$P8E/docs/_internal/30_grn/session-history/20260801T091412Z.md"
+
+set +e
+out8e=$("$SCIO" lint --check internal-memory --project-dir "$P8E" 2>&1)
+set -e
+if ! printf '%s\n' "$out8e" | grep -q 'holds superseded records with no live session.md'; then
+    echo "FAIL [$_TEST_NAME] test8e: expected the orphaned-history finding" >&2
+    printf '%s\n' "$out8e" >&2
     exit 1
 fi
 

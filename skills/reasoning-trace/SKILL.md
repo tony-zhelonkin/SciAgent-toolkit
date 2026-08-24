@@ -29,8 +29,8 @@ The question's scope owns the note. A stage-scoped note uses the stem of its
 | Current work state | `docs/_internal/<stage-stem>/session.md` or `docs/_internal/_project/session.md` |
 | Throwaway probes | `_scratch/` or `$TMPDIR` only — never committed |
 
-Use a stable topic slug. A handoff rewrites `session.md` and keeps the copy it
-supersedes as `session-<date>.md`, so the history of intent stays readable. 
+Use a stable topic slug. `session.md` is always the live record; a handoff moves
+the copy it supersedes into `session-history/<UTC timestamp>.md`.
 Create the owning scope with its first real note if absent.
 
 ---

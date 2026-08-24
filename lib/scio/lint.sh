@@ -874,34 +874,47 @@ _lint_check_internal_memory() {
                    ! -name '.gitkeep' -print \
         2>/dev/null | sort)
 
-    # Continuity is one live session.md per scope plus any number of archives
-    # named session-<date>.md, the date being the last day that copy was actual.
-    # A handoff rewrites the live file and keeps the outgoing one, so several
-    # files here is the correct state; the defect is a name outside that shape.
+    # Continuity has exactly one shape, and the point of it is that a reader
+    # never has to work out which file is current. `session.md` is the live
+    # record and always carries that name; everything it superseded lives one
+    # level down in session-history/, named for the UTC instant it stopped being
+    # current, so a plain sort is chronological order.
+    #
+    #   <scope>/session.md
+    #   <scope>/session-history/20260824T153612Z.md
+    #
+    # The subdirectory is the same document's history, not a category of
+    # documents — the rule against category directories is about splitting
+    # topics into folders, which this does not do. Timestamps to the second, so
+    # a dozen handoffs in a day need no counter and no tie-break.
     # Interval expressions are avoided so this holds under any POSIX awk.
     local cont dir
     while IFS= read -r cont; do
         [[ -n "$cont" ]] || continue
-        findings+=("${cont#"$projdir"/}: retired continuity filename — a scope holds one live session.md plus session-<date>.md archives")
-    done < <(find "$root" -name .git -prune -o -type f \
+        findings+=("${cont#"$projdir"/}: the live record is session.md and its history belongs in session-history/<UTC timestamp>.md")
+    done < <(find "$root" -name .git -prune -o -path '*/session-history' -prune \
+        -o -type f \
         \( -name 'session*.md' -o -name 'handoff*.md' -o -name 'STATE.md' \
            -o -name '00_STATE.md' -o -name 'HANDOFFS.md' \) -print 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); if (a[n] != "session.md") print }' | sort)
+
+    # An archive name that is not a timestamp cannot be ordered against its
+    # siblings, which is the one job the name has here.
+    while IFS= read -r cont; do
+        [[ -n "$cont" ]] || continue
+        findings+=("${cont#"$projdir"/}: session-history/ holds one file per superseded record, named <UTC timestamp>.md such as 20260824T153612Z.md")
+    done < <(find "$root" -name .git -prune -o -type d -name 'session-history' -exec find {} -type f -print \; 2>/dev/null \
         | awk '{ n = split($0, a, "/"); base = a[n]
-                 if (base == "session.md") next
-                 if (base ~ /^session-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9](-[0-9]+)?\.md$/) next
+                 if (base ~ /^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z\.md$/) next
                  print }' | sort)
 
-    # An archive with no live file means the rewrite lost its subject: a reader
-    # opening the scope finds only records that have already stopped being true.
+    # History with no live record: a reader opening the scope finds only files
+    # that have already stopped being true.
     while IFS= read -r dir; do
         [[ -n "$dir" ]] || continue
-        [[ -f "$dir/session.md" ]] && continue
-        findings+=("${dir#"$projdir"/}/: holds session-<date>.md archives with no live session.md")
-    done < <(find "$root" -name .git -prune -o -type f -name 'session-*.md' -print 2>/dev/null \
-        | awk '{ n = split($0, a, "/"); base = a[n]; dir = ""
-                 for (i = 1; i < n; i++) dir = dir (i > 1 ? "/" : "") a[i]
-                 if (base ~ /^session-[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9](-[0-9]+)?\.md$/) seen[dir] = 1 }
-               END { for (d in seen) print d }' | sort)
+        [[ -f "$(dirname "$dir")/session.md" ]] && continue
+        findings+=("${dir#"$projdir"/}/: holds superseded records with no live session.md beside it")
+    done < <(find "$root" -name .git -prune -o -type d -name 'session-history' -print 2>/dev/null | sort)
 
     # The memory is its own repository. That is what makes an in-place update of
     # session.md safe, and it is what lets the owner publish or withhold the

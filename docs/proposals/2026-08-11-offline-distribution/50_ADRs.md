@@ -398,7 +398,7 @@ describe different systems.
    the nested repository visible.
 
    Two properties follow, and both are the point. Rewriting `session.md` is safe, because the
-   outgoing copy is kept beside it as `session-<date>.md` — the last day that copy was actual —
+   outgoing copy moves into `session-history/`, named for the UTC instant it stopped being current,
    and the repository versions both; decision 2 depends on this. And the memory's **visibility is
    a separate decision from the code's**: the owner chooses whether the reasoning is published, on
    its own schedule, rather than inheriting the parent's answer.
@@ -406,10 +406,15 @@ describe different systems.
    **The archive is a file, not only a commit** (owner ruling, 2026-08-24). Git holds the diffs,
    but a diff does not say when a claim stopped being true, and a superseded premise is not
    something a reader reconstructs from a patch. So each rewrite leaves a dated, self-contained
-   copy on disk: the live file is what a reader opens, and the archives are the history of intent.
-   `lint --check internal-memory` accepts one live `session.md` beside any number of
-   `session-<date>.md`, and reports a continuity filename outside that shape or an archive with no
-   live file beside it.
+   copy on disk. `session.md` is the live record and always carries that name, so a reader never has
+   to work out which file is current; `session-history/20260824T153612Z.md` is what it replaced, and
+   a plain sort of that directory is chronological order. Second-granularity timestamps mean a dozen
+   handoffs in a day need no counter. The subdirectory holds one document's history rather than a
+   category of documents, so it does not reopen the category-directory question.
+
+   `lint --check internal-memory` reports a `session*`-shaped file anywhere but `session.md` at the
+   scope root, a history entry whose name is not a timestamp, and a history directory with no live
+   record beside it.
 
    **Publication is a submodule, at the moment of publication.** When the reasoning should ship —
    at paper submission, or when a repository goes public — the parent embeds the memory as a

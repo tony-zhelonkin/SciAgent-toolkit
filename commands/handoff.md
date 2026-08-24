@@ -21,7 +21,7 @@ recovered from a diff, so it is not something to delegate to a fresh reader.
 
 ## What it writes
 
-One live file, plus the archives it has superseded:
+One live file, always at this name, plus the history it has superseded:
 
 | Scope of the work | File |
 |---|---|
@@ -32,21 +32,23 @@ Resolve the scope from what the session touched. If the work genuinely spans
 one stage and part of another, ask which scope owns it rather than guessing —
 the wrong scope buries the record where nobody looks for it.
 
-**Keep the copy you supersede.** Before writing, move the current `session.md`
-to `session-<date>.md`, where `<date>` is the last day that copy was actual —
-`date +%F` at the time of the handoff. A second handoff the same day appends a
-counter: `session-2026-08-24-2.md`. Then write the new `session.md`.
+**Keep the copy you supersede.** `session.md` is always the live record and
+always carries that name. Before writing, move the current one into
+`session-history/`, named for the UTC instant it stopped being current:
 
 ```bash
-d=$(date +%F); n="session-$d"
-[ -e "docs/_internal/<scope>/$n.md" ] && n="$n-2"      # and -3, …
-mv docs/_internal/<scope>/session.md "docs/_internal/<scope>/$n.md"
+h="docs/_internal/<scope>/session-history"
+mkdir -p "$h"
+mv "docs/_internal/<scope>/session.md" "$h/$(date -u +%Y%m%dT%H%M%SZ).md"
 ```
 
-The live file is what a reader opens; the archives are the history of intent,
-each one readable on its own terms and stamped with the period it described. Git
-holds the diffs, but a diff does not tell a reader when a claim stopped being
-true, and nobody reconstructs a superseded premise from a patch.
+Then write the new `session.md`. Timestamps to the second, so a dozen handoffs
+in one day need no counter, and sorting the directory is reading it in order.
+
+A reader opening a scope sees one session file and knows it is current. The
+history is one level down, and each name says when that record stopped being
+true. Git holds the diffs, but a diff does not say when a claim expired, and
+nobody reconstructs a superseded premise from a patch.
 
 `docs/_internal/` is its own git repository — commit there as part of the
 handoff. If it is not a repository yet, say so and stop: the archive would have
@@ -105,7 +107,7 @@ Omit a section that has nothing in it. An empty heading is noise.
   them — a fabricated premise is worse than an absent one.
 - Each non-trivial decision either cites a topic note or carries `[NO RECORD]`.
 - Under sixty lines.
-- The superseded `session.md` kept as `session-<date>.md`, not overwritten.
+- The superseded `session.md` moved into `session-history/`, not overwritten.
 - `docs/_internal/` committed.
 
 Report back: the file written, the next action, and the count of `[UNCOMMITTED]`
