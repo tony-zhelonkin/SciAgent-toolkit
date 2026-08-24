@@ -314,6 +314,18 @@ during the migration.
 **Blocks:** the pilot re-pin and coordinated fleet migration. **Reversible:** yes, at fleet
 coordination cost.
 
+**Amendment, 2026-08-24 — the mechanism accepts both names.** The rename was a flag day: six places
+hardcoded `SciAgent-toolkit`, so the moment a project moved, `scio link` would stop finding its own
+toolkit and `scio lint` would stop checking freshness, both silently. Discovery, legacy-mount
+ownership, the freshness path, the vendor-path door predicate and the two executable templates now
+consult one list, `lib/scio/common.sh::_SCIO_TOOLKIT_DIRS`, preferring `scio`. A project may sit at
+either name during the migration, so the sweep no longer has to be atomic to be correct.
+
+The docs consequence below is therefore rescinded: shipped prose, `README.md`, the templates and a
+new project's `analysis_config.yaml` now name `01_modules/scio/`, because that is where a project
+created today belongs. Vendored copies predating the rename keep working without a doc that says so
+at every mention.
+
 **Owner ruling, 2026-08-21 — sequenced into the sweep.** The rename runs in the same pass as the
 fleet sweep rather than before or after it. The sweep already rewrites the paths this rename touches:
 four vendor-dir spellings are live (`01_modules`, `01_scripts`, `01_Modules`, `01_Scripts`) and each

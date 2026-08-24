@@ -528,7 +528,7 @@ _vcheck_extract_scripts() {
 # ---------------------------------------------------------------------------
 # Compare the project's stored CRAFT block hash to what the toolkit's current
 # craft.yaml renders (any staleness, not just a version-integer bump). Also, if
-# 01_modules/SciAgent-toolkit is a git submodule, compare its checked-out
+# the vendored toolkit is a git submodule, compare its checked-out
 # commit to the toolkit HEAD. WARN with a re-pin hint when behind.
 # Uses block.sh/craft.sh accessors so marker-format knowledge stays in block.sh.
 _lint_check_freshness() {

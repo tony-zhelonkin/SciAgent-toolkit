@@ -7,7 +7,7 @@ For AI agents working on this toolkit's own source.
 ## Repo layout
 
 ```
-SciAgent-toolkit/
+scio/
 ├── bin/scio                  # CLI dispatcher (bash, resolves symlinks)
 ├── lib/scio/                 # Internal modules sourced by bin/scio
 │   ├── block.sh              # AGENTS.md managed-block read/write/hash

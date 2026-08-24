@@ -111,10 +111,15 @@ _self_contained_check || findings_found=true
 # ---------------------------------------------------------------------------
 if [[ "$findings_found" == "true" ]] && command -v scio >/dev/null 2>&1; then
     scio lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
-elif [[ "$findings_found" == "true" ]] \
-     && [[ -x "${proj_dir}/01_modules/SciAgent-toolkit/bin/scio" ]]; then
-    "${proj_dir}/01_modules/SciAgent-toolkit/bin/scio" \
-        validate --check captions --project-dir "$proj_dir" 2>/dev/null || true
+elif [[ "$findings_found" == "true" ]]; then
+    # Vendored copies predating the ADR-D9 rename are still at SciAgent-toolkit.
+    for name in scio SciAgent-toolkit; do
+        if [[ -x "${proj_dir}/01_modules/${name}/bin/scio" ]]; then
+            "${proj_dir}/01_modules/${name}/bin/scio" \
+                lint --check captions --project-dir "$proj_dir" 2>/dev/null || true
+            break
+        fi
+    done
 fi
 
 # ---------------------------------------------------------------------------

@@ -370,7 +370,7 @@ Generated: YYYY-MM-DD
 
 ## Schema
 
-See SciAgent-toolkit/docs/guidelines/master_tables.md
+See scio/docs/guidelines/master_tables.md
 
 ## Regeneration
 

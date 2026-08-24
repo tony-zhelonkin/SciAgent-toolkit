@@ -10,7 +10,7 @@ discovery paths.
 ## Source layout
 
 ```text
-SciAgent-toolkit/
+scio/
 ├── bin/scio
 ├── lib/scio/
 ├── skills/<name>/SKILL.md

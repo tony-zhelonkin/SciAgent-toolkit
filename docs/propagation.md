@@ -7,7 +7,7 @@ toolkit commit
     |
     | hop 1: re-pin the project's toolkit checkout
     v
-<project>/01_modules/SciAgent-toolkit/
+<project>/01_modules/scio/
     |
     | hop 2: run link or craft for materialized project state
     v
@@ -73,9 +73,9 @@ behavior changes on hop 1 and takes effect at the next invocation.
 For a vendored project:
 
 ```bash
-git submodule update --init 01_modules/SciAgent-toolkit
-./01_modules/SciAgent-toolkit/bin/scio link
-./01_modules/SciAgent-toolkit/bin/scio craft
+git submodule update --init 01_modules/scio
+./01_modules/scio/bin/scio link
+./01_modules/scio/bin/scio craft
 ```
 
 The project owner chooses the new submodule commit before these commands. The
@@ -115,7 +115,7 @@ allows a later, different edit to be reported once.
 
 Before creating category links, `link` scans the old flat mount locations. It
 removes symlinks that resolve inside the active toolkit and dangling legacy
-links whose path identifies a `SciAgent-toolkit` source. This covers historical
+links whose path identifies a toolkit source under either directory name. This covers historical
 absolute `/workspaces/...` mounts and the retired `.claude/output-styles/`
 tree. Regular files and outside-pointing links remain.
 

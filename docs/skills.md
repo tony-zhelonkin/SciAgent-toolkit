@@ -20,7 +20,7 @@ Every direct child is therefore a mountable skill directory in the canonical
 format above.
 
 **`.claude/skills/` and `.agents/skills/` are the door.** In a vendored project
-the same files are also reachable at `01_modules/SciAgent-toolkit/skills/`, and
+the same files are also reachable at `01_modules/scio/skills/`, and
 that path is the fallback — never the citation. The mounts are what the harness
 routes through, so a skill reached that way offers its summary and lets the
 reader pull `references/` and `assets/` on demand; reached by vendor path it is

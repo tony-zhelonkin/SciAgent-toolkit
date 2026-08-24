@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 root=$(git rev-parse --show-toplevel)
-scio="$root/01_modules/SciAgent-toolkit/bin/scio"
-if [[ -x "$scio" ]]; then
-    "$scio" lint --project-dir "$root"
-fi
+# Vendored copies predating the ADR-D9 rename are still at SciAgent-toolkit.
+for name in scio SciAgent-toolkit; do
+    candidate="$root/01_modules/$name/bin/scio"
+    if [[ -x "$candidate" ]]; then
+        "$candidate" lint --project-dir "$root"
+        break
+    fi
+done

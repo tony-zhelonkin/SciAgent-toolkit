@@ -51,7 +51,7 @@
 # symlink here resolves to the version directory and nothing else. This script
 # writes no shell profile, exports no variable, and installs no wrapper that
 # could pin `$SCIO_TOOLKIT` globally. A project that ships its own
-# `01_modules/SciAgent-toolkit` therefore still wins: `scio link` refuses
+# the project's own `01_modules/` copy therefore still wins: `scio link` refuses
 # to bind such a project from this global copy. Exact-commit
 # reproducibility for the fleet depends on that refusal, so nothing installed
 # here may weaken it.

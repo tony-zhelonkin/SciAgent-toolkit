@@ -42,7 +42,7 @@ decomposition remain external commands at
 Bind the toolkit catalog into a project from that project's pinned checkout:
 
 ```bash
-./01_modules/SciAgent-toolkit/bin/scio link
+./01_modules/scio/bin/scio link
 ```
 
 `link` mounts the complete `skills/`, `agents/`, and `commands/` trees into

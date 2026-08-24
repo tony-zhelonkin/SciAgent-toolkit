@@ -36,7 +36,7 @@
 ##   to a clear stop() when ggplot2 is absent. There are NO top-level side effects.
 ##
 ## Reuse (one source, a few calls):
-##   source("01_modules/SciAgent-toolkit/lib/figure-style/figure_helpers.R")
+##   source("01_modules/scio/lib/figure-style/figure_helpers.R")
 ##   cfg <- load_figure_config("02_analysis/config/analysis_config.yaml")
 ##   p <- ggplot(...) + ... + project_theme(config = cfg)        # the SINGLE theme entry point
 ##   save_overview(p, "04_gsea", "gsea_hallmark_heatmap", table = df,

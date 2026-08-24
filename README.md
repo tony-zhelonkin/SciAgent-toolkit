@@ -29,22 +29,22 @@ out.
 ## Install
 
 Most analysis of my projects started out vendoring this repository at
-`01_modules/SciAgent-toolkit/`. 
+`01_modules/scio/`. 
 
 Use a relative alias so each project invokes its own pinned copy:
 
 ```bash
-alias si='./01_modules/SciAgent-toolkit/bin/scio'
+alias si='./01_modules/scio/bin/scio'
 ```
 
 `scio link` refuses an external toolkit when the project contains its own
-`SciAgent-toolkit` checkout. This keeps the binding aligned with the project's
+`scio` checkout. This keeps the binding aligned with the project's
 submodule pin.
 
 For one checkout, a PATH symlink is convenient:
 
 ```bash
-ln -sf /absolute/path/to/SciAgent-toolkit/bin/scio ~/.local/bin/scio
+ln -sf /absolute/path/to/scio/bin/scio ~/.local/bin/scio
 scio --help
 ```
 
@@ -157,7 +157,7 @@ shipped block library reads and removes both `SCIAGENT` and `SCIO` marker
 prefixes:
 
 ```bash
-TOOLKIT_PATH=/path/to/SciAgent-toolkit
+TOOLKIT_PATH=/path/to/scio
 bash -c '. "$1/lib/scio/block.sh"; block_remove "$2" ROLES' \
   _ "$TOOLKIT_PATH" /path/to/project/AGENTS.md
 ```
