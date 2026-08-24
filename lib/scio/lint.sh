@@ -721,6 +721,30 @@ _lint_check_harness_links() {
         fi
     done
 
+    # `.claude/` and `.agents/` are the door; the vendored tree is the fallback.
+    # Both reach the same bytes, so nothing breaks — what breaks is progressive
+    # disclosure. Routed through a mount, a skill offers its summary and the
+    # reader pulls detail on demand. Named by vendor path it is an ordinary file,
+    # so the whole SKILL.md lands in context unrouted, with assets/ unseen: 6,610
+    # bytes in two reads, observed in JR-MC. The path is also wrong under a
+    # global install, where the vendored tree does not exist.
+    #
+    # Memory and tests are exempt: a note records what happened, including a
+    # wrong path, and a test's job is to build the state under audit. Neither
+    # instructs an agent where to read. The toolkit's own tree is exempt for the
+    # same reason and one more — it is where this rule is written down, and it
+    # has no 01_modules/ mount to reach through.
+    if [[ ! ( -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ) ]] \
+       && [[ "$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]]; then
+        local cite
+        while IFS= read -r cite; do
+            [[ -n "$cite" ]] || continue
+            _vcheck_emit "$strict" "$quiet" harness-links \
+                "$cite reaches a skill by vendor path — route through .claude/ or .agents/, which is what the harness reads and what a global install has" || rc=1
+        done < <(git -C "$projdir" grep -l -I -E '01_[Mm]odules/SciAgent-toolkit/skills/' \
+                    -- . ':(exclude)docs/_internal' ':(exclude)tests' 2>/dev/null | sort)
+    fi
+
     return $rc
 }
 

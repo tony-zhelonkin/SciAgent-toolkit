@@ -19,6 +19,16 @@ skills/<skill-name>/
 Every direct child is therefore a mountable skill directory in the canonical
 format above.
 
+**`.claude/skills/` and `.agents/skills/` are the door.** In a vendored project
+the same files are also reachable at `01_modules/SciAgent-toolkit/skills/`, and
+that path is the fallback — never the citation. The mounts are what the harness
+routes through, so a skill reached that way offers its summary and lets the
+reader pull `references/` and `assets/` on demand; reached by vendor path it is
+an ordinary file and the whole `SKILL.md` lands in context at once. The vendor
+path also does not exist under a global install. `lint --check harness-links`
+reports a tracked project file that cites it, excepting memory and tests, which
+describe rather than instruct.
+
 See `templates/skill/` for a canonical starter and `skills/skill-creator/` for a full reference implementation.
 
 ---
