@@ -266,6 +266,24 @@ case "$st9" in
         ;;
 esac
 
+# --- 9b. the probe reports which model a launch will actually use --------
+# An unsupported --model is refused by the server after launch, not by the flag
+# check, so the reliable move is to pass none and read the configured default.
+_mkenv e9b
+_capable_stub 'exit 0'
+mkdir -p "$TD/codex_home"
+printf 'model = "cfg-model"\nmodel_reasoning_effort = "high"\n' > "$TD/codex_home/config.toml"
+out9b=$(CODEX_HOME="$TD/codex_home" TMPDIR="$TD/tmp" PATH="$BIN:$PATH" \
+    "$ASSETS/probe.sh" --workdir "$W" --model made-up 2>&1)
+printf '%s\n' "$out9b" | grep -q 'CODEX_MODEL_CONFIGURED=cfg-model' || {
+    echo "FAIL [$_TEST_NAME] case9b: the configured model is not reported" >&2
+    printf '%s\n' "$out9b" >&2; exit 1
+}
+printf '%s\n' "$out9b" | grep -q 'CODEX_MODEL_REQUESTED_VALIDATED=0' || {
+    echo "FAIL [$_TEST_NAME] case9b: a requested model is not flagged unvalidated" >&2
+    printf '%s\n' "$out9b" >&2; exit 1
+}
+
 # --- 10. opt-in live smoke test ----------------------------------------
 # Costs tokens and needs a configured codex, so it runs only on request.
 if [ "${SCIO_DELEGATE_LIVE:-0}" = "1" ]; then

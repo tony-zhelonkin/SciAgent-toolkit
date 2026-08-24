@@ -43,17 +43,24 @@ Three rules apply to every implementer:
 3. Arrange independent review for consequential work, then re-run the checks and inspect the touched
    artifacts yourself.
 
-Choose models by task risk and observed availability. Flash-class workers benefit from smaller units
-and verification between hops. Pro- and GPT-5.x-class workers can hold broader multi-part units.
+Match unit size to the worker: a smaller model wants smaller units with verification between hops, a
+frontier one holds a broader multi-part unit. Read the configured model from the probe rather than
+naming one, unless the task genuinely needs a specific tier.
 
 ## Probe codex capabilities
 
 Resolve asset paths relative to this `SKILL.md`. Before each codex launch, run:
 
 ```bash
-"$skill_dir/assets/probe.sh" \
-  --workdir "$workdir" --model "$model" --sandbox "$sandbox"
+"$skill_dir/assets/probe.sh" --workdir "$workdir" --sandbox "$sandbox"
 ```
+
+**Pass no `--model` unless you have a reason.** The probe reports
+`CODEX_MODEL_CONFIGURED` from the local config, which is what an unflagged launch uses and is known
+to work. A `--model` value is echoed back as `CODEX_MODEL_REQUESTED_VALIDATED=0`: the flag's
+existence is checkable, its value is not, and an unsupported one is refused by the server tens of
+seconds after launch rather than by the probe. The same applies to `--effort` when the config
+already sets a reasoning effort.
 
 Add the probe's `--web` option when the task requires web access. Add `--file-read-check` before work
 that depends on inspecting local files, especially in a Linux devcontainer. Stop on a nonzero result
@@ -82,8 +89,7 @@ Use the launcher after a successful probe:
 
 ```bash
 "$skill_dir/assets/launch.sh" \
-  --unit "$unit" --workdir "$workdir" --prompt "$prompt" \
-  --model "$model" --sandbox "$sandbox"
+  --unit "$unit" --workdir "$workdir" --prompt "$prompt" --sandbox "$sandbox"
 ```
 
 The asset owns flag spelling, stdin delivery, final-message capture, stream logging, run directories,
