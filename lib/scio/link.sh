@@ -334,6 +334,7 @@ docs/_internal/
 .gemini/
 .scio/
 02_analysis/helpers/figure-style
+02_analysis/helpers/interactive-style
 .mcp.json
 .env
 .env.*
