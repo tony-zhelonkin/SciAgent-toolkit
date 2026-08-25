@@ -1,3 +1,0 @@
-jr-mc|/data2/users/JCRLab/JR-MC-Tonsill/JR-MC
-meta-aging|/data1/users/antonz/projects/Meta-Aging /data1/users/antonz/projects/Meta-Aging/14616-DM
-scratchpad|/data1/users/antonz/projects/Meta-Aging/14782-DM /data1/users/antonz/projects/Meta-Aging/14761-DM
