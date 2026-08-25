@@ -266,6 +266,79 @@ case "$st9" in
         ;;
 esac
 
+# --- 8b. a sandbox denial with exit 0 is still a failure -----------------
+# Measured in a v0.5.10 container on 2026-08-25: bwrap cannot create a namespace,
+# every codex file tool fails, and codex EXITS 0 with an answer composed from the
+# prompt alone. Three pilot scripts in Meta-Aging were authored that way. So the
+# stream is the evidence and the exit code is not; a run carrying the denial can
+# never be reported as a success.
+_mkenv e8b
+_capable_stub 'out=; prev=
+for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
+cat > /dev/null
+echo "bwrap: No permissions to create new namespace, likely because the kernel"
+printf "I could not read it, but here is my guess.\n" > "$out"
+exit 0'
+set +e
+TMPDIR="$TD/tmp" PATH="$BIN:$PATH" "$ASSETS/launch.sh" \
+    --unit u_blind --workdir "$W" --prompt "$P" > "$TD/out" 2> "$TD/err"
+rc8b=$?
+set -e
+[ "$rc8b" -eq 32 ] || {
+    echo "FAIL [$_TEST_NAME] case8b: rc was $rc8b, expected 32 for a blind run" >&2
+    cat "$TD/err" >&2; exit 1
+}
+[ "$(_state "$TD/tmp" u_blind)" = "failed" ] || {
+    echo "FAIL [$_TEST_NAME] case8b: state was '$(_state "$TD/tmp" u_blind)'" >&2; exit 1
+}
+# codex_exit records what the child really returned; result_exit records the
+# verdict. Collapsing them would hide exactly this case.
+[ "$(_field "$TD/tmp" u_blind codex_exit)" = "0" ] || {
+    echo "FAIL [$_TEST_NAME] case8b: codex_exit must record the child's real 0" >&2; exit 1
+}
+grep -q 'written blind' "$TD/err" || {
+    echo "FAIL [$_TEST_NAME] case8b: the refusal does not say why" >&2
+    cat "$TD/err" >&2; exit 1
+}
+
+# --- 8c. the probe classifies it, despite the zero exit -----------------
+_mkenv e8c
+_capable_stub 'out=; prev=
+for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
+cat > /dev/null
+echo "bwrap: No permissions to create new namespace"
+printf "cannot read\n" > "$out"
+exit 0'
+set +e
+out8c=$(TMPDIR="$TD/tmp" PATH="$BIN:$PATH" \
+    "$ASSETS/probe.sh" --workdir "$W" --file-read-check 2>&1); rc8c=$?
+set -e
+[ "$rc8c" -eq 14 ] || {
+    echo "FAIL [$_TEST_NAME] case8c: rc was $rc8c, expected 14" >&2
+    printf '%s\n' "$out8c" >&2; exit 1
+}
+printf '%s\n' "$out8c" | grep -q 'SANDBOX_FILE_READ=blocked' || {
+    echo "FAIL [$_TEST_NAME] case8c: a zero-exit denial was not classified as blocked" >&2
+    printf '%s\n' "$out8c" >&2; exit 1
+}
+
+# --- 8d. exit 0, no denial, no nonce -> unverified, not ok --------------
+_mkenv e8d
+_capable_stub 'out=; prev=
+for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done
+cat > /dev/null; printf "sure thing\n" > "$out"; exit 0'
+set +e
+out8d=$(TMPDIR="$TD/tmp" PATH="$BIN:$PATH" \
+    "$ASSETS/probe.sh" --workdir "$W" --file-read-check 2>&1); rc8d=$?
+set -e
+[ "$rc8d" -eq 14 ] || {
+    echo "FAIL [$_TEST_NAME] case8d: rc was $rc8d, expected 14" >&2; exit 1
+}
+printf '%s\n' "$out8d" | grep -q 'SANDBOX_FILE_READ=unverified' || {
+    echo "FAIL [$_TEST_NAME] case8d: an unproven read was not reported as unverified" >&2
+    printf '%s\n' "$out8d" >&2; exit 1
+}
+
 # --- 9b. the probe reports which model a launch will actually use --------
 # An unsupported --model is refused by the server after launch, not by the flag
 # check, so the reliable move is to pass none and read the configured default.

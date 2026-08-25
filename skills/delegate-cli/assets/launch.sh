@@ -365,6 +365,21 @@ run_codex() {
     set -e
 
     local result_status="$codex_status"
+
+    # A sandbox that cannot open files does not make codex fail; it makes codex
+    # answer from the prompt alone and exit 0. Measured in a v0.5.10 container:
+    # bwrap cannot create a namespace, every file tool fails, exit status 0. So
+    # the stream is the evidence, and a run carrying that denial cannot be
+    # reported as a success whatever the child returned — its output was written
+    # without reading the repository.
+    if LC_ALL=C grep -Eqi 'bwrap|landlock|new namespace|sandbox helper' "$stream" 2>/dev/null; then
+        if [ "$result_status" -eq 0 ]; then
+            result_status=32
+        fi
+        printf 'launch.sh: the sandbox blocked file access; this output was written blind.\n' >&2
+        printf 'launch.sh: probe.sh --file-read-check names the two remedies.\n' >&2
+    fi
+
     if [ ! -s "$final" ] && [ "$result_status" -eq 0 ]; then
         result_status=30
     fi

@@ -82,18 +82,28 @@ condition without substituting another tool or installing software.
 A bypass removes the sandbox and requires explicit user authorization. Prompt rules do not recreate
 sandbox enforcement: asking a worker to behave as if sandboxed is not a sandbox.
 
-**Sandboxed codex cannot read files in some containers**, including scbio-docker dev containers as
-shipped, because the container policy blocks the namespace or filter operation the sandbox is built
-on. Run `--file-read-check` and read what it prints:
+**Sandboxed codex cannot read files in some containers, and it does not fail when it happens.**
+Measured in a `scdock-r-dev:v0.5.10` container on 2026-08-25: `bwrap` cannot create a namespace,
+every file tool fails, and **codex exits 0** with an answer composed from the prompt alone. Three
+pilot scripts in Meta-Aging were written that way — every path in them a guess, every path defect
+traceable to the same cause.
 
-- `SANDBOX_FILE_READ=ok` — the sandbox works here; use it.
-- `SANDBOX_FILE_READ=blocked` — every file-dependent task will fail under that sandbox, and it will
-  look like the model refusing to cooperate rather than a platform denial. The only two remedies are
-  relaxing the container policy (`scbio-docker docs/ai-integration.md`) and an authorized `--bypass`.
-  Rewording the prompt is not one of them.
+Run `--file-read-check` and read what it prints:
 
-Check this before a file-dependent delegation rather than after it, and treat the result as a
-property of the container rather than of the task.
+| | Meaning |
+|---|---|
+| `SANDBOX_FILE_READ=ok` | codex demonstrably read a file. Proceed. |
+| `SANDBOX_FILE_READ=blocked` | the container denied file access. Anything codex writes about the repo is invented. |
+| `SANDBOX_FILE_READ=unverified` | it exited 0 without proving it read. Treat as blocked until you know why. |
+
+The only two remedies are relaxing the container policy
+(`scbio-docker docs/ai-integration.md`) and an authorized `--bypass`, which is verified to work in
+that container. Rewording the prompt is not one of them.
+
+**The launcher enforces this rather than trusting you to check.** A run whose stream carries the
+denial exits **32** and records `state=failed` with `codex_exit=0`, because the child really did
+return 0 and the verdict really is failure — keeping both is what makes the case legible. So a blind
+run cannot be mistaken for a good one even if nobody ran the probe.
 
 ## Launch codex
 

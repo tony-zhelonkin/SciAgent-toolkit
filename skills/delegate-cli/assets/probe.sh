@@ -175,25 +175,33 @@ if [ "$file_read_check" -eq 1 ]; then
     else
         check_status=$?
     fi
-    # A sandboxed codex cannot read files at all when the container blocks the
-    # namespace or filter operations its sandbox is built on. That failure looks
-    # like a model refusing to cooperate, so name it: the remedy is a container
-    # policy change or an explicitly authorized --bypass, and no prompt wording
-    # substitutes for either.
-    if [ "$check_status" -ne 0 ]; then
-        if grep -Eqi 'bwrap|landlock|seccomp|unshare|namespace|Operation not permitted' \
-                "$stream_file" 2>/dev/null; then
-            printf 'SANDBOX_FILE_READ=blocked\n'
-            printf 'probe.sh: codex could not inspect a file with sandbox %s.\n' \
-                "${sandbox:-default}" >&2
-            printf 'probe.sh: the container blocks the operation its sandbox needs. Either relax the\n' >&2
-            printf 'probe.sh: container policy (see scbio-docker docs/ai-integration.md) or obtain\n' >&2
-            printf 'probe.sh: explicit authorization for --bypass, which removes the sandbox.\n' >&2
-            exit 14
-        fi
-        fail 14 "codex could not inspect the nonce file"
+    # The denial is a fact in the stream, and it is checked FIRST because codex
+    # does not report it in its exit code. Measured in a v0.5.10 container on
+    # 2026-08-25: bwrap fails to create a namespace, every file tool fails, and
+    # codex still exits 0. A caller trusting the exit status gets a confident
+    # answer written without ever seeing the repo, which is how three pilot
+    # scripts were authored blind.
+    if LC_ALL=C grep -Eqi 'bwrap|landlock|seccomp|unshare|new namespace|sandbox helper|Operation not permitted' \
+            "$stream_file" 2>/dev/null; then
+        printf 'SANDBOX_FILE_READ=blocked\n'
+        printf 'probe.sh: codex could not read a file with sandbox %s, and exited %s anyway.\n' \
+            "${sandbox:-default}" "$check_status" >&2
+        printf 'probe.sh: it will answer from the prompt alone, so any path it names is a guess.\n' >&2
+        printf 'probe.sh: relax the container policy (scbio-docker docs/ai-integration.md) or\n' >&2
+        printf 'probe.sh: obtain authorization for --bypass, which removes the sandbox.\n' >&2
+        exit 14
     fi
-    grep -Fq -- "$nonce" "$final_file" 2>/dev/null \
-        || fail 14 "codex final output did not contain the nonce"
+
+    if [ "$check_status" -ne 0 ]; then
+        fail 14 "codex could not inspect the nonce file (exit $check_status)"
+    fi
+
+    # Exit 0 and no nonce: it answered without proving it read anything. Distinct
+    # from `blocked` because the cause is unidentified, and reported rather than
+    # guessed at.
+    if ! grep -Fq -- "$nonce" "$final_file" 2>/dev/null; then
+        printf 'SANDBOX_FILE_READ=unverified\n'
+        fail 14 "codex exited 0 but its output did not contain the nonce — it did not demonstrably read the file"
+    fi
     printf 'SANDBOX_FILE_READ=ok\n'
 fi
