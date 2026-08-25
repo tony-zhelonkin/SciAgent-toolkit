@@ -1,4 +1,6 @@
-# The scio rename — what is done and what the fleet still has to do
+# Decision 2 — rename everything to scio
+
+**Owner said go, 2026-08-24: folders and GitHub, `gh` is authed.** Not yet executed.
 
 **Date:** 2026-08-24 · **Scope:** ADR-D9
 
@@ -40,16 +42,47 @@ looking bigger than it was.
 
 **A project may sit at either name. The sweep no longer has to be atomic.**
 
-## What the fleet still has to do
+## What remains, measured 2026-08-24
 
-1. `git mv 01_modules/SciAgent-toolkit 01_modules/scio` per consumer, plus the
-   `.gitmodules` path edit. ~25 copies, four vendor-dir spellings live
-   (`01_modules`, `01_Modules`, `01_scripts`, `01_Scripts`).
-2. Rename the GitHub repository to `scio`. **Owner action** — it needs GitHub
-   access, and GitHub redirects the old URL so existing fetches keep working.
-3. Rename the submodule path in scbio-docker (`toolkits/SciAgent-toolkit`). This
-   edits the parent's `.gitmodules` and index; it is not a pin bump.
-4. `.git` gitdir pointers follow the directory and need no separate edit.
+**`gh auth status`: logged in as `tony-zhelonkin`, ssh.** So every step below is
+executable without the owner present.
+
+There are FOUR names to move, not one. This is the part the earlier note missed:
+
+| # | Thing | Current | Notes |
+|---|---|---|---|
+| 1 | GitHub repository | `tony-zhelonkin/SciAgent-toolkit` | `gh repo rename scio -R tony-zhelonkin/SciAgent-toolkit`. GitHub redirects the old URL, so nothing breaks the moment it flips. |
+| 2 | Local bare hub | `/data1/users/antonz/git/SciAgent-toolkit.git` | The `hub` remote. Rename the directory, then fix the remote URL. |
+| 3 | This working copy | `scbio-docker/toolkits/SciAgent-toolkit` | A submodule of scbio-docker. |
+| 4 | Consumer vendor dirs | `01_modules/SciAgent-toolkit` etc. | See `decision-3-fleet-repin.md`. |
+
+Order that avoids a broken fetch: rename GitHub first (redirect covers the gap),
+then update `origin` URLs, then the hub directory and its URL, then the
+directories.
+
+### This repository's own remotes
+
+```
+hub     /data1/users/antonz/git/SciAgent-toolkit.git
+origin  git@github.com:tony-zhelonkin/SciAgent-toolkit.git
+```
+
+Both carry the old name. `git remote set-url` for each after the renames.
+
+### The parent, scbio-docker
+
+`.gitmodules` has `[submodule "toolkits/SciAgent-toolkit"]` with `path`, `url`,
+and `branch = dev`. The rename edits the section name, the path and the url. Use
+`git mv toolkits/SciAgent-toolkit toolkits/scio`, which moves the gitlink and the
+`.gitmodules` path together, then set the url.
+
+**The parent is on branch `feat/bulkirna-v0.5.0`, and its recorded pin is
+`3ab37688`, which is behind.** The standing instruction has been not to bump that
+pin. The rename changes the submodule PATH, not the pin — keep it that way unless
+the owner says otherwise, and say plainly in the commit that the pin is untouched.
+
+`.git` gitdir pointers inside a moved submodule follow automatically; `git mv`
+rewrites them. Verify with `git -C toolkits/scio status` afterwards.
 
 ## Deliberately not renamed
 
