@@ -7,6 +7,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-08-26
+
+The toolkit is `scio`, in name and on disk. Breaking for consumers: the vendored
+directory moves from `01_modules/SciAgent-toolkit/` to `01_modules/scio/`, the
+GitHub repository is renamed (the old URL redirects), and project memory becomes
+a repository of its own.
+
+### Changed — breaking
+
+- **`01_modules/SciAgent-toolkit/` becomes `01_modules/scio/`** (ADR-D9). Both
+  names are accepted during the migration: discovery, legacy-mount ownership, the
+  freshness check, the vendor-path predicate and the two executable templates all
+  read one list, `lib/scio/common.sh::_SCIO_TOOLKIT_DIRS`. Evidence outranks the
+  name — a path declared in `.gitmodules` beats a same-named directory found
+  elsewhere, and a candidate must carry `bin/scio` or `craft.yaml` to count. A
+  project reaching the toolkit by path needs a symlink at the old name or its own
+  references updated.
+- **`docs/_internal/` is its own Git repository, always** (ADR-D10). `session.md`
+  is the live record and always carries that name; what it supersedes moves to
+  `session-history/<UTC timestamp>.md`, so sorting the directory reads it in
+  order.
+- **codex runs unsandboxed.** `launch.sh` passes `-s danger-full-access` unless
+  `--sandbox` says otherwise. An enforced sandbox cannot open files in these
+  containers — bwrap fails to create a namespace, every file tool fails, and
+  codex exits 0 having written about a repository it never read. The container is
+  the boundary and `--workdir` is what scopes the worker.
+- **`--bg` is removed** from `launch.sh` and refused by name. Background the
+  attached launcher through the caller's own task facility.
+
+### Added
+
+- `status.sh` — a read-only reader for a delegation run, by unit or by file, with
+  `--wait`. One `SUMMARY` line and one `ARTIFACT` line per file. It reports
+  quantities and never a phase, a percentage or an ETA.
+- `launch.sh` writes an atomic status snapshot before spawning, on a two-second
+  heartbeat while the child runs, and once on the reaped status — so an in-flight
+  question has an answer.
+- A run whose stream shows the sandbox blocking file access **cannot be reported
+  as a success**: exit 32, `state=failed`, `codex_exit` preserved.
+- `lint` checks: skill self-citations, one door to the catalog, scaffold residue,
+  the attic holding only retired skills, delegate-cli's assets, and the memory
+  topology.
+- `analysis-code-conventions` gains a language-level reference for R and Python
+  house idiom.
+- `/handoff` as a command written by the session that lived the work.
+
+### Removed
+
+- `add-figure-variant` and `interpret-storm` commands; the `handoff` agent.
+- `_attic/guidelines/`, which called itself the source of truth for coding
+  conventions while sitting outside every mount.
+- The decision-gate audit-trail keys that no reader consumed.
+
+
 The catalog now binds through one directory symlink per harness category.
 
 ### Changed
