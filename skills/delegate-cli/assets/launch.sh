@@ -5,6 +5,7 @@ set -eu
 usage() {
     echo "usage: launch.sh --unit NAME --workdir DIR --prompt FILE [options]" >&2
     echo "options: --rules FILE --model MODEL --effort LEVEL --sandbox MODE --bypass --web" >&2
+    echo "  no sandbox by default (-s danger-full-access); --sandbox opts back in" >&2
     echo "  --effort rides -c model_reasoning_effort; codex exec has no effort flag" >&2
     echo "         --expect PATH [--expect PATH ...] --parallel-ok" >&2
 }
@@ -333,11 +334,20 @@ print_bytes() {
 # reader's answer may be, and the reader already reports that as heartbeat age.
 HEARTBEAT_S=2
 
+# No sandbox unless one is asked for. Codex invokes bwrap only to enforce a
+# sandbox, and bwrap cannot create a namespace in these containers — so an
+# enforced sandbox means every file tool fails while codex still exits 0, and the
+# worker writes about a repository it never read. The container is the boundary
+# instead (owner ruling, 2026-08-25). Pass --sandbox to opt back in.
+DEFAULT_SANDBOX=danger-full-access
+
 run_codex() {
     local codex_args=(exec -C "$workdir" --skip-git-repo-check -o "$final")
     [ -z "$model" ] || codex_args+=(-m "$model")
     [ -z "$effort" ] || codex_args+=(-c "model_reasoning_effort=$effort")
-    [ -z "$sandbox" ] || codex_args+=(-s "$sandbox")
+    if [ "$bypass" -ne 1 ]; then
+        codex_args+=(-s "${sandbox:-$DEFAULT_SANDBOX}")
+    fi
     [ "$bypass" -ne 1 ] || codex_args+=(--dangerously-bypass-approvals-and-sandbox)
     if [ "$want_web" -eq 1 ]; then
         codex_args+=(-c tools.web_search=true --enable web_search_request)
@@ -395,6 +405,16 @@ run_codex() {
     write_status "$state" "$child_pid" "$codex_status" "$result_status" "$(now_epoch)"
 
     print_bytes
+
+    # The final message is the deliverable, so the run that produced it prints
+    # it. A caller that wanted only the machine-readable head can stop at the
+    # marker; the file stays either way.
+    if [ -s "$final" ]; then
+        printf -- '--- FINAL MESSAGE ---\n'
+        cat "$final"
+        printf '\n'
+    fi
+
     return "$result_status"
 }
 

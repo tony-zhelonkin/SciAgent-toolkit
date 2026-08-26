@@ -82,62 +82,46 @@ condition without substituting another tool or installing software.
 A bypass removes the sandbox and requires explicit user authorization. Prompt rules do not recreate
 sandbox enforcement: asking a worker to behave as if sandboxed is not a sandbox.
 
-**Sandboxed codex cannot read files in some containers, and it does not fail when it happens.**
-Measured in a `scdock-r-dev:v0.5.10` container on 2026-08-25: `bwrap` cannot create a namespace,
-every file tool fails, and **codex exits 0** with an answer composed from the prompt alone. Three
-pilot scripts in Meta-Aging were written that way — every path in them a guess, every path defect
-traceable to the same cause.
+**The sandbox is off, and that is settled.** Codex calls bwrap only to *enforce* a sandbox, and
+bwrap cannot create a namespace in these containers — so an enforced sandbox means every file tool
+fails while codex still exits 0, and the worker writes confidently about a repository it never read.
+Three pilot scripts in Meta-Aging were authored that way.
 
-Run `--file-read-check` and read what it prints:
+`launch.sh` therefore passes `-s danger-full-access` by default. **The container is the boundary**, and
+the owner accepted that on 2026-08-25. Do not deliberate about it per run, and do not ask.
 
-| | Meaning |
-|---|---|
-| `SANDBOX_FILE_READ=ok` | codex demonstrably read a file. Proceed. |
-| `SANDBOX_FILE_READ=blocked` | the container denied file access. Anything codex writes about the repo is invented. |
-| `SANDBOX_FILE_READ=unverified` | it exited 0 without proving it read. Treat as blocked until you know why. |
+Deferred, not forgotten: restoring an enforced sandbox needs the container policy fixed
+(`scbio-docker docs/ai-integration.md`), which needs a rebuild. Until then two things stay available
+and neither is part of the normal path — `--sandbox MODE` to opt back in, and
+`probe.sh --file-read-check` to tell you whether reads work under it. The launcher still refuses to
+call a run successful if its stream shows the sandbox blocking file access, so re-enabling one cannot
+quietly reproduce the blind-run failure.
 
-### The remedy is `--sandbox danger-full-access`, not `--bypass`
-
-Codex invokes bwrap only to *enforce* a sandbox, so removing the sandbox removes the call. Measured
-in that container:
-
-| `--sandbox` | read a file | bwrap denials |
-|---|---|---|
-| `read-only` | no | 2 |
-| `workspace-write` | no | 1 |
-| `danger-full-access` | **yes** | **0** |
-
-**Prefer `--sandbox danger-full-access`.** It is strictly narrower than `--bypass`, which disables
-the sandbox *and* all approval prompts — and `codex exec` already reports `approval: never` in every
-mode, so that second half buys nothing non-interactively. Reach for `--bypass` only when something
-actually needs the approval path gone.
-
-Both leave the worker unsandboxed, so the container is the only boundary left. That is the
-authorization being granted, and it is per run. The other remedy is relaxing the container policy
-(`scbio-docker docs/ai-integration.md`), which survives a rebuild. Rewording the prompt is neither.
-
-**The launcher enforces this rather than trusting you to check.** A run whose stream carries the
-denial exits **32** and records `state=failed` with `codex_exit=0`, because the child really did
-return 0 and the verdict really is failure — keeping both is what makes the case legible. So a blind
-run cannot be mistaken for a good one even if nobody ran the probe.
+**What still bounds the worker:** `--workdir`. These paths are host mounts, so an unsandboxed worker
+reaches whatever the workdir contains. Scope the workdir, not the sandbox.
 
 ## Launch codex
 
-Use the launcher after a successful probe:
-
 ```bash
-"$skill_dir/assets/launch.sh" \
-  --unit "$unit" --workdir "$workdir" --prompt "$prompt" --sandbox "$sandbox"
+"$skill_dir/assets/launch.sh" --unit "$unit" --workdir "$workdir" --prompt "$prompt"
 ```
 
+That is the whole normal path: **write a prompt, launch, read the final message.** The launcher runs
+in the foreground, so it returns when the worker is done, and it prints the final message after a
+`--- FINAL MESSAGE ---` marker. The `KEY=VALUE` head before that marker carries the run's paths.
+
+No probe is required. Run `probe.sh` when a launch fails in a way you do not recognise, or before
+web-dependent work, where `--web` needs the capability it reports.
+
 The asset owns flag spelling, stdin delivery, final-message capture, stream logging, run directories,
-status records and locks; run `launch.sh --help` for the option list. Two flags are judgement rather
-than mechanics:
+status records and locks; `launch.sh --help` lists the options. Two are judgement rather than
+mechanics:
 
 - `--parallel-ok` **affirms independence as defined above** — no dependency edge in either direction,
   and disjoint write scopes. Withhold it whenever a dependency exists or is uncertain; the live-unit
   refusal then serializes the launches for you.
-- `--bypass` runs unsandboxed and requires explicit authorization for that specific run.
+- `--bypass` additionally disables the approval path. `codex exec` already reports `approval: never`,
+  so it buys nothing here and the default covers the sandbox. Reach for it only with a reason.
 
 Use a stable, specific unit name. A repeated active unit means overlapping work, and resolving that
 comes before relaunching.

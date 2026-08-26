@@ -357,6 +357,42 @@ printf '%s\n' "$out9b" | grep -q 'CODEX_MODEL_REQUESTED_VALIDATED=0' || {
     printf '%s\n' "$out9b" >&2; exit 1
 }
 
+# --- 8e. no sandbox by default ------------------------------------------
+# An enforced sandbox cannot open files in these containers, so the default is
+# none and the container is the boundary. Owner ruling 2026-08-25.
+_mkenv e8e
+_capable_stub "$(_argv_recorder)
+out=; prev=
+for a in \"\$@\"; do [ \"\$prev\" = \"-o\" ] && out=\"\$a\"; prev=\"\$a\"; done
+cat > /dev/null; printf 'ok\\n' > \"\$out\"; exit 0"
+TMPDIR="$TD/tmp" PATH="$BIN:$PATH" "$ASSETS/launch.sh" \
+    --unit u_defsbx --workdir "$W" --prompt "$P" > "$TD/out" 2>&1
+grep -qx -- 'danger-full-access' "$TD/argv" || {
+    echo "FAIL [$_TEST_NAME] case8e: the default sandbox is not danger-full-access" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+# The deliverable comes back from the command that produced it.
+grep -q -- '--- FINAL MESSAGE ---' "$TD/out" || {
+    echo "FAIL [$_TEST_NAME] case8e: the final message was not printed" >&2
+    cat "$TD/out" >&2; exit 1
+}
+# An explicit --sandbox still wins, so re-enabling one stays possible.
+_mkenv e8f
+_capable_stub "$(_argv_recorder)
+out=; prev=
+for a in \"\$@\"; do [ \"\$prev\" = \"-o\" ] && out=\"\$a\"; prev=\"\$a\"; done
+cat > /dev/null; printf 'ok\\n' > \"\$out\"; exit 0"
+TMPDIR="$TD/tmp" PATH="$BIN:$PATH" "$ASSETS/launch.sh" \
+    --unit u_optin --workdir "$W" --prompt "$P" --sandbox read-only > "$TD/out" 2>&1
+grep -qx -- 'read-only' "$TD/argv" || {
+    echo "FAIL [$_TEST_NAME] case8f: an explicit --sandbox was overridden by the default" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+grep -qx -- 'danger-full-access' "$TD/argv" && {
+    echo "FAIL [$_TEST_NAME] case8f: both the default and the explicit mode were passed" >&2
+    cat "$TD/argv" >&2; exit 1
+}
+
 # --- 9c. effort and web ride -c, because codex exec has no flag for either --
 _mkenv e9c
 _capable_stub "$(_argv_recorder)
