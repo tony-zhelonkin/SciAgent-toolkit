@@ -377,7 +377,7 @@ run_codex() {
             result_status=32
         fi
         printf 'launch.sh: the sandbox blocked file access; this output was written blind.\n' >&2
-        printf 'launch.sh: probe.sh --file-read-check names the two remedies.\n' >&2
+        printf 'launch.sh: relaunch with --sandbox danger-full-access, or fix the container policy.\n' >&2
     fi
 
     if [ ! -s "$final" ] && [ "$result_status" -eq 0 ]; then

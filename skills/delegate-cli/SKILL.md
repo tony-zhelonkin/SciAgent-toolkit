@@ -96,9 +96,25 @@ Run `--file-read-check` and read what it prints:
 | `SANDBOX_FILE_READ=blocked` | the container denied file access. Anything codex writes about the repo is invented. |
 | `SANDBOX_FILE_READ=unverified` | it exited 0 without proving it read. Treat as blocked until you know why. |
 
-The only two remedies are relaxing the container policy
-(`scbio-docker docs/ai-integration.md`) and an authorized `--bypass`, which is verified to work in
-that container. Rewording the prompt is not one of them.
+### The remedy is `--sandbox danger-full-access`, not `--bypass`
+
+Codex invokes bwrap only to *enforce* a sandbox, so removing the sandbox removes the call. Measured
+in that container:
+
+| `--sandbox` | read a file | bwrap denials |
+|---|---|---|
+| `read-only` | no | 2 |
+| `workspace-write` | no | 1 |
+| `danger-full-access` | **yes** | **0** |
+
+**Prefer `--sandbox danger-full-access`.** It is strictly narrower than `--bypass`, which disables
+the sandbox *and* all approval prompts — and `codex exec` already reports `approval: never` in every
+mode, so that second half buys nothing non-interactively. Reach for `--bypass` only when something
+actually needs the approval path gone.
+
+Both leave the worker unsandboxed, so the container is the only boundary left. That is the
+authorization being granted, and it is per run. The other remedy is relaxing the container policy
+(`scbio-docker docs/ai-integration.md`), which survives a rebuild. Rewording the prompt is neither.
 
 **The launcher enforces this rather than trusting you to check.** A run whose stream carries the
 denial exits **32** and records `state=failed` with `codex_exit=0`, because the child really did

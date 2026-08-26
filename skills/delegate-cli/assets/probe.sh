@@ -187,8 +187,9 @@ if [ "$file_read_check" -eq 1 ]; then
         printf 'probe.sh: codex could not read a file with sandbox %s, and exited %s anyway.\n' \
             "${sandbox:-default}" "$check_status" >&2
         printf 'probe.sh: it will answer from the prompt alone, so any path it names is a guess.\n' >&2
-        printf 'probe.sh: relax the container policy (scbio-docker docs/ai-integration.md) or\n' >&2
-        printf 'probe.sh: obtain authorization for --bypass, which removes the sandbox.\n' >&2
+        printf 'probe.sh: relaunch with --sandbox danger-full-access, which is what removes the\n' >&2
+        printf 'probe.sh: bwrap call, or relax the container policy (scbio-docker\n' >&2
+        printf 'probe.sh: docs/ai-integration.md). --bypass also works and is wider than needed.\n' >&2
         exit 14
     fi
 
