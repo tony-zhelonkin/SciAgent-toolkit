@@ -305,7 +305,9 @@ Four pauses. Pauses 1 and 2 fire on first deploy on every server; Pauses 3 and 4
 
 **Question for the user:** Where on this host are the prepared `.h5ad` files and where should annotations be persisted?
 
-The skill suggests `<project>/03_results/objects/` for data and `<project>/03_results/annotation/<dataset>/` for annotations (per `scrna-pipeline-conventions`). Override if the deployment server keeps data on a different mount (e.g., `/scratch/`, `/data/`).
+The skill suggests `<project>/03_results/objects/` for data and
+`<project>/03_results/annotation/<dataset>/` for annotations. Override if the
+deployment server keeps data on a different mount (e.g., `/scratch/`, `/data/`).
 
 | Option | What happens | When to choose | Default |
 |--------|--------------|-----------------|---------|
@@ -469,6 +471,6 @@ For automated verification: `python checks/validate_cxg_h5ad.py <path-to-h5ad>` 
 
 - `anndata` — Prerequisite-adjacent; operate on the `.h5ad` before schema-prep (subset, copy, layer manipulation)
 - `scanpy` — Prerequisite; standard scRNA-seq UMAP/leiden pipeline (upstream of subset re-embed)
-- `scrna-pipeline-conventions` — Convention; house style for `03_results/objects/` and `03_results/annotation/` paths
+- `scrna-pipeline-conventions` — Assay convention; canonical AnnData objects and derived-format guarantees
 - `scvi-scanvi` — Upstream (often); annotate cell types via reference mapping before hosting
 - `cellxgene-census-annotation` — Adjacent / alternative; cell-type annotation transfer from CellxGene Census

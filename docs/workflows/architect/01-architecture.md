@@ -14,7 +14,7 @@ them.
 
 ```mermaid
 graph TD
-    subgraph "SciAgent-toolkit/ (source)"
+    subgraph "scio/ (source)"
         ROUTER[skills/architecture-first-dev/SKILL.md]
         REFS[skills/architecture-first-dev/references/*.md]
         AGENTS[agents/*.md]
@@ -125,7 +125,7 @@ reference supplies the route-specific prompt, inputs, and output path.
 ## Mount and runtime layout
 
 ```text
-SciAgent-toolkit/
+scio/
 ├── agents/*.md
 ├── commands/*.md
 ├── skills/architecture-first-dev/

@@ -19,7 +19,6 @@ Canonical sub-agent definitions live as flat `agents/<name>.md` files. The
 | `feature-reviser` | Revise feature map per review | `/synthesize` follow-up |
 | `figure-audit` | Inspect rendered figures against the visual contract | base role, on-demand |
 | `graphic` | Visualization design reviewer | `/review --as graphic` |
-| `handoff` | Session handoff doc generator | base role, end-of-session |
 | `insight-explorer` | Data-file exploration with skepticism | base role, on-demand |
 | `mapper` | Map a feature into design surface | `/map` |
 | `meta-architect` | Meta-level architecture coordinator | architect pipeline |

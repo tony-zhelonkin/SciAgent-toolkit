@@ -161,13 +161,13 @@ After running this skill, confirm:
 
 ## Prerequisites
 
-The TE path requires the project-vendored **TE-RNAseq-toolkit v0.1.0** and an
+The TE path requires the project-vendored **TE-RNAseq-toolkit v2.0.3** and an
 `analysis_config.yaml`-based analysis layout.
 
 ## Resources
 
 - **clusterProfiler:** https://bioconductor.org/packages/release/bioc/html/clusterProfiler.html
-- **TE-RNAseq-toolkit v0.1.0:** `01_modules/TE-RNAseq-toolkit/` — `R/create_te_genesets.R`, `R/te_utils.R`
+- **TE-RNAseq-toolkit v2.0.3:** `01_modules/TE-RNAseq-toolkit/` — `R/create_te_genesets.R`, `R/te_utils.R`
 - **Deeper reference (load on demand):** `references/te-gsea.md` — full GMT column contract, `gs_name`/`gene_symbol` vs `term`/`gene` distinction, annotated GSEA code, overlap-check pattern, class-GMT min_size guidance
 
 ---

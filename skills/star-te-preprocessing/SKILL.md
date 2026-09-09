@@ -65,7 +65,7 @@ The Random-One recipe is two artifacts: (1) the STAR args passed to nf-core, and
 #    Per-project Groovy config is the OWNED artifact: references/te_star.config
 
 # 2) featureCounts: two passes via the authoritative driver (do NOT hand-roll the flags)
-#    TE-RNAseq-toolkit v2.0.0 — scripts/runFeatureCounts_TE_and_genes.sh
+#    TE-RNAseq-toolkit v2.0.3 — scripts/runFeatureCounts_TE_and_genes.sh
 runFeatureCounts_TE_and_genes.sh \
   -i  STAR_BAM_DIR \
   -o  OUT_BASE \
@@ -153,7 +153,7 @@ The output must satisfy the following for downstream TE DE (condensed from `03-t
 
 The exact `featureCounts` flags are NOT restated here as an editable copy — the **code is the spec**:
 
-> **Authoritative:** TE-RNAseq-toolkit **v2.0.0** — `scripts/runFeatureCounts_TE_and_genes.sh` (gene pass delegates to `scripts/runFeatureCounts.sh`).
+> **Authoritative:** TE-RNAseq-toolkit **v2.0.3** — `scripts/runFeatureCounts_TE_and_genes.sh` (gene pass delegates to `scripts/runFeatureCounts.sh`).
 
 The contract the script enforces (authoritative pointer above):
 

@@ -204,6 +204,92 @@ _catalog_check() {
         fi
     done
 
+    # The attic holds retired skills, which is what its README and
+    # docs/skill-lifecycle.md claim. Anything else there is unreachable by every
+    # mount and invisible to lint, so it drifts into a second home for a claim.
+    local attic_entry attic_name
+    for attic_entry in "$root"/_attic/*/; do
+        [[ -d "$attic_entry" ]] || continue
+        attic_name=$(basename "$attic_entry")
+        [[ -f "$attic_entry/SKILL.md" ]] && continue
+        echo "ERROR toolkit: _attic/$attic_name: holds no SKILL.md — the attic is for retired skills; move it to docs/ or a skill, or delete it" >&2
+        fail=1
+    done
+
+    # A skill citing its own asset must have it. The condition is that the skill
+    # OWNS the directory: `assets/x` in a skill with an assets/ directory is a
+    # promise about its own tree, while `scripts/y` in a skill with no scripts/
+    # names somebody else's — a vendored toolkit, usually. Without that
+    # distinction the check would flag every external citation.
+    local sdir sname cited target
+    for sdir in "$root"/skills/*/; do
+        [[ -f "$sdir/SKILL.md" ]] || continue
+        sname=$(basename "$sdir")
+        [[ "$sname" == _* ]] && continue
+        while IFS= read -r cited; do
+            [[ -n "$cited" ]] || continue
+            [[ -d "$sdir${cited%%/*}" ]] || continue
+            target="$sdir$cited"
+            [[ -e "$target" ]] && continue
+            echo "ERROR toolkit: $sname: cites $cited, which it does not have" >&2
+            fail=1
+        done < <(grep -oE '`(references|scripts|assets|checks|env|tests)/[A-Za-z0-9_.-]+(/[A-Za-z0-9_.-]+)*`' \
+                    "$sdir/SKILL.md" 2>/dev/null | tr -d '`' | sort -u)
+    done
+
+    # delegate-cli is the one skill whose instructions are executed rather than
+    # read, so a missing, unreadable or non-executable asset is a broken skill
+    # and not a documentation defect. The retired --bg is enforced where it can
+    # be: launch.sh refuses the flag. Grepping SKILL.md for it would flag the
+    # sentence recording its removal as readily as a prescription to use it.
+    local dcli="$root/skills/delegate-cli" asset
+    if [[ -d "$dcli" ]]; then
+        for asset in probe.sh launch.sh status.sh; do
+            if [[ ! -f "$dcli/assets/$asset" ]]; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: is absent — the skill prescribes it" >&2
+                fail=1
+            elif [[ ! -x "$dcli/assets/$asset" ]]; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: is not executable" >&2
+                fail=1
+            elif ! bash -n "$dcli/assets/$asset" 2>/dev/null; then
+                echo "ERROR toolkit: skills/delegate-cli/assets/$asset: does not parse" >&2
+                fail=1
+            fi
+        done
+    fi
+
+    # A skill directory arrives with its first real file. A .gitkeep asserts a
+    # directory that has nothing in it, and an empty one reaches the consumer as
+    # a promise of content that never comes. Both propagate: templates/skill/
+    # carried four .gitkeep files into every skill copied from it.
+    local keep empty rel
+    while IFS= read -r keep; do
+        [[ -n "$keep" ]] || continue
+        rel="${keep#"$root"/}"
+        echo "ERROR toolkit: $rel: claims a directory that needs no claim — a directory arrives with its first real file" >&2
+        fail=1
+    done < <(find "$root/skills" "$root/templates" -type f -name '.gitkeep' 2>/dev/null | sort)
+
+    while IFS= read -r empty; do
+        [[ -n "$empty" ]] || continue
+        rel="${empty#"$root"/}"
+        echo "ERROR toolkit: $rel/: is empty — delete it, or give it the file it exists for" >&2
+        fail=1
+    done < <(find "$root/skills" -type d -empty 2>/dev/null | sort)
+
+    # The CRAFT body is always-on text in every consumer's AGENTS.md, so its
+    # declared budget binds here. Silent without a craft.yaml, matching
+    # craft_render_and_write, so a toolkit with no craft SSOT is unaffected.
+    local craft_body craft_lines craft_max
+    if craft_body=$(_craft_render_body); then
+        craft_max=$(craft_max_lines)
+        craft_lines=$(printf '%s\n' "$craft_body" | awk 'END { print NR }')
+        if (( craft_lines > craft_max )); then
+            echo "ERROR toolkit: craft.yaml: rendered CRAFT body is $craft_lines lines (max $craft_max) — move depth into a skill" >&2
+            fail=1
+        fi
+    fi
+
     if [[ "$quiet" -eq 0 ]]; then
         local name kinds phrase
         while IFS=$'\t' read -r name kinds; do

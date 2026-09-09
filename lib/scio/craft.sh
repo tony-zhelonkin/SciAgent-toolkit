@@ -29,6 +29,19 @@ craft_version() {
     echo "${v:-1}"
 }
 
+# craft_max_lines — emit the `max_lines:` budget for the rendered body.
+# The block is always-on text in every consumer's AGENTS.md, so the budget
+# lives beside the body it governs. Absent key or absent file yields the
+# documented default, so a craft.yaml predating the key is still bounded.
+craft_max_lines() {
+    local f
+    f=$(_craft_yaml_path)
+    [[ -f "$f" ]] || { echo 25; return; }
+    local v
+    v=$(awk '/^max_lines:[[:space:]]*[0-9]+/ { gsub(/[^0-9]/, "", $2); print $2; exit }' "$f")
+    echo "${v:-25}"
+}
+
 # _craft_render_body — assemble the CRAFT block body from craft.yaml:
 #   * read the `floors:` map (key -> value)
 #   * read the trailing `body: |` block scalar (must be the last top-level key)

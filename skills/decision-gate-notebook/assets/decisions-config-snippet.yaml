@@ -21,7 +21,8 @@ decisions:
       drop_interaction_if_trivial: false
       trivial_min_genes: 10
 
-    # ---- audit trail (filled when the human flips status to APPROVED) ----
-    decided_by: ""             # who approved
-    decided_on: ""             # ISO date, e.g. 2026-07-03
-    note: ""                   # one line of rationale
+    # Every key here is read by the notebook or the downstream stage. The reasoning behind
+    # the call -- the evidence weighed, the alternative rejected, who decided and when -- is
+    # a topic note under docs/_internal/<stage-stem>/, which is versioned and survives an
+    # edit to this file. A one-line YAML string is not a record.
+    record: docs/_internal/<stage-stem>/<topic>.md

@@ -89,11 +89,17 @@ Have a non-MSigDB gene set database to run GSEA on?
 
 ## Quick Start: Add a New Database (Generic Recipe)
 
+> **The `02_analysis/helpers/` path below is a project convention.**
+> `pathway_utils.R` and its `filter_pathways_by_size()` belong to the project
+> this example was transcribed from — supply your own equivalent, or filter by
+> set size inline. `<toolkit>/` means wherever this project vendors
+> RNAseq-toolkit; the mount differs across projects.
+
 Minimal end-to-end example for a hypothetical two-column TSV database.
 
 ```r
 # 1. Parse raw file into T2G/T2N
-source("01_scripts/RNAseq-toolkit/scripts/GSEA/GSEA_processing/parse_external_genesets.R")
+source(file.path(DIR_TOOLKIT, "GSEA/GSEA_processing/parse_external_genesets.R"))
 
 db <- parse_geneset_file(
   file     = "00_data/references/mydb/MyDatabase.tsv",

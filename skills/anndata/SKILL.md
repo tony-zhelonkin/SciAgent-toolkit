@@ -58,7 +58,8 @@ adata.var_names_make_unique(join="-")             # Symbol-1 for any duplicate
 # Switch back any time: adata.var_names = adata.var['gene_id']
 ```
 
-See `scrna-pipeline-conventions` Convention 6 for when and why.
+See `scrna-pipeline-conventions/references/gene-identifier-packaging.md` for the
+milestone contract and verification.
 
 ### Where tools store their outputs
 
@@ -78,7 +79,8 @@ See `scrna-pipeline-conventions` Convention 6 for when and why.
 **Multiple UMAPs tip:** If the pipeline produces both an unsupervised UMAP (PCA-based) and an
 integrated UMAP (scANVI/Harmony-based), do not overwrite the single `X_umap` key — rename both
 with a purpose suffix at packaging so collaborators select the right one by name. Document each
-in `uns['embeddings']`. See `scrna-pipeline-conventions` Convention 7.
+in `uns['embeddings']`. See
+`scrna-pipeline-conventions/references/embedding-deliverables.md`.
 
 ---
 

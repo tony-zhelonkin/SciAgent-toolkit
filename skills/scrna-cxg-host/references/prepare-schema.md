@@ -101,7 +101,8 @@ adata.uns["title"] = "<project> • <stage>"
 adata.write_h5ad("03_results/objects/<NN>_explore_<name>.h5ad", compression="gzip")
 ```
 
-Naming convention follows `scrna-pipeline-conventions`: `08_explore_full.h5ad`, `09_explore_<celltype>.h5ad`. The two-digit prefix lets multiple datasets sort meaningfully in `ls`.
+Use stable, descriptive names such as `08_explore_full.h5ad` and
+`09_explore_<celltype>.h5ad` so related prepared datasets sort meaningfully.
 
 ## Idempotency
 

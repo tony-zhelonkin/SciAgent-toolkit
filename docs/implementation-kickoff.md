@@ -11,9 +11,9 @@
 > frontmatter block and every `requires:`/tag mechanism, and made roles
 > pure provenance labels — the full skill/agent/command catalog is mounted
 > unconditionally now, so there is nothing left to inject, eject, or gate by
-> tag. `sciagent validate` today is the frontmatter-shape + collision checker
-> described in `docs/architecture.md` §5, not the graph-and-tag validator PR 2
-> below designs.
+> tag. That checking is `scio lint --check toolkit` today — see the Lint section
+> of `docs/architecture.md` — and not the graph-and-tag validator PR 2 below
+> designs. The `sciagent` command name and the `validate` verb are both retired.
 >
 > Every PR plan, file list, code skeleton, and the session-resume prompt in §7
 > below describes that abandoned direction. It is kept **only as an audit

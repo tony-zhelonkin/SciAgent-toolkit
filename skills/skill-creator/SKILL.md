@@ -361,7 +361,7 @@ The key thing to avoid: don't make should-not-trigger queries obviously irreleva
 
 Present the eval set to the user for review using the HTML template:
 
-1. Read the template from `assets/eval_review.html`
+1. Read the template from `assets/eval-review.html`
 2. Replace the placeholders:
    - `__EVAL_DATA_PLACEHOLDER__` → the JSON array of eval items (no quotes around it — it's a JS variable assignment)
    - `__SKILL_NAME_PLACEHOLDER__` → the skill's name

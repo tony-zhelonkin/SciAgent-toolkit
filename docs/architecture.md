@@ -10,15 +10,17 @@ discovery paths.
 ## Source layout
 
 ```text
-SciAgent-toolkit/
+scio/
 ├── bin/scio
-├── lib/scio/
+├── lib/scio/          # common.sh first, then the modules one verb needs
 ├── skills/<name>/SKILL.md
 ├── agents/<name>.md
 ├── commands/<name>.md
 ├── craft.yaml
 ├── templates/
-└── tests/
+├── tests/
+├── docs/              # this tree; docs/_internal/ is its own repository
+└── _attic/            # retired skills, each still a SKILL.md
 ```
 
 The three mount directories contain mountable content only. Their source shape
@@ -35,7 +37,9 @@ The CLI has three verbs:
 - `lint` runs project checks and the explicit toolkit catalog check.
 
 The dispatcher resolves its own real path, derives `$SCIO_TOOLKIT`, sources
-the dependency closure for one verb, and calls that verb's `cmd_*` entrypoint.
+`common.sh` plus the dependency closure for one verb, and calls that verb's
+`cmd_*` entrypoint. Module order is decided there rather than by modules
+sourcing each other.
 
 ## Link topology
 
@@ -51,8 +55,28 @@ D/.agents/commands -> $SCIO_TOOLKIT/commands
 ```
 
 The operation is convergent. It sweeps legacy toolkit-owned child links,
-preserves populated directories and user-owned links, and silently keeps
-correct bindings. A locality check protects submodule pins.
+preserves user-owned links, and silently keeps correct bindings. A locality
+check protects submodule pins.
+
+A category whose directory holds anything the toolkit does not own — a skill
+the project wrote, or one a third-party installer put there — keeps that
+directory and receives one link per catalog entry beside the project's own.
+The category symlink is the better binding because it needs no refresh when
+the catalog changes, but it makes the mount point resolve into the toolkit
+checkout, so an installer writing to `.claude/skills/` writes into the vendored
+submodule, where the result is untracked and the next checkout there deletes
+it. A project entry named like a catalog entry keeps loading, and `link`
+reports the shadow on every run. Remove the last project entry and the
+category converges back to the single symlink.
+
+Those six paths are the door. The same files are also reachable through the
+vendored tree, and that path is the fallback: a skill reached through a mount
+discloses progressively, while one named by vendor path arrives whole.
+
+The vendored directory is named `scio`, and `SciAgent-toolkit` for copies
+predating the ADR-D9 rename. Discovery, ownership, freshness and the two
+executable templates read one list, `lib/scio/common.sh::_SCIO_TOOLKIT_DIRS`,
+preferring the new name — so a project may sit at either during the migration.
 
 Analysis projects also receive shared helper-library links and import shims.
 `link` refreshes the `SCIO:GITIGNORE` block because those bindings and the
@@ -82,14 +106,22 @@ accepts CRAFT alone.
 
 ## Lint
 
-`lint` contains project guardrail checks for figure style, results layout,
-captions, provenance, freshness, stage structure, comment intent,
-documentation layout, and registered hook existence. Findings warn by default
-and become failures under `--strict`.
+`lint` runs thirteen selectable checks: `figure-style`, `results-layout`,
+`captions`, `provenance`, `freshness`, `hooks`, `docs-layout`, `stage-thinness`,
+`comment-intent`, `stage-layout`, `harness-links`, `internal-memory` and
+`toolkit`. Findings warn by default and become failures under `--strict`.
 
-`scio lint --check toolkit` checks skill frontmatter shape and reports
-basename collisions across skills, agents, and commands. The release builder
-uses this check as its catalog gate.
+`internal-memory` and `toolkit` are **opt-in**: neither is a member of `all`,
+because each audits a subject a project may legitimately not have yet. Every
+check treats an absent subject as silence rather than a finding.
+
+`scio lint --check toolkit` is the catalog gate the release builder uses. It
+checks skill frontmatter shape and description length, reports basename
+collisions across skills, agents and commands, holds the CRAFT body to
+`craft.yaml`'s `max_lines`, requires every `_attic/` entry to be a retired skill,
+refuses a `.gitkeep` or an empty directory under `skills/` and `templates/`, and
+requires delegate-cli's three assets to be present, executable and parseable —
+that skill's instructions are executed rather than read.
 
 ## State and removal
 
@@ -101,5 +133,16 @@ before hook ownership is evaluated.
 Project removal is manual: unlink the six category paths, remove complete
 `SCIO` or legacy `SCIAGENT` managed blocks from `AGENTS.md`, and edit
 materialized hook settings when the project retires enforcement.
+
+## Project memory
+
+`docs/_internal/` is its own Git repository in every project, always (ADR-D10).
+That is what makes rewriting a record safe and what lets the owner publish the
+reasoning on its own schedule; publication embeds it as a submodule.
+
+Scope is the only structure: a directory per stage stem, plus `_project/` for
+what spans or precedes stages, holding flat topic notes and `plans/`. `session.md`
+is the live record and always carries that name; what it superseded lives in
+`session-history/<UTC timestamp>.md`, so a plain sort is chronological order.
 
 See [propagation.md](propagation.md) for the two-hop delivery model.

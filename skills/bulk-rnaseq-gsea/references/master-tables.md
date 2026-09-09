@@ -50,6 +50,13 @@ Need to work with GSEA results in tabular form?
 
 ## Quick Start
 
+> **The `02_analysis/` paths below are a project convention.**
+> `config/config.R`, `helpers/normalize_gsea.R`, the numbered
+> `1.5.create_master_tables.R` stage and `DIR_CHECKPOINTS` belong to the project
+> these examples were transcribed from — supply your own equivalents. The
+> `<toolkit>/` means wherever this project vendors RNAseq-toolkit — the mount
+> differs across projects, so resolve it rather than copying a path.
+
 Normalize a single gseaResult object and write to CSV:
 
 ```r
@@ -402,6 +409,6 @@ message("All checks passed")
 
 - **clusterProfiler docs:** https://yulab-smu.top/biomedical-knowledge-mining-book/enrichment-overview.html
 - **fgsea paper:** Korotkevich et al., bioRxiv 2021, doi:10.1101/060012
-- **RNAseq-toolkit normalize_gsea.R:** `01_scripts/RNAseq-toolkit/scripts/GSEA/GSEA_processing/normalize_gsea.R`
-- **Project-local normalize_gsea.R:** `02_analysis/helpers/normalize_gsea.R`
-- **GSEA workflow documentation:** `01_scripts/RNAseq-toolkit/docs/GSEA-workflow/`
+- **RNAseq-toolkit normalize_gsea.R:** `<toolkit>/scripts/GSEA/GSEA_processing/normalize_gsea.R`
+- **Project-local normalize_gsea.R:** `02_analysis/helpers/normalize_gsea.R` — where the convention puts it, if your project keeps one
+- **GSEA workflow documentation:** `<toolkit>/docs/GSEA-workflow/`

@@ -107,7 +107,7 @@ _writes_to_results() {
 
 if _writes_to_results "$cmd" && ! _is_sanctioned "$cmd" && _is_inline_or_outside_stages "$cmd"; then
     msg="[scio/no-ephemeral] Convention E: results must be reproducible from a committed 02_analysis/stages/NN_* stage.
-Capture throwaway probes in _scratch/ or a reasoning trace (docs/_internal/).
+Keep a throwaway probe out of 03_results/; if its reasoning is worth keeping, write it to docs/_internal/<stage-stem>/.
 If this is a real analysis step, save the code as 02_analysis/stages/NN_*.{R,py} first."
 
     if [[ "${SCIO_STRICT:-0}" == "1" || "${SCIO_STRICT:-}" == "true" ]]; then

@@ -20,7 +20,7 @@
 #                   the (c) GUARDRAIL layer).
 #   docs-layout     docs/_internal/ must be gitignored when the project is a
 #                   git repo (leaks internal notes on push otherwise); plus
-#                   softer structural warnings — missing docs/_internal/, a
+#                   softer structural warnings — a
 #                   stray .md at the 03_results/ root, mixed archive-naming
 #                   conventions, non-standard handoff filenames. No-ops
 #                   entirely (same absent-subject pattern as figure-style/
@@ -35,7 +35,18 @@
 #                   one definition.
 #   comment-intent  see docs 09 §3.N (stub; implemented in a parallel change).
 #   stage-layout    see docs 09 §3.N (stub; implemented in a parallel change).
-#   toolkit         skill frontmatter shape and cross-namespace collisions.
+#   harness-links   every mount `link` writes still resolves, and names no
+#                   absolute path inside the project — such a path resolves on
+#                   one side of the container boundary only. An absolute target
+#                   outside the project is the global-install channel and is
+#                   silent. Absent mounts are an absent subject.
+#   internal-memory the shape of an existing docs/_internal/ tree: stage-keyed
+#                   directories holding real content, no retired flat
+#                   namespace, no .gitkeep, one live session.md per scope
+#                   beside its dated archives, no non-memory payload. Opt-in
+#                   like `toolkit`; absent tree is silence.
+#   toolkit         skill frontmatter shape, cross-namespace collisions, and
+#                   the rendered CRAFT body against craft.yaml `max_lines:`.
 # These run ONLY when --check <name> (or --check all, or no --check at all —
 # `all` is the default) is given. They are SOFT warnings (exit 0) by default
 # and HARD failures (exit 1) under --strict. `_scratch/` and $TMPDIR are always
@@ -517,7 +528,7 @@ _vcheck_extract_scripts() {
 # ---------------------------------------------------------------------------
 # Compare the project's stored CRAFT block hash to what the toolkit's current
 # craft.yaml renders (any staleness, not just a version-integer bump). Also, if
-# 01_modules/SciAgent-toolkit is a git submodule, compare its checked-out
+# the vendored toolkit is a git submodule, compare its checked-out
 # commit to the toolkit HEAD. WARN with a re-pin hint when behind.
 # Uses block.sh/craft.sh accessors so marker-format knowledge stays in block.sh.
 _lint_check_freshness() {
@@ -550,8 +561,20 @@ _lint_check_freshness() {
     fi
 
     # --- submodule commit vs toolkit HEAD ---------------------------------
-    local submod="$projdir/01_modules/SciAgent-toolkit"
-    if [[ -d "$submod" ]]; then
+    # A candidate has to be a toolkit checkout with its own git directory. An
+    # ordinary directory of the same name would otherwise shadow the real
+    # submodule, and `git -C` walks upward, so the comparison would silently be
+    # against the project's own repository instead of failing.
+    local submod="" submod_rel="" toolkit_dir cand
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        cand="$projdir/01_modules/$toolkit_dir"
+        if [[ -e "$cand/.git" ]] && [[ -x "$cand/bin/scio" || -f "$cand/craft.yaml" ]]; then
+            submod_rel="01_modules/$toolkit_dir"
+            submod="$cand"
+            break
+        fi
+    done
+    if [[ -n "$submod" ]]; then
         local sub_head tk_head
         sub_head=$(git -C "$submod" rev-parse HEAD 2>/dev/null)
         tk_head=$(git -C "$tk_root" rev-parse HEAD 2>/dev/null)
@@ -559,7 +582,7 @@ _lint_check_freshness() {
             # Only warn when the submodule is an ANCESTOR of (behind) HEAD.
             if git -C "$tk_root" merge-base --is-ancestor "$sub_head" "$tk_head" 2>/dev/null; then
                 _vcheck_emit "$strict" "$quiet" freshness \
-                    "01_modules/SciAgent-toolkit is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: scio link && scio craft" || rc=1
+                    "$submod_rel is behind toolkit HEAD (${sub_head:0:8} < ${tk_head:0:8}) — re-pin the submodule, then run: scio link && scio craft" || rc=1
             fi
         fi
     fi
@@ -597,11 +620,6 @@ _lint_check_docs_layout() {
     # does not mandate that one exist.
     [[ -d "$projdir/docs" ]] || return 0
 
-    # docs/_internal/ does not exist (docs/ itself does, so the project has
-    # opted into the convention but hasn't finished scaffolding it).
-    [[ -d "$projdir/docs/_internal" ]] || \
-        { _vcheck_emit "$strict" "$quiet" docs-layout "docs/_internal/ missing — run: scio link" || rc=1; }
-
     # docs/_internal/ exists but is NOT gitignored (in a git repo).
     if [[ -d "$projdir/docs/_internal" ]]; then
         local _in_git
@@ -617,7 +635,7 @@ _lint_check_docs_layout() {
     while IFS= read -r f; do
         [[ -f "$f" ]] || continue
         _vcheck_emit "$strict" "$quiet" docs-layout \
-            "report in results dir: $(basename "$f") — move to docs/_internal/reports/" || rc=1
+            "report in results dir: $(basename "$f") — a stage README captions its own artifacts; move prose into this repo's memory record" || rc=1
     done < <(find "$projdir/03_results" -maxdepth 1 -name "*.md" 2>/dev/null)
 
     # Multiple archive-style naming conventions coexisting under one parent.
@@ -661,6 +679,322 @@ _lint_check_docs_layout() {
         fi
     done
 
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+# Check: harness-links
+# ---------------------------------------------------------------------------
+# Every mount `link` writes must still resolve, and must not name an absolute
+# path inside the project. The same project tree is mounted at two absolute
+# paths — the host's and the container's — so an absolute in-project target can
+# only ever name one of them, and `link` run from the other side silently
+# rewrites all six. Findings are soft warnings unless --strict:
+#   - a toolkit mount that does not resolve
+#   - a toolkit mount whose target is an absolute path inside this project
+#
+# An absolute target pointing OUTSIDE the project is correct and stays silent:
+# that is the global-install channel, where a relative chain would break the
+# moment the project directory moves.
+_LINT_HARNESS_MOUNTS=(
+    .claude/skills .claude/agents .claude/commands
+    .agents/skills .agents/agents .agents/commands
+    02_analysis/helpers/figure-style 02_analysis/helpers/interactive-style
+)
+
+_lint_check_harness_links() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+    local proj rel p target toolkit_dirs_re
+
+    proj=$(cd "$projdir" 2>/dev/null && pwd -P) || return 0
+    toolkit_dirs_re=$(IFS='|'; printf '%s' "${_SCIO_TOOLKIT_DIRS[*]}")
+
+    for rel in "${_LINT_HARNESS_MOUNTS[@]}"; do
+        p="$projdir/$rel"
+        # Absent-subject guard, per mount: a project may bind neither harness
+        # directory, and a real populated directory is the user's own.
+        [[ -L "$p" ]] || continue
+
+        target=$(readlink "$p") || continue
+
+        if [[ ! -e "$p" ]]; then
+            _vcheck_emit "$strict" "$quiet" harness-links \
+                "$rel does not resolve (-> $target) — run: scio link" || rc=1
+            continue
+        fi
+
+        if [[ "$target" == /* ]]; then
+            case "$target/" in
+                "$proj"/*)
+                    _vcheck_emit "$strict" "$quiet" harness-links \
+                        "$rel names an absolute path inside this project (-> $target) — it resolves on one side of the container boundary only; run: scio link" || rc=1
+                    ;;
+            esac
+        fi
+    done
+
+    # `.claude/` and `.agents/` are the door; the vendored tree is the fallback.
+    # Both reach the same bytes, so nothing breaks — what breaks is progressive
+    # disclosure. Routed through a mount, a skill offers its summary and the
+    # reader pulls detail on demand. Named by vendor path it is an ordinary file,
+    # so the whole SKILL.md lands in context unrouted, with assets/ unseen: 6,610
+    # bytes in two reads, observed in JR-MC. The path is also wrong under a
+    # global install, where the vendored tree does not exist.
+    #
+    # Memory and tests are exempt: a note records what happened, including a
+    # wrong path, and a test's job is to build the state under audit. Neither
+    # instructs an agent where to read. The toolkit's own tree is exempt for the
+    # same reason and one more — it is where this rule is written down, and it
+    # has no 01_modules/ mount to reach through.
+    if [[ ! ( -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ) ]] \
+       && [[ "$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]]; then
+        local cite
+        while IFS= read -r cite; do
+            [[ -n "$cite" ]] || continue
+            _vcheck_emit "$strict" "$quiet" harness-links \
+                "$cite reaches a skill by vendor path — route through .claude/ or .agents/, which is what the harness reads and what a global install has" || rc=1
+        done < <(git -C "$projdir" grep -l -I -E "01_[Mm]odules/(${toolkit_dirs_re})/skills/" \
+                    -- . ':(exclude)docs/_internal' ':(exclude)tests' 2>/dev/null | sort)
+    fi
+
+    return $rc
+}
+
+# ---------------------------------------------------------------------------
+# Check: internal-memory
+# ---------------------------------------------------------------------------
+# Audit the SHAPE of an existing docs/_internal/ memory tree: one directory per
+# scope, each holding real content. Scope is the only structure — a stage stem,
+# or `_project/` for what spans or precedes stages. There is no per-document
+# category directory: a stage holds `session.md` and flat topic notes beside it.
+# Findings are soft warnings unless --strict:
+#   - a retired flat namespace as an immediate child
+#   - an immediate child that is not a scope this project has
+#   - a scope holding no non-empty Markdown — the empty-scaffold failure
+#   - a plan directory with no non-empty 00_INDEX.md
+#   - a .gitkeep, or any empty directory
+#   - a continuity filename outside `session.md` plus `session-<date>.md`
+#   - archives with no live session.md beside them
+#   - a file that is not memory: memory is Markdown
+#   - a populated tree that is not its own repository, so a rewrite of
+#     session.md has nowhere to keep the copy it supersedes and the tree's
+#     visibility is the parent's to choose
+#   - a parent tracking the tree as plain files beside that repository
+#
+# Opt-in, never a member of `all`: it would fire in every consumer before any
+# project has adopted the skeleton, and `all` must stay quiet on legitimate
+# absence.
+#
+# What it cannot do: judge whether reasoning is sound, whether anything
+# important went unrecorded, or whether a note is still current. It cannot see
+# work that never left a scratch directory. Claiming any of that would repeat
+# the defect it exists to remove — an instruction naming something the
+# mechanism does not guarantee.
+_lint_check_internal_memory() {
+    local projdir="$1" strict="$2" quiet="$3"
+    local rc=0
+    local root="$projdir/docs/_internal"
+
+    # Absent-subject guard, same shape as docs-layout and results-layout: 10 of
+    # 24 surveyed projects have no docs/_internal/ and absence is legitimate,
+    # so an absent tree produces no output at all.
+    [[ -d "$root" ]] || return 0
+
+    # Only the scope grammar is consumer-specific: it keys to 02_analysis/stages,
+    # which the toolkit's own tree has none of. The payload and topology rules
+    # below are universal, so the toolkit is held to them like any consumer.
+    local self=0
+    [[ -f "$projdir/craft.yaml" && -d "$projdir/lib/scio" ]] && self=1
+
+    # The scopes this project has. A viz twin shares its compute stage's number
+    # and stem, so `NN_topic_viz` collapses to `NN_topic`: one stage, one scope.
+    local -a stems=()
+    local f base
+    while IFS= read -r f; do
+        base=$(basename "$f")
+        base="${base%.*}"
+        stems+=("${base%_viz}")
+    done < <(_vcheck_stage_files "$projdir")
+
+    local d name s matched
+    for d in "$root"/*/; do
+        (( self )) && break
+        [[ -d "$d" ]] || continue
+        name=$(basename "$d")
+
+        case "$name" in
+            handoffs|sessions|plans|reports|research)
+                _vcheck_emit "$strict" "$quiet" internal-memory \
+                    "docs/_internal/$name/ is a retired flat namespace — memory is keyed to the scope that produced it" || rc=1
+                continue
+                ;;
+        esac
+
+        if [[ "$name" == "_project" ]]; then
+            _lint_im_scope_content "$d" "$name" "$strict" "$quiet" || rc=1
+            _lint_im_plans "$projdir" "${d%/}/plans" "$strict" "$quiet" || rc=1
+            continue
+        fi
+
+        # Without stages there is no observable work key to validate against, so
+        # `_project/` is the only scope. Inventing a second grammar would name a
+        # vocabulary nothing checks.
+        if (( ${#stems[@]} == 0 )); then
+            _vcheck_emit "$strict" "$quiet" internal-memory \
+                "docs/_internal/$name/ is not a scope this project has — with no 02_analysis stages, memory belongs under _project/" || rc=1
+            continue
+        fi
+
+        matched=0
+        for s in "${stems[@]}"; do
+            [[ "$name" == "$s" ]] && { matched=1; break; }
+        done
+        if (( matched == 0 )); then
+            _vcheck_emit "$strict" "$quiet" internal-memory \
+                "docs/_internal/$name/ matches no stage stem — key it to a stage or move it under _project/" || rc=1
+            continue
+        fi
+
+        _lint_im_scope_content "$d" "$name" "$strict" "$quiet" || rc=1
+    done
+
+    local -a findings=()
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        findings+=("${f#"$projdir"/} claims a directory that has no content yet — create it with its first real file")
+    done < <(find "$root" -name .git -prune -o -type f -name '.gitkeep' -print 2>/dev/null | sort)
+
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        findings+=("${f#"$projdir"/} is empty — a directory arrives with its first real file")
+    done < <(find "$root" -name .git -prune -o -type d -empty -print 2>/dev/null | sort)
+
+    # Memory is Markdown. An allowlist rather than a blacklist of payload types:
+    # one surveyed tree is 568 MB because a virtualenv lives in it, another 231 MB
+    # around a model checkpoint, and between them the fleet has accumulated PNG,
+    # PDF, JSON and CSV too. A matched directory is reported once and not
+    # descended into. A nested .git/ is exempt — it is the recommended topology.
+    while IFS= read -r f; do
+        [[ -n "$f" ]] || continue
+        findings+=("${f#"$projdir"/} is not memory — memory is Markdown")
+    done < <(find "$root" -name .git -prune \
+        -o -type d \( -name '.venv' -o -name 'venv' -o -name '__pycache__' \
+                      -o -name '.ipynb_checkpoints' -o -name 'node_modules' \
+                      -o -name '.mypy_cache' -o -name '.pytest_cache' \
+                      -o -name '.ruff_cache' \) -prune -print \
+        -o -type f ! -name '*.md' ! -name '.gitignore' ! -name '.gitattributes' \
+                   ! -name '.gitkeep' -print \
+        2>/dev/null | sort)
+
+    # Continuity has exactly one shape, and the point of it is that a reader
+    # never has to work out which file is current. `session.md` is the live
+    # record and always carries that name; everything it superseded lives one
+    # level down in session-history/, named for the UTC instant it stopped being
+    # current, so a plain sort is chronological order.
+    #
+    #   <scope>/session.md
+    #   <scope>/session-history/20260824T153612Z.md
+    #
+    # The subdirectory is the same document's history, not a category of
+    # documents — the rule against category directories is about splitting
+    # topics into folders, which this does not do. Timestamps to the second, so
+    # a dozen handoffs in a day need no counter and no tie-break.
+    # Interval expressions are avoided so this holds under any POSIX awk.
+    local cont dir
+    while IFS= read -r cont; do
+        [[ -n "$cont" ]] || continue
+        findings+=("${cont#"$projdir"/}: the live record is session.md and its history belongs in session-history/<UTC timestamp>.md")
+    done < <(find "$root" -name .git -prune -o -path '*/session-history' -prune \
+        -o -type f \
+        \( -name 'session*.md' -o -name 'handoff*.md' -o -name 'STATE.md' \
+           -o -name '00_STATE.md' -o -name 'HANDOFFS.md' \) -print 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); if (a[n] != "session.md") print }' | sort)
+
+    # An archive name that is not a timestamp cannot be ordered against its
+    # siblings, which is the one job the name has here.
+    while IFS= read -r cont; do
+        [[ -n "$cont" ]] || continue
+        findings+=("${cont#"$projdir"/}: session-history/ holds one file per superseded record, named <UTC timestamp>.md such as 20260824T153612Z.md")
+    done < <(find "$root" -name .git -prune -o -type d -name 'session-history' -exec find {} -type f -print \; 2>/dev/null \
+        | awk '{ n = split($0, a, "/"); base = a[n]
+                 if (base ~ /^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]T[0-9][0-9][0-9][0-9][0-9][0-9]Z\.md$/) next
+                 print }' | sort)
+
+    # History with no live record: a reader opening the scope finds only files
+    # that have already stopped being true.
+    while IFS= read -r dir; do
+        [[ -n "$dir" ]] || continue
+        [[ -f "$(dirname "$dir")/session.md" ]] && continue
+        findings+=("${dir#"$projdir"/}/: holds superseded records with no live session.md beside it")
+    done < <(find "$root" -name .git -prune -o -type d -name 'session-history' -print 2>/dev/null | sort)
+
+    # The memory is its own repository. That is what makes an in-place update of
+    # session.md safe, and it is what lets the owner publish or withhold the
+    # reasoning independently of the code — at paper submission, the parent adds
+    # it as a submodule and the whole history ships. A tree with no repository of
+    # its own has neither property. `link` creates nothing; this observes.
+    if ! _lint_im_nested_repo "$root"; then
+        if [[ -n "$(find "$root" -type f -name '*.md' -print -quit 2>/dev/null)" ]]; then
+            findings+=("docs/_internal/ is not its own repository — an in-place update overwrites the only copy, and its visibility cannot be chosen apart from the parent; see ADR-D10")
+        fi
+    elif _lint_im_parent_tracks_plain "$projdir"; then
+        # A force-add gives the parent a copy of files the nested repository
+        # already versions: two histories of one tree, diverging silently. The
+        # publication route embeds it as a submodule instead.
+        findings+=("the parent tracks docs/_internal/ as plain files beside its own repository — two histories of one tree; embed it as a submodule when you publish")
+    fi
+
+    local msg
+    for msg in "${findings[@]+"${findings[@]}"}"; do
+        _vcheck_emit "$strict" "$quiet" internal-memory "$msg" || rc=1
+    done
+
+    return $rc
+}
+
+# _lint_im_nested_repo <root>
+# True when the memory tree is its own repository. `.git` is a DIRECTORY for a
+# plain clone and a FILE when the tree is a worktree or a submodule, so this
+# tests existence rather than type.
+_lint_im_nested_repo() {
+    [[ -e "$1/.git" ]]
+}
+
+# _lint_im_parent_tracks_plain <projdir>
+# True when the parent tracks paths under docs/_internal/ as ordinary blobs. A
+# submodule appears as a single gitlink (mode 160000) and is the intended
+# publication form, so it does not count.
+_lint_im_parent_tracks_plain() {
+    local projdir="$1"
+    [[ "$(git -C "$projdir" rev-parse --is-inside-work-tree 2>/dev/null)" == "true" ]] || return 1
+    git -C "$projdir" ls-files -s -- docs/_internal 2>/dev/null \
+        | awk 'NF && $1 != "160000" { found = 1 } END { exit !found }'
+}
+
+# _lint_im_scope_content <dir> <name> <strict> <quiet>
+# A scope earns its directory by holding a non-empty Markdown file: session.md,
+# a flat topic note, or content nested under it such as a plan.
+_lint_im_scope_content() {
+    local d="$1" name="$2" strict="$3" quiet="$4"
+    [[ -z "$(find "$d" -type f -name '*.md' ! -empty -print -quit 2>/dev/null)" ]] || return 0
+    _vcheck_emit "$strict" "$quiet" internal-memory \
+        "docs/_internal/$name/ holds no non-empty Markdown — a directory arrives with its first real file"
+}
+
+# _lint_im_plans <projdir> <plansdir> <strict> <quiet>
+# A phased plan earns a directory by carrying the map that makes it one.
+_lint_im_plans() {
+    local projdir="$1" plans="$2" strict="$3" quiet="$4"
+    local rc=0 p rel
+    [[ -d "$plans" ]] || return 0
+    for p in "$plans"/*/; do
+        [[ -d "$p" ]] || continue
+        [[ -s "$p/00_INDEX.md" ]] && continue
+        rel="${p%/}"
+        _vcheck_emit "$strict" "$quiet" internal-memory \
+            "${rel#"$projdir"/} needs a non-empty 00_INDEX.md — a plan without a phase map is a topic note" || rc=1
+    done
     return $rc
 }
 
@@ -736,12 +1070,12 @@ _lint_run_checks() {
     local n
     for n in "${names[@]}"; do
         case "$n" in
-            all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout); break ;;
-            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|toolkit) run+=("$n") ;;
+            all) run=(figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout harness-links); break ;;
+            figure-style|results-layout|captions|provenance|freshness|hooks|docs-layout|stage-thinness|comment-intent|stage-layout|harness-links|internal-memory|toolkit) run+=("$n") ;;
             "") ;;
             *)
                 echo "scio lint: unknown --check name '$n'" >&2
-                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout toolkit all" >&2
+                echo "  valid: figure-style results-layout captions provenance freshness hooks docs-layout stage-thinness comment-intent stage-layout harness-links internal-memory toolkit all" >&2
                 return 1 ;;
         esac
     done
@@ -755,6 +1089,8 @@ _lint_run_checks() {
             freshness)      _lint_check_freshness      "$projdir" "$strict" "$quiet" || rc=1 ;;
             hooks)          _lint_check_hooks          "$projdir" "$strict" "$quiet" || rc=1 ;;
             docs-layout)    _lint_check_docs_layout    "$projdir" "$strict" "$quiet" || rc=1 ;;
+            harness-links)  _lint_check_harness_links  "$projdir" "$strict" "$quiet" || rc=1 ;;
+            internal-memory) _lint_check_internal_memory "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-thinness) _lint_check_stage_thinness "$projdir" "$strict" "$quiet" || rc=1 ;;
             comment-intent) _lint_check_comment_intent "$projdir" "$strict" "$quiet" || rc=1 ;;
             stage-layout)   _lint_check_stage_layout   "$projdir" "$strict" "$quiet" || rc=1 ;;
@@ -784,8 +1120,9 @@ scio lint [--project-dir <dir>] [--check <name>...] [--strict] [--quiet]
                      name ∈ figure-style | results-layout | captions |
                             provenance | freshness | hooks | docs-layout |
                             stage-thinness | comment-intent | stage-layout |
-                            toolkit | all.
-                     Default (no --check given): all.
+                            harness-links | internal-memory | toolkit | all.
+                     Default (no --check given): all. `internal-memory` and
+                     `toolkit` are opt-in and are not members of `all`.
   --strict           Findings become HARD failures (exit 1) instead of WARN.
   --quiet            Suppress soft-WARN output on success/no-strict findings.
 

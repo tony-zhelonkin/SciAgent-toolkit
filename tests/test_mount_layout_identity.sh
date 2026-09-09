@@ -62,8 +62,8 @@ grep -Fxq 'bio-interpreter.md' "$expected_agents" || {
     echo "FAIL [$_TEST_NAME] bio-interpreter.md lost its mounted name" >&2
     exit 1
 }
-grep -Fxq 'add-figure-variant.md' "$expected_commands" || {
-    echo "FAIL [$_TEST_NAME] add-figure-variant.md lost its mounted name" >&2
+grep -Fxq 'commit.md' "$expected_commands" || {
+    echo "FAIL [$_TEST_NAME] commit.md lost its mounted name" >&2
     exit 1
 }
 

@@ -9,8 +9,9 @@ jupyter: python3
 **Live tool — needs a running Python kernel** (VS Code + Jupyter, or JupyterLab). This is not a
 `quarto render` artifact: brushing/lassoing only works in a live kernel. Rebuild the compact data
 first with `python 02_analysis/stages/export_explorers.py` (never open the multi-GB `.h5ad`
-here). This explorer FEEDS the decision gate — it ends in a `## Decision — decisions.[stage]`
-note that the static `decision-gate-notebook` sibling records as `status: APPROVED`.
+here). This notebook is a working surface: it produces barcodes and a labelled snapshot, and it
+is overwritten on the next run. What you conclude from looking belongs in a topic note under
+`docs/_internal/<stage-stem>/`.
 :::
 
 ## Where we are
@@ -122,9 +123,11 @@ sel_reloaded = sel_reloaded[sel_reloaded >= 0]
 print(f"reloaded {len(sel_reloaded)} of {len(saved)} barcodes")
 ```
 
-## Decision — `decisions.[stage]`
+## What looking told me
 
-<!-- One paragraph: what looking at the cells told me, and what I'm proposing to freeze. This
-     FEEDS the gate — the auditable `status: APPROVED` flip lives in the decision-gate-notebook
-     sibling (02_analysis/notebooks/[NN]_[stage]_review/), which records it in
-     analysis_config.yaml under decisions.[stage]. Nothing is frozen until then. -->
+<!-- One paragraph, then copy it into docs/_internal/<stage-stem>/<topic>.md. State what the
+     cells showed, the numbers behind it, and the reading you rejected. This cell is scratch,
+     overwritten on the next run; the topic note is the record the next session reads.
+
+     If a downstream stage must refuse to run until this is signed off, that latch is a
+     separate mechanism — see the decision-gate-notebook skill. -->

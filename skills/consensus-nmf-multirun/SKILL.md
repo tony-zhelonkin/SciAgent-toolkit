@@ -421,4 +421,5 @@ For automated verification: `python checks/check_program_redundancy.py <correlat
 - `single-cell-rna-qc` — Prerequisite; MAD-based QC filtering before this skill
 - `genenmf-metaprogram-discovery` — Alternative; per-sample NMF + cross-donor consensus, a different statistical object
 - `bulk-rnaseq-pathway-explorer` — Downstream; build an interactive HTML pathway dashboard from program annotations
-- `scrna-pipeline-conventions` — Convention; house style for output paths / numbered scripts
+- `scrna-pipeline-conventions` — Assay convention; AnnData checkpoints and milestone packaging
+- `analysis-code-conventions` — Structural convention; narrative stages and restartable data flow

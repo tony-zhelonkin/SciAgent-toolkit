@@ -11,8 +11,7 @@ This file is the single source of truth for AI agent behavior in this project.
 
 This is a **software** repository: a reusable package, not an analysis. Package
 identity, language, and lint/test commands live in `tool_config.yaml`. The design intent
-and scope live in `docs/_internal/design/`; handoffs are written there as
-`docs/_internal/design/YYYY-MM-DD_<slug>.md` (software projects have no `sessions/`).
+and scope live under `docs/_internal/_project/`.
 
 ---
 
@@ -29,7 +28,8 @@ Run `scio link` to bind the toolkit catalog and project guardrails. Run
 2. **Public API is the contract.** Keep it small, documented, and stable.
 3. **No analysis idioms.** This is a library — no checkpoint objects, no `00_data/` tree,
    no figure generation. Examples go in `examples/`.
-4. **Benchmarks are reproducible.** Performance claims are backed by `docs/_internal/benchmarks/`.
+4. **Benchmarks are reproducible.** Performance claims are backed by records kept with
+   a record under `docs/_internal/_project/`.
 
 ---
 
@@ -49,14 +49,19 @@ Run `scio link` to bind the toolkit catalog and project guardrails. Run
 
 ## Documentation namespace
 
-`docs/_internal/` is agent-facing (not the published deliverable). Route writing here:
+`docs/_internal/` is the agent-facing reasoning record. A software repository has no
+analysis stages to key memory to, and its issues and branches already partition the work,
+so everything lives under one scope:
 
 | Path | Holds |
 |------|-------|
-| `docs/_internal/design/` | design intent, API decisions, scope |
-| `docs/_internal/reasoning/` | decision traces, why-not logs |
-| `docs/_internal/benchmarks/` | performance results backing any claims |
-| session handoff | `docs/_internal/design/` |
+| `docs/_internal/_project/session.md` | where the work stopped |
+| `docs/_internal/_project/<topic>.md` | one design decision, API choice or benchmark |
+| `docs/_internal/_project/plans/<date-slug>/` | a phased plan: `00_INDEX.md` + `NN_<slug>.md` |
+
+Create each directory with its first real file, and update `session.md` in place — an
+in-place update keeps one current record instead of a dated pile, so write it knowing it
+replaces what was there.
 
 ---
 

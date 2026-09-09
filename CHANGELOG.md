@@ -7,10 +7,122 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-09-09
+
+### Changed
+
+- **A project may keep its own skills in `.claude/skills/`.** When a category
+  directory holds an entry the toolkit does not own, `link` preserves it and
+  binds the catalog as one symlink per entry beside it, where before it refused
+  the directory and left the category unbound. Three consumers had been sitting
+  in exactly that state since they migrated, reaching zero catalog skills
+  through either door.
+
+  The single category symlink remains the default and the better binding, but
+  it makes the mount point resolve into the toolkit checkout: a skill installer
+  pointed at `.claude/skills/` writes into the vendored submodule, where the
+  result is untracked and the next `git checkout` there deletes it. That is how
+  `decision-notebook` came to live inside one project's submodule. A project
+  entry named like a catalog entry keeps loading and is reported on every run;
+  removing the last project entry converges the category back to one symlink.
+
+## [4.1.0] - 2026-09-09
+
+Two skills that were living in one project's local catalog become part of the
+toolkit, so every consumer gets them and there is one copy to maintain.
+
+### Added
+
+- **`decision-notebook`** — router for live analysis notebooks. It picks the
+  flavor a decision calls for (annotation campaign, gate sign-off, one live look,
+  freestyle EDA) and fully specifies the heaviest one: a marimo + jscatter
+  campaign instrument with a selection manifest, rounds, in-kernel DE, and a
+  deterministic path from saved selections to a cleaned roster. `decision-gate-notebook`
+  and `interactive-breakpoint-explorer` are the two flavors it routes on to;
+  `analysis-code-conventions` now names the router rather than the leaves.
+- **`container-port-tunnel`** — reach a server running inside the devcontainer
+  from a laptop. The compose template ships `ports:` commented out, so the
+  container publishes nothing and a `-L PORT:localhost:PORT` tunnel lands on a
+  host loopback with no listener; the tunnel has to target the container's bridge
+  IP. Carries the listener probe that works in an image with no `ss`, `netstat`
+  or `lsof`.
+
+## [4.0.0] - 2026-08-26
+
+The toolkit is `scio`, in name and on disk. Breaking for consumers: the vendored
+directory moves from `01_modules/SciAgent-toolkit/` to `01_modules/scio/`, the
+GitHub repository is renamed (the old URL redirects), and project memory becomes
+a repository of its own.
+
+### Changed — breaking
+
+- **`01_modules/SciAgent-toolkit/` becomes `01_modules/scio/`** (ADR-D9). Both
+  names are accepted during the migration: discovery, legacy-mount ownership, the
+  freshness check, the vendor-path predicate and the two executable templates all
+  read one list, `lib/scio/common.sh::_SCIO_TOOLKIT_DIRS`. Evidence outranks the
+  name — a path declared in `.gitmodules` beats a same-named directory found
+  elsewhere, and a candidate must carry `bin/scio` or `craft.yaml` to count. A
+  project reaching the toolkit by path needs a symlink at the old name or its own
+  references updated.
+- **`docs/_internal/` is its own Git repository, always** (ADR-D10). `session.md`
+  is the live record and always carries that name; what it supersedes moves to
+  `session-history/<UTC timestamp>.md`, so sorting the directory reads it in
+  order.
+- **codex runs unsandboxed.** `launch.sh` passes `-s danger-full-access` unless
+  `--sandbox` says otherwise. An enforced sandbox cannot open files in these
+  containers — bwrap fails to create a namespace, every file tool fails, and
+  codex exits 0 having written about a repository it never read. The container is
+  the boundary and `--workdir` is what scopes the worker.
+- **`--bg` is removed** from `launch.sh` and refused by name. Background the
+  attached launcher through the caller's own task facility.
+
+### Added
+
+- `status.sh` — a read-only reader for a delegation run, by unit or by file, with
+  `--wait`. One `SUMMARY` line and one `ARTIFACT` line per file. It reports
+  quantities and never a phase, a percentage or an ETA.
+- `launch.sh` writes an atomic status snapshot before spawning, on a two-second
+  heartbeat while the child runs, and once on the reaped status — so an in-flight
+  question has an answer.
+- A run whose stream shows the sandbox blocking file access **cannot be reported
+  as a success**: exit 32, `state=failed`, `codex_exit` preserved.
+- `lint` checks: skill self-citations, one door to the catalog, scaffold residue,
+  the attic holding only retired skills, delegate-cli's assets, and the memory
+  topology.
+- `analysis-code-conventions` gains a language-level reference for R and Python
+  house idiom.
+- `/handoff` as a command written by the session that lived the work.
+
+### Removed
+
+- `add-figure-variant` and `interpret-storm` commands; the `handoff` agent.
+- `_attic/guidelines/`, which called itself the source of truth for coding
+  conventions while sitting outside every mount.
+- The decision-gate audit-trail keys that no reader consumed.
+
+
 The catalog now binds through one directory symlink per harness category.
 
 ### Changed
 
+- **The six category links are relative again when the toolkit is vendored
+  inside the project.** `_link_category` wrote `$SCIO_TOOLKIT/<category>`
+  verbatim, so every link named an absolute path: written from the host they
+  resolved only on the host, written in a container only in the container, and
+  the last `link` run won. Measured in the field on 2026-08-21 — a project
+  pinned at the current tip had all six pointing at `/workspaces/<name>/…`,
+  reachable from inside its container and dangling from outside. One
+  `_link_symlink_target` helper now serves the category links and the
+  `02_analysis/helpers` libs: relative while the source is inside the project,
+  absolute for a global install, where a relative chain would break the moment
+  the project moves. That also retires the helper path's unreachable fallback,
+  since `realpath --relative-to` always succeeded. The idempotency test compares
+  the *written* target rather than where it resolves — a resolution test reads an
+  absolute link as current and would have left all 25 bound copies unrepaired.
+  A re-run reports each repair. New `lint --check harness-links` fails a mount
+  that does not resolve or that names an absolute path inside the project, so the
+  regression cannot return silently; an absolute target outside the project is
+  the global-install channel and stays quiet.
 - **Scio now ships as the three-verb `link`, `craft`, and `lint`
   toolkit.** The demolition series removed role activation and stack state,
   deactivation, status/list, project scaffolding, update and provisioning,
@@ -40,6 +152,7 @@ The catalog now binds through one directory symlink per harness category.
   per-entry symlink machinery, and manifest-backed state model.
 
 ### Added
+- **The CRAFT body's line budget is now a check instead of a comment.** `craft.yaml` declared its own cap in prose — "keep the rendered block terse (<=25 lines)" — which made the toolkit's only always-on text the one asset with a stated budget and no predicate behind it, against the rule that `lint.sh` owns every convention it can measure. The number now lives in `craft.yaml` as `max_lines:`, beside the body it governs, and `scio lint --check toolkit` hard-fails when the rendered body exceeds it; `craft_max_lines()` in `craft.sh` reads it exactly as `craft_version()` reads `version:`, and falls back to the documented 25 so a `craft.yaml` predating the key is still bounded. The check measures the **rendered** body, after `{{token}}` substitution, because that is what lands in a consumer's `AGENTS.md`; it is silent when there is no `craft.yaml`, matching `craft_render_and_write`, so a toolkit with no craft SSOT is unaffected. It lives in the `toolkit` check rather than the project checks — the subject is this repo's own asset, and no consumer's `lint` run gains a finding. The shipped body is 17 lines against the cap. New `tests/test_craft_block_budget.sh` covers under, over, and exactly-at (the boundary is inclusive), asserts a **non-default** declared cap is honoured so the number cannot quietly migrate back into the shell, and checks the shipped `craft.yaml` against its own budget. One thing this deliberately does not measure: those 17 lines are 4,658 characters, and the longest single bullet is 693 — a line cap bounds the shape of the block, not its token weight, and the way this block actually grows is bullets getting longer rather than more numerous. A character or per-bullet budget would bind that, and setting one is a call about the owner's own standing text rather than a defect to fix.
 - **Offline distribution: `scripts/build-release.sh` + `install.sh`.** Implements `docs/proposals/2026-08-11-offline-distribution/10_packaging_contracts.md` and ADR-D1/D2/D3/D7 — no npm, no registry, no marketplace, and no installer that can reach the network. **The builder** takes an explicit ref (an implicit "whatever is checked out" is refused, as is a dirty tree), runs `scio lint --check toolkit` and `tests/run-all.sh` **against the exported tree** rather than the working tree — the working tree may sit at another commit and carries untracked residue the artifact will not — and only then emits three files: `scio-<version>-<short-sha>.tar.gz`, its `.sha256`, and sidecar metadata carrying the **full 40-char** SHA. Bytes come from `git archive --format=tar <sha> | gzip -n`; the working checkout is 180 MB against 5.6 MB tracked (171 MB of it one skill's `.venv`), so `git archive` is a correctness requirement, not tidiness. The metadata deliberately carries **no build timestamp**, so the whole triple — not just the archive — is reproducible. Naming resolves the one place the plan documents disagree: ADR-D7's `scio` stem wins over §1's `sciagent-`, but §1's short SHA is **kept** against ADR-D7's example, because without it two releases of different commits at one version are indistinguishable on disk. ADR-D7 initially limited the rename to the artifact; the subsequent rebrand makes the installed executable, `$SCIO_TOOLKIT`, the `si` alias and `_guard_toolkit_locality` use `scio`. **The installer** takes local files only — there is no code path that accepts a URL, and a URL-shaped argument is refused with the reason rather than fetched — verifies the checksum **before** extracting anything, extracts into staging on the destination filesystem and renames into `<prefix>/share/scio/versions/<full-sha>/` so two versions coexist by construction and an interrupted install leaves no half-tree, links **only** `<prefix>/bin/scio`, and writes a receipt sufficient for an exact uninstall (a link is removed only if it still points where the receipt says — otherwise it is reported and left alone, exit 3, the same "cannot verify → do not touch" rule as teardown). It performs no harness detection and writes no `settings.json`/`AGENTS.md`/skill mounts: installation and project binding are different verbs on different layers (ADR-D3, `00_INDEX.md` §2). **Fleet precedence is unchanged** and now has an end-to-end test: a global install cannot mutate a project that ships its own toolkit. Eight new tests (`test_build_release_{determinism,contents,refusals}.sh`, `test_install_{verify_and_dryrun,atomic,coexist_uninstall,invariants,locality_precedence}.sh`) plus `tests/_release_lib.sh`. They build **throwaway fixture repos** rather than this one — since the builder runs the suite, a test that built this repo would re-enter it. That is why there is deliberately **no `--skip-checks` flag**: an escape hatch on a release gate eventually gets used for a real release, whereas fixture repos with one-line gate stubs exercise both the passing and failing gate paths in milliseconds and make recursion impossible by construction. Correction to `00_INDEX.md` §5 recorded here rather than silently: on this host (git 2.34.1, GNU gzip 1.10) `--format=tar.gz` and a bare `| gzip` are **also** byte-stable, because gzip embeds an mtime only for a *named file* and git's built-in filter is already `gzip -cn`. `-n` and the explicit pipe are kept anyway, for the reason that survives the correction — `tar.tar.gz.command` is user-configurable, so `--format=tar.gz` inherits its determinism from the builder's `~/.gitconfig`.
 - **`activate` and `status` gained `-h`/`--help` before their retirement.** They were the last two verbs without it: `-h` fell through `cmd_activate`'s positional loop and came back as "role not found: -h", and hit `cmd_status`'s unknown-flag arm with exit 1. Both branches returned before any mutation or state load, and `bin/sciagent`'s top-level `-h|--help|help` was unaffected. `tests/test_verb_help.sh` asserted all ten verbs answered both flags, that the help text named its verb, and — the assertion that mattered — that a help invocation left the project directory byte-for-byte empty (a `--help` that still mounted was worse than no `--help`). `list` remained without a `-h` branch; that was a separate change.
 
@@ -48,6 +161,7 @@ The catalog now binds through one directory symlink per harness category.
 - **`.sciagent/manifest.json` reached schema v2 before the manifest-backed state model was deleted.** The write-only `block_hash` field was removed because `activate` wrote it and nothing ever read it back — the drift guard read the hash from the `AGENTS.md` BEGIN marker via `block_hash_check` (`status.sh`, `craft_verb.sh`). Dead data in a state file is worse than no data, because nothing about a stale value looks stale. `manifest_finalize` consequently took no argument. Both readers were key-targeted (`manifest_stack` → `.stack`, `manifest_symlinks` → `.symlinks[]`), so the v1 manifests the fleet held remained readable and the next `activate` rewrote them wholesale. `version` was bumped because `version: 1` was the only way to tell a manifest that *might* carry `block_hash` from one that could not. `tests/test_activate_solo.sh` asserted the field's **absence**; `tests/test_manifest_schema_v2.sh` covered the v1-on-disk read, teardown, and in-place upgrade paths.
 
 ### Fixed
+- **`install.sh --uninstall` reported an anomaly for the ordinary case of pruning a version that is not the current one.** With two releases installed — the situation content-addressing exists to allow — `--uninstall <old>` removed that version's tree and receipt correctly and then exited **3** with "another install owns it now", because the link-ownership test compared `readlink <prefix>/bin/scio` against the departing receipt's target and read every mismatch as unprovable. The status that means "cannot verify → do not touch" therefore fired on a link whose ownership *is* provable: it points into `<prefix>/share/scio/versions/<sha>/bin/scio` for a `<sha>` whose receipt sits in the same `receipts/` directory. Scripted housekeeping (`--uninstall <old> && …`) broke on it, and the message read as damage where the prefix was intact. Uninstall now resolves the link's target to a 40-char sha and requires that receipt to exist before deciding: a live sibling version keeps the link and the status stays 0; a foreign target, or a versions path whose receipt is gone, is still reported and left alone at exit 3 — the shape of the path alone licenses nothing. `tests/test_install_coexist_uninstall.sh` missed this by ordering: its coexistence section uninstalls the version installed **last**, which is the one owning the link, so the clean-exit branch was the only one the fixture could reach. It now prunes the non-current version first and asserts exit 0 with the sibling's link and tree intact, then restores both installs in their original order so the receipt-driven section that follows sees the state it assumes. Surfaced by exercising the offline channel end-to-end for the first time — build, verify, install, bind a project, prune, uninstall — against a real toolkit commit rather than a fixture repo.
 - **The `02_analysis/helpers` shim modules never reached an already-provisioned project — `activate` materialized no shim at all.** `figure_style.py`, `figure_style.R` and `interactive_style.py` were written **only** by `new.sh`'s generic `_render_tree`, which ran once at scaffold time; `sciagent activate` created the two *hyphenated* contract-lib mounts (`02_analysis/helpers/{figure-style,interactive-style}`) and nothing importable beside them. Consequently, `figure-style`, `interactive-breakpoint-explorer`, and `decision-gate-notebook` were satisfiable only in a freshly scaffolded repo. This was the **third instance of one blind spot**, after the hook bodies and the status line: content written at scaffold time only, never reaching the field. `activate` then materialized all three (gated on `02_analysis/` existing, exactly like `symlink_create_helper_lib`, so a coordination or software repo was untouched — no shim, no `helpers/` directory), and `deactivate` reversed them, ownership records and ceded markers included. The three templates joined the `MANAGED` set in `tools/gen-template-provenance.sh`, so a stale copy in the field was recognised by its bytes and refreshed rather than ceded. **The ownership machinery moved out of `claude_settings.sh` into a new `lib/sciagent/ownership.sh`** (`ownership_ensure_body` / `ownership_teardown_body` / `ownership_template_hash_known`): an R helper module was not a Claude artifact, and calling a `claude_settings_*` function to write one would have entrenched a misnaming. Both callers — `claude_settings.sh` (hooks, statusline) and `symlinks.sh` (the shims, which sat next to the mounts it already owned) — depended on that module, which was listed in the `VERB_MODULES` closure of **every** verb that loaded either caller (`activate`, `deactivate`, `status`, `update`, `provision`), not merely the verbs whose code path reached a call: the closure was over the modules loaded, not the branches taken, which was the lesson of `4b291b2`. The refactor also unified the two hand-rolled teardown loops on one reverse (`ownership_teardown_body`), and gained an explicit exec-bit mode — `exec` for the hooks and status line, `plain` for the imported shims. `tests/test_helper_shim_propagation.sh` covered all of it, including the fleet's state at the time (a stale shim with **no** ownership record was refreshed; with the manifest hidden the same file was left alone, proving the refresh was licensed by the manifest), the byte-identity precondition (what `new project` rendered equaled what `activate` copied), and a structural guard on the module closure above. `tests/test_template_provenance.sh` derived its managed set from the shim directory too, so the `{{PLACEHOLDER}}` check covered the shims automatically.
 - **`block_write` reported success when the write failed.** The create branch (target file absent) ended in an unconditional `return 0`, so a failed redirect — read-only directory, a directory sitting where `AGENTS.md` should be, ENOSPC — printed bash's own "Permission denied" to stderr and then reported success: `sciagent craft --project-dir <read-only dir>` said "added SCIAGENT:CRAFT block to: \<path\>" and exited **0** with no file at that path at all. The append branch in the same function propagated its failure all along, but only incidentally (its `printf` happens to be the function's last command), so the two write paths disagreed about whether an I/O error is an error. Found while trying to reproduce a reported "craft/provision can leave a 0-byte `AGENTS.md`": that claim does **not** reproduce — every craft/provision path either writes the complete block or writes nothing (verified against a missing template, an empty template, a 0-byte target, an unwritable target, a target whose parent does not exist, and a directory in the target's place) — but "writes nothing and calls it success" did. New `tests/test_block_write_io_failure.sh`.
 - **`interactive-breakpoint-explorer` could not import its own helper lib in ANY project — the `interactive_style` shim was never written.** `symlink_create_helper_lib` mounts *hyphenated* directories (`02_analysis/helpers/{figure-style,interactive-style}`), which are not legal Python package names; the house design pairs each with an *underscored* shim module that projects actually import. `figure-style` had `figure_style.{py,R}`; `interactive-style` had nothing, and every import site spelled `helpers.interactive_style.interactive_helpers` — unresolvable no matter how fully the project was activated. Adds `templates/project/analysis/02_analysis/helpers/interactive_style.py.template` (materialized by `new.sh`'s `_render_tree`, same path as its figure-style sibling) and rewrites the three import sites to the flat `from helpers.interactive_style import …`. **Deliberately fails loudly** (ImportError at import time) where `figure_style.py` falls back to no-op stubs: a mis-styled figure is still a figure, but a stubbed explorer cannot brush, select, or persist barcodes, so it would produce a silently empty record. New `tests/test_helper_shim_coherence.sh` derives the mount list from `symlinks.sh` and the shim set from the template tree and cross-checks both against every `helpers.<mod>` import site in the repo — the check that would have caught this at commit time.
@@ -72,7 +186,7 @@ from the in-project Wave-0 prototype that proved it across a full results tree.
 - **`validate --check figure-style`** base-font floor lowered 16 → 14 to match the unified single tier (the new template default no longer trips the toolkit's own guardrail).
 - **`skills/figure-style/SKILL.md`** rewritten for the unified single-variant, dual-format style (removed `.print`/`.screen` language).
 - **`craft.yaml` (`SCIO:CRAFT` single source)** — the always-on Figures craft standard rendered into every repo's `AGENTS.md` now states ONE legible tier: `figure_base_size` floor 16 → 14, the `figure_print_base_size` floor removed, and the body line reworded to "one legible tier, base >= 14pt; emit a vector PDF + raster PNG from one plot object" (no print/screen split). Propagated via `sciagent update`.
-- **Craft / contract prose swept to the unified model** — the `figure-audit` and `captions` agents, the `add-figure-variant` and `interpret-storm` commands, the plan + project `AGENTS.md` templates, `docs/guidelines/visualization.md`, and the `base` role comment now reference `<stem>.pdf` + `<stem>.png` (no `.print`/`.screen`), a single 14 pt tier, and `save_figure()`/`save_overview()` (dropped `save_figure(variant="both")`, `base_size_column`, dual-variant language).
+- **Craft / contract prose swept to the unified model** — the `figure-audit` and `captions` agents, the `add-figure-variant` and `interpret-storm` commands, the plan + project `AGENTS.md` templates, `_attic/guidelines/visualization.md`, and the `base` role comment now reference `<stem>.pdf` + `<stem>.png` (no `.print`/`.screen`), a single 14 pt tier, and `save_figure()`/`save_overview()` (dropped `save_figure(variant="both")`, `base_size_column`, dual-variant language).
 - **`tests/test_validate_figure_style.sh`** conformant fixture uses the unified `<name>.png` naming.
 
 ### Added
@@ -123,7 +237,7 @@ capability (skill/helper/agent/command), guardrail (validate check + hook).
 - `sciagent new project --type software` no longer creates an `analysis`-only `research/` namespace.
 
 ### Removed
-- `docs/guidelines/visualization.md` `base_size=12`/`theme_publication` dead-end superseded by the figure-style contract (file kept as a redirect stub).
+- `_attic/guidelines/visualization.md` `base_size=12`/`theme_publication` dead-end superseded by the figure-style contract (redirect retired with the mechanical guidelines).
 
 ## [3.1.0] - 2026-06-02
 

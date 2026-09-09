@@ -11,8 +11,10 @@ D/.claude/ and D/.agents/ (default: cwd). Materialize the two project
 guardrail hooks, merge their registrations into .claude/settings.json, and
 refresh the SCIO:GITIGNORE block in .gitignore.
 
-Existing toolkit-owned mounts are swept first. A populated real category
-directory is preserved and refused with relocation instructions.
+Existing toolkit-owned mounts are swept first. A category directory holding
+entries the toolkit does not own — a project's own skills, or one installed by
+a third-party installer — keeps them and receives one link per catalog entry
+beside them.
 EOF
 }
 
@@ -42,26 +44,74 @@ _link_target_path() {
     fi
 }
 
+# _link_symlink_target <link_dir> <src>
+# Echo the target to write into a symlink placed in <link_dir>.
+#
+# Relative whenever the source lives inside this project, so a single `link` run
+# resolves from the host and from inside a container: the same project tree is
+# mounted at two different absolute paths, and an absolute target can only ever
+# name one of them. Absolute when the toolkit is installed outside the project,
+# where a relative chain would break as soon as the project directory moves.
+_link_symlink_target() {
+    local link_dir="$1" src="$2"
+    local proj src_abs rel
+    proj=$(pwd -P 2>/dev/null) || { printf '%s' "$src"; return 0; }
+    src_abs=$(_link_resolve "$src")
+    case "$src_abs/" in
+        "$proj"/*) ;;
+        *) printf '%s' "$src_abs"; return 0 ;;
+    esac
+    rel=$(realpath --relative-to="$link_dir" "$src_abs" 2>/dev/null) \
+        || { printf '%s' "$src_abs"; return 0; }
+    printf '%s' "$rel"
+}
+
+# True when a path looks like a toolkit checkout rather than a same-named
+# directory that happens to exist. Without this, a stray `01_modules/scio/` can
+# shadow the real pinned copy.
+_link_is_toolkit() {
+    [[ -x "$1/bin/scio" || -f "$1/craft.yaml" ]]
+}
+
 # Print the project's pinned toolkit path when one is present.
+#
+# Evidence strength decides first and the name only breaks ties: a path the
+# project DECLARED in .gitmodules outranks one merely found on disk, whichever
+# name each carries. Preferring the name across stages would let an unrelated
+# `./misc/scio` beat a declared `vendor/SciAgent-toolkit` submodule, and the
+# locality guard would then refuse the project's own pinned copy as external.
 _link_in_repo_toolkit() {
-    local path
+    local path toolkit_dir declared
+
+    # Stage 1 — declared in .gitmodules.
     if [[ -f .gitmodules ]] && command -v git >/dev/null 2>&1; then
-        path=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
-            | awk '{print $2}' | grep -E '(^|/)SciAgent-toolkit$' | head -1)
-        if [[ -n "$path" && -d "$path" ]]; then
-            printf '%s\n' "$path"
+        declared=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' 2>/dev/null \
+            | awk '{print $2}')
+        for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+            path=$(printf '%s\n' "$declared" | grep -E "(^|/)${toolkit_dir}$" | head -1)
+            if [[ -n "$path" && -d "$path" ]] && _link_is_toolkit "$path"; then
+                printf '%s\n' "$path"
+                return 0
+            fi
+        done
+    fi
+
+    # Stage 2 — the conventional location.
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        if [[ -d "01_modules/$toolkit_dir" ]] && _link_is_toolkit "01_modules/$toolkit_dir"; then
+            printf '01_modules/%s\n' "$toolkit_dir"
             return 0
         fi
-    fi
-    if [[ -d 01_modules/SciAgent-toolkit ]]; then
-        printf '%s\n' 01_modules/SciAgent-toolkit
-        return 0
-    fi
-    for path in ./*/SciAgent-toolkit; do
-        if [[ -d "$path" ]]; then
-            printf '%s\n' "$path"
-            return 0
-        fi
+    done
+
+    # Stage 3 — any other single level down.
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        for path in ./*/"$toolkit_dir"; do
+            if [[ -d "$path" ]] && _link_is_toolkit "$path"; then
+                printf '%s\n' "$path"
+                return 0
+            fi
+        done
     done
     return 1
 }
@@ -100,7 +150,7 @@ _link_migrate_state_dir() {
 
 # True for a link into this toolkit, including legacy dangling container paths.
 _link_owned_by_toolkit() {
-    local path="$1" resolved root
+    local path="$1" resolved root toolkit_dir
     [[ -L "$path" ]] || return 1
     resolved=$(_link_target_path "$path") || return 1
     root=$(_link_resolve "$SCIO_TOOLKIT")
@@ -111,11 +161,13 @@ _link_owned_by_toolkit() {
     # An existing outside target is user-owned. The suffix test is only for
     # dangling legacy mounts whose /workspaces project path is absent here.
     [[ -e "$path" ]] && return 1
-    case "$resolved" in
-        */SciAgent-toolkit/skills/*|*/SciAgent-toolkit/agents/*|*/SciAgent-toolkit/commands/*|*/SciAgent-toolkit/system-prompts/*|*/SciAgent-toolkit/lib/figure-style|*/SciAgent-toolkit/lib/interactive-style)
-            return 0 ;;
-        *)  return 1 ;;
-    esac
+    for toolkit_dir in "${_SCIO_TOOLKIT_DIRS[@]}"; do
+        case "$resolved" in
+            */"$toolkit_dir"/skills/*|*/"$toolkit_dir"/agents/*|*/"$toolkit_dir"/commands/*|*/"$toolkit_dir"/system-prompts/*|*/"$toolkit_dir"/lib/figure-style|*/"$toolkit_dir"/lib/interactive-style)
+                return 0 ;;
+        esac
+    done
+    return 1
 }
 
 _link_sweep_dir() {
@@ -129,12 +181,57 @@ _link_sweep_dir() {
     done < <(find "$dir" -mindepth 1 -maxdepth 1 -type l -print0 2>/dev/null)
 }
 
-_link_refuse_directory() {
-    local dst="$1"
-    echo "scio link: refusing $dst; it is a real populated directory containing:" >&2
-    find "$dst" -mindepth 1 -maxdepth 1 -printf '  - %f\n' 2>/dev/null | LC_ALL=C sort >&2
-    echo "  Move these entries outside $dst, remove the empty directory, and run scio link again." >&2
+# True when the directory holds anything the toolkit does not own. One such
+# entry means the project keeps its own catalog here.
+_link_dir_has_foreign() {
+    local dir="$1" entry
+    [[ -d "$dir" && ! -L "$dir" ]] || return 1
+    while IFS= read -r -d '' entry; do
+        _link_owned_by_toolkit "$entry" && continue
+        return 0
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
     return 1
+}
+
+# Bind each catalog entry on its own so project-owned entries survive.
+#
+# The single category symlink is the better binding and stays the default, but
+# it makes the mount point resolve into the toolkit checkout — so a skill
+# installer told to write into .claude/skills/ writes into the vendored
+# submodule instead, where the result is untracked and the next checkout there
+# deletes it. A project that keeps its own skills gets a real directory and one
+# link per catalog entry beside them.
+_link_fanout_category() {
+    local harness="$1" category="$2"
+    local dst="$harness/$category" src="$SCIO_TOOLKIT/$category"
+    local entry name target link_path stale
+
+    for entry in "$src"/*; do
+        [[ -e "$entry" ]] || continue
+        name=$(basename "$entry")
+        target=$(_link_symlink_target "$dst" "$entry")
+        link_path="$dst/$name"
+        if [[ -L "$link_path" ]]; then
+            [[ "$(readlink "$link_path")" == "$target" ]] && continue
+            ln -sfn "$target" "$link_path" \
+                || { echo "scio link: failed to replace $link_path" >&2; return 1; }
+            echo "replaced link: $link_path -> $target"
+        elif [[ -e "$link_path" ]]; then
+            echo "scio link: $link_path shadows the catalog entry of the same name; the project copy is the one that loads" >&2
+        else
+            ln -s "$target" "$link_path" \
+                || { echo "scio link: failed to create $link_path" >&2; return 1; }
+            echo "linked: $link_path -> $target"
+        fi
+    done
+
+    # Retire links to catalog entries the toolkit no longer carries.
+    while IFS= read -r -d '' stale; do
+        _link_owned_by_toolkit "$stale" || continue
+        [[ -e "$src/$(basename "$stale")" ]] && continue
+        rm "$stale" || { echo "scio link: failed to remove stale link: $stale" >&2; return 1; }
+        echo "removed stale toolkit link: $stale"
+    done < <(find "$dst" -mindepth 1 -maxdepth 1 -type l -print0 2>/dev/null)
 }
 
 _link_category() {
@@ -142,23 +239,39 @@ _link_category() {
     local dst="$harness/$category" src="$SCIO_TOOLKIT/$category"
 
     [[ -d "$src" ]] || { echo "scio link: missing toolkit category: $src" >&2; return 1; }
-    _link_sweep_dir "$dst" || return 1
     mkdir -p "$harness" || { echo "scio link: failed to create $harness" >&2; return 1; }
 
+    if _link_dir_has_foreign "$dst"; then
+        _link_fanout_category "$harness" "$category"
+        return $?
+    fi
+
+    _link_sweep_dir "$dst" || return 1
+
+    local target
+    target=$(_link_symlink_target "$harness" "$src")
+
+    # Compare the written target, not where it resolves to. An absolute link
+    # resolves correctly on the side that wrote it, so a resolution test reads
+    # as current and leaves every already-bound project unrepaired.
     if [[ -L "$dst" ]]; then
-        if [[ "$(_link_target_path "$dst")" == "$(_link_resolve "$src")" ]]; then
+        if [[ "$(readlink "$dst")" == "$target" ]]; then
             return 0
         fi
         local old
         old=$(readlink "$dst")
-        ln -sfn "$src" "$dst" || { echo "scio link: failed to replace $dst" >&2; return 1; }
-        echo "replaced link: $dst -> $src (was $old)"
+        ln -sfn "$target" "$dst" || { echo "scio link: failed to replace $dst" >&2; return 1; }
+        echo "replaced link: $dst -> $target (was $old)"
         return 0
     fi
 
     if [[ -d "$dst" ]]; then
+        # The sweep clears every toolkit-owned link, and anything else would
+        # have routed to the fanout. A survivor here is unreadable state.
         if find "$dst" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
-            _link_refuse_directory "$dst"
+            echo "scio link: refusing $dst; it is a real populated directory containing:" >&2
+            find "$dst" -mindepth 1 -maxdepth 1 -printf '  - %f\n' 2>/dev/null | LC_ALL=C sort >&2
+            echo "  Move these entries outside $dst, remove the empty directory, and run scio link again." >&2
             return 1
         fi
         rmdir "$dst" || { echo "scio link: failed to remove empty directory: $dst" >&2; return 1; }
@@ -167,8 +280,8 @@ _link_category() {
         return 1
     fi
 
-    ln -s "$src" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
-    echo "linked: $dst -> $src"
+    ln -s "$target" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
+    echo "linked: $dst -> $target"
 }
 
 _HELPER_SHIM_TPL_REL="project/analysis/02_analysis/helpers"
@@ -205,8 +318,10 @@ _link_helper_libs() {
         [[ -d "$src" ]] || continue
         dst="$link_dir/$libdir"
 
+        target=$(_link_symlink_target "$link_dir" "$src")
+
         if [[ -L "$dst" ]]; then
-            if [[ "$(_link_target_path "$dst")" == "$(_link_resolve "$src")" ]]; then
+            if [[ "$(readlink "$dst")" == "$target" ]]; then
                 continue
             fi
             if ! _link_owned_by_toolkit "$dst"; then
@@ -227,13 +342,8 @@ _link_helper_libs() {
             continue
         fi
 
-        if realpath --relative-to="$link_dir" "$src" >/dev/null 2>&1; then
-            target=$(realpath --relative-to="$link_dir" "$src")
-        else
-            target="$src"
-        fi
         ln -s "$target" "$dst" || { echo "scio link: failed to create $dst" >&2; return 1; }
-        echo "linked: $dst -> $src"
+        echo "linked: $dst -> $target"
     done
     return "$failed"
 }
@@ -281,6 +391,7 @@ docs/_internal/
 .gemini/
 .scio/
 02_analysis/helpers/figure-style
+02_analysis/helpers/interactive-style
 .mcp.json
 .env
 .env.*

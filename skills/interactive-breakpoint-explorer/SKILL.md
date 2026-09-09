@@ -8,18 +8,23 @@ license: MIT
 
 ## Overview
 
-At a pipeline inflection point there are calls you cannot make from a summary table — *what
-is that high-mito FOXP3 corner I keep noticing, and is it one donor?* You have to **look**, and
-looking means brushing a live embedding, recoloring it, and pulling the cells you lassoed into
-pandas to characterize them. This skill is the house pattern for that moment: a **live-kernel
-Python Quarto notebook** that drives [jscatter](https://jupyter-scatter.dev/) linked panels,
-extracts a brushed selection, persists its barcodes + a labelled snapshot, and ends in a
-`## Decision — decisions.[stage]` note.
+At a pipeline inflection point there are calls you cannot make from a summary table,
+e.g. *what is that high-mito FOXP3 corner I keep noticing, and is it one donor?* 
+You have to **look**, and looking means brushing a live embedding, recoloring it, and pulling the cells you lassoed into
+pandas to characterize them. 
 
-It is the **live-kernel sibling** of `decision-gate-notebook` (which is a static, read-only R
-review that records the APPROVED gate). This explorer does **not** own the gate — it **feeds**
-it: it produces the evidence and the barcode selection a human weighs before flipping
-`decisions.[stage].status: APPROVED`.
+This skill is the house pattern for that moment: 
+a **live-kernel Python Quarto notebook** that drives [jscatter](https://jupyter-scatter.dev/) linked panels,
+extracts a brushed selection, and persists its barcodes plus a labelled snapshot.
+
+It is the **live-kernel sibling** of `decision-gate-notebook`, the static R review whose
+`analysis_config.yaml` key a downstream stage guards on.
+
+**Where the decision goes.** This explorer produces evidence: barcodes, a snapshot, a
+characterization table. The call you make from that evidence — what you concluded, on what
+numbers, and which reading you rejected — belongs in the durable record, as a topic note under
+`docs/_internal/<stage-stem>/` (skill: `reasoning-trace`). A notebook cell is a working
+surface, and it is overwritten on the next run.
 
 **When to use this skill:**
 - A stage just finished and a human needs to *eyeball live structure* — brush a suspicious pocket, compare a few color-bys, lasso cells and see what they are — before an expensive/irreversible next stage.
@@ -27,7 +32,7 @@ it: it produces the evidence and the barcode selection a human weighs before fli
 - The judgment is visual and interactive; a static PNG grid cannot answer it.
 
 **When NOT to use this skill:**
-- You just need the auditable sign-off recorded and gated → use `decision-gate-notebook` (this explorer feeds it).
+- A downstream stage must refuse to run until sign-off → use `decision-gate-notebook`, which owns that latch.
 - A static, self-contained HTML explorer with no live kernel is enough → use `bulk-rnaseq-pathway-explorer`.
 - A plain results/methods write-up with nothing to brush → an ordinary `.qmd` report.
 
@@ -40,9 +45,9 @@ Pipeline stage just finished — a human needs to look before the next stage run
 │
 ├─ The look is VISUAL + INTERACTIVE (brush a pocket, recolor, lasso cells, see what they are)
 │        → INTERACTIVE BREAKPOINT EXPLORER  (this skill — live jscatter kernel)
-│          → persists barcodes + a labelled snapshot → FEEDS the decision gate
+│          → persists barcodes + a labelled snapshot
 │
-├─ The look is a STATIC re-plot of what the stage wrote, and you want the APPROVED gate recorded
+├─ A downstream stage must refuse to run until a human signs off
 │        → decision-gate-notebook  (static R review; owns decisions.[stage].status)
 │
 ├─ You want a shareable static HTML explorer with no live kernel (plotly, brushable UMAP)
@@ -226,8 +231,9 @@ import pandas as pd
 pd.DataFrame({"selected": df.iloc[sel][cols].mean(), "all": df[cols].mean()}).round(3)
 ```
 
-Name the pocket, save its barcodes (re-loadable later), snapshot a labelled figure, then write
-the `## Decision — decisions.[stage]` paragraph that this explorer feeds into the gate.
+Name the pocket, save its barcodes (re-loadable later), and snapshot a labelled figure. Then
+write what you concluded to `docs/_internal/<stage-stem>/<topic>.md` — the notebook holds the
+evidence, the note holds the call.
 
 ### Advanced usage — reload a saved selection
 
@@ -249,7 +255,7 @@ After authoring an explorer, confirm:
 - [ ] **Lifecycle-safe:** panels are built by `grid(...)`, not a raw `_mk` loop; a standalone `close_panels()` cell exists.
 - [ ] **Selection persisted:** after a brush + save, `eda/selection_<label>.csv` (barcode-indexed) and `eda/selections_index.csv` exist.
 - [ ] **Labelled snapshot:** `eda/<label>.png` + `.pdf` exist with a legend/axes/title (jscatter's own export cannot capture these).
-- [ ] **Feeds the gate:** the notebook ends in a `## Decision — decisions.[stage]` note; the auditable APPROVED flip lives in the `decision-gate-notebook` sibling.
+- [ ] **The call is durable:** what you concluded from the brush is a topic note under `docs/_internal/<stage-stem>/`, surviving the next run of the notebook.
 - [ ] **Config-driven:** column lists come from the `interactive:` block, not hardcoded in a cell or the helper lib.
 
 ---
@@ -292,7 +298,7 @@ After authoring an explorer, confirm:
 
 ## When not to use
 
-- Do not use for the sign-off itself. This explorer produces evidence + a barcode selection; the auditable APPROVED gate lives in decision-gate-notebook (analysis_config.yaml decisions.[stage]).
+- Do not treat a notebook cell as the record. The decision you reach from brushing goes to a topic note under `docs/_internal/<stage-stem>/`; the notebook is overwritten on the next run.
 - Do not open the multi-GB .h5ad in the live kernel. Always export a compact parquet under 03_results/interactive/ first (export-first discipline); the kernel loads that, not the checkpoint.
 - Do not build panels with a raw _mk loop in a cell. jscatter panels are ipywidgets that leak until closed; always drive them through grid()/close_panels()/live_panels() or you OOM the kernel.
 - Do not `quarto render` this as a headless artifact. It needs a live Python kernel (VS Code + Jupyter, or JupyterLab) — brushing has no meaning in a batch render.
@@ -301,7 +307,8 @@ After authoring an explorer, confirm:
 
 ## See also
 
-- `decision-gate-notebook` — Static sibling; the static (R) sign-off surface that records the APPROVED gate (this skill feeds it)
+- `decision-gate-notebook` — Static sibling; owns the `analysis_config.yaml` latch a downstream stage guards on
 - `figure-style` — Prerequisite; the styling/saving contract the labelled matplotlib snapshot goes through before it's written to `03_results/`
-- `scrna-pipeline-conventions` — Sibling convention; the numbered-stage house style for `export_explorers.py` and the reviewed stages
+- `analysis-code-conventions` — Sibling convention; narrative stages and authoritative data flow
+- `reasoning-trace` — Where the decision itself is written, as a durable topic note
 - `bulk-rnaseq-pathway-explorer` — Static alternative; a static, self-contained HTML explorer (plotly, no live kernel)

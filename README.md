@@ -4,7 +4,7 @@ Scio is a per-project catalog of computational-biology skills, sub-agents,
 commands, CRAFT conventions, and executable guardrails for AI coding harnesses.
 
 The toolkit keeps its mount sources in the same shape the harnesses consume:
-84 skill directories, 21 flat agent files, and 7 flat command files. A project
+85 skill directories, 21 flat agent files, and 7 flat command files. A project
 binds each category with one directory symlink.
 
 ## Where this came from
@@ -29,22 +29,22 @@ out.
 ## Install
 
 Most analysis of my projects started out vendoring this repository at
-`01_modules/SciAgent-toolkit/`. 
+`01_modules/scio/`. 
 
 Use a relative alias so each project invokes its own pinned copy:
 
 ```bash
-alias si='./01_modules/SciAgent-toolkit/bin/scio'
+alias si='./01_modules/scio/bin/scio'
 ```
 
 `scio link` refuses an external toolkit when the project contains its own
-`SciAgent-toolkit` checkout. This keeps the binding aligned with the project's
+`scio` checkout. This keeps the binding aligned with the project's
 submodule pin.
 
 For one checkout, a PATH symlink is convenient:
 
 ```bash
-ln -sf /absolute/path/to/SciAgent-toolkit/bin/scio ~/.local/bin/scio
+ln -sf /absolute/path/to/scio/bin/scio ~/.local/bin/scio
 scio --help
 ```
 
@@ -121,9 +121,11 @@ silent no-op, and a link pointing elsewhere is replaced with a message. It
 also sweeps legacy toolkit-owned child mounts, retired output-style links, and
 dangling absolute mounts from older container paths.
 
-A real populated category directory is preserved. `link` names every entry in
-the refusal and asks the user to relocate it before retrying. Private skills,
-agents, and commands should live outside these six category paths.
+A project may keep its own skills, agents, and commands in these six paths.
+When a category directory holds an entry the toolkit does not own, `link`
+preserves it and binds the catalog as one link per entry beside it instead of
+one link for the whole category. A project entry sharing a catalog entry's name
+is the one that loads, and `link` says so each run.
 
 Hook bodies use a hash-and-cede ownership discipline. An unchanged body from
 any shipped toolkit version can be refreshed. A user-edited body is preserved,
@@ -157,7 +159,7 @@ shipped block library reads and removes both `SCIAGENT` and `SCIO` marker
 prefixes:
 
 ```bash
-TOOLKIT_PATH=/path/to/SciAgent-toolkit
+TOOLKIT_PATH=/path/to/scio
 bash -c '. "$1/lib/scio/block.sh"; block_remove "$2" ROLES' \
   _ "$TOOLKIT_PATH" /path/to/project/AGENTS.md
 ```

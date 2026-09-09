@@ -429,7 +429,7 @@ project enables this proposal explicitly:
 
 ```bash
 mkdir -p .claude
-cp /path/to/SciAgent-toolkit/templates/architect.git.template \
+cp /path/to/scio/templates/architect.git.template \
   .claude/architect.git
 ```
 

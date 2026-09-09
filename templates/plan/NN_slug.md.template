@@ -1,7 +1,7 @@
 <!--
   HOW TO USE THIS TEMPLATE
   ========================
-  Copy to docs/_internal/plans/{{DATE}}-<plan-slug>/NN_<slug>.md, then fill every
+  Copy to docs/_internal/_project/plans/{{DATE}}-<plan-slug>/NN_<slug>.md, then fill every
   <angle-bracket> placeholder. One file per phase; seq NN must match the phase
   table in 00_INDEX.md.
 
@@ -49,7 +49,7 @@ grep -rn "<out-of-scope-pattern-2>" lib/ && echo "LEAK" || echo "clean"
 <!-- Cite research notes and prior phases precisely. The implementer should be able to
      act on this brief without re-exploring the codebase. -->
 
-- **Research notes:** `docs/_internal/research/<date>-<slug>/<file>.md` — <what was synthesized / which decisions it documents>
+- **Research notes:** `docs/_internal/_project/<topic>.md` — <what was synthesized / which decisions it documents>
 - **Prior phase outputs:** `<exact path from Phase NN>` — <what it contains and which fields/functions matter>
 - **Config keys read:** `analysis_config.yaml:<key>` — <semantics>
 - **Toolkit helpers used:** `lib/<path>` — `<function_name>()` (<what it does>)

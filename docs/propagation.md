@@ -7,7 +7,7 @@ toolkit commit
     |
     | hop 1: re-pin the project's toolkit checkout
     v
-<project>/01_modules/SciAgent-toolkit/
+<project>/01_modules/scio/
     |
     | hop 2: run link or craft for materialized project state
     v
@@ -73,9 +73,9 @@ behavior changes on hop 1 and takes effect at the next invocation.
 For a vendored project:
 
 ```bash
-git submodule update --init 01_modules/SciAgent-toolkit
-./01_modules/SciAgent-toolkit/bin/scio link
-./01_modules/SciAgent-toolkit/bin/scio craft
+git submodule update --init 01_modules/scio
+./01_modules/scio/bin/scio link
+./01_modules/scio/bin/scio craft
 ```
 
 The project owner chooses the new submodule commit before these commands. The
@@ -85,6 +85,13 @@ For a release install, `install.sh` places an immutable toolkit version on the
 machine. Running that version's `scio link` performs the project binding.
 A project that vendors its own toolkit must use its in-repo binary; `link`
 refuses a global copy in that situation.
+
+A project bound this way holds category links into
+`<prefix>/share/scio/versions/<sha>/`, which is what pins it to that version.
+Uninstalling the version leaves those six links dangling, and the receipt
+records installed files rather than the projects bound from them, so
+`install.sh --uninstall` cannot report the projects it affects. Re-running
+`scio link` in the project from a version that remains replaces each link.
 
 ## Hook ownership
 
@@ -108,13 +115,13 @@ allows a later, different edit to be reported once.
 
 Before creating category links, `link` scans the old flat mount locations. It
 removes symlinks that resolve inside the active toolkit and dangling legacy
-links whose path identifies a `SciAgent-toolkit` source. This covers historical
+links whose path identifies a toolkit source under either directory name. This covers historical
 absolute `/workspaces/...` mounts and the retired `.claude/output-styles/`
 tree. Regular files and outside-pointing links remain.
 
 After toolkit-owned child links are swept, an empty category directory is
-replaced by the category link. A directory with any remaining entry is
-preserved and refused with a listing and relocation instructions.
+replaced by the category link. A directory still holding an entry the toolkit
+does not own keeps it, and the catalog binds beside it as one link per entry.
 
 ## Manual removal
 
