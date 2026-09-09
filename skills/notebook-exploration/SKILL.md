@@ -218,7 +218,7 @@ Each notebook lives in **its own folder** so its rendered outputs stage as one u
     └── [NN]_[stage]_review_files/figure-gfm/ # committed PNGs the .md references
 ```
 
-Copy `assets/review.qmd` as the starting point. It re-plots live from the checkpoints and tables
+Copy `assets/notebook.qmd` as the starting point. It re-plots live from the checkpoints and tables
 through `figure-style`, so the notebook always reflects the current config rather than a
 baked-in PNG.
 
@@ -271,7 +271,7 @@ tweak.
 
 ```bash
 mkdir -p 02_analysis/notebooks/17_signature_review
-cp $SKILL/assets/review.qmd 02_analysis/notebooks/17_signature_review/17_signature_review.qmd
+cp $SKILL/assets/notebook.qmd 02_analysis/notebooks/17_signature_review/17_signature_review.qmd
 cp $SKILL/assets/render.R   02_analysis/notebooks/render.R          # once per project
 
 # render both targets, from the COMPARTMENT ROOT
@@ -344,7 +344,7 @@ committed GFM/HTML the same way it does under VS Code. See `references/headless-
 - **Cause:** `opts_knit$set(root.dir)` changes the working directory for the *knit/render* pass
   only; it leaves `getwd()` alone in an interactive session.
 - **Fix:** bind `here()` to the sentinel-resolved `.root`, and `if (interactive()) setwd(.root)`.
-  Both are in `assets/review.qmd`.
+  Both are in `assets/notebook.qmd`.
 
 ### Pitfall: figures render as SVG with an X11 warning
 
@@ -372,7 +372,7 @@ committed GFM/HTML the same way it does under VS Code. See `references/headless-
 - **GitHub-flavored markdown output:** https://pkgs.rstudio.com/rmarkdown/reference/github_document.html
 - **ragg headless raster device:** https://ragg.r-lib.org/
 - **Bundled templates:** `assets/explorer.qmd`, `assets/export_explorers_skeleton.py`,
-  `assets/interactive-config-snippet.yaml`, `assets/review.qmd`, `assets/render.R`
+  `assets/interactive-config-snippet.yaml`, `assets/notebook.qmd`, `assets/render.R`
 - **Deep dives:** `references/root-resolution.md`, `references/headless-workflow.md`
 
 ---

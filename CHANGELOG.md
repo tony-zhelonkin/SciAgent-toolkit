@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.1] - 2026-09-09
+
+### Fixed
+
+- The rendered-flavor template keeps its name, `assets/notebook.qmd`. v5.0.0
+  renamed it to `review.qmd` for symmetry with `explorer.qmd`, which bought
+  nothing and broke the name anyone reaching for it already knew.
+
 ## [5.0.0] - 2026-09-09
 
 Three notebook skills become two, and the pipeline decision gate stops being a
@@ -31,8 +39,8 @@ house pattern.
   `notebook-exploration`**, one skill with two flavors: a live-kernel Python
   notebook brushing jscatter panels, and a rendered read-only Quarto/R notebook.
   Both are read-only; both send their conclusion to a topic note. All seven
-  assets and both reference documents carry over (`notebook.qmd` becomes
-  `review.qmd`); the gate's config snippet does not.
+  assets and both reference documents carry over under their existing names; the
+  gate's config snippet does not.
 - **`decision-notebook` becomes `notebook-annotation`.** It was named for
   routing while its substance was one instrument, and it sat one word away from
   `decision-gate-notebook` in a catalog matched on name and description. It now
