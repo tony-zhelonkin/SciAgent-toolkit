@@ -41,8 +41,12 @@ catalog_count=$(find "$TOOLKIT_ROOT/skills" -mindepth 1 -maxdepth 1 -type d | wc
 linked_count=$(find "$PROJ/.claude/skills" -mindepth 1 -maxdepth 1 -type l | wc -l)
 assert_eq "$linked_count" "$catalog_count" "one link per catalog skill"
 
-assert_symlink "$PROJ/.claude/skills/decision-notebook"
-assert_file_exists "$PROJ/.claude/skills/decision-notebook/SKILL.md"
+# Pick a catalog entry by inspection rather than by name, so a rename in the
+# catalog cannot silently turn this into a test of nothing.
+CATALOG_SKILL=$(find "$TOOLKIT_ROOT/skills" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' \
+    | LC_ALL=C sort | head -1)
+assert_symlink "$PROJ/.claude/skills/$CATALOG_SKILL"
+assert_file_exists "$PROJ/.claude/skills/$CATALOG_SKILL/SKILL.md"
 
 # --- 2. the fanout converges quietly ----------------------------------------
 second=$("$SCIO" link --project-dir "$PROJ" 2>&1) || {
@@ -57,16 +61,16 @@ if printf '%s\n' "$second" | grep -qE 'replaced link|^linked:|removed stale'; th
 fi
 
 # --- 3. a shadowing local entry is kept and reported ------------------------
-rm "$PROJ/.claude/skills/decision-notebook"
-mkdir -p "$PROJ/.claude/skills/decision-notebook"
-echo "local override" >"$PROJ/.claude/skills/decision-notebook/SKILL.md"
+rm "$PROJ/.claude/skills/$CATALOG_SKILL"
+mkdir -p "$PROJ/.claude/skills/$CATALOG_SKILL"
+echo "local override" >"$PROJ/.claude/skills/$CATALOG_SKILL/SKILL.md"
 
 shadow=$("$SCIO" link --project-dir "$PROJ" 2>&1) || {
     echo "FAIL [$_TEST_NAME] link failed on a shadowing entry" >&2
     printf '%s\n' "$shadow" >&2
     exit 1
 }
-assert_eq "$(cat "$PROJ/.claude/skills/decision-notebook/SKILL.md")" "local override" \
+assert_eq "$(cat "$PROJ/.claude/skills/$CATALOG_SKILL/SKILL.md")" "local override" \
     "the project copy survives"
 if ! printf '%s\n' "$shadow" | grep -q 'shadows the catalog entry'; then
     echo "FAIL [$_TEST_NAME] a shadowing entry was not reported" >&2
@@ -75,7 +79,7 @@ if ! printf '%s\n' "$shadow" | grep -q 'shadows the catalog entry'; then
 fi
 
 # --- 4. removing every local entry converges to the single symlink ----------
-rm -rf "$PROJ/.claude/skills/my-local-skill" "$PROJ/.claude/skills/decision-notebook"
+rm -rf "$PROJ/.claude/skills/my-local-skill" "$PROJ/.claude/skills/$CATALOG_SKILL"
 converge=$("$SCIO" link --project-dir "$PROJ" 2>&1) || {
     echo "FAIL [$_TEST_NAME] link failed while converging" >&2
     printf '%s\n' "$converge" >&2

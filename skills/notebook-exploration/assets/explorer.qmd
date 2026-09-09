@@ -127,7 +127,4 @@ print(f"reloaded {len(sel_reloaded)} of {len(saved)} barcodes")
 
 <!-- One paragraph, then copy it into docs/_internal/<stage-stem>/<topic>.md. State what the
      cells showed, the numbers behind it, and the reading you rejected. This cell is scratch,
-     overwritten on the next run; the topic note is the record the next session reads.
-
-     If a downstream stage must refuse to run until this is signed off, that latch is a
-     separate mechanism — see the decision-gate-notebook skill. -->
+     overwritten on the next run; the topic note is the record the next session reads. -->

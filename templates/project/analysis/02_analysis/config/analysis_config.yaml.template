@@ -132,7 +132,7 @@ figures:
 # export_explorers.py. At a pipeline inflection point, a live-kernel Python .qmd
 # drives jscatter linked panels to brush/lasso cells, then persists barcodes + a
 # labelled snapshot that FEEDS the decision gate (see skill:
-# interactive-breakpoint-explorer). All lists are EMPTY by default — fill per
+# notebook-exploration). All lists are EMPTY by default — fill per
 # project; the helper lib hardcodes no project-specific columns. Export-first:
 # the exporter materializes compact parquet under 03_results/interactive/ so the
 # live kernel never opens the multi-GB .h5ad.

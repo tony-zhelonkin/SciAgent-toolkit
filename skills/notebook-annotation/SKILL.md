@@ -1,39 +1,31 @@
 ---
-name: decision-notebook
-description: "Router for live analysis notebooks. Pick the flavor by decision: an annotation campaign instrument (marimo + jscatter, selection manifest, rounds, cleaning; specified here), gate sign-off (decision-gate-notebook), one live look (interactive-breakpoint-explorer), or freestyle EDA. Use when work needs a notebook and the first question is which kind."
+name: notebook-annotation
+description: "The annotation campaign instrument: one marimo + jscatter notebook serving many rounds of lasso, rule and marker selections over per-lineage re-embeddings, with a selection manifest, in-kernel evidence, and a deterministic path from saved selections to a cleaned roster. Ask the user what the campaign is for before scaffolding."
 license: MIT
 ---
 
-# Decision Notebook
+# Notebook Annotation
 
 ## Overview
 
-A notebook earns its place at a decision. The pipeline computes; a person looks, selects,
-rules; the ruling lands in a durable record and the pipeline moves. This skill routes to the
-notebook shape the decision calls for, and fully specifies the heaviest shape, the
-annotation campaign instrument.
+Relabelling a dataset is a campaign, not a sitting. The label space evolves, selections
+accumulate across sessions and rebuilds, and every ruling has to survive the next
+re-embedding. This skill is the instrument for that: one marimo notebook driving rounds of
+selection over per-lineage re-embeddings, a manifest that records every call with its
+rationale, and a deterministic path from saved selections to a cleaned, relabelled roster.
 
-## Route by need
+## Ask before you scaffold
 
-```
-The analysis needs a live surface. What is the decision?
-│
-├─ Relabel or drop cells across many sessions, evolving label space
-│    → Flavor A: annotation campaign instrument (this skill)
-├─ Approve or reject what a stage just wrote (freeze a set, pick a threshold)
-│    → skill: decision-gate-notebook (read-only Quarto review; verdict in analysis_config)
-├─ Eyeball one inflection point once, then move on
-│    → skill: interactive-breakpoint-explorer (live-kernel qmd, jscatter brush)
-└─ Look around, nothing downstream waiting
-     → Flavor D: freestyle EDA (below)
-```
+**Do not infer the campaign from context. Ask the user.** Before creating anything:
 
-The moment a freestyle look starts producing selections or verdicts, graduate it to A or to
-the gate pattern. Whatever the flavor, the call you reach goes to the durable record: the
-selection manifest, `decisions.<stage>` in config, or a stage-keyed note under
-`docs/_internal/` (skill: reasoning-trace).
+1. **What is being relabelled, and against what label space?** A fine-grained roster being
+   cleaned, a coarse compartment split, doublet and debris removal, or a fresh annotation from
+   markers — the lens set and the cleaning ladder differ.
+2. **Is this a campaign, or one look?** If it is one sitting with nothing to carry forward, use
+   `notebook-exploration` instead; the manifest machinery here is overhead you will not repay.
+3. **Which round is this, and what roster does it start from?**
 
-## Flavor A: the annotation campaign instrument
+## The instrument
 
 One marimo notebook serves an entire campaign: rounds of lasso, rule, and marker selections
 over per-lineage re-embeddings, rationale captured at save time, in-kernel evidence on
@@ -147,21 +139,19 @@ dataset-agnostic contract.
 - The widget legend draws inside the canvas; identity headers in HTML keep the canvas
   clean.
 
-## Flavor B: gate sign-off
+## When not to use
 
-A stage wrote artifacts and a person must approve them before an expensive or irreversible
-next stage. Use skill `decision-gate-notebook`: read-only Quarto review, verdict recorded
-under `decisions.<stage>` in `analysis_config.yaml`.
+- One sitting with nothing to carry forward — use `notebook-exploration`. The manifest,
+  rounds, and cleaning ladder are overhead a single look never repays.
+- A stage that writes authoritative state. The campaign's outputs are selections and a roster;
+  the pipeline stages own everything downstream reads (skill: `analysis-code-conventions`).
+- Nothing here latches a pipeline. The roster is an input a later stage consumes because you
+  point it there, not a gate that blocks until signed.
 
-## Flavor C: one live look
+## See also
 
-One inflection point, one session, evidence out. Use skill
-`interactive-breakpoint-explorer`: live-kernel Python qmd, linked jscatter panels, persisted
-barcodes plus a labelled snapshot.
-
-## Flavor D: freestyle EDA
-
-Looking around with nothing downstream waiting. A marimo notebook or live qmd over a
-compact parquet export, paths from config, figures disposable. Skip the persistence
-machinery. When a selection wants saving or a verdict forms, move to Flavor A or the gate
-pattern and give the call a durable home.
+- `notebook-exploration` — One look at what a stage produced, Python live-kernel or rendered Quarto
+- `figure-style` — The styling and saving contract the snapshots plot through
+- `analysis-code-conventions` — Narrative stages and authoritative data flow
+- `reasoning-trace` — Where the campaign's conclusions become durable, stage-keyed notes
+- `container-port-tunnel` — Reaching the marimo server in the devcontainer from a laptop browser
