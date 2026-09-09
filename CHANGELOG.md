@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-09-09
+
+Two skills that were living in one project's local catalog become part of the
+toolkit, so every consumer gets them and there is one copy to maintain.
+
+### Added
+
+- **`decision-notebook`** — router for live analysis notebooks. It picks the
+  flavor a decision calls for (annotation campaign, gate sign-off, one live look,
+  freestyle EDA) and fully specifies the heaviest one: a marimo + jscatter
+  campaign instrument with a selection manifest, rounds, in-kernel DE, and a
+  deterministic path from saved selections to a cleaned roster. `decision-gate-notebook`
+  and `interactive-breakpoint-explorer` are the two flavors it routes on to;
+  `analysis-code-conventions` now names the router rather than the leaves.
+- **`container-port-tunnel`** — reach a server running inside the devcontainer
+  from a laptop. The compose template ships `ports:` commented out, so the
+  container publishes nothing and a `-L PORT:localhost:PORT` tunnel lands on a
+  host loopback with no listener; the tunnel has to target the container's bridge
+  IP. Carries the listener probe that works in an image with no `ss`, `netstat`
+  or `lsof`.
+
 ## [4.0.0] - 2026-08-26
 
 The toolkit is `scio`, in name and on disk. Breaking for consumers: the vendored

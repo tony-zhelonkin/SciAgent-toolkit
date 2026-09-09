@@ -74,8 +74,9 @@ What decision is being made?
 - Use `figure-style` for figure design, saving, and caption contracts.
 - Use the relevant assay skill for data objects, scientific methodology, and
   domain-specific deliverables.
-- Use `decision-gate-notebook` and `interactive-breakpoint-explorer` for their
-  respective notebook contracts.
+- Use `decision-notebook` to pick the notebook flavor a decision calls for; it
+  routes on to `decision-gate-notebook` and `interactive-breakpoint-explorer`,
+  and specifies the annotation-campaign instrument itself.
 - Use `architecture-first-dev` for software architecture campaigns, ADRs, and
   multi-stage implementation planning.
 
