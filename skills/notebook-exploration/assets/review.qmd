@@ -10,7 +10,7 @@ format:
 ---
 
 ```{r setup, include=FALSE}
-# --- Rendering + root resolution (the load-bearing chunk — see the decision-gate-notebook
+# --- Rendering + root resolution (the load-bearing chunk — see the notebook-exploration
 #     skill's references/root-resolution.md before "simplifying" any of it) ------------------
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE,
                       # crisper, more compact figures; ragg_png is a headless raster device
@@ -55,16 +55,16 @@ source(here("02_analysis/helpers/figure_style.R"))
 
 ## Where we are
 
-<!-- One paragraph: what the stage just produced, and the N calls this notebook exists to make.
-     e.g. "Stage NN reshaped X into projectable pieces. Here I look at what I'm about to freeze
-     and make three calls: (1) which contrasts, (2) which gate, (3) how to handle ambiguity." -->
+<!-- One paragraph: what the stage just produced, and the N questions this notebook looks at.
+     e.g. "Stage NN reshaped X into projectable pieces. Here I look at three things:
+     (1) which contrasts separate, (2) where the significance cut lands, (3) how ambiguous
+     mappings behave." -->
 
 ```{r load}
-# Read only. Load the stage's outputs + the proposed decision from config.
+# Read only. Load the stage's outputs and the parameters that produced them.
 # ... readRDS(here("03_results/objects/...")) ; read.csv(here("03_results/[stage]/tables/...")) ...
-dcn <- yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decisions$projection
-# What APPROVED would freeze — read from config so the prose tracks whatever you tweak.
-# EXPORT <- unlist(dcn$contrasts_primary); GATE <- dcn$gate
+cfg <- yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))
+# Pull parameters from config rather than hardcoding, so the prose tracks whatever you tweak.
 ```
 
 ## 1. [First question the human must answer]
@@ -88,22 +88,18 @@ dcn <- yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decision
 ## 3. [Third question]
 
 ```{r q3-check}
-# Live consistency check: does anything in the proposed decision clash with a downstream rule?
-# Surface it here so the human sees it before flipping the gate.
+# Live consistency check: does anything here clash with what a downstream stage assumes?
+# Surface it so the reader sees it alongside the evidence.
 ```
 
 ## Where are we?
 
-1. **[Call 1]** → ...
-2. **[Call 2]** → ...
-3. **[Call 3]** → ...
+1. **[Reading 1]** → ...
+2. **[Reading 2]** → ...
+3. **[Reading 3]** → ...
 
-> **Green light:**
-> set `decisions.projection.status: APPROVED` in `analysis_config.yaml`,
-> then run `[NN+1]_[next_stage].R`.
-> Until then `[NN+1]` refuses to run and nothing is frozen.
-
-```{r decisions-echo, echo=TRUE}
-# What the next stage will use once status flips to APPROVED:
-str(yaml::read_yaml(here("02_analysis/config/analysis_config.yaml"))$decisions$projection)
-```
+<!-- Copy the readings above into docs/_internal/<stage-stem>/<topic>.md: what the evidence
+     showed, the numbers behind it, and the alternative you rejected. This notebook is
+     re-rendered whenever the stage re-runs; the topic note is the record that persists.
+     Nothing here latches a pipeline — if a next stage should not run yet, say so to the
+     person running it. -->

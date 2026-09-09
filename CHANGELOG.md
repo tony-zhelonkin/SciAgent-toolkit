@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-09-09
+
+Three notebook skills become two, and the pipeline decision gate stops being a
+house pattern.
+
+### Removed — breaking
+
+- **The `decisions.<stage>` gate is no longer taught.** `decision-gate-notebook`
+  moves to `_attic/`. The catalog no longer prescribes recording a verdict in
+  `analysis_config.yaml`, nor a downstream stage that refuses to run until
+  `status: APPROVED`. Exploration informs a judgement; it latches nothing and
+  blocks nothing, and the reading reached goes to a topic note under
+  `docs/_internal/<stage-stem>/`.
+
+  Projects that already carry a `decisions:` block keep working — this removes a
+  pattern from the catalog, not a key from anyone's config. Nothing in the
+  toolkit ever enforced the gate, so no mechanism is lost.
+
+### Changed — breaking
+
+- **`interactive-breakpoint-explorer` and `decision-gate-notebook` merge into
+  `notebook-exploration`**, one skill with two flavors: a live-kernel Python
+  notebook brushing jscatter panels, and a rendered read-only Quarto/R notebook.
+  Both are read-only; both send their conclusion to a topic note. All seven
+  assets and both reference documents carry over (`notebook.qmd` becomes
+  `review.qmd`); the gate's config snippet does not.
+- **`decision-notebook` becomes `notebook-annotation`.** It was named for
+  routing while its substance was one instrument, and it sat one word away from
+  `decision-gate-notebook` in a catalog matched on name and description. It now
+  says what it is: the marimo multi-round annotation campaign.
+- **Both skills ask the user before scaffolding.** `notebook-exploration` asks
+  what needs to be seen and whether Python or Quarto; `notebook-annotation` asks
+  what is being relabelled and which round. Routing stays contextual — each
+  skill's own decision tree and `analysis-code-conventions` — rather than
+  concentrating in a switchboard an agent has to know to consult.
+
 ## [4.2.0] - 2026-09-09
 
 ### Changed

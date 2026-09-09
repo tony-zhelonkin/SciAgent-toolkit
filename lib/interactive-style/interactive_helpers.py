@@ -4,7 +4,7 @@ interactive_helpers.py — the Scio toolkit INTERACTIVE-EXPLORER contract (live-
 ONE place that owns the "interactive breakpoint explorer" pattern: at a pipeline inflection
 point, a Python `.qmd` drives jscatter (jupyter-scatter) linked panels to brush/lasso cells,
 extracts a selection into pandas, characterizes it, and persists selected barcodes + a labelled
-matplotlib snapshot. It is the LIVE-KERNEL sibling of the (static, R) `decision-gate-notebook`
+matplotlib snapshot. It is the live-kernel side of the `notebook-exploration` skill, whose other side is a rendered R notebook
 skill: it FEEDS the decision gate (produces evidence + a barcode selection); it does NOT replace
 it. Nothing here computes biology — it is a read-only projection for visualization + selection.
 
