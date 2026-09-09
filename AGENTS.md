@@ -73,6 +73,8 @@ bin/scio lint --check toolkit --strict --quiet
 
 ## Picking up mid-stream
 
-`docs/_internal/handoff/session-state.md` — where the work stopped, what is
-waiting on the owner, and the traps that cost time to rediscover. Living file;
-re-derive its numbers with the commands it carries before acting on them.
+`docs/_internal/_project/session.md` — where the work stopped, what is waiting
+on the owner, and the traps that cost time to rediscover. It always carries
+that name; what it supersedes moves to `session-history/<UTC timestamp>.md`.
+Living file; re-derive its numbers with the commands it carries before acting
+on them.
