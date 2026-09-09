@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.2.0] - 2026-09-09
+
+### Changed
+
+- **A project may keep its own skills in `.claude/skills/`.** When a category
+  directory holds an entry the toolkit does not own, `link` preserves it and
+  binds the catalog as one symlink per entry beside it, where before it refused
+  the directory and left the category unbound. Three consumers had been sitting
+  in exactly that state since they migrated, reaching zero catalog skills
+  through either door.
+
+  The single category symlink remains the default and the better binding, but
+  it makes the mount point resolve into the toolkit checkout: a skill installer
+  pointed at `.claude/skills/` writes into the vendored submodule, where the
+  result is untracked and the next `git checkout` there deletes it. That is how
+  `decision-notebook` came to live inside one project's submodule. A project
+  entry named like a catalog entry keeps loading and is reported on every run;
+  removing the last project entry converges the category back to one symlink.
+
 ## [4.1.0] - 2026-09-09
 
 Two skills that were living in one project's local catalog become part of the

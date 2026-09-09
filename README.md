@@ -121,9 +121,11 @@ silent no-op, and a link pointing elsewhere is replaced with a message. It
 also sweeps legacy toolkit-owned child mounts, retired output-style links, and
 dangling absolute mounts from older container paths.
 
-A real populated category directory is preserved. `link` names every entry in
-the refusal and asks the user to relocate it before retrying. Private skills,
-agents, and commands should live outside these six category paths.
+A project may keep its own skills, agents, and commands in these six paths.
+When a category directory holds an entry the toolkit does not own, `link`
+preserves it and binds the catalog as one link per entry beside it instead of
+one link for the whole category. A project entry sharing a catalog entry's name
+is the one that loads, and `link` says so each run.
 
 Hook bodies use a hash-and-cede ownership discipline. An unchanged body from
 any shipped toolkit version can be refreshed. A user-edited body is preserved,

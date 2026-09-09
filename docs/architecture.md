@@ -55,8 +55,19 @@ D/.agents/commands -> $SCIO_TOOLKIT/commands
 ```
 
 The operation is convergent. It sweeps legacy toolkit-owned child links,
-preserves populated directories and user-owned links, and silently keeps
-correct bindings. A locality check protects submodule pins.
+preserves user-owned links, and silently keeps correct bindings. A locality
+check protects submodule pins.
+
+A category whose directory holds anything the toolkit does not own — a skill
+the project wrote, or one a third-party installer put there — keeps that
+directory and receives one link per catalog entry beside the project's own.
+The category symlink is the better binding because it needs no refresh when
+the catalog changes, but it makes the mount point resolve into the toolkit
+checkout, so an installer writing to `.claude/skills/` writes into the vendored
+submodule, where the result is untracked and the next checkout there deletes
+it. A project entry named like a catalog entry keeps loading, and `link`
+reports the shadow on every run. Remove the last project entry and the
+category converges back to the single symlink.
 
 Those six paths are the door. The same files are also reachable through the
 vendored tree, and that path is the fallback: a skill reached through a mount

@@ -120,8 +120,8 @@ absolute `/workspaces/...` mounts and the retired `.claude/output-styles/`
 tree. Regular files and outside-pointing links remain.
 
 After toolkit-owned child links are swept, an empty category directory is
-replaced by the category link. A directory with any remaining entry is
-preserved and refused with a listing and relocation instructions.
+replaced by the category link. A directory still holding an entry the toolkit
+does not own keeps it, and the catalog binds beside it as one link per entry.
 
 ## Manual removal
 

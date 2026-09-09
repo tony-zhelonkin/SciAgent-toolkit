@@ -36,7 +36,7 @@ scio/
 
 2. **All operations must be idempotent.** Check for existing state before acting. `link` twice is a silent no-op. Tests verify this — don't break it.
 
-3. **Link ownership.** Sweep only symlinks that resolve inside the toolkit or dangling legacy links that identify a toolkit source. Preserve regular files, real populated directories, and outside-pointing links. Hook bodies follow the hash-and-cede discipline in `ownership.sh`.
+3. **Link ownership.** Sweep only symlinks that resolve inside the toolkit or dangling legacy links that identify a toolkit source. Preserve regular files and outside-pointing links; a category directory holding any of them keeps it and gets one link per catalog entry beside it. Hook bodies follow the hash-and-cede discipline in `ownership.sh`.
 
 4. **Tests must pass.** Run `bash tests/run-all.sh` before committing any change to `bin/` or `lib/`.
 

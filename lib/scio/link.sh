@@ -11,8 +11,10 @@ D/.claude/ and D/.agents/ (default: cwd). Materialize the two project
 guardrail hooks, merge their registrations into .claude/settings.json, and
 refresh the SCIO:GITIGNORE block in .gitignore.
 
-Existing toolkit-owned mounts are swept first. A populated real category
-directory is preserved and refused with relocation instructions.
+Existing toolkit-owned mounts are swept first. A category directory holding
+entries the toolkit does not own — a project's own skills, or one installed by
+a third-party installer — keeps them and receives one link per catalog entry
+beside them.
 EOF
 }
 
@@ -179,12 +181,57 @@ _link_sweep_dir() {
     done < <(find "$dir" -mindepth 1 -maxdepth 1 -type l -print0 2>/dev/null)
 }
 
-_link_refuse_directory() {
-    local dst="$1"
-    echo "scio link: refusing $dst; it is a real populated directory containing:" >&2
-    find "$dst" -mindepth 1 -maxdepth 1 -printf '  - %f\n' 2>/dev/null | LC_ALL=C sort >&2
-    echo "  Move these entries outside $dst, remove the empty directory, and run scio link again." >&2
+# True when the directory holds anything the toolkit does not own. One such
+# entry means the project keeps its own catalog here.
+_link_dir_has_foreign() {
+    local dir="$1" entry
+    [[ -d "$dir" && ! -L "$dir" ]] || return 1
+    while IFS= read -r -d '' entry; do
+        _link_owned_by_toolkit "$entry" && continue
+        return 0
+    done < <(find "$dir" -mindepth 1 -maxdepth 1 -print0 2>/dev/null)
     return 1
+}
+
+# Bind each catalog entry on its own so project-owned entries survive.
+#
+# The single category symlink is the better binding and stays the default, but
+# it makes the mount point resolve into the toolkit checkout — so a skill
+# installer told to write into .claude/skills/ writes into the vendored
+# submodule instead, where the result is untracked and the next checkout there
+# deletes it. A project that keeps its own skills gets a real directory and one
+# link per catalog entry beside them.
+_link_fanout_category() {
+    local harness="$1" category="$2"
+    local dst="$harness/$category" src="$SCIO_TOOLKIT/$category"
+    local entry name target link_path stale
+
+    for entry in "$src"/*; do
+        [[ -e "$entry" ]] || continue
+        name=$(basename "$entry")
+        target=$(_link_symlink_target "$dst" "$entry")
+        link_path="$dst/$name"
+        if [[ -L "$link_path" ]]; then
+            [[ "$(readlink "$link_path")" == "$target" ]] && continue
+            ln -sfn "$target" "$link_path" \
+                || { echo "scio link: failed to replace $link_path" >&2; return 1; }
+            echo "replaced link: $link_path -> $target"
+        elif [[ -e "$link_path" ]]; then
+            echo "scio link: $link_path shadows the catalog entry of the same name; the project copy is the one that loads" >&2
+        else
+            ln -s "$target" "$link_path" \
+                || { echo "scio link: failed to create $link_path" >&2; return 1; }
+            echo "linked: $link_path -> $target"
+        fi
+    done
+
+    # Retire links to catalog entries the toolkit no longer carries.
+    while IFS= read -r -d '' stale; do
+        _link_owned_by_toolkit "$stale" || continue
+        [[ -e "$src/$(basename "$stale")" ]] && continue
+        rm "$stale" || { echo "scio link: failed to remove stale link: $stale" >&2; return 1; }
+        echo "removed stale toolkit link: $stale"
+    done < <(find "$dst" -mindepth 1 -maxdepth 1 -type l -print0 2>/dev/null)
 }
 
 _link_category() {
@@ -192,8 +239,14 @@ _link_category() {
     local dst="$harness/$category" src="$SCIO_TOOLKIT/$category"
 
     [[ -d "$src" ]] || { echo "scio link: missing toolkit category: $src" >&2; return 1; }
-    _link_sweep_dir "$dst" || return 1
     mkdir -p "$harness" || { echo "scio link: failed to create $harness" >&2; return 1; }
+
+    if _link_dir_has_foreign "$dst"; then
+        _link_fanout_category "$harness" "$category"
+        return $?
+    fi
+
+    _link_sweep_dir "$dst" || return 1
 
     local target
     target=$(_link_symlink_target "$harness" "$src")
@@ -213,8 +266,12 @@ _link_category() {
     fi
 
     if [[ -d "$dst" ]]; then
+        # The sweep clears every toolkit-owned link, and anything else would
+        # have routed to the fanout. A survivor here is unreadable state.
         if find "$dst" -mindepth 1 -maxdepth 1 -print -quit | grep -q .; then
-            _link_refuse_directory "$dst"
+            echo "scio link: refusing $dst; it is a real populated directory containing:" >&2
+            find "$dst" -mindepth 1 -maxdepth 1 -printf '  - %f\n' 2>/dev/null | LC_ALL=C sort >&2
+            echo "  Move these entries outside $dst, remove the empty directory, and run scio link again." >&2
             return 1
         fi
         rmdir "$dst" || { echo "scio link: failed to remove empty directory: $dst" >&2; return 1; }
